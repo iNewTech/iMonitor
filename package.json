@@ -1,0 +1,53 @@
+{
+  "name": "imonitor",
+  "version": "1.0.0",
+  "description": "IBMi System Monitor",
+  "main": "dist/main.js",
+  "scripts": {
+    "start": "tsc && electron .",
+    "build": "tsc",
+    "watch": "tsc -w",
+    "dev": "npm run build && electron .",
+    "package": "electron-builder build --mac --win --linux",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "build": {
+    "appId": "com.inewtech.imonitor",
+    "productName": "iMonitor",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "public/**/*"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iNewTech/iMonitor.git"
+  },
+  "keywords": [
+    "ibmi",
+    "monitor",
+    "electron"
+  ],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/iNewTech/iMonitor/issues"
+  },
+  "homepage": "https://github.com/iNewTech/iMonitor#readme",
+  "devDependencies": {
+    "@types/node": "^24.1.0",
+    "electron": "^37.2.5",
+    "electron-builder": "^26.0.12",
+    "electron-store": "^10.1.0",
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "@ibm/mapepire-js": "^0.6.0",
+    "@popperjs/core": "^2.11.8",
+    "bootstrap": "^5.3.7",
+    "bootstrap-icons": "^1.13.1"
+  }
+}
