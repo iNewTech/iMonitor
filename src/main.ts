@@ -16,10 +16,6 @@ interface StoredConnection {
 // Define the store schema
 interface StoreSchema {
     connections: StoredConnection[];
-    lastConnection?: {
-        id: string;
-        timestamp: number;
-    };
 }
 
 const defaultPort = 3076; // Default SSH port for IBM i
@@ -56,33 +52,6 @@ function loadMonitorPage() {
     mainWindow?.loadFile(path.join(__dirname, '../public/monitor.html'));
 }
 
-async function tryRestoreLastConnection(): Promise<boolean> {
-    try {
-        const lastConnection = store.get('lastConnection');
-        if (!lastConnection) return false;
-
-        const connections = store.get('connections');
-        const connection = connections.find(conn => conn.id === lastConnection.id);
-        if (!connection) return false;
-
-        // Try to connect with saved credentials
-        await ibmiService?.connect({
-            host: connection.host,
-            user: connection.user,
-            password: connection.encryptedPassword,
-            port: connection.port || defaultPort,
-            rejectUnauthorized: false
-        });
-
-        connectionState.isConnected = true;
-        connectionState.currentConnection = connection;
-        return true;
-    } catch (error) {
-        console.error('Failed to restore last connection:', error);
-        return false;
-    }
-}
-
 function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1200,
@@ -94,14 +63,7 @@ function createWindow() {
         }
     });
 
-    // Try to restore last connection
-    tryRestoreLastConnection().then(restored => {
-        if (restored) {
-            loadMonitorPage();
-        } else {
-            loadConnectionPage();
-        }
-    });
+    loadConnectionPage();
 
     // Handle window closing
     mainWindow.on('closed', () => {
@@ -259,27 +221,11 @@ ipcMain.handle('delete-connection', (_event, id) => {
 });
 
 // IBM i connection handler
-ipcMain.handle('connect-to-system', async (_event, config: DaemonServer & { id?: string }) => {
+ipcMain.handle('connect-to-system', async (_event, config: DaemonServer) => {
     try {
         ibmiService = new dB();
         config.rejectUnauthorized = false; // Disable certificate validation for testing
         await ibmiService.connect(config);
-        
-        // Save last connection info
-        if (config.id) {
-            store.set('lastConnection', {
-                id: config.id,
-                timestamp: Date.now()
-            });
-        }
-
-        // Update connection state
-        connectionState.isConnected = true;
-        if (config.id) {
-            const connections = store.get('connections');
-            connectionState.currentConnection = connections.find(conn => conn.id === config.id) || null;
-        }
-
         return { success: true };
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Connection failed';

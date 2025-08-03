@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.electronAPI.onStatusUpdate((data) => {
         if (systemStats) {
             const tbody = systemStats.querySelector('tbody');
-            if (!data || !data.length) {
+            if (!data.data || !data.data.length) {
                 tbody.innerHTML = `
                     <tr class="table-placeholder">
                         <td colspan="6" class="text-center py-4 text-muted">
@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            tbody.innerHTML = data.map(job => `
+            tbody.innerHTML = data.data.map(job => `
                 <tr>
                     <td>${job.SUBSYSTEM_JOB || ''}</td>
                     <td>${job.CURRENT_USER || ''}</td>
