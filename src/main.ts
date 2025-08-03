@@ -126,6 +126,26 @@ async function testConnection(config: DaemonServer): Promise<boolean> {
 // Connection management IPC handlers
 ipcMain.handle('save-connection', async (_event, connection) => {
     try {
+        const existingConnections = store.get('connections');
+
+        // Check if connection name already exists
+        const nameExists = existingConnections.some(
+            (conn: StoredConnection) => conn.name.toLowerCase() === connection.name.toLowerCase()
+        );
+        if (nameExists) {
+            throw new Error(`Connection name "${connection.name}" is already in use. Please choose a different name.`);
+        }
+
+        // Check if host and user combination already exists
+        const existingConnection = existingConnections.find(
+            (conn: StoredConnection) => 
+                conn.host.toLowerCase() === connection.host.toLowerCase() && 
+                conn.user.toLowerCase() === connection.user.toLowerCase()
+        );
+        if (existingConnection) {
+            throw new Error(`A connection to ${connection.host} with user ${connection.user} already exists as "${existingConnection.name}".`);
+        }
+
         // Notify renderer that connection test is in progress
         mainWindow?.webContents.send('connection-test-status', { 
             status: 'testing', 
@@ -192,7 +212,7 @@ ipcMain.handle('load-connections', () => {
         id: conn.id,
         name: conn.name,
         host: conn.host,
-        username: conn.user,
+        user: conn.user,
         port: conn.port || defaultPort // Default to SSH port defaultPort if not specified
     }));
 });

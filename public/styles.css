@@ -55,13 +55,40 @@
 }
 
 .container {
-    max-width: 1000px;
+    max-width: 100%;
     margin: 0 auto;
     background-color: white;
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
+
+/* Table responsive styles */
+.table-responsive {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table {
+    width: 100% !important;
+    min-width: 800px; /* Ensures table doesn't get too squished */
+}
+
+.table th, .table td {
+    white-space: nowrap;
+    padding: 12px 15px;
+}
+
+/* Column specific widths */
+.table th:nth-child(1), .table td:nth-child(1) { min-width: 200px; } /* Subsystem/Job */
+.table th:nth-child(2), .table td:nth-child(2) { min-width: 150px; } /* Current User */
+.table th:nth-child(3), .table td:nth-child(3) { min-width: 100px; } /* Type */
+.table th:nth-child(4), .table td:nth-child(4) { min-width: 100px; } /* CPU % */
+.table th:nth-child(5), .table td:nth-child(5) { min-width: 150px; } /* Function */
+.table th:nth-child(6), .table td:nth-child(6) { min-width: 100px; } /* Status */
 
 .connection-panel {
     margin-bottom: 20px;

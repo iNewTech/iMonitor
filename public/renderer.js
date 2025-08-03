@@ -1,6 +1,6 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // Connection form elements
-    const connectButton = document.getElementById('connect');
+    const connectionForm = document.getElementById('connection-form');
     const systemInput = document.getElementById('system');
     const portInput = document.getElementById('port');
     const usernameInput = document.getElementById('username');
@@ -11,26 +11,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedConnectionsSelect = document.getElementById('saved-connections');
     const deleteConnectionButton = document.getElementById('delete-connection');
 
-    // Password visibility toggle
-    togglePasswordButton?.addEventListener('click', () => {
-        const icon = togglePasswordButton.querySelector('i');
-        if (passwordInput.type === 'password') {
-            passwordInput.type = 'text';
-            icon.classList.remove('bi-eye');
-            icon.classList.add('bi-eye-slash');
-        } else {
-            passwordInput.type = 'password';
-            icon.classList.remove('bi-eye-slash');
-            icon.classList.add('bi-eye');
+    // Load saved connections immediately when page loads
+    try {
+        const savedConnections = await window.electronAPI.loadConnections();
+        savedConnections.forEach(connection => {
+            const option = document.createElement('option');
+            option.value = JSON.stringify(connection);
+            option.textContent = connection.name || `${connection.host}:${connection.port}`;
+            savedConnectionsSelect.appendChild(option);
+        });
+        
+        if (savedConnections.length > 0) {
+            deleteConnectionButton.style.display = 'inline-block';
         }
-    });
+    } catch (error) {
+        console.error('Error loading saved connections:', error);
+    }
 
-    // Handle connection
-    connectButton?.addEventListener('click', async () => {
+    // Form validation and submission
+    connectionForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        
+        // Check HTML5 validation
+        if (!connectionForm.checkValidity()) {
+            event.stopPropagation();
+            connectionForm.classList.add('was-validated');
+            return;
+        }
+
         const connectionData = {
             name: connectionNameInput.value.trim(),
             host: systemInput.value,
-            port: parseInt(portInput.value),
+            port: parseInt(portInput.value) || 8076,
             user: usernameInput.value,
             password: passwordInput.value
         };
@@ -49,15 +61,57 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Password visibility toggle
+    togglePasswordButton?.addEventListener('click', () => {
+        const icon = togglePasswordButton.querySelector('i');
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            icon.classList.remove('bi-eye');
+            icon.classList.add('bi-eye-slash');
+        } else {
+            passwordInput.type = 'password';
+            icon.classList.remove('bi-eye-slash');
+            icon.classList.add('bi-eye');
+        }
+    });
+
+    // Remove the click handler since we're using form submission now
+
+    // Function to show error messages
+    function showErrorAlert(message) {
+        // Remove any existing alert
+        const existingAlert = document.querySelector('.alert');
+        if (existingAlert) {
+            existingAlert.remove();
+        }
+
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-danger alert-dismissible fade show mt-3';
+        alert.role = 'alert';
+        alert.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        connectionForm.insertAdjacentElement('afterbegin', alert);
+    }
+
     // Handle saving connections
     saveConnectionButton?.addEventListener('click', async () => {
+        // Validate required fields
+        if (!connectionNameInput.value.trim() || !systemInput.value.trim() || 
+            !usernameInput.value.trim() || !passwordInput.value) {
+            showErrorAlert('Please fill in all required fields before saving the connection.');
+            return;
+        }
+
         const connectionData = {
             name: connectionNameInput.value.trim(),
-            host: systemInput.value,
-            port: parseInt(portInput.value),
-            user: usernameInput.value,
+            host: systemInput.value.trim(),
+            port: parseInt(portInput.value) || 8076,
+            user: usernameInput.value.trim(),
             password: passwordInput.value
         };
+        
         try {
             const result = await window.electronAPI.saveConnection(connectionData);
             if (result.success) {
@@ -68,11 +122,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 savedConnectionsSelect.appendChild(option);
                 savedConnectionsSelect.value = option.value;
                 deleteConnectionButton.style.display = 'inline-block';
-            } else {
-                console.error('Failed to save connection:', result.error);
+
+                // Show success message
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-success alert-dismissible fade show mt-3';
+                alert.role = 'alert';
+                alert.innerHTML = `
+                    Connection "${connectionData.name}" has been saved successfully.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                connectionForm.insertAdjacentElement('afterbegin', alert);
             }
         } catch (error) {
-            console.error('Error saving connection:', error);
+            showErrorAlert(error.message || 'Error saving connection. Please try again.');
         }
     });
 
