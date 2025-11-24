@@ -148,6 +148,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             systemInput.value = connection.host;
             portInput.value = connection.port || '8076';
             usernameInput.value = connection.user;
+            passwordInput.value = connection.password;
             connectionNameInput.value = connection.name;
         } else {
             deleteConnectionButton.style.display = 'none';

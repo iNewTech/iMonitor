@@ -20,9 +20,33 @@ interface StoreSchema {
 
 const defaultPort = 3076; // Default SSH port for IBM i
 
-// Create a typed store instance
+// Create a typed store instance with different names for dev and prod
+const storeName = app.isPackaged ? 'connections-prod' : 'connections-dev';
+
+// Clear existing store in production
+if (app.isPackaged) {
+    const devStore = new Store<StoreSchema>({ 
+        name: 'connections-dev',
+        defaults: { connections: [] }
+    }) as Store<StoreSchema> & {
+        get<K extends keyof StoreSchema>(key: K): StoreSchema[K];
+        set<K extends keyof StoreSchema>(key: K, value: StoreSchema[K]): void;
+    };
+    
+    const prodStore = new Store<StoreSchema>({ 
+        name: 'connections-prod',
+        defaults: { connections: [] }
+    }) as Store<StoreSchema> & {
+        get<K extends keyof StoreSchema>(key: K): StoreSchema[K];
+        set<K extends keyof StoreSchema>(key: K, value: StoreSchema[K]): void;
+    };
+    
+    devStore.set('connections', []);
+    prodStore.set('connections', []);
+}
+
 const store = new Store<StoreSchema>({
-    name: 'connections',
+    name: storeName,
     defaults: {
         connections: []
     }
@@ -213,6 +237,7 @@ ipcMain.handle('load-connections', () => {
         name: conn.name,
         host: conn.host,
         user: conn.user,
+        password: conn.encryptedPassword,
         port: conn.port || defaultPort // Default to SSH port defaultPort if not specified
     }));
 });

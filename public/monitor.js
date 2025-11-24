@@ -28,6 +28,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    refreshInterval?.addEventListener('change', (event) => {
+        if (monitoring) {
+            const interval = parseInt(event.target.value);
+            window.electronAPI.startMonitoring(interval);
+        }
+    });
+
     disconnectButton?.addEventListener('click', async () => {
         try {
             const result = await window.electronAPI.disconnect();
