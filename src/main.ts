@@ -48,6 +48,12 @@ import {
     type MonitoringSnapshot
 } from './features/monitoring/monitoring-model';
 import {
+    DEFAULT_THEME_ID,
+    THEME_OPTIONS,
+    normalizeThemeId,
+    type ThemeId
+} from './features/theme/theme-model';
+import {
     deployMapepire,
     type DeployMode,
     ensureMapepireAvailable,
@@ -77,6 +83,7 @@ interface StoreSchema {
     connections: StoredConnection[];
     alertSettings: AlertSettings;
     alertWorkflowState: Record<string, StoredAlertWorkflowState>;
+    themeId: ThemeId;
 }
 
 interface ConnectionState {
@@ -146,7 +153,8 @@ const store = new Store<StoreSchema>({
     defaults: {
         connections: [],
         alertSettings: DEFAULT_ALERT_SETTINGS,
-        alertWorkflowState: {}
+        alertWorkflowState: {},
+        themeId: DEFAULT_THEME_ID
     }
 }) as Store<StoreSchema> & {
     get<K extends keyof StoreSchema>(key: K): StoreSchema[K];
@@ -212,6 +220,17 @@ function getAlertSettings() {
     }
 
     return normalized;
+}
+
+function getThemeId() {
+    const storedThemeId = store.get('themeId');
+    const normalizedThemeId = normalizeThemeId(storedThemeId);
+
+    if (storedThemeId !== normalizedThemeId) {
+        store.set('themeId', normalizedThemeId);
+    }
+
+    return normalizedThemeId;
 }
 
 function emitAlertSettings() {
@@ -1188,7 +1207,9 @@ ipcMain.handle('get-app-flags', () => {
     const demoAvailability = getDemoAvailability(app.isPackaged);
     return {
         demoModeEnabled: demoAvailability.enabled,
-        demoModeReason: demoAvailability.reason
+        demoModeReason: demoAvailability.reason,
+        themeId: getThemeId(),
+        themes: THEME_OPTIONS
     };
 });
 
@@ -1445,6 +1466,29 @@ ipcMain.handle('open-logs-folder', async () => {
 
 ipcMain.handle('get-alert-settings', () => {
     return getAlertSettings();
+});
+
+ipcMain.handle('get-theme-settings', () => {
+    return {
+        themeId: getThemeId(),
+        themes: THEME_OPTIONS
+    };
+});
+
+ipcMain.handle('save-theme-settings', (_event, candidateThemeId: string | undefined) => {
+    const normalizedThemeId = normalizeThemeId(candidateThemeId);
+    store.set('themeId', normalizedThemeId);
+    recordActivity({
+        area: 'navigation',
+        level: 'info',
+        message: 'Theme updated.',
+        detail: `UI theme set to ${normalizedThemeId}.`
+    });
+
+    return {
+        themeId: normalizedThemeId,
+        themes: THEME_OPTIONS
+    };
 });
 
 ipcMain.handle('save-alert-settings', (_event, candidate: Partial<AlertSettings> | undefined) => {

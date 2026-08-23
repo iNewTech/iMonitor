@@ -116,6 +116,17 @@ interface ConnectionActionStatus {
     detail?: string;
 }
 
+interface ThemeOption {
+    id: 'operator-light' | 'night-console' | 'paper-terminal';
+    label: string;
+    description: string;
+}
+
+interface ThemeSettings {
+    themeId: ThemeOption['id'];
+    themes: ThemeOption[];
+}
+
 contextBridge.exposeInMainWorld('electronAPI', {
     navigateToMonitor: () => ipcRenderer.invoke('navigate-to-monitor'),
     navigateToConnection: () => ipcRenderer.invoke('navigate-to-connection'),
@@ -124,7 +135,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getAppFlags: () => ipcRenderer.invoke('get-app-flags') as Promise<{
         demoModeEnabled: boolean;
         demoModeReason?: string;
+        themeId: ThemeOption['id'];
+        themes: ThemeOption[];
     }>,
+    getThemeSettings: () => ipcRenderer.invoke('get-theme-settings') as Promise<ThemeSettings>,
+    saveThemeSettings: (themeId: ThemeOption['id']) => ipcRenderer.invoke('save-theme-settings', themeId) as Promise<ThemeSettings>,
     getMonitoringState: () => ipcRenderer.invoke('get-monitoring-state') as Promise<MonitoringState>,
     getActivityLog: () => ipcRenderer.invoke('get-activity-log') as Promise<ActivityLogEntry[]>,
     downloadActivityLog: () => ipcRenderer.invoke('download-activity-log') as Promise<{

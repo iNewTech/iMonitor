@@ -13,7 +13,8 @@
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
     "test:watch": "vitest",
-    "docs:api": "typedoc"
+    "docs:api": "typedoc",
+    "docs:serve": "python3 -m http.server 8000 --directory docs/api"
   },
   "build": {
     "appId": "com.inewtech.imonitor",
