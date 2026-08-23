@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>IBMEye - Live Monitor</title>
+    <link href="../node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="../node_modules/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="app-body monitor-body">
+    <main class="app-shell">
+        <section class="screen-frame monitor-frame">
+            <header class="monitor-hero surface-card">
+                <div class="monitor-hero-main">
+                    <p class="eyebrow mb-2">IBMEye Console</p>
+                    <div class="hero-title-row">
+                        <img src="assets/ibm-eye.svg" alt="IBMEye" class="hero-logo">
+                        <div>
+                            <h1 class="hero-title">Live monitor</h1>
+                            <p class="hero-subtitle mb-0">Jobs, waits, alerts, and SQL in one surface.</p>
+                        </div>
+                    </div>
+                    <div class="hero-meta">
+                        <span id="monitoring-state" class="status-pill is-idle">Idle</span>
+                        <span id="connected-system" class="hero-connection">No system selected</span>
+                        <span id="last-updated" class="hero-connection">Awaiting first poll</span>
+                    </div>
+                </div>
+                <button id="disconnect" class="btn btn-danger-soft">
+                    <i class="bi bi-power me-2"></i>Disconnect
+                </button>
+            </header>
+
+            <section class="stats-grid">
+                <article class="stat-card surface-card">
+                    <span class="stat-label">Active Jobs</span>
+                    <strong id="total-jobs" class="stat-value">0</strong>
+                    <span class="stat-note">Current active job count.</span>
+                </article>
+                <article class="stat-card surface-card">
+                    <span class="stat-label">Peak CPU</span>
+                    <strong id="peak-cpu" class="stat-value">0.00%</strong>
+                    <span class="stat-note">Highest CPU in the current poll.</span>
+                </article>
+                <article class="stat-card surface-card">
+                    <span class="stat-label">Running Jobs</span>
+                    <strong id="running-jobs" class="stat-value">0</strong>
+                    <span class="stat-note">Jobs currently in <code>RUN</code>.</span>
+                </article>
+                <article class="stat-card surface-card">
+                    <span class="stat-label">Waiting Jobs</span>
+                    <strong id="waiting-jobs" class="stat-value">0</strong>
+                    <span class="stat-note">Jobs currently waiting.</span>
+                </article>
+            </section>
+
+            <section class="alerts-grid">
+                <article class="alerts-panel surface-card">
+                    <div class="table-shell-header">
+                        <div>
+                            <p class="eyebrow mb-2">Active Alerts</p>
+                            <h2 class="section-title">Operator intervention queue</h2>
+                            <p class="panel-copy mb-0">
+                                MSGW, LCKW, high CPU, and poll failures stay here until you review them.
+                            </p>
+                        </div>
+                        <span id="alert-count" class="table-caption" data-testid="alert-count">0 active alerts</span>
+                    </div>
+                    <div id="active-alerts" class="alerts-list">
+                        <div class="activity-log-empty">
+                            <i class="bi bi-shield-check"></i>
+                            <span>No active alerts.</span>
+                        </div>
+                    </div>
+                </article>
+
+                <aside class="alert-rules-panel surface-card">
+                    <div class="table-shell-header">
+                        <div>
+                            <p class="eyebrow mb-2">Alert Rules</p>
+                            <h2 class="section-title">Notification controls</h2>
+                            <p class="panel-copy mb-0">
+                                Tune which conditions create alerts and desktop notifications on this machine.
+                            </p>
+                        </div>
+                    </div>
+
+                    <form id="alert-settings-form" class="alert-settings-form" novalidate>
+                        <label class="toggle-row">
+                            <span>Desktop notifications</span>
+                            <input type="checkbox" id="desktop-notifications">
+                        </label>
+                        <label class="toggle-row">
+                            <span>High CPU alerts</span>
+                            <input type="checkbox" id="watch-high-cpu">
+                        </label>
+                        <div class="control-select">
+                            <label for="high-cpu-threshold" class="control-label">High CPU threshold</label>
+                            <div class="input-group">
+                                <input type="number" id="high-cpu-threshold" class="form-control" min="1" max="100" value="80">
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </div>
+                        <label class="toggle-row">
+                            <span>MSGW alerts</span>
+                            <input type="checkbox" id="watch-message-wait">
+                        </label>
+                        <label class="toggle-row">
+                            <span>LCKW alerts</span>
+                            <input type="checkbox" id="watch-lock-wait">
+                        </label>
+                        <label class="toggle-row">
+                            <span>Failed poll alerts</span>
+                            <input type="checkbox" id="watch-failed-polls">
+                        </label>
+                        <label class="toggle-row">
+                            <span>Disconnect notifications</span>
+                            <input type="checkbox" id="watch-disconnects">
+                        </label>
+                        <button type="submit" class="btn btn-primary-strong">
+                            <i class="bi bi-bell-fill me-2"></i>Save Alert Rules
+                        </button>
+                    </form>
+                </aside>
+            </section>
+
+            <section class="history-grid">
+                <article class="history-card surface-card">
+                    <div class="history-card-header">
+                        <div>
+                            <p class="eyebrow mb-2">History</p>
+                            <h2 class="section-title">Job volume</h2>
+                        </div>
+                        <span id="jobs-history-value" class="table-caption">0 jobs</span>
+                    </div>
+                    <svg id="jobs-history-chart" class="trend-chart" viewBox="0 0 320 120" preserveAspectRatio="none"></svg>
+                    <p id="jobs-history-note" class="stat-note mb-0">Waiting for snapshot history.</p>
+                </article>
+
+                <article class="history-card surface-card">
+                    <div class="history-card-header">
+                        <div>
+                            <p class="eyebrow mb-2">History</p>
+                            <h2 class="section-title">Peak CPU</h2>
+                        </div>
+                        <span id="cpu-history-value" class="table-caption">0.00%</span>
+                    </div>
+                    <svg id="cpu-history-chart" class="trend-chart" viewBox="0 0 320 120" preserveAspectRatio="none"></svg>
+                    <p id="cpu-history-note" class="stat-note mb-0">No CPU history collected yet.</p>
+                </article>
+
+                <article class="history-card surface-card">
+                    <div class="history-card-header">
+                        <div>
+                            <p class="eyebrow mb-2">History</p>
+                            <h2 class="section-title">Wait states</h2>
+                        </div>
+                        <span id="wait-history-value" class="table-caption">0 waits</span>
+                    </div>
+                    <svg id="wait-history-chart" class="trend-chart" viewBox="0 0 320 120" preserveAspectRatio="none"></svg>
+                    <p id="wait-history-note" class="stat-note mb-0">MSGW and LCKW snapshots will appear here.</p>
+                </article>
+            </section>
+
+            <section class="controls-panel surface-card">
+                <div class="controls-copy">
+                    <p class="eyebrow mb-2">Polling Controls</p>
+                    <h2 class="section-title">Choose your monitoring cadence</h2>
+                    <p class="panel-copy mb-0">
+                        IBM Eye starts monitoring by default after connect. Use shorter intervals during incidents and slower refresh for background visibility.
+                    </p>
+                </div>
+                <div class="controls-actions">
+                    <div class="control-select">
+                        <label for="refresh-interval" class="control-label">Refresh Interval</label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-clock"></i>
+                            </span>
+                            <select id="refresh-interval" class="form-select">
+                                <option value="5000">5 seconds</option>
+                                <option value="10000">10 seconds</option>
+                                <option value="30000">30 seconds</option>
+                                <option value="60000">1 minute</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="control-buttons">
+                        <button id="start-monitoring" class="btn btn-monitor-start">
+                            <i class="bi bi-play-circle-fill me-2"></i>Start Monitoring
+                        </button>
+                        <button id="stop-monitoring" class="btn btn-monitor-stop" disabled>
+                            <i class="bi bi-stop-circle-fill me-2"></i>Stop Monitoring
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="table-shell surface-card">
+                <div class="table-shell-header">
+                    <div>
+                        <p class="eyebrow mb-2">Active Jobs</p>
+                        <h2 class="section-title">System activity feed</h2>
+                        <p class="panel-copy mb-0">Click a row to inspect current SQL, wait details, and status changes.</p>
+                    </div>
+                    <span id="current-refresh" class="table-caption">Refresh cadence: 5 seconds</span>
+                </div>
+
+                <div id="system-stats" class="table-responsive refined-table">
+                    <table class="table table-hover table-striped align-middle">
+                        <thead>
+                            <tr>
+                                <th scope="col">Subsystem/Job</th>
+                                <th scope="col">Current User</th>
+                                <th scope="col">Type</th>
+                                <th scope="col">CPU %</th>
+                                <th scope="col">Function</th>
+                                <th scope="col">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="table-placeholder">
+                                <td colspan="6" class="text-center py-4 text-muted">
+                                    <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                                    No active jobs to display
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="activity-log-shell surface-card">
+                <div class="table-shell-header">
+                    <div>
+                        <p class="eyebrow mb-2">Operator Log</p>
+                        <h2 class="section-title">Background activity and SQL trace</h2>
+                        <p class="panel-copy mb-0">
+                            Newest first. Connection lifecycle, monitoring changes, and SQL execution results are recorded here. The panel shows the latest 200 events, while IBM Eye keeps full daily log files on disk.
+                        </p>
+                    </div>
+                    <div class="log-export-actions">
+                        <span class="table-caption">Latest 200 events</span>
+                        <button id="open-logs-folder" type="button" class="btn btn-outline-ink btn-sm">
+                            <i class="bi bi-folder2-open me-2"></i>Logs Folder
+                        </button>
+                        <button id="share-activity-log" type="button" class="btn btn-outline-ink btn-sm">
+                            <i class="bi bi-share me-2"></i>Share
+                        </button>
+                        <button id="download-activity-log" type="button" class="btn btn-outline-ink btn-sm">
+                            <i class="bi bi-download me-2"></i>Download
+                        </button>
+                    </div>
+                </div>
+
+                <p id="activity-log-export-status" class="stat-note mb-3" hidden></p>
+
+                <div id="activity-log" class="activity-log-list">
+                    <div class="activity-log-empty">
+                        <i class="bi bi-journal-text"></i>
+                        <span>No background activity recorded yet.</span>
+                    </div>
+                </div>
+            </section>
+        </section>
+    </main>
+
+    <div id="job-drawer-overlay" class="job-drawer-overlay"></div>
+    <aside id="job-detail-drawer" class="job-detail-drawer" aria-hidden="true">
+        <div class="job-drawer-header">
+            <div>
+                <p class="eyebrow mb-2">Job Detail</p>
+                <h2 id="job-detail-title" class="section-title">Select a job</h2>
+                <p id="job-detail-subtitle" class="panel-copy mb-0">
+                    Choose a row from the active jobs table to inspect current SQL, wait reasons, and recent status changes.
+                </p>
+            </div>
+            <button id="close-job-drawer" class="btn btn-outline-ink">
+                <i class="bi bi-x-lg me-2"></i>Close
+            </button>
+        </div>
+
+        <div id="job-detail-empty" class="activity-log-empty job-drawer-empty">
+            <i class="bi bi-search"></i>
+            <span>No job selected yet.</span>
+        </div>
+
+        <div id="job-detail-content" class="job-drawer-content" hidden>
+            <section class="job-detail-grid">
+                <article class="job-detail-card">
+                    <span class="stat-label">Qualified Job</span>
+                    <strong id="detail-qualified-job" class="job-detail-value">-</strong>
+                </article>
+                <article class="job-detail-card">
+                    <span class="stat-label">Subsystem</span>
+                    <strong id="detail-subsystem" class="job-detail-value">-</strong>
+                </article>
+                <article class="job-detail-card">
+                    <span class="stat-label">Current User</span>
+                    <strong id="detail-current-user" class="job-detail-value">-</strong>
+                </article>
+                <article class="job-detail-card">
+                    <span class="stat-label">Status</span>
+                    <strong id="detail-status" class="job-detail-value">-</strong>
+                </article>
+                <article class="job-detail-card">
+                    <span class="stat-label">Elapsed CPU</span>
+                    <strong id="detail-cpu" class="job-detail-value">-</strong>
+                </article>
+                <article class="job-detail-card">
+                    <span class="stat-label">Threads</span>
+                    <strong id="detail-threads" class="job-detail-value">-</strong>
+                </article>
+                <article class="job-detail-card">
+                    <span class="stat-label">Temporary Storage</span>
+                    <strong id="detail-temp-storage" class="job-detail-value">-</strong>
+                </article>
+                <article class="job-detail-card">
+                    <span class="stat-label">Elapsed Disk I/O</span>
+                    <strong id="detail-disk-io" class="job-detail-value">-</strong>
+                </article>
+            </section>
+
+            <section class="job-detail-section">
+                <div class="history-card-header">
+                    <div>
+                        <p class="eyebrow mb-2">Wait Analysis</p>
+                        <h3 class="section-title">Current wait reason</h3>
+                    </div>
+                </div>
+                <p id="detail-wait-reason" class="panel-copy mb-0">-</p>
+            </section>
+
+            <section class="job-detail-section">
+                <div class="history-card-header">
+                    <div>
+                        <p class="eyebrow mb-2">Status History</p>
+                        <h3 class="section-title">Recent status changes</h3>
+                    </div>
+                </div>
+                <div id="detail-status-history" class="status-history-list"></div>
+            </section>
+
+            <section class="job-detail-section">
+                <div class="history-card-header">
+                    <div>
+                        <p class="eyebrow mb-2">SQL Activity</p>
+                        <h3 class="section-title">Current or last SQL statement</h3>
+                    </div>
+                    <span id="detail-sql-status" class="table-caption">No SQL detected</span>
+                </div>
+                <pre id="detail-sql-text" class="activity-log-sql">No SQL statement captured for this job.</pre>
+            </section>
+        </div>
+    </aside>
+
+    <script src="../node_modules/@popperjs/core/dist/umd/popper.min.js"></script>
+    <script src="../node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+    <script src="monitor.js"></script>
+</body>
+</html>

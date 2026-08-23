@@ -1,0 +1,18 @@
+{
+  "entryPointStrategy": "expand",
+  "entryPoints": [
+    "src/features",
+    "src/utils"
+  ],
+  "out": "docs/api",
+  "projectDocuments": [
+    "docs/TECHNICAL.md",
+    "docs/ARCHITECTURE.md",
+    "docs/FEATURES.md",
+    "docs/ALERT_WORKFLOW.md",
+    "docs/MAPEPIRE_SETUP.md"
+  ],
+  "exclude": [
+    "**/*.test.ts"
+  ]
+}

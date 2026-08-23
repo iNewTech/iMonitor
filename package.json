@@ -1,0 +1,138 @@
+{
+  "name": "imonitor",
+  "version": "1.0.0",
+  "description": "IBM Eye for IBM i operations monitoring",
+  "main": "dist/main.js",
+  "scripts": {
+    "start": "tsc && electron .",
+    "build": "tsc",
+    "watch": "tsc -w",
+    "dev": "npm run build && electron .",
+    "package": "electron-builder build --mac --win --linux",
+    "test": "npm run build && npm run test:unit && npm run test:e2e",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test",
+    "test:watch": "vitest",
+    "docs:api": "typedoc",
+    "docs:serve": "python3 -m http.server 8000 --directory docs/api"
+  },
+  "build": {
+    "appId": "com.inewtech.imonitor",
+    "productName": "IBMEye",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "public/**/*",
+      "!**/.DS_Store",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+      "!**/node_modules/*.d.ts",
+      "!**/node_modules/.bin",
+      "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
+      "!.editorconfig",
+      "!**/._*",
+      "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
+      "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
+      "!**/{appveyor.yml,.travis.yml,circle.yml}",
+      "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
+    ],
+    "extraResources": [
+      {
+        "from": "build/icons",
+        "to": "icons",
+        "filter": [
+          "*.png",
+          "*.ico",
+          "*.icns"
+        ]
+      }
+    ],
+    "asarUnpack": [],
+    "extraMetadata": {
+      "main": "dist/main.js"
+    },
+    "asar": true,
+    "mac": {
+      "icon": "build/icons/icon.icns",
+      "category": "public.app-category.developer-tools",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "darkModeSupport": true
+    },
+    "win": {
+      "icon": "build/icons/icon.ico",
+      "target": [
+        "nsis"
+      ]
+    },
+    "linux": {
+      "icon": "build/icons/icon.png",
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "maintainer": "iNewTech <support@inewtech.com>",
+      "category": "Development"
+    },
+    "dmg": {
+      "icon": "build/icons/icon.icns",
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "deleteAppDataOnUninstall": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iNewTech/iMonitor.git"
+  },
+  "keywords": [
+    "ibmi",
+    "monitor",
+    "electron"
+  ],
+  "author": "Gajender Tyagi",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/iNewTech/iMonitor/issues"
+  },
+  "homepage": "https://github.com/iNewTech/iMonitor#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^24.3.1",
+    "@types/ssh2": "^1.15.5",
+    "electron": "^39.2.6",
+    "electron-builder": "^26.3.3",
+    "playwright": "^1.55.0",
+    "typedoc": "^0.28.20",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "@ibm/mapepire-js": "^0.6.0",
+    "@popperjs/core": "^2.11.8",
+    "bootstrap": "^5.3.7",
+    "bootstrap-icons": "^1.13.1",
+    "electron-store": "^10.1.0",
+    "ssh2": "^1.17.0"
+  }
+}
