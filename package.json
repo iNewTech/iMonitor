@@ -1,7 +1,7 @@
 {
   "name": "imonitor",
   "version": "1.0.0",
-  "description": "IBMi System Monitor",
+  "description": "IBM Eye for IBM i operations monitoring",
   "main": "dist/main.js",
   "scripts": {
     "start": "tsc && electron .",
@@ -9,11 +9,15 @@
     "watch": "tsc -w",
     "dev": "npm run build && electron .",
     "package": "electron-builder build --mac --win --linux",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm run build && npm run test:unit && npm run test:e2e",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test",
+    "test:watch": "vitest",
+    "docs:api": "typedoc"
   },
   "build": {
     "appId": "com.inewtech.imonitor",
-    "productName": "iMonitor",
+    "productName": "IBMEye",
     "directories": {
       "output": "release",
       "buildResources": "build"
@@ -38,7 +42,11 @@
       {
         "from": "build/icons",
         "to": "icons",
-        "filter": ["*.png", "*.ico", "*.icns"]
+        "filter": [
+          "*.png",
+          "*.ico",
+          "*.icns"
+        ]
       }
     ],
     "asarUnpack": [],
@@ -49,16 +57,24 @@
     "mac": {
       "icon": "build/icons/icon.icns",
       "category": "public.app-category.developer-tools",
-      "target": ["dmg", "zip"],
+      "target": [
+        "dmg",
+        "zip"
+      ],
       "darkModeSupport": true
     },
     "win": {
       "icon": "build/icons/icon.ico",
-      "target": ["nsis"]
+      "target": [
+        "nsis"
+      ]
     },
     "linux": {
       "icon": "build/icons/icon.png",
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "maintainer": "iNewTech <support@inewtech.com>",
       "category": "Development"
     },
@@ -100,16 +116,22 @@
   },
   "homepage": "https://github.com/iNewTech/iMonitor#readme",
   "devDependencies": {
-    "@types/node": "^24.1.0",
-    "electron": "^37.2.5",
-    "electron-builder": "^26.0.12",
-    "typescript": "^5.9.2"
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^24.3.1",
+    "@types/ssh2": "^1.15.5",
+    "electron": "^39.2.6",
+    "electron-builder": "^26.3.3",
+    "playwright": "^1.55.0",
+    "typedoc": "^0.28.20",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
   },
   "dependencies": {
     "@ibm/mapepire-js": "^0.6.0",
     "@popperjs/core": "^2.11.8",
     "bootstrap": "^5.3.7",
     "bootstrap-icons": "^1.13.1",
-    "electron-store": "^10.1.0"
+    "electron-store": "^10.1.0",
+    "ssh2": "^1.17.0"
   }
 }

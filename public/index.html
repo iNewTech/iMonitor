@@ -3,75 +3,153 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>IBMi System Monitor</title>
+    <title>IBMEye</title>
     <link href="../node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="../node_modules/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
-<body class="bg-light">
-    <div class="container py-4">
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <div class="card shadow-sm mb-4">
-                    <div class="card-body">
-                        <h1 class="text-center mb-4">
-                            <img src="assets/logo.svg" alt="IBMi Monitor" class="me-2" style="height: 40px; width: auto;">
-                            <span>IBMi System Monitor</span>
-                        </h1>
-                        
-                        <!-- Connection Panel -->
-                        <div class="saved-connections mb-4">
-                            <select id="saved-connections" class="form-select mb-2">
-                                <option value="">-- Select Saved Connection --</option>
-                            </select>
-                            <button id="delete-connection" class="btn btn-outline-danger btn-sm" style="display: none;">
-                                <i class="bi bi-trash"></i> Delete Connection
+<body class="app-body">
+    <main class="app-shell">
+        <section class="screen-frame connection-frame">
+            <div class="connection-layout">
+                <aside class="brand-panel surface-card">
+                    <div class="brand-mark">
+                        <img src="assets/ibm-eye.svg" alt="IBMEye">
+                        <div>
+                            <p class="eyebrow mb-1">Mapepire-Powered IBM i Ops</p>
+                            <h1 class="brand-title mb-0">IBMEye</h1>
+                        </div>
+                    </div>
+                    <div class="brand-copy">
+                        <h2 class="display-title">See live jobs, auto-start monitoring, and trace what IBMEye is doing.</h2>
+                        <p class="lead-copy">
+                            A desktop command surface for IBM i teams using Mapepire, with reusable system profiles,
+                            immediate monitoring, and operator-visible background activity.
+                        </p>
+                    </div>
+                    <div class="brand-grid">
+                        <div class="info-chip">
+                            <span>Profiles</span>
+                            <strong>Reusable connection presets</strong>
+                        </div>
+                        <div class="info-chip">
+                            <span>Security</span>
+                            <strong>OS-backed credential protection</strong>
+                        </div>
+                        <div class="info-chip">
+                            <span>Monitoring</span>
+                            <strong>Auto-start active-job polling</strong>
+                        </div>
+                        <div class="info-chip">
+                            <span>Trace</span>
+                            <strong>Visible SQL and background actions</strong>
+                        </div>
+                    </div>
+                    <div class="highlight-list">
+                        <div class="highlight-item">
+                            <i class="bi bi-cpu"></i>
+                            <div>
+                                <h3>Connect and start polling immediately</h3>
+                                <p>Open a system session and let IBMEye begin watching active jobs as soon as the dashboard loads.</p>
+                            </div>
+                        </div>
+                        <div class="highlight-item">
+                            <i class="bi bi-journal-code"></i>
+                            <div>
+                                <h3>Review every important backend action</h3>
+                                <p>Keep operators aware of connection flow, SQL activity, and failures without opening developer tools.</p>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+
+                <section class="workspace-panel surface-card">
+                    <div class="panel-header">
+                        <div>
+                            <p class="eyebrow mb-2">Connection Workspace</p>
+                            <h2 class="panel-title">Connect IBMEye to an IBM i system</h2>
+                            <p class="panel-copy mb-0">
+                                Start a live Mapepire session now, or save trusted profiles for the systems your team checks every day.
+                            </p>
+                        </div>
+                        <span id="saved-count" class="panel-badge">0 saved profiles</span>
+                    </div>
+
+                    <div class="saved-connections-panel">
+                        <div class="saved-connections-header">
+                            <div>
+                                <h3 class="section-title">Saved Profiles</h3>
+                                <p id="saved-hint" class="saved-connections-hint mb-0">
+                                    Save frequent systems here for quick reconnects.
+                                </p>
+                            </div>
+                            <button id="delete-connection" class="btn btn-soft-danger" style="display: none;">
+                                <i class="bi bi-trash me-2"></i>Delete
                             </button>
                         </div>
+                        <select id="saved-connections" class="form-select">
+                            <option value="">-- Select Saved Connection --</option>
+                        </select>
+                    </div>
 
-                        <form id="connection-form" class="mb-4" novalidate>
-                            <div class="form-floating mb-3">
+                    <form id="connection-form" class="connection-form-grid" novalidate>
+                        <div class="form-row-split">
+                            <div class="form-floating">
                                 <input type="text" class="form-control" id="connection-name" placeholder="Connection Name" required>
                                 <label for="connection-name">Connection Name *</label>
                             </div>
-                            <div class="form-floating mb-3">
-                                <input type="text" class="form-control" id="system" placeholder="System Address" required>
-                                <label for="system">System Address *</label>
-                            </div>
-                            <div class="form-floating mb-3">
+                            <div class="form-floating">
                                 <input type="number" class="form-control" id="port" placeholder="Port" value="8076">
-                                <label for="port">Port</label>
+                                <label for="port">Mapepire Port</label>
                             </div>
-                            <div class="form-floating mb-3">
-                                <input type="text" class="form-control" id="username" placeholder="Username" required>
-                                <label for="username">Username *</label>
-                            </div>
-                            <div class="form-floating mb-3">
-                                <div class="input-group">
-                                    <div class="form-floating">
-                                        <input type="password" class="form-control" id="password" placeholder="Password" required>
-                                        <label for="password">Password *</label>
-                                    </div>
-                                    <button class="btn btn-outline-secondary d-flex align-items-center justify-content-center" type="button" id="toggle-password">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="d-flex gap-2">
-                                <button type="submit" id="connect" class="btn btn-primary flex-grow-1">
-                                    <i class="bi bi-plug-fill me-2"></i>Connect
-                                </button>
-                                <button type="button" id="save-connection" class="btn btn-outline-primary">
-                                    <i class="bi bi-bookmark-plus"></i>
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+                        </div>
 
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="system" placeholder="System Address" required>
+                            <label for="system">System Address *</label>
+                        </div>
+
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="username" placeholder="Username" required>
+                            <label for="username">Username *</label>
+                        </div>
+
+                        <div class="form-floating password-block">
+                            <input type="password" class="form-control" id="password" placeholder="Password" required>
+                            <label for="password">Password *</label>
+                            <button class="btn password-toggle" type="button" id="toggle-password" aria-label="Toggle password visibility">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+
+                        <p class="form-footnote mb-0">
+                            Profiles are stored locally on this machine. The default Mapepire port is <code>8076</code>. Use a unique name for each system and operator combination.
+                        </p>
+
+                        <div class="primary-actions">
+                            <button type="submit" id="connect" class="btn btn-primary-strong">
+                                <i class="bi bi-plug-fill me-2"></i>Connect Now
+                            </button>
+                            <button type="button" id="save-connection" class="btn btn-outline-ink">
+                                <i class="bi bi-bookmark-plus me-2"></i>Save Profile
+                            </button>
+                            <button type="button" id="launch-demo" class="btn btn-outline-ink" data-testid="launch-demo">
+                                <i class="bi bi-stars me-2"></i>Launch Demo
+                            </button>
+                        </div>
+
+                        <div id="connection-action-bar" class="connection-action-bar" hidden>
+                            <div class="connection-action-indicator"></div>
+                            <div>
+                                <strong id="connection-action-message">Idle</strong>
+                                <p id="connection-action-detail" class="mb-0"></p>
+                            </div>
+                        </div>
+                    </form>
+                </section>
+            </div>
+        </section>
+    </main>
     <script src="../node_modules/@popperjs/core/dist/umd/popper.min.js"></script>
     <script src="../node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
     <script src="renderer.js"></script>
