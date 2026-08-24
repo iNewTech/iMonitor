@@ -1,4 +1,4 @@
-<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>FEATURES | imonitor</title><meta name="description" content="Documentation for imonitor"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script><script async src="../assets/hierarchy.js" id="tsd-hierarchy-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>FEATURES | imonitor</title><meta name="description" content="Documentation for imonitor"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><link rel="stylesheet" href="../assets/custom.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script><script async src="../assets/hierarchy.js" id="tsd-hierarchy-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
 <div class="tsd-toolbar-contents container"><a href="../index.html" class="title">imonitor</a>
 <div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
 <ul role="listbox" id="tsd-search-results"></ul>
@@ -25,7 +25,9 @@
 <li>live refresh interval control</li>
 <li>peak CPU, running jobs, waiting jobs summary</li>
 <li>job details drawer</li>
+<li>root-cause guidance in job details</li>
 <li>SQL detail display</li>
+<li>hold, release, and end-job actions from the drawer</li>
 </ul>
 <h3 id="alerts" class="tsd-anchor-link">Alerts<a href="#alerts" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul>
@@ -44,6 +46,7 @@
 <li>download operator log</li>
 <li>open logs folder</li>
 <li>daily readable and structured logs</li>
+<li>structured poll history foundation for future cross-session replay</li>
 </ul>
 <h2 id="development-only-features" class="tsd-anchor-link">Development-Only Features<a href="#development-only-features" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <ul>
@@ -63,17 +66,19 @@
 <ul>
 <li>reconstruct history from structured logs</li>
 <li>trend and incident replay</li>
+<li>parser and reconstruction helpers already added, UI still pending</li>
 </ul>
 <h3 id="3-ibm-i-operator-actions" class="tsd-anchor-link">3. IBM i operator actions<a href="#3-ibm-i-operator-actions" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul>
-<li>job control</li>
-<li>reply to MSGW</li>
-<li>lock investigation</li>
+<li>hold, release, and end job are implemented</li>
+<li>reply to MSGW is pending message-level context</li>
+<li>lock investigation UI is pending</li>
 </ul>
 <h3 id="4-root-cause-hints" class="tsd-anchor-link">4. Root cause hints<a href="#4-root-cause-hints" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul>
-<li>explain waits and likely causes</li>
-<li>recommended next steps</li>
+<li>drawer guidance is implemented for waits and high CPU</li>
+<li>poll and disconnect guidance model is added</li>
+<li>broader monitor-surface guidance is still pending</li>
 </ul>
 <h3 id="5-team-audit-trail" class="tsd-anchor-link">5. Team audit trail<a href="#5-team-audit-trail" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul>

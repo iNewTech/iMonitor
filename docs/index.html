@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>IBMEye Docs</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="docs-body">
+    <div class="docs-shell">
+        <header class="docs-topbar">
+            <a href="index.html" class="docs-brand">
+                <img src="../public/assets/ibm-eye.svg" alt="IBMEye">
+                <div class="docs-brand-copy">
+                    <p class="docs-brand-label">IBMEye Docs</p>
+                    <p class="docs-brand-title">Operator and developer guides</p>
+                </div>
+            </a>
+            <div class="docs-theme-switcher">
+                <label for="docs-theme">Theme</label>
+                <select id="docs-theme" data-docs-theme-select>
+                    <option value="system">System</option>
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                </select>
+            </div>
+        </header>
+
+        <section class="docs-hero">
+            <div class="docs-hero-grid">
+                <div>
+                    <p class="docs-eyebrow">Documentation Hub</p>
+                    <h1>IBMEye docs with a cleaner surface.</h1>
+                    <p>
+                        This is the guided docs entry point for IBMEye. It combines the practical setup notes,
+                        the developer-oriented technical guide, and the generated API reference in one lighter UI.
+                    </p>
+                </div>
+                <div class="docs-hero-pills">
+                    <div class="docs-hero-pill">
+                        <span>Audience</span>
+                        <strong>Operators, admins, and developers</strong>
+                    </div>
+                    <div class="docs-hero-pill">
+                        <span>Modes</span>
+                        <strong>Light, dark, and system theme</strong>
+                    </div>
+                    <div class="docs-hero-pill">
+                        <span>Coverage</span>
+                        <strong>Product docs plus generated API pages</strong>
+                    </div>
+                    <div class="docs-hero-pill">
+                        <span>Best Start</span>
+                        <strong>Read the technical guide, then dive into modules</strong>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="docs-main-grid">
+            <main class="docs-content">
+                <section class="docs-card">
+                    <h2>Start here</h2>
+                    <p>
+                        Use the pages below depending on whether you are operating the app, setting up Mapepire,
+                        or changing the codebase.
+                    </p>
+                    <div class="docs-link-grid">
+                        <a class="docs-link-card" href="technical.html">
+                            <strong>Technical guide</strong>
+                            <span>Architecture, source layout, commands, boundaries, and refactor direction.</span>
+                        </a>
+                        <a class="docs-link-card" href="api/index.html">
+                            <strong>API reference</strong>
+                            <span>Generated TypeDoc pages for features, utilities, interfaces, and types.</span>
+                        </a>
+                        <a class="docs-link-card" href="api/documents/FEATURES.html">
+                            <strong>Features</strong>
+                            <span>Current capabilities, development-only behavior, and the planned feature track.</span>
+                        </a>
+                        <a class="docs-link-card" href="api/documents/MAPEPIRE_SETUP.html">
+                            <strong>Mapepire setup</strong>
+                            <span>Connect flow, install modes, port logic, and current setup limitations.</span>
+                        </a>
+                        <a class="docs-link-card" href="api/documents/ALERT_WORKFLOW.html">
+                            <strong>Alert workflow</strong>
+                            <span>How alerts persist, how they clear, and where the workflow model is going.</span>
+                        </a>
+                        <a class="docs-link-card" href="api/documents/ARCHITECTURE.html">
+                            <strong>Architecture</strong>
+                            <span>High-level app flow, state areas, and module split direction.</span>
+                        </a>
+                    </div>
+                </section>
+
+                <section class="docs-card">
+                    <h2>Current doc focus</h2>
+                    <div class="docs-kpi-grid">
+                        <div class="docs-kpi">
+                            <span>Operator value</span>
+                            <strong>Alerts</strong>
+                            <p>MSGW, LCKW, failed polls, notifications, and a sticky intervention queue.</p>
+                        </div>
+                        <div class="docs-kpi">
+                            <span>Developer value</span>
+                            <strong>Modules</strong>
+                            <p>Feature directories, test coverage, TypeDoc output, and cleaner code boundaries.</p>
+                        </div>
+                        <div class="docs-kpi">
+                            <span>Setup value</span>
+                            <strong>Mapepire</strong>
+                            <p>Detect, start, or deploy automatically during connect with tracked port resolution.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="docs-card">
+                    <h2>Docs navigation</h2>
+                    <div class="docs-inline-nav">
+                        <a href="technical.html">Open technical guide</a>
+                        <a href="api/modules.html">Browse modules</a>
+                        <a href="api/hierarchy.html">View type hierarchy</a>
+                        <a href="api/media/CHANGELOG.md">Read changelog</a>
+                    </div>
+                </section>
+            </main>
+
+            <aside class="docs-sidebar">
+                <section class="docs-sidebar-card">
+                    <h3>Recommended reading order</h3>
+                    <ol class="docs-steps">
+                        <li>Read the technical guide for how the app is organized.</li>
+                        <li>Open the features or architecture notes for product context.</li>
+                        <li>Jump into the API reference when changing actual modules.</li>
+                    </ol>
+                </section>
+
+                <section class="docs-sidebar-card">
+                    <h3>Serve locally</h3>
+                    <pre class="docs-code">npm run docs:serve</pre>
+                    <p>The docs server now opens the themed docs site instead of only the raw API output.</p>
+                </section>
+            </aside>
+        </div>
+
+        <footer class="docs-footer">
+            IBMEye docs surface for August 23, 2026. Generated API pages remain under <code>docs/api</code>.
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -21,10 +21,10 @@
                         </div>
                     </div>
                     <div class="brand-copy">
-                        <h2 class="display-title">See live jobs, auto-start monitoring, and trace what IBMEye is doing.</h2>
+                        <h2 class="display-title">Start clean, connect fast, and keep IBM i monitoring visible.</h2>
                         <p class="lead-copy">
-                            A desktop command surface for IBM i teams using Mapepire, with reusable system profiles,
-                            immediate monitoring, and operator-visible background activity.
+                            IBMEye keeps connection setup, active-job monitoring, and operator-visible background actions
+                            in one aligned desktop surface for IBM i teams using Mapepire.
                         </p>
                     </div>
                     <div class="brand-grid">
@@ -72,8 +72,17 @@
                                 Start a live Mapepire session now, or save trusted profiles for the systems your team checks every day.
                             </p>
                         </div>
-                        <span id="saved-count" class="panel-badge">0 saved profiles</span>
+                        <div class="workspace-tools">
+                            <span id="saved-count" class="panel-badge">0 saved profiles</span>
+                            <div class="connection-theme-control">
+                                <label for="theme-selector" class="hero-control-label">Theme</label>
+                                <select id="theme-selector" class="form-select connection-theme-select"></select>
+                            </div>
+                        </div>
                     </div>
+                    <p id="theme-description" class="connection-theme-description mb-0">
+                        Warm glass surfaces with deep green operator accents.
+                    </p>
 
                     <div class="saved-connections-panel">
                         <div class="saved-connections-header">
@@ -93,6 +102,7 @@
                     </div>
 
                     <form id="connection-form" class="connection-form-grid" novalidate>
+                        <div class="connection-form-shell">
                         <div class="form-row-split">
                             <div class="form-floating">
                                 <input type="text" class="form-control" id="connection-name" placeholder="Connection Name" required>
@@ -125,6 +135,7 @@
                         <p class="form-footnote mb-0">
                             Profiles are stored locally on this machine. The default Mapepire port is <code>8076</code>. Use a unique name for each system and operator combination.
                         </p>
+                        </div>
 
                         <div class="primary-actions">
                             <button type="submit" id="connect" class="btn btn-primary-strong">
@@ -152,6 +163,6 @@
     </main>
     <script src="../node_modules/@popperjs/core/dist/umd/popper.min.js"></script>
     <script src="../node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
-    <script src="renderer.js"></script>
+    <script type="module" src="renderer.js"></script>
 </body>
 </html>

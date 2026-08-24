@@ -1,0 +1,103 @@
+:root {
+    --color-background: #f5f0e7;
+    --color-background-secondary: rgba(255, 255, 255, 0.74);
+    --color-background-warningmessage: rgba(184, 93, 43, 0.12);
+    --color-background-hover: rgba(15, 108, 92, 0.08);
+    --color-accent: #0f6c5c;
+    --color-text: #1a222b;
+    --color-text-aside: #677682;
+    --color-link: #0b5d50;
+    --color-border: rgba(26, 34, 43, 0.12);
+    --color-ts: #0f6c5c;
+}
+
+:root[data-theme="dark"] {
+    --color-background: #0f151a;
+    --color-background-secondary: rgba(19, 28, 34, 0.86);
+    --color-background-warningmessage: rgba(217, 153, 88, 0.12);
+    --color-background-hover: rgba(53, 184, 163, 0.12);
+    --color-accent: #35b8a3;
+    --color-text: #edf3f7;
+    --color-text-aside: #96a7b5;
+    --color-link: #8be3d6;
+    --color-border: rgba(220, 231, 238, 0.1);
+    --color-ts: #35b8a3;
+}
+
+body {
+    font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+    background:
+        radial-gradient(circle at top left, rgba(15, 108, 92, 0.16), transparent 32%),
+        radial-gradient(circle at bottom right, rgba(184, 93, 43, 0.12), transparent 26%),
+        linear-gradient(180deg, var(--color-background) 0%, color-mix(in srgb, var(--color-background) 84%, #ffffff 16%) 100%);
+}
+
+.container {
+    max-width: 1240px;
+}
+
+.tsd-page-toolbar {
+    border-bottom: 1px solid var(--color-border);
+    backdrop-filter: blur(18px);
+    background: rgba(255, 255, 255, 0.72);
+}
+
+:root[data-theme="dark"] .tsd-page-toolbar {
+    background: rgba(10, 16, 21, 0.78);
+}
+
+.col-content,
+.site-menu,
+.page-menu,
+.tsd-panel,
+.tsd-navigation.settings,
+.tsd-accordion-details {
+    border-radius: 22px;
+}
+
+.tsd-panel,
+.site-menu,
+.page-menu,
+.tsd-navigation.settings {
+    border: 1px solid var(--color-border);
+    background: rgba(255, 255, 255, 0.84);
+    box-shadow: 0 24px 56px rgba(17, 25, 33, 0.12);
+}
+
+:root[data-theme="dark"] .tsd-panel,
+:root[data-theme="dark"] .site-menu,
+:root[data-theme="dark"] .page-menu,
+:root[data-theme="dark"] .tsd-navigation.settings {
+    background: rgba(18, 27, 34, 0.88);
+    box-shadow: 0 24px 56px rgba(4, 8, 12, 0.34);
+}
+
+.tsd-page-title {
+    margin: 0 0 18px;
+    padding: 24px 26px;
+    border-radius: 26px;
+    background:
+        radial-gradient(circle at 18% 20%, rgba(99, 102, 241, 0.22), transparent 28%),
+        radial-gradient(circle at 80% 18%, rgba(6, 182, 212, 0.16), transparent 22%),
+        linear-gradient(135deg, rgba(10, 66, 57, 0.98), rgba(22, 99, 85, 0.92));
+    color: #f8f2e8;
+}
+
+.tsd-page-title h1 {
+    color: #f8f2e8;
+}
+
+.tsd-panel.tsd-typography,
+.col-content > section {
+    padding: 4px 8px;
+}
+
+code,
+pre {
+    border-radius: 16px;
+}
+
+.tsd-navigation a.current {
+    background: rgba(15, 108, 92, 0.12);
+    color: var(--color-link);
+}

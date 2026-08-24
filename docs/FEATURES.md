@@ -16,7 +16,9 @@
 - live refresh interval control
 - peak CPU, running jobs, waiting jobs summary
 - job details drawer
+- root-cause guidance in job details
 - SQL detail display
+- hold, release, and end-job actions from the drawer
 
 ### Alerts
 
@@ -25,6 +27,8 @@
 - high CPU alerts
 - failed poll alerts
 - desktop notifications
+- SMTP email notifications
+- test email action from the monitor screen
 - sticky queue with active and resolved alerts
 - clear alert action
 
@@ -35,6 +39,7 @@
 - download operator log
 - open logs folder
 - daily readable and structured logs
+- structured poll history foundation for future cross-session replay
 
 ## Development-Only Features
 
@@ -55,17 +60,19 @@
 
 - reconstruct history from structured logs
 - trend and incident replay
+- parser and reconstruction helpers already added, UI still pending
 
 ### 3. IBM i operator actions
 
-- job control
-- reply to MSGW
-- lock investigation
+- hold, release, and end job are implemented
+- reply to MSGW is pending message-level context
+- lock investigation UI is pending
 
 ### 4. Root cause hints
 
-- explain waits and likely causes
-- recommended next steps
+- drawer guidance is implemented for waits and high CPU
+- poll and disconnect guidance model is added
+- broader monitor-surface guidance is still pending
 
 ### 5. Team audit trail
 

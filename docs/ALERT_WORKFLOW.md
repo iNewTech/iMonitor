@@ -9,6 +9,7 @@ IBMEye currently supports:
 - manual clear
 - newest-first ordering
 - sticky queue behavior
+- scroll-stable refresh behavior while reading expanded alerts
 
 ## Current Rules
 

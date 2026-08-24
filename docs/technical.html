@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>IBMEye Technical Guide</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="docs-body">
+    <div class="docs-shell">
+        <header class="docs-topbar">
+            <a href="index.html" class="docs-brand">
+                <img src="../public/assets/ibm-eye.svg" alt="IBMEye">
+                <div class="docs-brand-copy">
+                    <p class="docs-brand-label">IBMEye Docs</p>
+                    <p class="docs-brand-title">Technical guide</p>
+                </div>
+            </a>
+            <div class="docs-theme-switcher">
+                <label for="docs-theme">Theme</label>
+                <select id="docs-theme" data-docs-theme-select>
+                    <option value="system">System</option>
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                </select>
+            </div>
+        </header>
+
+        <section class="docs-hero">
+            <div class="docs-hero-grid">
+                <div>
+                    <p class="docs-eyebrow">Developer Guide</p>
+                    <h1 class="docs-page-title">How IBMEye is structured today.</h1>
+                    <p>
+                        This page turns the technical markdown into a developer-facing reference that is easier to scan.
+                        It explains the stack, runtime ownership, source layout, and the current refactor direction.
+                    </p>
+                </div>
+                <div class="docs-hero-pills">
+                    <div class="docs-hero-pill">
+                        <span>Stack</span>
+                        <strong>Electron, TypeScript, renderer JS, Bootstrap, ssh2</strong>
+                    </div>
+                    <div class="docs-hero-pill">
+                        <span>Docs source</span>
+                        <strong>Markdown guides with generated TypeDoc API pages</strong>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="docs-main-grid">
+            <main class="docs-content">
+                <section id="commands" class="docs-section">
+                    <h2>Run commands</h2>
+                    <pre class="docs-code">npm install
+npm start
+npm run build
+npm test
+npm run docs:api
+npm run docs:serve</pre>
+                </section>
+
+                <section id="stack" class="docs-section">
+                    <h2>Stack</h2>
+                    <div class="docs-section-grid">
+                        <div class="docs-block">
+                            <h3>Main runtime</h3>
+                            <ul class="docs-list">
+                                <li>Electron for app shell, IPC, window management, and packaging.</li>
+                                <li>TypeScript in `src/main.ts` and `src/preload.ts` for the privileged side.</li>
+                                <li>`electron-store` for local persistent app state.</li>
+                            </ul>
+                        </div>
+                        <div class="docs-block">
+                            <h3>Monitoring and setup</h3>
+                            <ul class="docs-list">
+                                <li>`@ibm/mapepire-js` for IBM i connectivity through Mapepire.</li>
+                                <li>`ssh2` for remote detect, start, and deploy flows.</li>
+                                <li>Generated local demo snapshots for development-only monitoring behavior.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="layout" class="docs-section">
+                    <h2>Current source layout</h2>
+                    <pre class="docs-code">src/
+  features/
+    alerts/
+      alert-model.ts
+      alert-operator-workflow.ts
+      alert-workflow.ts
+    demo/
+      demo-runtime.ts
+    guidance/
+      root-cause-guidance.ts
+    history/
+      history-model.ts
+    monitoring/
+      monitoring-model.ts
+    operator-actions/
+      operator-actions.ts
+    theme/
+      theme-model.ts
+  services/
+    ibmi.ts
+  utils/
+    connections.ts
+    crypto.ts
+    demo-system.ts
+    mapepire-deploy.ts
+    password-store.ts
+  main.ts
+  preload.ts
+
+public/
+  index.html
+  monitor.html
+  renderer.js
+  monitor.js
+  styles.css
+
+docs/
+  index.html
+  technical.html
+  api/</pre>
+                </section>
+
+                <section id="ownership" class="docs-section">
+                    <h2>Runtime ownership</h2>
+                    <table class="docs-table">
+                        <thead>
+                            <tr>
+                                <th>Area</th>
+                                <th>Owns</th>
+                                <th>Should avoid</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Main process</td>
+                                <td>Connection lifecycle, Mapepire setup, monitoring state, alert state, logs, IPC handlers, guidance payloads, and job actions</td>
+                                <td>Renderer-only presentation concerns</td>
+                            </tr>
+                            <tr>
+                                <td>Preload</td>
+                                <td>Safe API bridge between UI and privileged code</td>
+                                <td>Business rules and state mutation logic</td>
+                            </tr>
+                            <tr>
+                                <td>Renderer</td>
+                                <td>UI rendering, event handlers, page-level state, user feedback, job drawer guidance, and operator actions</td>
+                                <td>Direct access to Node or Electron internals</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </section>
+
+                <section id="docs-model" class="docs-section">
+                    <h2>Documentation model</h2>
+                    <div class="docs-section-grid">
+                        <div class="docs-block">
+                            <h3>Human docs</h3>
+                            <p>Guides in `docs/` explain features, setup, architecture, and workflow in plain language.</p>
+                        </div>
+                        <div class="docs-block">
+                            <h3>API docs</h3>
+                            <p>JSDoc on exported functions is turned into the generated reference under `docs/api`.</p>
+                        </div>
+                        <div class="docs-block">
+                            <h3>Tech guide</h3>
+                            <p>This page is the curated developer entry point so you do not have to start from raw API pages.</p>
+                        </div>
+                        <div class="docs-block">
+                            <h3>Serve path</h3>
+                            <p>`npm run docs:serve` now serves the docs site root so the guides and API pages stay in one place.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="foundations" class="docs-section">
+                    <h2>Current feature foundations</h2>
+                    <div class="docs-section-grid">
+                        <div class="docs-block">
+                            <h3>Operator actions</h3>
+                            <p>`src/features/operator-actions/operator-actions.ts` defines supported IBM i job actions and execution plans.</p>
+                        </div>
+                        <div class="docs-block">
+                            <h3>History reconstruction</h3>
+                            <p>`src/features/history/history-model.ts` parses structured `.jsonl` logs and rebuilds trend series and incident markers.</p>
+                        </div>
+                        <div class="docs-block">
+                            <h3>Root-cause guidance</h3>
+                            <p>`src/features/guidance/root-cause-guidance.ts` explains waits, high CPU, and monitoring failures for operators.</p>
+                        </div>
+                        <div class="docs-block">
+                            <h3>Current gap</h3>
+                            <p>Real `MSGW` reply still needs safe IBM i message-level context in the job detail path.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="boundaries" class="docs-section">
+                    <h2>Important boundaries</h2>
+                    <ul class="docs-list">
+                        <li>Demo mode stays development-only and should remain easy to remove from packaged builds.</li>
+                        <li>Feature logic should keep moving out of `src/main.ts` into dedicated modules.</li>
+                        <li>Renderer pages should gradually move toward their own source modules instead of large page scripts.</li>
+                        <li>Persistent logs should remain structured enough to power future history and incident replay.</li>
+                    </ul>
+                </section>
+
+                <section id="next" class="docs-section">
+                    <h2>Next refactor targets</h2>
+                    <ol class="docs-steps">
+                        <li>Split `src/main.ts` into focused areas for store, IPC, and runtime orchestration.</li>
+                        <li>Move renderer page logic into clearer renderer feature modules.</li>
+                        <li>Reduce global mutable state in the main process.</li>
+                        <li>Keep demo generation and production monitoring decoupled.</li>
+                        <li>Extend job detail fetches with IBM i message-level context for real `MSGW` replies.</li>
+                    </ol>
+                </section>
+            </main>
+
+            <aside class="docs-sidebar">
+                <section class="docs-sidebar-card">
+                    <h3>On this page</h3>
+                    <ul class="docs-sidebar-list">
+                        <li><a href="#commands">Run commands</a></li>
+                        <li><a href="#stack">Stack</a></li>
+                        <li><a href="#layout">Source layout</a></li>
+                        <li><a href="#ownership">Runtime ownership</a></li>
+                        <li><a href="#docs-model">Documentation model</a></li>
+                        <li><a href="#foundations">Feature foundations</a></li>
+                        <li><a href="#boundaries">Important boundaries</a></li>
+                        <li><a href="#next">Next refactor targets</a></li>
+                    </ul>
+                </section>
+
+                <section class="docs-sidebar-card">
+                    <h3>Related pages</h3>
+                    <div class="docs-inline-nav">
+                        <a href="index.html">Docs home</a>
+                        <a href="api/index.html">API docs</a>
+                        <a href="api/documents/ARCHITECTURE.html">Architecture</a>
+                    </div>
+                </section>
+            </aside>
+        </div>
+
+        <footer class="docs-footer">
+            This page reflects the current technical guide as of August 23, 2026.
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

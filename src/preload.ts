@@ -48,6 +48,17 @@ interface AlertSettings {
     watchDisconnects: boolean;
 }
 
+interface EmailNotificationSettings {
+    enabled: boolean;
+    smtpHost: string;
+    smtpPort: number;
+    secure: boolean;
+    username: string;
+    password: string;
+    fromAddress: string;
+    toAddresses: string;
+}
+
 interface MonitorAlert {
     id: string;
     kind: 'highCpu' | 'messageWait' | 'lockWait' | 'pollFailure';
@@ -97,6 +108,21 @@ interface JobDetailsPayload {
         label: string;
     }>;
     waitReason: string;
+    guidance: {
+        severity: 'info' | 'warning' | 'critical';
+        headline: string;
+        impact: string;
+        likelyCause: string;
+        nextSteps: string[];
+        technicalSummary: string;
+    };
+    actions: Array<{
+        kind: 'replyMessage' | 'holdJob' | 'releaseJob' | 'endJob' | 'inspectLocks';
+        label: string;
+        enabled: boolean;
+        dangerous?: boolean;
+        reason?: string;
+    }>;
 }
 
 interface ConnectionTestStatus {
@@ -172,6 +198,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     saveAlertSettings: (settings: Partial<AlertSettings>) => (
         ipcRenderer.invoke('save-alert-settings', settings) as Promise<AlertSettings>
     ),
+    getEmailNotificationSettings: () => (
+        ipcRenderer.invoke('get-email-notification-settings') as Promise<EmailNotificationSettings>
+    ),
+    saveEmailNotificationSettings: (settings: Partial<EmailNotificationSettings>) => (
+        ipcRenderer.invoke('save-email-notification-settings', settings) as Promise<EmailNotificationSettings>
+    ),
+    sendTestEmailNotification: () => (
+        ipcRenderer.invoke('send-test-email-notification') as Promise<{ success: boolean; error?: string; }>
+    ),
     deployMapepire: (config: {
         host: string;
         user: string;
@@ -189,6 +224,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
         detail?: string;
     }>,
     getJobDetails: (jobName: string) => ipcRenderer.invoke('get-job-details', jobName) as Promise<JobDetailsPayload | null>,
+    runJobAction: (payload: {
+        kind: 'replyMessage' | 'holdJob' | 'releaseJob' | 'endJob' | 'inspectLocks';
+        jobName: string;
+        replyText?: string;
+        endOption?: 'controlled' | 'immediate';
+    }) => ipcRenderer.invoke('run-job-action', payload) as Promise<{
+        success: boolean;
+        error?: string;
+        message?: string;
+    }>,
     connectToSystem: (config: IBMiConfig) => ipcRenderer.invoke('connect-to-system', config),
     disconnect: () => ipcRenderer.invoke('disconnect'),
     saveConnection: (connection: IBMiConfig) => ipcRenderer.invoke('save-connection', connection),

@@ -12,24 +12,51 @@
     <main class="app-shell">
         <section class="screen-frame monitor-frame">
             <header class="monitor-hero surface-card">
-                <div class="monitor-hero-main">
-                    <p class="eyebrow mb-2">IBMEye Console</p>
-                    <div class="hero-title-row">
-                        <img src="assets/ibm-eye.svg" alt="IBMEye" class="hero-logo">
-                        <div>
-                            <h1 class="hero-title">Live monitor</h1>
-                            <p class="hero-subtitle mb-0">Jobs, waits, alerts, and SQL in one surface.</p>
+                <div class="monitor-hero-top">
+                    <div class="monitor-hero-main">
+                        <p class="eyebrow mb-2">IBMEye Console</p>
+                        <div class="hero-title-row">
+                            <img src="assets/ibm-eye.svg" alt="IBMEye" class="hero-logo">
+                            <div>
+                                <h1 class="hero-title">Live monitor</h1>
+                                <p class="hero-subtitle mb-0">Jobs, waits, alerts, and SQL in one surface.</p>
+                            </div>
                         </div>
                     </div>
-                    <div class="hero-meta">
-                        <span id="monitoring-state" class="status-pill is-idle">Idle</span>
-                        <span id="connected-system" class="hero-connection">No system selected</span>
-                        <span id="last-updated" class="hero-connection">Awaiting first poll</span>
+                    <div class="monitor-hero-actions">
+                        <div class="hero-actions-row">
+                            <div class="hero-theme-control">
+                                <label for="theme-selector" class="hero-control-label">Theme</label>
+                                <select id="theme-selector" class="form-select hero-theme-select" data-testid="theme-selector"></select>
+                            </div>
+                            <button id="disconnect" class="btn btn-danger-soft">
+                                <i class="bi bi-power me-2"></i>Disconnect
+                            </button>
+                        </div>
+                        <p id="theme-description" class="hero-theme-description mb-0" data-testid="theme-description">
+                            Warm glass surfaces with deep green operator accents.
+                        </p>
                     </div>
                 </div>
-                <button id="disconnect" class="btn btn-danger-soft">
-                    <i class="bi bi-power me-2"></i>Disconnect
-                </button>
+                <div class="hero-meta">
+                    <span id="monitoring-state" class="status-pill is-idle">Idle</span>
+                    <span id="connected-system" class="hero-connection">No system selected</span>
+                    <span id="last-updated" class="hero-connection">Awaiting first poll</span>
+                </div>
+                <div class="hero-summary-strip">
+                    <div class="hero-summary-card">
+                        <span class="hero-summary-label">Auto monitor</span>
+                        <strong>Starts after connect</strong>
+                    </div>
+                    <div class="hero-summary-card">
+                        <span class="hero-summary-label">Alerts</span>
+                        <strong>Stay visible until reviewed</strong>
+                    </div>
+                    <div class="hero-summary-card">
+                        <span class="hero-summary-label">Log files</span>
+                        <strong>Readable daily operator trace</strong>
+                    </div>
+                </div>
             </header>
 
             <section class="stats-grid">
@@ -81,7 +108,7 @@
                             <p class="eyebrow mb-2">Alert Rules</p>
                             <h2 class="section-title">Notification controls</h2>
                             <p class="panel-copy mb-0">
-                                Tune which conditions create alerts and desktop notifications on this machine.
+                                Tune which conditions create alerts, desktop notifications, and email notifications on this machine.
                             </p>
                         </div>
                     </div>
@@ -118,6 +145,58 @@
                             <span>Disconnect notifications</span>
                             <input type="checkbox" id="watch-disconnects">
                         </label>
+                        <details class="email-settings-disclosure">
+                            <summary class="email-settings-summary">
+                                <span>
+                                    <strong>Email notifications</strong>
+                                    <small>SMTP setup and test delivery</small>
+                                </span>
+                                <i class="bi bi-chevron-down"></i>
+                            </summary>
+                            <div class="email-settings-body">
+                                <label class="toggle-row">
+                                    <span>Email notifications</span>
+                                    <input type="checkbox" id="email-notifications-enabled">
+                                </label>
+                                <div class="control-select">
+                                    <label for="email-smtp-host" class="control-label">SMTP host</label>
+                                    <input type="text" id="email-smtp-host" class="form-control" placeholder="smtp.example.com" autocomplete="off">
+                                </div>
+                                <div class="control-select">
+                                    <label for="email-smtp-port" class="control-label">SMTP port</label>
+                                    <div class="input-group">
+                                        <input type="number" id="email-smtp-port" class="form-control" min="1" max="65535" value="587">
+                                        <span class="input-group-text">SMTP</span>
+                                    </div>
+                                </div>
+                                <label class="toggle-row">
+                                    <span>Use secure SMTP</span>
+                                    <input type="checkbox" id="email-smtp-secure">
+                                </label>
+                                <div class="control-select">
+                                    <label for="email-username" class="control-label">SMTP username</label>
+                                    <input type="text" id="email-username" class="form-control" placeholder="optional" autocomplete="off">
+                                </div>
+                                <div class="control-select">
+                                    <label for="email-password" class="control-label">SMTP password</label>
+                                    <input type="password" id="email-password" class="form-control" placeholder="optional" autocomplete="new-password">
+                                </div>
+                                <div class="control-select">
+                                    <label for="email-from-address" class="control-label">From address</label>
+                                    <input type="email" id="email-from-address" class="form-control" placeholder="alerts@example.com" autocomplete="off">
+                                </div>
+                                <div class="control-select">
+                                    <label for="email-to-addresses" class="control-label">Recipient addresses</label>
+                                    <textarea id="email-to-addresses" class="form-control" rows="3" placeholder="ops@example.com, dev@example.com"></textarea>
+                                </div>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <button type="button" id="send-test-email" class="btn btn-outline-secondary">
+                                        <i class="bi bi-envelope-check me-2"></i>Send Test Email
+                                    </button>
+                                </div>
+                                <p id="email-settings-status" class="panel-copy mb-0" hidden></p>
+                            </div>
+                        </details>
                         <button type="submit" class="btn btn-primary-strong">
                             <i class="bi bi-bell-fill me-2"></i>Save Alert Rules
                         </button>
@@ -197,71 +276,73 @@
                 </div>
             </section>
 
-            <section class="table-shell surface-card">
-                <div class="table-shell-header">
-                    <div>
-                        <p class="eyebrow mb-2">Active Jobs</p>
-                        <h2 class="section-title">System activity feed</h2>
-                        <p class="panel-copy mb-0">Click a row to inspect current SQL, wait details, and status changes.</p>
+            <section class="operations-grid">
+                <section class="table-shell surface-card">
+                    <div class="table-shell-header">
+                        <div>
+                            <p class="eyebrow mb-2">Active Jobs</p>
+                            <h2 class="section-title">System activity feed</h2>
+                            <p class="panel-copy mb-0">Click a row to inspect current SQL, wait details, and status changes.</p>
+                        </div>
+                        <span id="current-refresh" class="table-caption">Refresh cadence: 5 seconds</span>
                     </div>
-                    <span id="current-refresh" class="table-caption">Refresh cadence: 5 seconds</span>
-                </div>
 
-                <div id="system-stats" class="table-responsive refined-table">
-                    <table class="table table-hover table-striped align-middle">
-                        <thead>
-                            <tr>
-                                <th scope="col">Subsystem/Job</th>
-                                <th scope="col">Current User</th>
-                                <th scope="col">Type</th>
-                                <th scope="col">CPU %</th>
-                                <th scope="col">Function</th>
-                                <th scope="col">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="table-placeholder">
-                                <td colspan="6" class="text-center py-4 text-muted">
-                                    <i class="bi bi-inbox fs-2 d-block mb-2"></i>
-                                    No active jobs to display
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <section class="activity-log-shell surface-card">
-                <div class="table-shell-header">
-                    <div>
-                        <p class="eyebrow mb-2">Operator Log</p>
-                        <h2 class="section-title">Background activity and SQL trace</h2>
-                        <p class="panel-copy mb-0">
-                            Newest first. Connection lifecycle, monitoring changes, and SQL execution results are recorded here. The panel shows the latest 200 events, while IBM Eye keeps full daily log files on disk.
-                        </p>
+                    <div id="system-stats" class="table-responsive refined-table">
+                        <table class="table table-hover table-striped align-middle">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Subsystem/Job</th>
+                                    <th scope="col">Current User</th>
+                                    <th scope="col">Type</th>
+                                    <th scope="col">CPU %</th>
+                                    <th scope="col">Function</th>
+                                    <th scope="col">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="table-placeholder">
+                                    <td colspan="6" class="text-center py-4 text-muted">
+                                        <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                                        No active jobs to display
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="log-export-actions">
-                        <span class="table-caption">Latest 200 events</span>
-                        <button id="open-logs-folder" type="button" class="btn btn-outline-ink btn-sm">
-                            <i class="bi bi-folder2-open me-2"></i>Logs Folder
-                        </button>
-                        <button id="share-activity-log" type="button" class="btn btn-outline-ink btn-sm">
-                            <i class="bi bi-share me-2"></i>Share
-                        </button>
-                        <button id="download-activity-log" type="button" class="btn btn-outline-ink btn-sm">
-                            <i class="bi bi-download me-2"></i>Download
-                        </button>
-                    </div>
-                </div>
+                </section>
 
-                <p id="activity-log-export-status" class="stat-note mb-3" hidden></p>
-
-                <div id="activity-log" class="activity-log-list">
-                    <div class="activity-log-empty">
-                        <i class="bi bi-journal-text"></i>
-                        <span>No background activity recorded yet.</span>
+                <section class="activity-log-shell surface-card">
+                    <div class="table-shell-header">
+                        <div>
+                            <p class="eyebrow mb-2">Operator Log</p>
+                            <h2 class="section-title">Background activity and SQL trace</h2>
+                            <p class="panel-copy mb-0">
+                                Newest first. Connection lifecycle, monitoring changes, and SQL execution results are recorded here. The panel shows the latest 200 events, while IBM Eye keeps full daily log files on disk.
+                            </p>
+                        </div>
+                        <div class="log-export-actions">
+                            <span class="table-caption">Latest 200 events</span>
+                            <button id="open-logs-folder" type="button" class="btn btn-outline-ink btn-sm">
+                                <i class="bi bi-folder2-open me-2"></i>Logs Folder
+                            </button>
+                            <button id="share-activity-log" type="button" class="btn btn-outline-ink btn-sm">
+                                <i class="bi bi-share me-2"></i>Share
+                            </button>
+                            <button id="download-activity-log" type="button" class="btn btn-outline-ink btn-sm">
+                                <i class="bi bi-download me-2"></i>Download
+                            </button>
+                        </div>
                     </div>
-                </div>
+
+                    <p id="activity-log-export-status" class="stat-note mb-3" hidden></p>
+
+                    <div id="activity-log" class="activity-log-list">
+                        <div class="activity-log-empty">
+                            <i class="bi bi-journal-text"></i>
+                            <span>No background activity recorded yet.</span>
+                        </div>
+                    </div>
+                </section>
             </section>
         </section>
     </main>
@@ -335,6 +416,33 @@
             <section class="job-detail-section">
                 <div class="history-card-header">
                     <div>
+                        <p class="eyebrow mb-2">Root Cause Guidance</p>
+                        <h3 id="detail-guidance-headline" class="section-title">No guidance yet</h3>
+                    </div>
+                    <span id="detail-guidance-severity" class="table-caption">Info</span>
+                </div>
+                <p id="detail-guidance-impact" class="panel-copy mb-2">-</p>
+                <p id="detail-guidance-cause" class="panel-copy mb-3">-</p>
+                <div id="detail-guidance-steps" class="status-history-list"></div>
+                <p id="detail-guidance-technical" class="stat-note mt-3 mb-0">-</p>
+            </section>
+
+            <section class="job-detail-section">
+                <div class="history-card-header">
+                    <div>
+                        <p class="eyebrow mb-2">Operator Actions</p>
+                        <h3 class="section-title">Take action from the drawer</h3>
+                    </div>
+                </div>
+                <div id="detail-operator-actions" class="alert-actions"></div>
+                <p id="detail-operator-action-note" class="stat-note mt-3 mb-0">
+                    MSGW reply and deeper lock tools need additional IBM i message and lock context and are not wired yet.
+                </p>
+            </section>
+
+            <section class="job-detail-section">
+                <div class="history-card-header">
+                    <div>
                         <p class="eyebrow mb-2">Status History</p>
                         <h3 class="section-title">Recent status changes</h3>
                     </div>
@@ -357,6 +465,6 @@
 
     <script src="../node_modules/@popperjs/core/dist/umd/popper.min.js"></script>
     <script src="../node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
-    <script src="monitor.js"></script>
+    <script type="module" src="monitor.js"></script>
 </body>
 </html>

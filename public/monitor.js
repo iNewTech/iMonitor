@@ -1,3 +1,10 @@
+import { renderHistory as renderHistoryView } from './monitor/history.js';
+import {
+    renderOperatorActions as renderOperatorActionsView,
+    renderRootCauseGuidance as renderRootCauseGuidanceView,
+    renderStatusHistory as renderStatusHistoryView
+} from './monitor/job-details.js';
+
 document.addEventListener('DOMContentLoaded', () => {
     const startButton = document.getElementById('start-monitoring');
     const stopButton = document.getElementById('stop-monitoring');
@@ -19,6 +26,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const watchLockWait = document.getElementById('watch-lock-wait');
     const watchFailedPolls = document.getElementById('watch-failed-polls');
     const watchDisconnects = document.getElementById('watch-disconnects');
+    const emailNotificationsEnabled = document.getElementById('email-notifications-enabled');
+    const emailSmtpHost = document.getElementById('email-smtp-host');
+    const emailSmtpPort = document.getElementById('email-smtp-port');
+    const emailSmtpSecure = document.getElementById('email-smtp-secure');
+    const emailUsername = document.getElementById('email-username');
+    const emailPassword = document.getElementById('email-password');
+    const emailFromAddress = document.getElementById('email-from-address');
+    const emailToAddresses = document.getElementById('email-to-addresses');
+    const sendTestEmailButton = document.getElementById('send-test-email');
+    const emailSettingsStatus = document.getElementById('email-settings-status');
     const jobsHistoryChart = document.getElementById('jobs-history-chart');
     const jobsHistoryValue = document.getElementById('jobs-history-value');
     const jobsHistoryNote = document.getElementById('jobs-history-note');
@@ -44,6 +61,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const detailTempStorage = document.getElementById('detail-temp-storage');
     const detailDiskIo = document.getElementById('detail-disk-io');
     const detailWaitReason = document.getElementById('detail-wait-reason');
+    const detailGuidanceHeadline = document.getElementById('detail-guidance-headline');
+    const detailGuidanceSeverity = document.getElementById('detail-guidance-severity');
+    const detailGuidanceImpact = document.getElementById('detail-guidance-impact');
+    const detailGuidanceCause = document.getElementById('detail-guidance-cause');
+    const detailGuidanceSteps = document.getElementById('detail-guidance-steps');
+    const detailGuidanceTechnical = document.getElementById('detail-guidance-technical');
+    const detailOperatorActions = document.getElementById('detail-operator-actions');
+    const detailOperatorActionNote = document.getElementById('detail-operator-action-note');
     const detailStatusHistory = document.getElementById('detail-status-history');
     const detailSqlStatus = document.getElementById('detail-sql-status');
     const detailSqlText = document.getElementById('detail-sql-text');
@@ -56,6 +81,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const lastUpdated = document.getElementById('last-updated');
     const connectedSystem = document.getElementById('connected-system');
     const monitoringState = document.getElementById('monitoring-state');
+    const themeSelector = document.getElementById('theme-selector');
+    const themeDescription = document.getElementById('theme-description');
 
     let monitoring = false;
     let selectedJobName = null;
@@ -67,6 +94,39 @@ document.addEventListener('DOMContentLoaded', () => {
     let noteComposerAlertId = null;
     const noteDraftByAlertId = new Map();
     const expandedAlertIds = new Set();
+    let availableThemes = [];
+
+    function setEmailSettingsStatus(message, isError = false) {
+        if (!emailSettingsStatus) {
+            return;
+        }
+
+        emailSettingsStatus.hidden = false;
+        emailSettingsStatus.textContent = message;
+        emailSettingsStatus.style.color = isError ? 'var(--danger)' : 'var(--accent-deep)';
+    }
+
+    function applyTheme(themeId) {
+        document.body.dataset.theme = themeId || 'operator-light';
+    }
+
+    function renderThemeSettings(settings) {
+        if (!themeSelector || !settings) {
+            return;
+        }
+
+        availableThemes = Array.isArray(settings.themes) ? settings.themes : [];
+        themeSelector.innerHTML = availableThemes.map((theme) => (
+            `<option value="${escapeHtml(theme.id)}">${escapeHtml(theme.label)}</option>`
+        )).join('');
+        themeSelector.value = settings.themeId || 'operator-light';
+        applyTheme(settings.themeId);
+
+        const selectedTheme = availableThemes.find((theme) => theme.id === themeSelector.value);
+        if (themeDescription) {
+            themeDescription.textContent = selectedTheme?.description || '';
+        }
+    }
 
     function escapeHtml(value) {
         return String(value ?? '').replace(/[&<>"']/g, (char) => (
@@ -362,108 +422,60 @@ document.addEventListener('DOMContentLoaded', () => {
         renderActivityLog();
     }
 
-    function buildTrendPath(values, width, height) {
-        const points = [];
-        const usableWidth = width - 24;
-        const usableHeight = height - 24;
-        const max = Math.max(...values, 1);
-        const min = Math.min(...values, 0);
-        const range = Math.max(max - min, 1);
+    function renderHistory(history) {
+        renderHistoryView({
+            jobsHistoryChart,
+            jobsHistoryValue,
+            jobsHistoryNote,
+            cpuHistoryChart,
+            cpuHistoryValue,
+            cpuHistoryNote,
+            waitHistoryChart,
+            waitHistoryValue,
+            waitHistoryNote
+        }, history);
+    }
 
-        values.forEach((value, index) => {
-            const x = 12 + (index / Math.max(values.length - 1, 1)) * usableWidth;
-            const normalizedValue = (value - min) / range;
-            const y = height - 12 - (normalizedValue * usableHeight);
-            points.push({ x, y });
-        });
+    function captureAlertScrollState() {
+        if (!activeAlerts || !activeAlerts.childElementCount) {
+            return null;
+        }
 
-        const line = points.map((point, index) => (
-            `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`
-        )).join(' ');
-
-        const area = [
-            `M ${points[0].x.toFixed(2)} ${height - 12}`,
-            ...points.map((point) => `L ${point.x.toFixed(2)} ${point.y.toFixed(2)}`),
-            `L ${points[points.length - 1].x.toFixed(2)} ${height - 12}`,
-            'Z'
-        ].join(' ');
+        const containerTop = activeAlerts.getBoundingClientRect().top;
+        const visibleCards = Array.from(activeAlerts.querySelectorAll('[data-alert-id]'));
+        const anchorElement = visibleCards.find((card) => (
+            card.getBoundingClientRect().bottom > containerTop + 1
+        ));
 
         return {
-            line,
-            area,
-            lastPoint: points[points.length - 1]
+            anchorId: anchorElement?.dataset?.alertId || null,
+            anchorOffset: anchorElement
+                ? anchorElement.getBoundingClientRect().top - containerTop
+                : 0,
+            scrollTop: activeAlerts.scrollTop
         };
     }
 
-    function renderTrendChart(element, values, strokeClass) {
-        if (!element) {
+    function restoreAlertScrollState(scrollState) {
+        if (!activeAlerts || !scrollState) {
             return;
         }
 
-        if (!values.length) {
-            element.innerHTML = `
-                <text x="50%" y="52%" dominant-baseline="middle" text-anchor="middle" class="trend-empty">
-                    No data yet
-                </text>
-            `;
-            return;
+        if (scrollState.anchorId) {
+            const selectorValue = window.CSS?.escape
+                ? window.CSS.escape(scrollState.anchorId)
+                : scrollState.anchorId.replace(/"/g, '\\"');
+            const anchorElement = activeAlerts.querySelector(`[data-alert-id="${selectorValue}"]`);
+
+            if (anchorElement) {
+                const containerTop = activeAlerts.getBoundingClientRect().top;
+                const currentOffset = anchorElement.getBoundingClientRect().top - containerTop;
+                activeAlerts.scrollTop += currentOffset - scrollState.anchorOffset;
+                return;
+            }
         }
 
-        const width = 320;
-        const height = 120;
-        const { line, area, lastPoint } = buildTrendPath(values, width, height);
-
-        element.innerHTML = `
-            <line x1="12" y1="${height - 12}" x2="${width - 12}" y2="${height - 12}" class="trend-axis"></line>
-            <path d="${area}" class="trend-area ${strokeClass}"></path>
-            <path d="${line}" class="trend-line ${strokeClass}"></path>
-            <circle cx="${lastPoint.x.toFixed(2)}" cy="${lastPoint.y.toFixed(2)}" r="4" class="trend-dot ${strokeClass}"></circle>
-        `;
-    }
-
-    function renderHistory(history) {
-        const snapshots = Array.isArray(history) ? history : [];
-        const latestSnapshot = snapshots[snapshots.length - 1];
-
-        renderTrendChart(jobsHistoryChart, snapshots.map((snapshot) => Number(snapshot.totalJobs) || 0), 'jobs');
-        renderTrendChart(cpuHistoryChart, snapshots.map((snapshot) => Number(snapshot.peakCpu) || 0), 'cpu');
-        renderTrendChart(waitHistoryChart, snapshots.map((snapshot) => Number(snapshot.waitingJobs) || 0), 'waits');
-
-        if (jobsHistoryValue) {
-            jobsHistoryValue.textContent = latestSnapshot
-                ? `${formatNumber(latestSnapshot.totalJobs)} jobs`
-                : '0 jobs';
-        }
-
-        if (jobsHistoryNote) {
-            jobsHistoryNote.textContent = latestSnapshot
-                ? `Recent window: ${snapshots.length} snapshots tracked in this session.`
-                : 'Waiting for snapshot history.';
-        }
-
-        if (cpuHistoryValue) {
-            cpuHistoryValue.textContent = latestSnapshot
-                ? `${Number(latestSnapshot.peakCpu || 0).toFixed(2)}%`
-                : '0.00%';
-        }
-
-        if (cpuHistoryNote) {
-            cpuHistoryNote.textContent = latestSnapshot
-                ? `Running jobs in the latest poll: ${formatNumber(latestSnapshot.runningJobs)}.`
-                : 'No CPU history collected yet.';
-        }
-
-        if (waitHistoryValue) {
-            waitHistoryValue.textContent = latestSnapshot
-                ? `${formatNumber(latestSnapshot.waitingJobs)} waits`
-                : '0 waits';
-        }
-
-        if (waitHistoryNote) {
-            waitHistoryNote.textContent = latestSnapshot
-                ? `Latest snapshot: ${formatNumber(latestSnapshot.messageWaitJobs)} MSGW and ${formatNumber(latestSnapshot.lockWaitJobs)} LCKW jobs.`
-                : 'MSGW and LCKW snapshots will appear here.';
-        }
+        activeAlerts.scrollTop = scrollState.scrollTop;
     }
 
     function renderAlerts(alerts) {
@@ -471,6 +483,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const scrollState = captureAlertScrollState();
         const nextAlerts = Array.isArray(alerts) ? alerts : [];
         latestAlerts = nextAlerts;
         if (noteComposerAlertId && !nextAlerts.some((alert) => alert?.id === noteComposerAlertId)) {
@@ -591,7 +604,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const summaryLabel = alert.jobName || alert.message;
 
             return `
-                <article class="alert-entry is-${escapeHtml(alert.severity)}${alert.isActive === false ? ' is-resolved' : ''}" data-testid="alert-card">
+                <article
+                    class="alert-entry is-${escapeHtml(alert.severity)}${alert.isActive === false ? ' is-resolved' : ''}"
+                    data-testid="alert-card"
+                    data-alert-id="${escapeHtml(alert.id)}"
+                >
                     <button class="alert-toggle" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-toggle" aria-expanded="${isExpanded ? 'true' : 'false'}">
                         <div class="alert-toggle-main">
                             <div class="activity-log-meta">
@@ -629,6 +646,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 </article>
             `;
         }).join('');
+
+        restoreAlertScrollState(scrollState);
     }
 
     function openAlertNoteComposer(alertId) {
@@ -686,6 +705,37 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function applyEmailNotificationSettings(settings) {
+        if (!settings) {
+            return;
+        }
+
+        if (emailNotificationsEnabled) {
+            emailNotificationsEnabled.checked = Boolean(settings.enabled);
+        }
+        if (emailSmtpHost) {
+            emailSmtpHost.value = settings.smtpHost || '';
+        }
+        if (emailSmtpPort) {
+            emailSmtpPort.value = String(settings.smtpPort || 587);
+        }
+        if (emailSmtpSecure) {
+            emailSmtpSecure.checked = Boolean(settings.secure);
+        }
+        if (emailUsername) {
+            emailUsername.value = settings.username || '';
+        }
+        if (emailPassword) {
+            emailPassword.value = settings.password || '';
+        }
+        if (emailFromAddress) {
+            emailFromAddress.value = settings.fromAddress || '';
+        }
+        if (emailToAddresses) {
+            emailToAddresses.value = settings.toAddresses || '';
+        }
+    }
+
     function openDrawer() {
         if (!jobDrawer || !drawerOverlay) {
             return;
@@ -711,27 +761,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 row.classList.remove('is-selected');
             });
         }
-    }
-
-    function renderStatusHistory(entries) {
-        if (!detailStatusHistory) {
-            return;
-        }
-
-        if (!entries.length) {
-            detailStatusHistory.innerHTML = `
-                <div class="status-history-empty">No status changes recorded yet.</div>
-            `;
-            return;
-        }
-
-        detailStatusHistory.innerHTML = entries.slice().reverse().map((entry) => `
-            <article class="status-history-item">
-                <span class="status-history-status">${escapeHtml(entry.status)}</span>
-                <span class="status-history-label">${escapeHtml(entry.label)}</span>
-                <time class="status-history-time">${formatTimestamp(entry.timestamp)}</time>
-            </article>
-        `).join('');
     }
 
     function populateJobDetails(payload) {
@@ -780,6 +809,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (detailWaitReason) {
             detailWaitReason.textContent = payload.waitReason || 'No wait reason available.';
         }
+        renderRootCauseGuidanceView({
+            detailGuidanceHeadline,
+            detailGuidanceSeverity,
+            detailGuidanceImpact,
+            detailGuidanceCause,
+            detailGuidanceSteps,
+            detailGuidanceTechnical
+        }, payload.guidance);
+        renderOperatorActionsView(detailOperatorActions, detailOperatorActionNote, payload.actions);
         if (detailSqlStatus) {
             const sqlTimestamp = job.SQL_STATEMENT_START_TIMESTAMP
                 ? ` since ${new Date(job.SQL_STATEMENT_START_TIMESTAMP).toLocaleTimeString()}`
@@ -792,7 +830,7 @@ document.addEventListener('DOMContentLoaded', () => {
             detailSqlText.textContent = job.SQL_STATEMENT_TEXT || 'No SQL statement captured for this job.';
         }
 
-        renderStatusHistory(payload.statusHistory || []);
+        renderStatusHistoryView(detailStatusHistory, payload.statusHistory || []);
 
         if (jobDetailEmpty) {
             jobDetailEmpty.hidden = true;
@@ -830,17 +868,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadInitialMonitorData() {
         try {
-            const [entries, history, alerts, settings] = await Promise.all([
+            const [entries, history, alerts, settings, emailSettings, themeSettings] = await Promise.all([
                 window.electronAPI.getActivityLog(),
                 window.electronAPI.getMonitoringHistory(),
                 window.electronAPI.getActiveAlerts(),
-                window.electronAPI.getAlertSettings()
+                window.electronAPI.getAlertSettings(),
+                window.electronAPI.getEmailNotificationSettings(),
+                window.electronAPI.getThemeSettings()
             ]);
 
             mergeActivityEntries(Array.isArray(entries) ? entries : []);
             renderHistory(history);
             renderAlerts(alerts);
             applyAlertSettings(settings);
+            applyEmailNotificationSettings(emailSettings);
+            renderThemeSettings(themeSettings);
         } catch (error) {
             console.error('Error loading monitor data:', error);
         }
@@ -900,7 +942,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             setExportStatus(
                 mode === 'share'
-                    ? `Share log ready: ${result.filePath}`
+                    ? result.method === 'native-share-menu'
+                        ? `Opened the system share menu for: ${result.filePath}`
+                        : `Latest log revealed for sharing: ${result.filePath}`
                     : mode === 'download'
                         ? `Log saved: ${result.filePath}`
                         : `Logs folder opened: ${result.directoryPath}`
@@ -1003,6 +1047,17 @@ document.addEventListener('DOMContentLoaded', () => {
         updateRefreshLabel();
     });
 
+    themeSelector?.addEventListener('change', async (event) => {
+        const nextThemeId = event.target.value;
+
+        try {
+            const settings = await window.electronAPI.saveThemeSettings(nextThemeId);
+            renderThemeSettings(settings);
+        } catch (error) {
+            console.error('Error saving theme settings:', error);
+        }
+    });
+
     disconnectButton?.addEventListener('click', async () => {
         disconnectButton.disabled = true;
         try {
@@ -1037,13 +1092,57 @@ document.addEventListener('DOMContentLoaded', () => {
                 watchFailedPolls: Boolean(watchFailedPolls?.checked),
                 watchDisconnects: Boolean(watchDisconnects?.checked)
             });
+            const emailSettings = await window.electronAPI.saveEmailNotificationSettings({
+                enabled: Boolean(emailNotificationsEnabled?.checked),
+                smtpHost: emailSmtpHost?.value || '',
+                smtpPort: Number.parseInt(emailSmtpPort?.value || '587', 10) || 587,
+                secure: Boolean(emailSmtpSecure?.checked),
+                username: emailUsername?.value || '',
+                password: emailPassword?.value || '',
+                fromAddress: emailFromAddress?.value || '',
+                toAddresses: emailToAddresses?.value || ''
+            });
             applyAlertSettings(settings);
+            applyEmailNotificationSettings(emailSettings);
+            setEmailSettingsStatus('Notification settings saved.');
         } catch (error) {
             console.error('Error saving alert settings:', error);
+            setEmailSettingsStatus(error.message || 'Unable to save email notification settings.', true);
         } finally {
             if (submitButton) {
                 submitButton.disabled = false;
             }
+        }
+    });
+
+    sendTestEmailButton?.addEventListener('click', async () => {
+        sendTestEmailButton.disabled = true;
+        setEmailSettingsStatus('Sending test email...');
+
+        try {
+            const saveResult = await window.electronAPI.saveEmailNotificationSettings({
+                enabled: Boolean(emailNotificationsEnabled?.checked),
+                smtpHost: emailSmtpHost?.value || '',
+                smtpPort: Number.parseInt(emailSmtpPort?.value || '587', 10) || 587,
+                secure: Boolean(emailSmtpSecure?.checked),
+                username: emailUsername?.value || '',
+                password: emailPassword?.value || '',
+                fromAddress: emailFromAddress?.value || '',
+                toAddresses: emailToAddresses?.value || ''
+            });
+            applyEmailNotificationSettings(saveResult);
+
+            const result = await window.electronAPI.sendTestEmailNotification();
+            if (!result.success) {
+                throw new Error(result.error || 'Test email failed.');
+            }
+
+            setEmailSettingsStatus('Test email sent.');
+        } catch (error) {
+            console.error('Error sending test email:', error);
+            setEmailSettingsStatus(error.message || 'Test email failed.', true);
+        } finally {
+            sendTestEmailButton.disabled = false;
         }
     });
 
@@ -1146,6 +1245,44 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         noteDraftByAlertId.set(noteInput.dataset.alertId, noteInput.value);
+    });
+
+    detailOperatorActions?.addEventListener('click', async (event) => {
+        const actionButton = event.target.closest('.job-action-button');
+        if (!actionButton?.dataset?.actionKind || !selectedJobName) {
+            return;
+        }
+
+        const originalMarkup = actionButton.innerHTML;
+        actionButton.disabled = true;
+        actionButton.innerHTML = 'Working...';
+
+        try {
+            const result = await window.electronAPI.runJobAction({
+                kind: actionButton.dataset.actionKind,
+                jobName: selectedJobName
+            });
+
+            if (!result?.success) {
+                if (detailOperatorActionNote) {
+                    detailOperatorActionNote.textContent = result?.error || 'The action could not be completed.';
+                }
+                return;
+            }
+
+            if (detailOperatorActionNote) {
+                detailOperatorActionNote.textContent = result.message || 'Action completed successfully.';
+            }
+
+            await loadJobDetails(selectedJobName);
+        } catch (error) {
+            if (detailOperatorActionNote) {
+                detailOperatorActionNote.textContent = error?.message || 'The action failed.';
+            }
+        } finally {
+            actionButton.disabled = false;
+            actionButton.innerHTML = originalMarkup;
+        }
     });
 
     closeJobDrawer?.addEventListener('click', () => {

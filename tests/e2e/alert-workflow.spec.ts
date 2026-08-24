@@ -55,7 +55,7 @@ test('launches the demo monitor and renders live alert cards', async () => {
     try {
         await openDemoMonitor(app.page);
         await expect(app.page.getByText('Live monitor')).toBeVisible();
-        await expect(app.page.getByTestId('alert-count')).toContainText('active alerts');
+        await expect(app.page.getByTestId('alert-count')).toContainText('active alert');
     } finally {
         await app.cleanup();
     }

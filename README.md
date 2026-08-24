@@ -7,7 +7,9 @@ IBMEye is a desktop operator app for IBM i teams. It connects to a system throug
 - Connects to IBM i systems through Mapepire
 - Auto-starts live monitoring after connect
 - Shows active job health, waits, CPU, and SQL details
-- Raises operator alerts and desktop notifications
+- Shows root-cause guidance in the job detail drawer
+- Supports drawer-based operator actions for hold, release, and end job
+- Raises operator alerts, desktop notifications, and SMTP email notifications
 - Keeps a local operator log and daily log files
 - Can detect, start, or deploy Mapepire during connect
 - Includes a development-only demo system for UI testing without real credentials
@@ -51,6 +53,31 @@ IBMEye writes:
 - a structured daily log: `ibm-eye-YYYY-MM-DD.log.jsonl`
 
 These are stored in the app logs directory and can be opened from the monitor screen.
+
+## Email Notifications
+
+The monitor screen now includes SMTP email notification settings.
+
+You can:
+
+- enable or disable alert emails
+- set SMTP host, port, secure mode, username, and password
+- set sender and recipient addresses
+- send a test email before relying on it during incidents
+
+Alert-triggering conditions such as `MSGW`, `LCKW`, high CPU, failed polls, and disconnects can now send email when the alert itself is enabled and the SMTP settings are valid.
+
+## Current Operator Actions
+
+The job detail drawer currently supports:
+
+- `Hold Job`
+- `Release Job`
+- `End Job`
+
+These actions are logged in the Operator Log. In demo mode they are simulated safely for UI and workflow testing.
+
+`Reply to MSGW` and deeper lock investigation are the next actions to finish and need additional IBM i message and lock context.
 
 ## Project Notes
 
