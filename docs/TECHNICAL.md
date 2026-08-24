@@ -82,7 +82,7 @@ src/
 
 ## Main Process Responsibilities
 
-- `src/main.ts` is the composition root only
+- `src/main.ts` is the composition root for the `iMonitor` app
 - `src/main/ipc/*` owns Electron IPC registration
 - `src/main/runtime/session-runtime.ts` owns saved connections, Mapepire setup, connect, and disconnect
 - `src/main/runtime/monitoring-runtime.ts` owns poll cadence, demo polling, snapshots, and failure handling
@@ -116,7 +116,7 @@ src/
 - `src/features/operator-actions/operator-actions.ts` builds supported IBM i job action plans
 - `src/features/history/history-model.ts` parses structured `.jsonl` records and rebuilds history trends
 - `src/features/guidance/root-cause-guidance.ts` generates operator-facing cause and next-step guidance
-- `src/features/notifications/email-notification.ts` normalizes SMTP settings and builds outbound email messages
+- `src/features/notifications/email-notification.ts` normalizes SMTP settings and builds outbound email messages for `IBMEye Alerts`
 
 ## Demo Mode Boundary
 

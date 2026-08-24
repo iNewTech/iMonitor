@@ -1,8 +1,8 @@
-# IBMEye Implementation Backlog
+# iMonitor Implementation Backlog
 
 Last updated: August 23, 2026
 
-This file is the working feature queue for IBMEye.
+This file is the working feature queue for iMonitor and its IBMEye alert module.
 It is the source of truth for remaining feature work, refactors, and testing expectations.
 
 ## Delivery Rules

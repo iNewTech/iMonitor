@@ -47,7 +47,7 @@ async function launchWithEnvironment(env: NodeJS.ProcessEnv): Promise<TestAppHan
 async function openDemoMonitor(page: Page) {
     await expect(page.getByTestId('launch-demo')).toBeVisible();
     await page.getByTestId('launch-demo').click();
-    await expect(page.getByText('Operator intervention queue')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'IBMEye Incident Queue', exact: true })).toBeVisible();
 }
 
 test('applies the selected theme and restores it after restart', async () => {

@@ -74,7 +74,7 @@ export function createMonitoringRuntime(dependencies: MonitoringRuntimeDependenc
         dependencies.recordActivity({
             area: 'sql',
             level: 'info',
-            message: 'Generated demo snapshot JSON for IBMEye.',
+            message: 'Generated demo snapshot JSON for iMonitor.',
             detail: `Demo poll ${dummyPollCount} read ${jobs.length} jobs from ${demoDataFilePath}. MSGW jobs: ${msgwCount}. LCKW jobs: ${lckwCount}.`,
             sql: `-- demo mode reads generated snapshot JSON\n-- ${demoDataFilePath}`
         });

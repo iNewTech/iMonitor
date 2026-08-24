@@ -2,7 +2,7 @@
 
 ## Current State
 
-IBMEye currently supports:
+The `IBMEye` alert module inside `iMonitor` currently supports:
 
 - active alerts
 - resolved alerts

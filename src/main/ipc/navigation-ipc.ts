@@ -26,7 +26,7 @@ export function registerNavigationIpc(dependencies: RegisterNavigationIpcDepende
         dependencies.recordActivity({
             area: 'navigation',
             level: 'info',
-            message: 'Opened the IBMEye dashboard.'
+            message: 'Opened the iMonitor dashboard.'
         });
         return { success: true };
     });

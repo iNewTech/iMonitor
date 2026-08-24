@@ -2,7 +2,7 @@
 
 ## Current Connect Flow
 
-When the user clicks `Connect Now`, IBMEye now:
+When the user clicks `Connect Now`, iMonitor now:
 
 1. checks whether Mapepire is already reachable on the requested or fallback ports
 2. if reachable, uses that service
@@ -34,7 +34,7 @@ When the user clicks `Connect Now`, IBMEye now:
 ## Port Logic
 
 - preferred port comes from the connection form
-- if default `8076` is busy, IBMEye tries `+10` increments
+- if default `8076` is busy, iMonitor tries `+10` increments
 - the resolved port is sent back to the connection form
 
 ## Current Limitation

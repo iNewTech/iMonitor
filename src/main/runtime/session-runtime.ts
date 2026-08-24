@@ -78,7 +78,7 @@ export function createSessionRuntime(dependencies: SessionRuntimeDependencies) {
         const rawMessage = getErrorMessage(error);
         const normalizedMessage = rawMessage.toLowerCase();
         const target = describeConnectionTarget(context);
-        let summary = 'IBMEye could not open a session to the remote IBM i system.';
+        let summary = 'iMonitor could not open a session to the remote IBM i system.';
         let hint = 'Review the raw error below and confirm the remote service is reachable.';
 
         if (normalizedMessage.includes('econnrefused') || normalizedMessage.includes('connection refused')) {
@@ -404,7 +404,7 @@ export function createSessionRuntime(dependencies: SessionRuntimeDependencies) {
                     await writeDemoSnapshot(demoDataFilePath, dependencies.monitoringState.getDummyPollCount());
                     dependencies.connectionState.setCurrentConnection({
                         id: `demo-${Date.now()}`,
-                        name: config.name?.trim() || 'IBMEye Demo System',
+                        name: config.name?.trim() || 'iMonitor Demo System',
                         host: 'dummy.local',
                         user: 'DEMO',
                         encryptedPassword: '',
@@ -414,7 +414,7 @@ export function createSessionRuntime(dependencies: SessionRuntimeDependencies) {
                     dependencies.recordActivity({
                         area: 'connection',
                         level: 'success',
-                        message: 'Connected to IBMEye demo system.',
+                        message: 'Connected to the iMonitor demo system.',
                         detail: `Using generated JSON data at ${demoDataFilePath} with rotating RUN, LCKW, DLYW, and MSGW states.`
                     });
                     dependencies.emitConnectionAction('Demo system ready.');
@@ -439,11 +439,11 @@ export function createSessionRuntime(dependencies: SessionRuntimeDependencies) {
                     rejectUnauthorized: true
                 };
 
-                dependencies.emitConnectionAction(`Opening IBMEye session on port ${connectionConfig.port}.`);
+                dependencies.emitConnectionAction(`Opening iMonitor session on port ${connectionConfig.port}.`);
                 dependencies.recordActivity({
                     area: 'connection',
                     level: 'info',
-                    message: 'Opening IBMEye system session.',
+                    message: 'Opening iMonitor system session.',
                     detail: describeConnectionTarget(connectionConfig)
                 });
 

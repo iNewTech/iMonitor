@@ -45,7 +45,7 @@ async function launchTestApp(): Promise<{
 async function openDemoMonitor(page: Page) {
     await expect(page.getByTestId('launch-demo')).toBeVisible();
     await page.getByTestId('launch-demo').click();
-    await expect(page.getByText('Operator intervention queue')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'IBMEye Incident Queue', exact: true })).toBeVisible();
     await expect(page.getByTestId('alert-card').first()).toBeVisible();
 }
 
@@ -54,7 +54,7 @@ test('launches the demo monitor and renders live alert cards', async () => {
 
     try {
         await openDemoMonitor(app.page);
-        await expect(app.page.getByText('Live monitor')).toBeVisible();
+        await expect(app.page.getByRole('heading', { name: 'iMonitor Dashboard', exact: true })).toBeVisible();
         await expect(app.page.getByTestId('alert-count')).toContainText('active alert');
     } finally {
         await app.cleanup();

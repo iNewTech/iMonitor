@@ -1,6 +1,6 @@
-# IBMEye
+# iMonitor
 
-IBMEye is a desktop operator app for IBM i teams. It connects to a system through Mapepire, watches active jobs, shows alerts such as `MSGW`, `LCKW`, and high CPU, and keeps a visible operator log so the user can see what the app is doing.
+iMonitor is the desktop app for IBM i teams. Inside it, `IBMEye` is the alert and watch module that tracks conditions such as `MSGW`, `LCKW`, high CPU, and failed polls while iMonitor keeps connection, monitoring, and logs in one operator surface.
 
 ## What The App Does
 
@@ -32,7 +32,7 @@ npm start
 
 1. Enter a connection name, system address, user, password, and Mapepire port.
 2. Click `Connect Now`.
-3. IBMEye will:
+3. iMonitor will:
    - check whether Mapepire is already running
    - start it if it is installed but stopped
    - deploy it if it is missing
@@ -47,7 +47,7 @@ This is only available in development builds. Packaged production builds do not 
 
 ## Logs
 
-IBMEye writes:
+iMonitor writes:
 
 - a readable daily log: `ibm-eye-YYYY-MM-DD.log`
 - a structured daily log: `ibm-eye-YYYY-MM-DD.log.jsonl`
@@ -56,7 +56,7 @@ These are stored in the app logs directory and can be opened from the monitor sc
 
 ## Email Notifications
 
-The monitor screen now includes SMTP email notification settings.
+The iMonitor Dashboard now includes SMTP email notification settings for `IBMEye Alerts`.
 
 You can:
 
@@ -75,7 +75,7 @@ The job detail drawer currently supports:
 - `Release Job`
 - `End Job`
 
-These actions are logged in the Operator Log. In demo mode they are simulated safely for UI and workflow testing.
+These actions are logged in iMonitor Logs. In demo mode they are simulated safely for UI and workflow testing.
 
 `Reply to MSGW` and deeper lock investigation are the next actions to finish and need additional IBM i message and lock context.
 

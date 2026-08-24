@@ -40,7 +40,7 @@ export interface HistoricalIncident {
 }
 
 /**
- * Parses one JSONL record from a daily IBMEye structured log.
+ * Parses one JSONL record from a daily iMonitor structured log.
  */
 export function parsePersistentLogRecord(line: string): PersistentLogRecord | null {
     try {

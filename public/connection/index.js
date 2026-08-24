@@ -138,7 +138,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         try {
             const result = await window.electronAPI.connectToSystem({
-                name: 'IBMEye Demo System',
+                name: 'iMonitor Demo System',
                 host: 'dummy',
                 port: 8076,
                 user: 'dummy',
@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
 
             if (result.success) {
-                showAlert(elements.connectionForm, 'Demo system ready. IBMEye will open the monitor with dummy jobs and MSGW alert simulation.', 'success');
+                showAlert(elements.connectionForm, 'Demo system ready. iMonitor will open the dashboard with dummy jobs and IBMEye alert simulation.', 'success');
                 setConnectionAction(elements.connectionActionBar, elements.connectionActionMessage, elements.connectionActionDetail, 'Demo ready.', 'Starting local demo monitoring.', true);
                 await window.electronAPI.navigateToMonitor();
                 return;

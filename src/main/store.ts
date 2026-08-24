@@ -24,7 +24,7 @@ export type AppStore = Store<StoreSchema> & {
 };
 
 /**
- * Creates the typed Electron store used by the IBMEye main process.
+ * Creates the typed Electron store used by the iMonitor main process.
  */
 export function createAppStore() {
     const storeName = app.isPackaged ? 'connections-prod' : 'connections-dev';

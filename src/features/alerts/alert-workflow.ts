@@ -226,7 +226,7 @@ export function createPollFailureAlert(
             resolvedAt: undefined,
             isActive: true,
             title: 'Monitoring poll failed',
-            message: 'IBMEye could not refresh active jobs.',
+            message: 'iMonitor could not refresh active jobs.',
             detail: errorMessage
         }, nextWorkflowState),
         isNew: !existingAlert,

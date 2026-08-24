@@ -4,7 +4,7 @@
 export type AlertSeverity = 'critical' | 'warning';
 
 /**
- * Supported alert categories in IBMEye.
+ * Supported alert categories in the IBMEye module.
  */
 export type AlertKind = 'highCpu' | 'messageWait' | 'lockWait' | 'pollFailure';
 

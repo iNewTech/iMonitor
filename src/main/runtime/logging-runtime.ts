@@ -125,7 +125,7 @@ export function createLoggingRuntime(dependencies: LoggingRuntimeDependencies) {
                 ]);
             })
             .catch((error) => {
-                console.error('Unable to persist IBMEye log record.', error);
+                console.error('Unable to persist iMonitor log record.', error);
             });
     };
 
@@ -138,7 +138,7 @@ export function createLoggingRuntime(dependencies: LoggingRuntimeDependencies) {
     const buildOperatorLogText = () => {
         const connection = dependencies.getConnectionContext();
         const connectionLabel = connection.host && connection.user
-            ? `${connection.name || 'IBMEye'} (${connection.user}@${connection.host}:${connection.port})`
+            ? `${connection.name || 'iMonitor'} (${connection.user}@${connection.host}:${connection.port})`
             : 'No active connection';
         const logsDirectory = getLogsDirectoryPath();
         const dailyReadableLogFile = getDailyReadableLogFilePath();
@@ -166,7 +166,7 @@ export function createLoggingRuntime(dependencies: LoggingRuntimeDependencies) {
         });
 
         return [
-            'IBMEye Operator Log',
+            'iMonitor Operator Log',
             `Generated: ${new Date().toISOString()}`,
             `Connection: ${connectionLabel}`,
             `Monitor mode: ${dependencies.getMonitorMode()}`,
@@ -274,7 +274,7 @@ export function createLoggingRuntime(dependencies: LoggingRuntimeDependencies) {
         async downloadActivityLogFile() {
             const defaultPath = path.join(dependencies.downloadsPath, buildLogFileName());
             const dialogOptions = {
-                title: 'Download IBMEye Operator Log',
+                title: 'Download iMonitor Operator Log',
                 defaultPath,
                 filters: [
                     { name: 'Log Files', extensions: ['log', 'txt'] },
@@ -352,7 +352,7 @@ export function createLoggingRuntime(dependencies: LoggingRuntimeDependencies) {
             this.recordActivity({
                 area: 'storage',
                 level: 'info',
-                message: 'Opened the IBMEye logs folder.',
+                message: 'Opened the iMonitor logs folder.',
                 detail: logsDirectory
             });
 

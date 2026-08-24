@@ -22,6 +22,7 @@
 
 ### Alerts
 
+- `IBMEye Alerts` module inside `iMonitor`
 - MSGW alerts
 - LCKW alerts
 - high CPU alerts
@@ -34,6 +35,7 @@
 
 ### Logs
 
+- `iMonitor Logs`
 - operator activity log
 - share operator log
 - download operator log

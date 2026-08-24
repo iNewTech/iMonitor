@@ -158,7 +158,7 @@ const loggingRuntime = createLoggingRuntime({
 });
 
 const emailNotificationRuntime = createEmailNotificationRuntime({
-    appName: 'IBMEye',
+    appName: 'iMonitor',
     cooldownMs: NOTIFICATION_COOLDOWN_MS,
     getSettings: getEmailNotificationSettings,
     getConnectionLabel: () => {
@@ -272,7 +272,7 @@ sessionRuntime = createSessionRuntime({
 
         maybeShowNotification(
             'disconnect',
-            'IBMEye disconnected',
+            'iMonitor disconnected',
             'The active IBM i session was disconnected.'
         );
 
@@ -422,7 +422,7 @@ app.whenReady().then(() => {
     loggingRuntime.recordActivity({
         area: 'navigation',
         level: 'info',
-        message: 'IBMEye is ready.',
+        message: 'iMonitor is ready.',
         detail: 'Waiting for the first IBM i connection.'
     });
     emitAlertSettings();

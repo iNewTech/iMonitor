@@ -127,7 +127,7 @@ export function createEmailNotificationRuntime(dependencies: EmailNotificationRu
                     `Time: ${new Date().toISOString()}`,
                     `Connection: ${dependencies.getConnectionLabel()}`,
                     '',
-                    'This confirms that SMTP email delivery is working from IBMEye.'
+                    'This confirms that SMTP email delivery is working from iMonitor.'
                 ].join('\n')
             });
 

@@ -165,7 +165,7 @@ export function buildAlertEmailMessage(payload: {
     connectionLabel: string;
 }): EmailMessage {
     return {
-        subject: `[IBMEye] ${payload.title}`,
+        subject: `[IBMEye Alerts] ${payload.title}`,
         text: [
             'IBMEye alert',
             `Time: ${payload.timestamp}`,
@@ -173,7 +173,7 @@ export function buildAlertEmailMessage(payload: {
             '',
             payload.body,
             '',
-            'Open IBMEye for full alert history and operator actions.'
+            'Open iMonitor for full alert history and operator actions.'
         ].join('\n')
     };
 }
@@ -186,9 +186,9 @@ export function buildDisconnectEmailMessage(payload: {
     connectionLabel: string;
 }): EmailMessage {
     return {
-        subject: '[IBMEye] Disconnected from IBM i system',
+        subject: '[iMonitor] Disconnected from IBM i system',
         text: [
-            'IBMEye disconnect notification',
+            'iMonitor disconnect notification',
             `Time: ${payload.timestamp}`,
             `Connection: ${payload.connectionLabel}`,
             '',
