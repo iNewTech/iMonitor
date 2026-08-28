@@ -1,24 +1,26 @@
 {
   "name": "imonitor",
   "version": "1.0.0",
-  "description": "IBM Eye for IBM i operations monitoring",
+  "description": "iMonitor desktop app for IBM i operations monitoring",
   "main": "dist/main.js",
   "scripts": {
     "start": "tsc && electron .",
     "build": "tsc",
     "watch": "tsc -w",
     "dev": "npm run build && electron .",
-    "package": "electron-builder build --mac --win --linux",
+    "package": "electron-builder build --mac --win",
+    "package:collect": "node scripts/collect-installers.mjs",
+    "release": "npm run package && npm run package:collect",
     "test": "npm run build && npm run test:unit && npm run test:e2e",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
     "test:watch": "vitest",
     "docs:api": "typedoc",
-    "docs:serve": "python3 -m http.server 8000 --directory docs/api"
+    "docs:serve": "python3 -m http.server 8000 --directory docs"
   },
   "build": {
     "appId": "com.inewtech.imonitor",
-    "productName": "IBMEye",
+    "productName": "iMonitor",
     "directories": {
       "output": "release",
       "buildResources": "build"
@@ -59,8 +61,7 @@
       "icon": "build/icons/icon.icns",
       "category": "public.app-category.developer-tools",
       "target": [
-        "dmg",
-        "zip"
+        "dmg"
       ],
       "darkModeSupport": true
     },
@@ -69,15 +70,6 @@
       "target": [
         "nsis"
       ]
-    },
-    "linux": {
-      "icon": "build/icons/icon.png",
-      "target": [
-        "AppImage",
-        "deb"
-      ],
-      "maintainer": "iNewTech <support@inewtech.com>",
-      "category": "Development"
     },
     "dmg": {
       "icon": "build/icons/icon.icns",
@@ -119,6 +111,7 @@
   "devDependencies": {
     "@playwright/test": "^1.55.0",
     "@types/node": "^24.3.1",
+    "@types/nodemailer": "^7.0.12",
     "@types/ssh2": "^1.15.5",
     "electron": "^39.2.6",
     "electron-builder": "^26.3.3",
@@ -133,6 +126,7 @@
     "bootstrap": "^5.3.7",
     "bootstrap-icons": "^1.13.1",
     "electron-store": "^10.1.0",
+    "nodemailer": "^7.0.13",
     "ssh2": "^1.17.0"
   }
 }

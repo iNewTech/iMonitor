@@ -31,7 +31,7 @@ interface MonitoringState {
 interface ActivityLogEntry {
     id: string;
     timestamp: string;
-    area: 'connection' | 'sql' | 'monitoring' | 'navigation' | 'storage';
+    area: 'connection' | 'sql' | 'monitoring' | 'navigation' | 'storage' | 'support' | 'ai';
     level: 'info' | 'success' | 'warning' | 'error';
     message: string;
     detail?: string;
@@ -46,6 +46,17 @@ interface AlertSettings {
     watchLockWait: boolean;
     watchFailedPolls: boolean;
     watchDisconnects: boolean;
+}
+
+interface EmailNotificationSettings {
+    enabled: boolean;
+    smtpHost: string;
+    smtpPort: number;
+    secure: boolean;
+    username: string;
+    password: string;
+    fromAddress: string;
+    toAddresses: string;
 }
 
 interface MonitorAlert {
@@ -97,6 +108,21 @@ interface JobDetailsPayload {
         label: string;
     }>;
     waitReason: string;
+    guidance: {
+        severity: 'info' | 'warning' | 'critical';
+        headline: string;
+        impact: string;
+        likelyCause: string;
+        nextSteps: string[];
+        technicalSummary: string;
+    };
+    actions: Array<{
+        kind: 'replyMessage' | 'holdJob' | 'releaseJob' | 'endJob' | 'inspectLocks';
+        label: string;
+        enabled: boolean;
+        dangerous?: boolean;
+        reason?: string;
+    }>;
 }
 
 interface ConnectionTestStatus {
@@ -127,11 +153,47 @@ interface ThemeSettings {
     themes: ThemeOption[];
 }
 
+interface AiAssistantSettings {
+    enabled: boolean;
+    provider: 'ollama';
+    endpoint: string;
+    model: string;
+    temperature: number;
+    replyStyle: string;
+    historyLimit: number;
+    activityLimit: number;
+    jobLimit: number;
+    alertLimit: number;
+}
+
+interface AiAssistantAvailability {
+    enabled: boolean;
+    provider: 'ollama';
+    endpoint: string;
+    selectedModel: string | null;
+    availableModels: string[];
+    healthy: boolean;
+    featureAccess: 'included';
+    message: string;
+}
+
+interface AiAssistantMessage {
+    role: 'system' | 'user' | 'assistant';
+    content: string;
+}
+
+interface AppInfo {
+    appName: string;
+    appVersion: string;
+    supportEmail: string;
+}
+
 contextBridge.exposeInMainWorld('electronAPI', {
     navigateToMonitor: () => ipcRenderer.invoke('navigate-to-monitor'),
     navigateToConnection: () => ipcRenderer.invoke('navigate-to-connection'),
 
     getConnectionState: () => ipcRenderer.invoke('get-connection-state') as Promise<ConnectionState>,
+    getAppInfo: () => ipcRenderer.invoke('get-app-info') as Promise<AppInfo>,
     getAppFlags: () => ipcRenderer.invoke('get-app-flags') as Promise<{
         demoModeEnabled: boolean;
         demoModeReason?: string;
@@ -140,6 +202,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }>,
     getThemeSettings: () => ipcRenderer.invoke('get-theme-settings') as Promise<ThemeSettings>,
     saveThemeSettings: (themeId: ThemeOption['id']) => ipcRenderer.invoke('save-theme-settings', themeId) as Promise<ThemeSettings>,
+    getAiSettings: () => ipcRenderer.invoke('get-ai-settings') as Promise<AiAssistantSettings>,
+    saveAiSettings: (settings: Partial<AiAssistantSettings>) => (
+        ipcRenderer.invoke('save-ai-settings', settings) as Promise<AiAssistantSettings>
+    ),
+    getAiAvailability: () => ipcRenderer.invoke('get-ai-availability') as Promise<AiAssistantAvailability>,
+    askAiAssistant: (payload: {
+        message: string;
+        selectedJobName?: string;
+        conversation?: AiAssistantMessage[];
+    }) => ipcRenderer.invoke('ask-ai-assistant', payload) as Promise<{
+        success: boolean;
+        reply?: string;
+        availability?: AiAssistantAvailability;
+        error?: string;
+    }>,
     getMonitoringState: () => ipcRenderer.invoke('get-monitoring-state') as Promise<MonitoringState>,
     getActivityLog: () => ipcRenderer.invoke('get-activity-log') as Promise<ActivityLogEntry[]>,
     downloadActivityLog: () => ipcRenderer.invoke('download-activity-log') as Promise<{
@@ -154,6 +231,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openLogsFolder: () => ipcRenderer.invoke('open-logs-folder') as Promise<{
         success: boolean;
         directoryPath?: string;
+    }>,
+    contactSupport: () => ipcRenderer.invoke('contact-support') as Promise<{
+        success: boolean;
+        mailtoUrl?: string;
+        error?: string;
+    }>,
+    sendSupportDiagnostics: () => ipcRenderer.invoke('send-support-diagnostics') as Promise<{
+        success: boolean;
+        filePath?: string;
+        mailtoUrl?: string;
+        error?: string;
     }>,
     getMonitoringHistory: () => ipcRenderer.invoke('get-monitoring-history') as Promise<MonitoringSnapshot[]>,
     getActiveAlerts: () => ipcRenderer.invoke('get-active-alerts') as Promise<MonitorAlert[]>,
@@ -172,6 +260,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     saveAlertSettings: (settings: Partial<AlertSettings>) => (
         ipcRenderer.invoke('save-alert-settings', settings) as Promise<AlertSettings>
     ),
+    getEmailNotificationSettings: () => (
+        ipcRenderer.invoke('get-email-notification-settings') as Promise<EmailNotificationSettings>
+    ),
+    saveEmailNotificationSettings: (settings: Partial<EmailNotificationSettings>) => (
+        ipcRenderer.invoke('save-email-notification-settings', settings) as Promise<EmailNotificationSettings>
+    ),
+    sendTestEmailNotification: () => (
+        ipcRenderer.invoke('send-test-email-notification') as Promise<{ success: boolean; error?: string; }>
+    ),
     deployMapepire: (config: {
         host: string;
         user: string;
@@ -189,6 +286,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
         detail?: string;
     }>,
     getJobDetails: (jobName: string) => ipcRenderer.invoke('get-job-details', jobName) as Promise<JobDetailsPayload | null>,
+    runJobAction: (payload: {
+        kind: 'replyMessage' | 'holdJob' | 'releaseJob' | 'endJob' | 'inspectLocks';
+        jobName: string;
+        replyText?: string;
+        endOption?: 'controlled' | 'immediate';
+    }) => ipcRenderer.invoke('run-job-action', payload) as Promise<{
+        success: boolean;
+        error?: string;
+        message?: string;
+    }>,
     connectToSystem: (config: IBMiConfig) => ipcRenderer.invoke('connect-to-system', config),
     disconnect: () => ipcRenderer.invoke('disconnect'),
     saveConnection: (connection: IBMiConfig) => ipcRenderer.invoke('save-connection', connection),

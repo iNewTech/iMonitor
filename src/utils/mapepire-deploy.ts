@@ -384,7 +384,7 @@ export async function deployMapepire(
 }
 
 /**
- * Ensures a usable Mapepire service exists for the requested host before IBMEye opens a session.
+ * Ensures a usable Mapepire service exists for the requested host before iMonitor opens a session.
  */
 export async function ensureMapepireAvailable(
     config: Omit<MapepireDeployConfig, 'mode'>,

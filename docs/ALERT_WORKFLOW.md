@@ -2,13 +2,14 @@
 
 ## Current State
 
-IBMEye currently supports:
+The `IBMEye` alert module inside `iMonitor` currently supports:
 
 - active alerts
 - resolved alerts
 - manual clear
 - newest-first ordering
 - sticky queue behavior
+- scroll-stable refresh behavior while reading expanded alerts
 
 ## Current Rules
 

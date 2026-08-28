@@ -236,4 +236,11 @@ export default class Db {
         `;
     return this.query<QueryResult<ActiveJobRecord>>(statement);
   }
+
+  /**
+   * Executes one IBM i CL command through QCMDEXC.
+   */
+  async executeClCommand(command: string) {
+    return this.query('CALL QSYS2.QCMDEXC(?)', [command]);
+  }
 }

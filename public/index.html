@@ -3,28 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>IBMEye</title>
+    <title>iMonitor Connect</title>
     <link href="../node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="../node_modules/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
-<body class="app-body">
+<body class="app-body connection-body">
     <main class="app-shell">
         <section class="screen-frame connection-frame">
             <div class="connection-layout">
                 <aside class="brand-panel surface-card">
                     <div class="brand-mark">
-                        <img src="assets/ibm-eye.svg" alt="IBMEye">
+                        <img src="assets/ibm-eye.svg" alt="iMonitor">
                         <div>
                             <p class="eyebrow mb-1">Mapepire-Powered IBM i Ops</p>
-                            <h1 class="brand-title mb-0">IBMEye</h1>
+                            <h1 class="brand-title mb-0">iMonitor</h1>
                         </div>
                     </div>
                     <div class="brand-copy">
-                        <h2 class="display-title">See live jobs, auto-start monitoring, and trace what IBMEye is doing.</h2>
+                        <h2 class="display-title">Start clean, connect fast, and keep IBM i monitoring visible.</h2>
                         <p class="lead-copy">
-                            A desktop command surface for IBM i teams using Mapepire, with reusable system profiles,
-                            immediate monitoring, and operator-visible background activity.
+                            iMonitor keeps connection setup, active-job monitoring, and operator-visible background actions
+                            aligned in one desktop surface, while IBMEye handles alert watching and incident visibility.
                         </p>
                     </div>
                     <div class="brand-grid">
@@ -50,7 +50,7 @@
                             <i class="bi bi-cpu"></i>
                             <div>
                                 <h3>Connect and start polling immediately</h3>
-                                <p>Open a system session and let IBMEye begin watching active jobs as soon as the dashboard loads.</p>
+                                <p>Open a system session and let iMonitor start polling while IBMEye watches for operator-impacting conditions.</p>
                             </div>
                         </div>
                         <div class="highlight-item">
@@ -65,14 +65,24 @@
 
                 <section class="workspace-panel surface-card">
                     <div class="panel-header">
-                        <div>
-                            <p class="eyebrow mb-2">Connection Workspace</p>
-                            <h2 class="panel-title">Connect IBMEye to an IBM i system</h2>
+                        <div class="workspace-header-copy">
+                            <p class="eyebrow mb-2">iMonitor Connect</p>
+                            <h2 class="panel-title">Connect iMonitor to an IBM i system</h2>
                             <p class="panel-copy mb-0">
                                 Start a live Mapepire session now, or save trusted profiles for the systems your team checks every day.
                             </p>
+                            <div class="workspace-header-meta">
+                                <span id="saved-count" class="panel-badge">0 saved profiles</span>
+                            </div>
                         </div>
-                        <span id="saved-count" class="panel-badge">0 saved profiles</span>
+                        <div class="workspace-tools">
+                            <details id="theme-menu" class="theme-menu">
+                                <summary class="theme-menu-summary" aria-label="Open theme menu">
+                                    <i class="bi bi-palette"></i>
+                                </summary>
+                                <div id="theme-menu-options" class="theme-menu-panel"></div>
+                            </details>
+                        </div>
                     </div>
 
                     <div class="saved-connections-panel">
@@ -93,6 +103,7 @@
                     </div>
 
                     <form id="connection-form" class="connection-form-grid" novalidate>
+                        <div class="connection-form-shell">
                         <div class="form-row-split">
                             <div class="form-floating">
                                 <input type="text" class="form-control" id="connection-name" placeholder="Connection Name" required>
@@ -125,6 +136,7 @@
                         <p class="form-footnote mb-0">
                             Profiles are stored locally on this machine. The default Mapepire port is <code>8076</code>. Use a unique name for each system and operator combination.
                         </p>
+                        </div>
 
                         <div class="primary-actions">
                             <button type="submit" id="connect" class="btn btn-primary-strong">
@@ -148,10 +160,30 @@
                     </form>
                 </section>
             </div>
+            <footer class="app-footer surface-card">
+                <div class="app-footer-meta">
+                    <span id="app-version-label" class="app-version-label">iMonitor</span>
+                    <p class="app-footer-copy mb-0">Support is available before and after you connect.</p>
+                </div>
+                <details id="support-menu" class="support-menu">
+                    <summary class="support-menu-summary">
+                        <i class="bi bi-life-preserver me-2"></i>Support
+                    </summary>
+                    <div class="support-menu-panel">
+                        <button id="support-contact-only" type="button" class="btn btn-outline-ink btn-sm">
+                            <i class="bi bi-envelope me-2"></i>Contact Only
+                        </button>
+                        <button id="support-send-diagnostics" type="button" class="btn btn-primary-strong btn-sm">
+                            <i class="bi bi-bug me-2"></i>Contact + Send Diagnostics
+                        </button>
+                    </div>
+                </details>
+                <p id="support-status" class="support-status" hidden></p>
+            </footer>
         </section>
     </main>
     <script src="../node_modules/@popperjs/core/dist/umd/popper.min.js"></script>
     <script src="../node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
-    <script src="renderer.js"></script>
+    <script type="module" src="renderer.js"></script>
 </body>
 </html>

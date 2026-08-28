@@ -5,6 +5,7 @@
     "src/utils"
   ],
   "out": "docs/api",
+  "customCss": "docs/typedoc-overrides.css",
   "projectDocuments": [
     "docs/TECHNICAL.md",
     "docs/ARCHITECTURE.md",

@@ -1,4 +1,4 @@
-<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>TECHNICAL | imonitor</title><meta name="description" content="Documentation for imonitor"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script><script async src="../assets/hierarchy.js" id="tsd-hierarchy-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>TECHNICAL | imonitor</title><meta name="description" content="Documentation for imonitor"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><link rel="stylesheet" href="../assets/custom.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script><script async src="../assets/hierarchy.js" id="tsd-hierarchy-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
 <div class="tsd-toolbar-contents container"><a href="../index.html" class="title">imonitor</a>
 <div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
 <ul role="listbox" id="tsd-search-results"></ul>
@@ -32,11 +32,20 @@
   features/
     alerts/
       alert-model.ts
+      alert-operator-workflow.ts
       alert-workflow.ts
     demo/
       demo-runtime.ts
+    guidance/
+      root-cause-guidance.ts
+    history/
+      history-model.ts
     monitoring/
       monitoring-model.ts
+    operator-actions/
+      operator-actions.ts
+    theme/
+      theme-model.ts
   services/
     ibmi.ts
   utils/
@@ -55,6 +64,7 @@
 <li>owns Mapepire detect/start/deploy flow</li>
 <li>owns demo-mode gating for development vs packaged builds</li>
 <li>owns alert state, monitoring state, and persistent logs</li>
+<li>owns job detail payloads, root-cause guidance, and operator action execution</li>
 <li>exposes renderer APIs through IPC</li>
 </ul>
 <h2 id="preload-responsibilities" class="tsd-anchor-link">Preload Responsibilities<a href="#preload-responsibilities" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
@@ -68,12 +78,20 @@
 <li>button handlers</li>
 <li>showing current connection action status</li>
 <li>alert and monitor interactions</li>
+<li>job drawer guidance and operator action UI</li>
 </ul>
 <h2 id="documentation-model" class="tsd-anchor-link">Documentation Model<a href="#documentation-model" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <ul>
 <li>Markdown in <code>docs/</code> for human guides</li>
 <li>JSDoc on exported TypeScript functions for generated API docs</li>
 <li>TypeDoc configuration in <code>typedoc.json</code></li>
+<li>themed docs home and technical guide live in <code>docs/index.html</code> and <code>docs/technical.html</code></li>
+</ul>
+<h2 id="current-feature-foundations" class="tsd-anchor-link">Current Feature Foundations<a href="#current-feature-foundations" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<ul>
+<li><code>src/features/operator-actions/operator-actions.ts</code> builds supported IBM i job action plans</li>
+<li><code>src/features/history/history-model.ts</code> parses structured <code>.jsonl</code> records and rebuilds history trends</li>
+<li><code>src/features/guidance/root-cause-guidance.ts</code> generates operator-facing cause and next-step guidance</li>
 </ul>
 <h2 id="demo-mode-boundary" class="tsd-anchor-link">Demo Mode Boundary<a href="#demo-mode-boundary" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <ul>
@@ -92,6 +110,7 @@
 </li>
 <li>move renderer page logic into <code>src/renderer/*</code></li>
 <li>reduce global state in main process</li>
+<li>extend job detail fetches with IBM i message-level context for real <code>MSGW</code> replies</li>
 </ul>
 </div></div>
 <div class="col-sidebar">
@@ -117,6 +136,7 @@
 <li><a href="#preload-responsibilities"><span>Preload <wbr/>Responsibilities</span></a></li>
 <li><a href="#renderer-responsibilities"><span>Renderer <wbr/>Responsibilities</span></a></li>
 <li><a href="#documentation-model"><span>Documentation <wbr/>Model</span></a></li>
+<li><a href="#current-feature-foundations"><span>Current <wbr/>Feature <wbr/>Foundations</span></a></li>
 <li><a href="#demo-mode-boundary"><span>Demo <wbr/>Mode <wbr/>Boundary</span></a></li>
 <li><a href="#next-refactor-targets"><span>Next <wbr/>Refactor <wbr/>Targets</span></a></li></ul></div></details></div>
 <div class="site-menu">

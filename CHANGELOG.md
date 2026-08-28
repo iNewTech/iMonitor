@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-08-28
+
+### Added
+
+- Ollama-backed `IBMEye Watch` AI analyst panel on the monitor screen
+- Persisted AI settings for endpoint, model, enable toggle, and response style
+- AI context builders and prompt builders with unit coverage
+
+### Changed
+
+- AI analysis now uses current alerts, jobs, monitoring history, and operator log context from the running session
+- Activity log can now record AI analysis success and failure events
+
 ## 2026-08-23
 
 ### Added
