@@ -131,7 +131,8 @@ function severityRank(severity: AlertSeverity) {
 }
 
 /**
- * Keeps active alerts at the top, then sorts by newest activity.
+ * Keeps active alerts at the top, then sorts from oldest to newest so the
+ * operator queue grows downward without shifting the item currently in view.
  */
 export function sortAlerts(alerts: MonitorAlert[]) {
     return alerts.sort((left, right) => {
@@ -142,7 +143,7 @@ export function sortAlerts(alerts: MonitorAlert[]) {
 
         const leftTime = new Date(left.lastSeenAt ?? left.resolvedAt ?? left.timestamp).getTime();
         const rightTime = new Date(right.lastSeenAt ?? right.resolvedAt ?? right.timestamp).getTime();
-        const timeOrder = rightTime - leftTime;
+        const timeOrder = leftTime - rightTime;
         if (timeOrder !== 0) {
             return timeOrder;
         }

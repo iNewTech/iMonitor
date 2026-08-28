@@ -1,6 +1,7 @@
 import { applyTheme } from './shared.js';
 import { showAlert, setConnectionAction } from './feedback.js';
 import { clearForm, fillForm, renderSavedConnections } from './saved-connections.js';
+import { initSupportPanel } from '../shared/support.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const elements = {
@@ -21,30 +22,56 @@ document.addEventListener('DOMContentLoaded', async () => {
         deleteConnectionButton: document.getElementById('delete-connection'),
         savedCount: document.getElementById('saved-count'),
         savedHint: document.getElementById('saved-hint'),
-        themeSelector: document.getElementById('theme-selector'),
-        themeDescription: document.getElementById('theme-description')
+        themeMenu: document.getElementById('theme-menu'),
+        themeMenuOptions: document.getElementById('theme-menu-options')
     };
 
     let savedConnections = [];
     let availableThemes = [];
 
     function renderThemeSettings(settings) {
-        if (!elements.themeSelector || !settings) {
+        if (!elements.themeMenuOptions || !settings) {
             return;
         }
 
         availableThemes = Array.isArray(settings.themes) ? settings.themes : [];
-        elements.themeSelector.innerHTML = availableThemes.map((theme) => (
-            `<option value="${theme.id}">${theme.label}</option>`
-        )).join('');
-        elements.themeSelector.value = settings.themeId || 'operator-light';
         applyTheme(settings.themeId);
 
-        const selectedTheme = availableThemes.find((theme) => theme.id === elements.themeSelector.value);
-        if (elements.themeDescription) {
-            elements.themeDescription.textContent = selectedTheme?.description || '';
+        elements.themeMenuOptions.innerHTML = availableThemes.map((theme) => {
+            const isSelected = theme.id === settings.themeId;
+            return `
+                <button
+                    type="button"
+                    class="theme-menu-option${isSelected ? ' is-selected' : ''}"
+                    data-theme-id="${theme.id}"
+                    title="${theme.description}"
+                >
+                    <span>${theme.label}</span>
+                    ${isSelected ? '<i class="bi bi-check2"></i>' : ''}
+                </button>
+            `;
+        }).join('');
+    }
+
+    async function saveTheme(themeId) {
+        try {
+            const settings = await window.electronAPI.saveThemeSettings(themeId);
+            renderThemeSettings(settings);
+            elements.themeMenu?.removeAttribute('open');
+        } catch (error) {
+            console.error('Error saving theme settings:', error);
+            showAlert(elements.connectionForm, 'Unable to save the selected theme.');
         }
     }
+
+    document.addEventListener('click', (event) => {
+        const themeButton = event.target.closest?.('.theme-menu-option');
+        if (!themeButton?.dataset?.themeId) {
+            return;
+        }
+
+        void saveTheme(themeButton.dataset.themeId);
+    });
 
     async function loadSavedConnections(selectedId = '') {
         try {
@@ -84,6 +111,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.electronAPI.getAppFlags(),
         window.electronAPI.getThemeSettings()
     ]);
+    await initSupportPanel({
+        versionLabel: document.getElementById('app-version-label'),
+        contactButton: document.getElementById('support-contact-only'),
+        diagnosticsButton: document.getElementById('support-send-diagnostics'),
+        statusElement: document.getElementById('support-status'),
+        menuElement: document.getElementById('support-menu')
+    });
     renderThemeSettings(themeSettings);
     if (elements.launchDemoButton && !appFlags.demoModeEnabled) {
         elements.launchDemoButton.remove();
@@ -249,17 +283,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     ? 'Select a saved profile to refill the form or remove one you no longer use.'
                     : 'Save frequent systems here for quick reconnects.';
             }
-        }
-    });
-
-    elements.themeSelector?.addEventListener('change', async () => {
-        const nextThemeId = elements.themeSelector.value;
-        try {
-            const settings = await window.electronAPI.saveThemeSettings(nextThemeId);
-            renderThemeSettings(settings);
-        } catch (error) {
-            console.error('Error saving theme settings:', error);
-            showAlert(elements.connectionForm, 'Unable to save the selected theme.');
         }
     });
 });

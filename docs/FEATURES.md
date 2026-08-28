@@ -15,6 +15,7 @@
 - active jobs table
 - live refresh interval control
 - peak CPU, running jobs, waiting jobs summary
+- local AI analyst panel for alert and log analysis
 - job details drawer
 - root-cause guidance in job details
 - SQL detail display

@@ -2,7 +2,7 @@ import type { ServiceLogEntry } from '../services/ibmi';
 
 export type MonitorMode = 'live' | 'dummy';
 
-export type ActivityLogArea = ServiceLogEntry['area'] | 'monitoring' | 'navigation' | 'storage';
+export type ActivityLogArea = ServiceLogEntry['area'] | 'monitoring' | 'navigation' | 'storage' | 'support' | 'ai';
 
 export interface ActivityLogEntry {
     id: string;

@@ -1,4 +1,7 @@
 import { renderHistory as renderHistoryView } from './monitor/history.js';
+import { initAiAssistant } from './monitor/ai-assistant.js';
+import { filterJobs as filterVisibleJobs, getSubsystemOptions } from './monitor/jobs-filter.js';
+import { initSupportPanel } from './shared/support.js';
 import {
     renderOperatorActions as renderOperatorActionsView,
     renderRootCauseGuidance as renderRootCauseGuidanceView,
@@ -18,6 +21,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const activityLogExportStatus = document.getElementById('activity-log-export-status');
     const activeAlerts = document.getElementById('active-alerts');
     const alertCount = document.getElementById('alert-count');
+    const focusAlertShell = document.getElementById('focus-alert-shell');
+    const focusAlertCard = document.getElementById('focus-alert-card');
+    const releaseFocusAlertButton = document.getElementById('release-focus-alert');
     const alertSettingsForm = document.getElementById('alert-settings-form');
     const desktopNotifications = document.getElementById('desktop-notifications');
     const watchHighCpu = document.getElementById('watch-high-cpu');
@@ -38,12 +44,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const emailSettingsStatus = document.getElementById('email-settings-status');
     const jobsHistoryChart = document.getElementById('jobs-history-chart');
     const jobsHistoryValue = document.getElementById('jobs-history-value');
+    const jobsHistoryRange = document.getElementById('jobs-history-range');
+    const jobsHistoryLatest = document.getElementById('jobs-history-latest');
     const jobsHistoryNote = document.getElementById('jobs-history-note');
     const cpuHistoryChart = document.getElementById('cpu-history-chart');
     const cpuHistoryValue = document.getElementById('cpu-history-value');
+    const cpuHistoryRange = document.getElementById('cpu-history-range');
+    const cpuHistoryRunning = document.getElementById('cpu-history-running');
     const cpuHistoryNote = document.getElementById('cpu-history-note');
     const waitHistoryChart = document.getElementById('wait-history-chart');
     const waitHistoryValue = document.getElementById('wait-history-value');
+    const waitHistoryMsgw = document.getElementById('wait-history-msgw');
+    const waitHistoryLckw = document.getElementById('wait-history-lckw');
     const waitHistoryNote = document.getElementById('wait-history-note');
     const drawerOverlay = document.getElementById('job-drawer-overlay');
     const jobDrawer = document.getElementById('job-detail-drawer');
@@ -73,11 +85,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const detailSqlStatus = document.getElementById('detail-sql-status');
     const detailSqlText = document.getElementById('detail-sql-text');
     const tbody = systemStats?.querySelector('tbody');
+    const jobsSubsystemFilter = document.getElementById('jobs-subsystem-filter');
+    const jobsSearchInput = document.getElementById('jobs-search-input');
+    const jobsVisibleCount = document.getElementById('jobs-visible-count');
     const totalJobs = document.getElementById('total-jobs');
     const peakCpu = document.getElementById('peak-cpu');
     const runningJobs = document.getElementById('running-jobs');
     const waitingJobs = document.getElementById('waiting-jobs');
     const currentRefresh = document.getElementById('current-refresh');
+    const jobsLastPoll = document.getElementById('jobs-last-poll');
     const lastUpdated = document.getElementById('last-updated');
     const connectedSystem = document.getElementById('connected-system');
     const monitoringState = document.getElementById('monitoring-state');
@@ -94,7 +110,24 @@ document.addEventListener('DOMContentLoaded', () => {
     let noteComposerAlertId = null;
     const noteDraftByAlertId = new Map();
     const expandedAlertIds = new Set();
+    let focusedAlertId = null;
     let availableThemes = [];
+    let jobFilters = {
+        subsystem: 'ALL',
+        query: ''
+    };
+    const aiAssistant = initAiAssistant({
+        root: document,
+        getSelectedJobName: () => selectedJobName
+    });
+
+    void initSupportPanel({
+        versionLabel: document.getElementById('app-version-label'),
+        contactButton: document.getElementById('support-contact-only'),
+        diagnosticsButton: document.getElementById('support-send-diagnostics'),
+        statusElement: document.getElementById('support-status'),
+        menuElement: document.getElementById('support-menu')
+    });
 
     function setEmailSettingsStatus(message, isError = false) {
         if (!emailSettingsStatus) {
@@ -256,6 +289,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function formatShortDateTime(value) {
+        const timestamp = new Date(value);
+        if (Number.isNaN(timestamp.getTime())) {
+            return 'Awaiting poll';
+        }
+
+        return timestamp.toLocaleString([], {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
     function setExportStatus(message, isError = false) {
         if (!activityLogExportStatus) {
             return;
@@ -288,6 +335,36 @@ document.addEventListener('DOMContentLoaded', () => {
             </tr>`;
     }
 
+    function renderSubsystemFilterOptions(jobs) {
+        if (!jobsSubsystemFilter) {
+            return;
+        }
+
+        const options = getSubsystemOptions(jobs);
+        if (jobFilters.subsystem !== 'ALL' && !options.includes(jobFilters.subsystem)) {
+            jobFilters = {
+                ...jobFilters,
+                subsystem: 'ALL'
+            };
+        }
+
+        const nextOptions = ['<option value="ALL">All subsystems</option>']
+            .concat(options.map((subsystem) => (
+                `<option value="${escapeHtml(subsystem)}">${escapeHtml(subsystem)}</option>`
+            )));
+
+        jobsSubsystemFilter.innerHTML = nextOptions.join('');
+        jobsSubsystemFilter.value = jobFilters.subsystem || 'ALL';
+    }
+
+    function updateVisibleJobsCount(visibleCount, totalCount) {
+        if (!jobsVisibleCount) {
+            return;
+        }
+
+        jobsVisibleCount.textContent = `Showing ${visibleCount} of ${totalCount} jobs`;
+    }
+
     function getStatusBadgeClass(status) {
         switch (status) {
             case 'RUN':
@@ -313,16 +390,36 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         latestJobs = Array.isArray(result?.data) ? result.data : [];
+        renderSubsystemFilterOptions(latestJobs);
         updateSummary(latestJobs);
-        updateLastUpdated(`Updated ${new Date().toLocaleTimeString()}`);
+        const pollTimestamp = result?.generatedAt || new Date().toISOString();
+        if (jobsLastPoll) {
+            jobsLastPoll.textContent = formatShortDateTime(pollTimestamp);
+        }
+        updateLastUpdated(`Updated ${new Date(pollTimestamp).toLocaleString([], {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        })}`);
 
         if (!latestJobs.length) {
+            updateVisibleJobsCount(0, 0);
             showTableMessage('No active jobs to display');
             closeDrawer();
             return;
         }
 
-        tbody.innerHTML = latestJobs.map((job) => {
+        const visibleJobs = filterVisibleJobs(latestJobs, jobFilters);
+        updateVisibleJobsCount(visibleJobs.length, latestJobs.length);
+
+        if (!visibleJobs.length) {
+            showTableMessage('No jobs match the current subsystem or search.', 'bi-search', 'text-muted');
+            return;
+        }
+
+        tbody.innerHTML = visibleJobs.map((job) => {
             const jobName = getJobKey(job);
             const isSelected = selectedJobName === jobName;
 
@@ -426,12 +523,18 @@ document.addEventListener('DOMContentLoaded', () => {
         renderHistoryView({
             jobsHistoryChart,
             jobsHistoryValue,
+            jobsHistoryRange,
+            jobsHistoryLatest,
             jobsHistoryNote,
             cpuHistoryChart,
             cpuHistoryValue,
+            cpuHistoryRange,
+            cpuHistoryRunning,
             cpuHistoryNote,
             waitHistoryChart,
             waitHistoryValue,
+            waitHistoryMsgw,
+            waitHistoryLckw,
             waitHistoryNote
         }, history);
     }
@@ -478,14 +581,164 @@ document.addEventListener('DOMContentLoaded', () => {
         activeAlerts.scrollTop = scrollState.scrollTop;
     }
 
+    function buildAlertMarkup(alert, options = {}) {
+        const isExpanded = Boolean(options.expanded);
+        const isFocused = Boolean(options.focused);
+        const workflowLabel = String(alert.workflowStatus || 'new').replace(/_/g, ' ').toUpperCase();
+        const stateMarkup = alert.isActive === false
+            ? `<span class="activity-log-badge">RESOLVED ${formatTimestamp(alert.resolvedAt || alert.timestamp)}</span>`
+            : '<span class="activity-log-badge">ACTIVE</span>';
+        const ownerMarkup = alert.owner
+            ? `<p class="alert-owner">Owner: ${escapeHtml(alert.owner)}</p>`
+            : '';
+        const timelineMarkup = Array.isArray(alert.timeline) && alert.timeline.length
+            ? `
+                <div class="alert-history-shell">
+                    <div class="alert-history-header">
+                        <h4 class="alert-history-title">Incident history</h4>
+                        <p class="alert-history-copy">Operator actions and alert events for this incident.</p>
+                    </div>
+                    <div class="alert-timeline" data-testid="alert-timeline">
+                        ${alert.timeline.slice(0, 4).map((entry) => `
+                            <div class="alert-timeline-entry">
+                                <strong>${escapeHtml(entry.label)}</strong>
+                                <span>${formatTimestamp(entry.timestamp)}</span>
+                                ${entry.detail ? `<p>${escapeHtml(entry.detail)}</p>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `
+            : '';
+        const openJobButton = alert.jobName
+            ? `
+                <button class="btn btn-outline-ink btn-sm alert-open-job" data-job-name="${escapeHtml(alert.jobName)}" data-testid="alert-open-job">
+                    Open Job
+                </button>
+            `
+            : '';
+        const workButton = isFocused
+            ? `
+                <button class="btn btn-outline-ink btn-sm alert-unfocus" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-unfocus">
+                    Return To Queue
+                </button>
+            `
+            : `
+                <button class="btn btn-outline-ink btn-sm alert-focus" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-focus">
+                    Work On This
+                </button>
+            `;
+        const acknowledgeButton = alert.workflowStatus === 'new'
+            ? `
+                <button class="btn btn-outline-ink btn-sm alert-acknowledge" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-acknowledge">
+                    Acknowledge
+                </button>
+            `
+            : '';
+        const startButton = alert.workflowStatus === 'acknowledged' || alert.workflowStatus === 'new'
+            ? `
+                <button class="btn btn-outline-ink btn-sm alert-start" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-start">
+                    Start Work
+                </button>
+            `
+            : '';
+        const resolveButton = alert.workflowStatus !== 'resolved' && alert.workflowStatus !== 'cleared'
+            ? `
+                <button class="btn btn-outline-ink btn-sm alert-resolve" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-resolve">
+                    Resolve
+                </button>
+            `
+            : '';
+        const noteButton = `
+            <button class="btn btn-outline-ink btn-sm alert-note-action" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-note-toggle">
+                Add Note
+            </button>
+        `;
+        const clearAlertButton = `
+            <button class="btn btn-outline-ink btn-sm alert-clear" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-clear">
+                Clear
+            </button>
+        `;
+        const noteComposerMarkup = noteComposerAlertId === alert.id
+            ? `
+                <div class="alert-note-composer" data-testid="alert-note-composer">
+                    <label class="alert-note-label" for="alert-note-${escapeHtml(alert.id)}">Operator note</label>
+                    <textarea
+                        id="alert-note-${escapeHtml(alert.id)}"
+                        class="form-control alert-note-input"
+                        data-alert-id="${escapeHtml(alert.id)}"
+                        data-testid="alert-note-input"
+                        rows="3"
+                        placeholder="Describe what you checked, who owns it, or the next step."
+                    >${escapeHtml(noteDraftByAlertId.get(alert.id) || '')}</textarea>
+                    <div class="alert-note-actions">
+                        <button class="btn btn-primary-strong btn-sm alert-note-save" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-note-save">
+                            Save Note
+                        </button>
+                        <button class="btn btn-outline-ink btn-sm alert-note-cancel" data-alert-id="${escapeHtml(alert.id)}">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            `
+            : '';
+        const summaryLabel = alert.jobName || alert.message;
+
+        return `
+            <article
+                class="alert-entry is-${escapeHtml(alert.severity)}${alert.isActive === false ? ' is-resolved' : ''}${isFocused ? ' is-focused' : ''}"
+                data-testid="${isFocused ? 'focus-alert-card' : 'alert-card'}"
+                data-alert-id="${escapeHtml(alert.id)}"
+            >
+                <button class="alert-toggle" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-toggle" aria-expanded="${isExpanded ? 'true' : 'false'}">
+                    <div class="alert-toggle-main">
+                        <div class="activity-log-meta">
+                            <div class="activity-log-tags">
+                                ${stateMarkup}
+                                <span class="activity-log-badge is-area" data-testid="alert-workflow-badge">${escapeHtml(workflowLabel)}</span>
+                                <span class="activity-log-badge">${escapeHtml(alert.severity.toUpperCase())}</span>
+                                <span class="activity-log-badge is-area">${escapeHtml(alert.kind.toUpperCase())}</span>
+                            </div>
+                            <time class="activity-log-time">${formatTimestamp(alert.timestamp)}</time>
+                        </div>
+                        <h3 class="activity-log-message">${escapeHtml(alert.title)}</h3>
+                        <p class="activity-log-detail">${escapeHtml(summaryLabel)}</p>
+                    </div>
+                    <span class="alert-toggle-icon" aria-hidden="true">${isExpanded ? '−' : '+'}</span>
+                </button>
+                ${isExpanded ? `
+                    <div class="alert-body" data-testid="alert-body">
+                        <p class="activity-log-detail">${escapeHtml(alert.message)}</p>
+                        ${alert.detail ? `<p class="activity-log-detail">${escapeHtml(alert.detail)}</p>` : ''}
+                        ${ownerMarkup}
+                        ${timelineMarkup}
+                        ${noteComposerMarkup}
+                        <div class="alert-actions">
+                            ${workButton}
+                            ${acknowledgeButton}
+                            ${startButton}
+                            ${resolveButton}
+                            ${noteButton}
+                            ${openJobButton}
+                            ${clearAlertButton}
+                        </div>
+                    </div>
+                ` : ''}
+            </article>
+        `;
+    }
+
     function renderAlerts(alerts) {
-        if (!activeAlerts) {
+        if (!activeAlerts || !focusAlertShell || !focusAlertCard) {
             return;
         }
 
         const scrollState = captureAlertScrollState();
         const nextAlerts = Array.isArray(alerts) ? alerts : [];
         latestAlerts = nextAlerts;
+        if (focusedAlertId && !nextAlerts.some((alert) => alert?.id === focusedAlertId)) {
+            focusedAlertId = null;
+        }
         if (noteComposerAlertId && !nextAlerts.some((alert) => alert?.id === noteComposerAlertId)) {
             noteComposerAlertId = null;
         }
@@ -496,156 +749,37 @@ document.addEventListener('DOMContentLoaded', () => {
             alertCount.textContent = `${activeAlertTotal} active ${label} | ${nextAlerts.length} tracked`;
         }
 
-        if (!nextAlerts.length) {
+        const focusedAlert = focusedAlertId
+            ? nextAlerts.find((alert) => alert.id === focusedAlertId) || null
+            : null;
+        const queuedAlerts = focusedAlert
+            ? nextAlerts.filter((alert) => alert.id !== focusedAlert.id)
+            : nextAlerts;
+
+        if (focusedAlert) {
+            focusAlertShell.hidden = false;
+            focusAlertCard.innerHTML = buildAlertMarkup(focusedAlert, {
+                expanded: true,
+                focused: true
+            });
+        } else {
+            focusAlertShell.hidden = true;
+            focusAlertCard.innerHTML = '';
+        }
+
+        if (!queuedAlerts.length) {
             activeAlerts.innerHTML = `
                 <div class="activity-log-empty">
                     <i class="bi bi-shield-check"></i>
-                    <span>No active alerts.</span>
+                    <span>${focusedAlert ? 'No other alerts in the queue.' : 'No active alerts.'}</span>
                 </div>
             `;
             return;
         }
 
-        activeAlerts.innerHTML = nextAlerts.map((alert) => {
-            const workflowLabel = String(alert.workflowStatus || 'new').replace(/_/g, ' ').toUpperCase();
-            const stateMarkup = alert.isActive === false
-                ? `<span class="activity-log-badge">RESOLVED ${formatTimestamp(alert.resolvedAt || alert.timestamp)}</span>`
-                : '<span class="activity-log-badge">ACTIVE</span>';
-            const ownerMarkup = alert.owner
-                ? `<p class="alert-owner">Owner: ${escapeHtml(alert.owner)}</p>`
-                : '';
-            const notesMarkup = Array.isArray(alert.notes) && alert.notes.length
-                ? `
-                    <div class="alert-notes">
-                        ${alert.notes.slice(0, 2).map((note) => `
-                            <div class="alert-note" data-testid="alert-note-item">
-                                <strong>${formatTimestamp(note.timestamp)}</strong>
-                                <span>${escapeHtml(note.text)}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                `
-                : '';
-            const timelineMarkup = Array.isArray(alert.timeline) && alert.timeline.length
-                ? `
-                    <div class="alert-timeline" data-testid="alert-timeline">
-                        ${alert.timeline.slice(0, 3).map((entry) => `
-                            <div class="alert-timeline-entry">
-                                <strong>${escapeHtml(entry.label)}</strong>
-                                <span>${formatTimestamp(entry.timestamp)}</span>
-                                ${entry.detail ? `<p>${escapeHtml(entry.detail)}</p>` : ''}
-                            </div>
-                        `).join('')}
-                    </div>
-                `
-                : '';
-            const openJobButton = alert.jobName
-                ? `
-                    <button class="btn btn-outline-ink btn-sm alert-open-job" data-job-name="${escapeHtml(alert.jobName)}" data-testid="alert-open-job">
-                        Open Job
-                    </button>
-                `
-                : '';
-            const acknowledgeButton = alert.workflowStatus === 'new'
-                ? `
-                    <button class="btn btn-outline-ink btn-sm alert-acknowledge" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-acknowledge">
-                        Acknowledge
-                    </button>
-                `
-                : '';
-            const startButton = alert.workflowStatus === 'acknowledged' || alert.workflowStatus === 'new'
-                ? `
-                    <button class="btn btn-outline-ink btn-sm alert-start" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-start">
-                        Start Work
-                    </button>
-                `
-                : '';
-            const resolveButton = alert.workflowStatus !== 'resolved' && alert.workflowStatus !== 'cleared'
-                ? `
-                    <button class="btn btn-outline-ink btn-sm alert-resolve" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-resolve">
-                        Resolve
-                    </button>
-                `
-                : '';
-            const noteButton = `
-                <button class="btn btn-outline-ink btn-sm alert-note-action" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-note-toggle">
-                    Add Note
-                </button>
-            `;
-            const clearAlertButton = `
-                <button class="btn btn-outline-ink btn-sm alert-clear" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-clear">
-                    Clear
-                </button>
-            `;
-            const noteComposerMarkup = noteComposerAlertId === alert.id
-                ? `
-                    <div class="alert-note-composer" data-testid="alert-note-composer">
-                        <label class="alert-note-label" for="alert-note-${escapeHtml(alert.id)}">Operator note</label>
-                        <textarea
-                            id="alert-note-${escapeHtml(alert.id)}"
-                            class="form-control alert-note-input"
-                            data-alert-id="${escapeHtml(alert.id)}"
-                            data-testid="alert-note-input"
-                            rows="3"
-                            placeholder="Describe what you checked, who owns it, or the next step."
-                        >${escapeHtml(noteDraftByAlertId.get(alert.id) || '')}</textarea>
-                        <div class="alert-note-actions">
-                            <button class="btn btn-primary-strong btn-sm alert-note-save" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-note-save">
-                                Save Note
-                            </button>
-                            <button class="btn btn-outline-ink btn-sm alert-note-cancel" data-alert-id="${escapeHtml(alert.id)}">
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                `
-                : '';
-            const isExpanded = expandedAlertIds.has(alert.id);
-            const summaryLabel = alert.jobName || alert.message;
-
-            return `
-                <article
-                    class="alert-entry is-${escapeHtml(alert.severity)}${alert.isActive === false ? ' is-resolved' : ''}"
-                    data-testid="alert-card"
-                    data-alert-id="${escapeHtml(alert.id)}"
-                >
-                    <button class="alert-toggle" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-toggle" aria-expanded="${isExpanded ? 'true' : 'false'}">
-                        <div class="alert-toggle-main">
-                            <div class="activity-log-meta">
-                                <div class="activity-log-tags">
-                                    ${stateMarkup}
-                                    <span class="activity-log-badge is-area" data-testid="alert-workflow-badge">${escapeHtml(workflowLabel)}</span>
-                                    <span class="activity-log-badge">${escapeHtml(alert.severity.toUpperCase())}</span>
-                                    <span class="activity-log-badge is-area">${escapeHtml(alert.kind.toUpperCase())}</span>
-                                </div>
-                                <time class="activity-log-time">${formatTimestamp(alert.timestamp)}</time>
-                            </div>
-                            <h3 class="activity-log-message">${escapeHtml(alert.title)}</h3>
-                            <p class="activity-log-detail">${escapeHtml(summaryLabel)}</p>
-                        </div>
-                        <span class="alert-toggle-icon" aria-hidden="true">${isExpanded ? '−' : '+'}</span>
-                    </button>
-                    ${isExpanded ? `
-                        <div class="alert-body" data-testid="alert-body">
-                            <p class="activity-log-detail">${escapeHtml(alert.message)}</p>
-                            ${alert.detail ? `<p class="activity-log-detail">${escapeHtml(alert.detail)}</p>` : ''}
-                            ${ownerMarkup}
-                            ${notesMarkup}
-                            ${timelineMarkup}
-                            ${noteComposerMarkup}
-                            <div class="alert-actions">
-                                ${acknowledgeButton}
-                                ${startButton}
-                                ${resolveButton}
-                                ${noteButton}
-                                ${openJobButton}
-                                ${clearAlertButton}
-                            </div>
-                        </div>
-                    ` : ''}
-                </article>
-            `;
-        }).join('');
+        activeAlerts.innerHTML = queuedAlerts.map((alert) => buildAlertMarkup(alert, {
+            expanded: expandedAlertIds.has(alert.id)
+        })).join('');
 
         restoreAlertScrollState(scrollState);
     }
@@ -663,6 +797,21 @@ document.addEventListener('DOMContentLoaded', () => {
         renderAlerts(latestAlerts);
     }
 
+    function setFocusedAlert(alertId) {
+        focusedAlertId = alertId || null;
+        if (alertId) {
+            expandedAlertIds.add(alertId);
+        }
+        renderAlerts(latestAlerts);
+    }
+
+    function clearFocusedAlert(alertId) {
+        if (!alertId || focusedAlertId === alertId) {
+            focusedAlertId = null;
+        }
+        renderAlerts(latestAlerts);
+    }
+
     function toggleAlertExpanded(alertId) {
         if (expandedAlertIds.has(alertId)) {
             expandedAlertIds.delete(alertId);
@@ -675,6 +824,93 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         renderAlerts(latestAlerts);
+    }
+
+    function handleAlertInteraction(event) {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) {
+            return;
+        }
+
+        const toggleButton = target.closest('.alert-toggle');
+        if (toggleButton?.dataset?.alertId) {
+            toggleAlertExpanded(toggleButton.dataset.alertId);
+            return;
+        }
+
+        const noteSaveButton = target.closest('.alert-note-save');
+        if (noteSaveButton?.dataset?.alertId) {
+            const note = String(noteDraftByAlertId.get(noteSaveButton.dataset.alertId) || '').trim();
+            if (!note) {
+                return;
+            }
+
+            void window.electronAPI.updateAlertWorkflow({
+                alertId: noteSaveButton.dataset.alertId,
+                action: 'note',
+                note,
+                owner: 'Local operator'
+            });
+            noteDraftByAlertId.delete(noteSaveButton.dataset.alertId);
+            noteComposerAlertId = null;
+            return;
+        }
+
+        const noteCancelButton = target.closest('.alert-note-cancel');
+        if (noteCancelButton?.dataset?.alertId) {
+            noteDraftByAlertId.delete(noteCancelButton.dataset.alertId);
+            closeAlertNoteComposer();
+            return;
+        }
+
+        const workflowButton = target.closest('.alert-acknowledge, .alert-start, .alert-resolve, .alert-note-action');
+        if (workflowButton?.dataset?.alertId) {
+            const action = workflowButton.classList.contains('alert-acknowledge')
+                ? 'acknowledge'
+                : workflowButton.classList.contains('alert-start')
+                    ? 'start'
+                    : workflowButton.classList.contains('alert-resolve')
+                        ? 'resolve'
+                        : 'note';
+
+            if (action === 'note') {
+                openAlertNoteComposer(workflowButton.dataset.alertId);
+                return;
+            }
+
+            void window.electronAPI.updateAlertWorkflow({
+                alertId: workflowButton.dataset.alertId,
+                action,
+                owner: 'Local operator'
+            });
+            return;
+        }
+
+        const clearButton = target.closest('.alert-clear');
+        if (clearButton?.dataset?.alertId) {
+            if (focusedAlertId === clearButton.dataset.alertId) {
+                focusedAlertId = null;
+            }
+            void window.electronAPI.clearAlert(clearButton.dataset.alertId);
+            return;
+        }
+
+        const focusButton = target.closest('.alert-focus');
+        if (focusButton?.dataset?.alertId) {
+            setFocusedAlert(focusButton.dataset.alertId);
+            return;
+        }
+
+        const unfocusButton = target.closest('.alert-unfocus');
+        if (unfocusButton?.dataset?.alertId) {
+            clearFocusedAlert(unfocusButton.dataset.alertId);
+            return;
+        }
+
+        const openJobButton = target.closest('.alert-open-job');
+        if (openJobButton?.dataset?.jobName) {
+            void loadJobDetails(openJobButton.dataset.jobName);
+        }
     }
 
     function applyAlertSettings(settings) {
@@ -1047,6 +1283,22 @@ document.addEventListener('DOMContentLoaded', () => {
         updateRefreshLabel();
     });
 
+    jobsSubsystemFilter?.addEventListener('change', (event) => {
+        jobFilters = {
+            ...jobFilters,
+            subsystem: event.target.value || 'ALL'
+        };
+        renderJobs({ data: latestJobs });
+    });
+
+    jobsSearchInput?.addEventListener('input', (event) => {
+        jobFilters = {
+            ...jobFilters,
+            query: event.target.value || ''
+        };
+        renderJobs({ data: latestJobs });
+    });
+
     themeSelector?.addEventListener('change', async (event) => {
         const nextThemeId = event.target.value;
 
@@ -1169,74 +1421,9 @@ document.addEventListener('DOMContentLoaded', () => {
         void loadJobDetails(row.dataset.jobName);
     });
 
-    activeAlerts?.addEventListener('click', (event) => {
-        const toggleButton = event.target.closest('.alert-toggle');
-        if (toggleButton?.dataset?.alertId) {
-            toggleAlertExpanded(toggleButton.dataset.alertId);
-            return;
-        }
+    activeAlerts?.addEventListener('click', handleAlertInteraction);
 
-        const noteSaveButton = event.target.closest('.alert-note-save');
-        if (noteSaveButton?.dataset?.alertId) {
-            const note = String(noteDraftByAlertId.get(noteSaveButton.dataset.alertId) || '').trim();
-            if (!note) {
-                return;
-            }
-
-            void window.electronAPI.updateAlertWorkflow({
-                alertId: noteSaveButton.dataset.alertId,
-                action: 'note',
-                note,
-                owner: 'Local operator'
-            });
-            noteDraftByAlertId.delete(noteSaveButton.dataset.alertId);
-            noteComposerAlertId = null;
-            return;
-        }
-
-        const noteCancelButton = event.target.closest('.alert-note-cancel');
-        if (noteCancelButton?.dataset?.alertId) {
-            noteDraftByAlertId.delete(noteCancelButton.dataset.alertId);
-            closeAlertNoteComposer();
-            return;
-        }
-
-        const workflowButton = event.target.closest('.alert-acknowledge, .alert-start, .alert-resolve, .alert-note-action');
-        if (workflowButton?.dataset?.alertId) {
-            const action = workflowButton.classList.contains('alert-acknowledge')
-                ? 'acknowledge'
-                : workflowButton.classList.contains('alert-start')
-                    ? 'start'
-                    : workflowButton.classList.contains('alert-resolve')
-                        ? 'resolve'
-                        : 'note';
-
-            if (action === 'note') {
-                openAlertNoteComposer(workflowButton.dataset.alertId);
-                return;
-            }
-
-            void window.electronAPI.updateAlertWorkflow({
-                alertId: workflowButton.dataset.alertId,
-                action,
-                owner: 'Local operator'
-            });
-            return;
-        }
-
-        const clearButton = event.target.closest('.alert-clear');
-        if (clearButton?.dataset?.alertId) {
-            void window.electronAPI.clearAlert(clearButton.dataset.alertId);
-            return;
-        }
-
-        const button = event.target.closest('.alert-open-job');
-        if (!button?.dataset?.jobName) {
-            return;
-        }
-
-        void loadJobDetails(button.dataset.jobName);
-    });
+    focusAlertCard?.addEventListener('click', handleAlertInteraction);
 
     activeAlerts?.addEventListener('input', (event) => {
         const noteInput = event.target.closest('.alert-note-input');
@@ -1245,6 +1432,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         noteDraftByAlertId.set(noteInput.dataset.alertId, noteInput.value);
+    });
+
+    focusAlertCard?.addEventListener('input', (event) => {
+        const noteInput = event.target.closest('.alert-note-input');
+        if (!noteInput?.dataset?.alertId) {
+            return;
+        }
+
+        noteDraftByAlertId.set(noteInput.dataset.alertId, noteInput.value);
+    });
+
+    releaseFocusAlertButton?.addEventListener('click', () => {
+        clearFocusedAlert(focusedAlertId);
     });
 
     detailOperatorActions?.addEventListener('click', async (event) => {
@@ -1315,6 +1515,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.electronAPI.onStatusUpdate((data) => {
         renderJobs(data);
         setMonitoringState(true, 'live');
+        void aiAssistant.refresh();
     });
 
     window.electronAPI.onMonitoringError((error) => {
@@ -1329,6 +1530,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.electronAPI.onAlertsUpdated((alerts) => {
         renderAlerts(alerts);
+        void aiAssistant.refresh();
     });
 
     window.electronAPI.onAlertSettingsUpdated((settings) => {

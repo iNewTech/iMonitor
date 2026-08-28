@@ -20,6 +20,10 @@ import {
     type EmailNotificationSettings
 } from './features/notifications/email-notification';
 import {
+    normalizeAiAssistantSettings,
+    type AiAssistantSettings
+} from './features/ai/ai-model';
+import {
     buildOperatorActionPlan,
     getAvailableOperatorActions,
     type OperatorActionKind
@@ -28,16 +32,21 @@ import { createAlertStateStore } from './main/state/alert-state';
 import { createConnectionStateStore } from './main/state/connection-state';
 import { createMonitoringStateStore } from './main/state/monitoring-state';
 import { registerAlertsIpc } from './main/ipc/alerts-ipc';
+import { registerAiIpc } from './main/ipc/ai-ipc';
 import { registerConnectionIpc } from './main/ipc/connection-ipc';
 import { registerJobsIpc } from './main/ipc/jobs-ipc';
 import { registerLogsIpc } from './main/ipc/logs-ipc';
 import { registerNavigationIpc } from './main/ipc/navigation-ipc';
+import { registerSupportIpc } from './main/ipc/support-ipc';
+import { createAiRuntime } from './main/runtime/ai-runtime';
 import { createEmailNotificationRuntime } from './main/runtime/email-notification-runtime';
 import { createMonitoringRuntime } from './main/runtime/monitoring-runtime';
 import { createLoggingRuntime } from './main/runtime/logging-runtime';
 import { createSessionRuntime } from './main/runtime/session-runtime';
+import { createSupportRuntime } from './main/runtime/support-runtime';
 import {
     createAppStore,
+    getNormalizedAiAssistantSettings,
     getNormalizedAlertSettings,
     getNormalizedStoredEmailNotificationSettings,
     getNormalizedThemeId
@@ -50,6 +59,7 @@ const MAX_ACTIVITY_LOG_ENTRIES = 200;
 const MAX_MONITORING_HISTORY = 90;
 const MAX_JOB_STATUS_HISTORY = 12;
 const NOTIFICATION_COOLDOWN_MS = 120000;
+const SUPPORT_EMAIL = 'gajendertyagi.tyagi@gmail.com';
 
 const store = createAppStore();
 const connectionState = createConnectionStateStore();
@@ -72,6 +82,19 @@ function getAlertSettings() {
 
 function getThemeId() {
     return getNormalizedThemeId(store);
+}
+
+function getAiAssistantSettings() {
+    return getNormalizedAiAssistantSettings(store);
+}
+
+function saveAiAssistantSettings(candidate: Partial<AiAssistantSettings> | undefined) {
+    const merged = normalizeAiAssistantSettings({
+        ...getAiAssistantSettings(),
+        ...(candidate ?? {})
+    });
+    store.set('aiAssistantSettings', merged);
+    return merged;
 }
 
 function protectSecret(value: string) {
@@ -169,6 +192,31 @@ const emailNotificationRuntime = createEmailNotificationRuntime({
 
         return `${currentConnection.name} (${currentConnection.user}@${currentConnection.host}:${currentConnection.port})`;
     },
+    recordActivity: loggingRuntime.recordActivity
+});
+
+const supportRuntime = createSupportRuntime({
+    appName: 'iMonitor',
+    appVersion: app.getVersion(),
+    supportEmail: SUPPORT_EMAIL,
+    downloadsPath: app.getPath('downloads'),
+    openExternal: (target) => shell.openExternal(target),
+    showItemInFolder: shell.showItemInFolder,
+    recordActivity: loggingRuntime.recordActivity,
+    getLatestReadableLogFilePath: () => loggingRuntime.getLatestReadableLogFilePath(),
+    getOperatorLogText: () => loggingRuntime.getOperatorLogText()
+});
+
+const aiRuntime = createAiRuntime({
+    appName: 'iMonitor',
+    getSettings: getAiAssistantSettings,
+    getConnection: () => connectionState.getState().currentConnection,
+    getMonitorMode: () => monitoringState.getMonitorMode(),
+    getLatestJobs: () => monitoringState.getLatestJobs(),
+    getJob: (jobName) => monitoringState.getJob(jobName),
+    getActiveAlerts: () => alertState.getActiveAlerts(),
+    getMonitoringHistory: () => monitoringState.getMonitoringHistory(),
+    getActivityLog: () => loggingRuntime.getActivityLog(),
     recordActivity: loggingRuntime.recordActivity
 });
 
@@ -318,6 +366,19 @@ registerLogsIpc({
     downloadActivityLog: () => loggingRuntime.downloadActivityLogFile(),
     shareActivityLog: () => loggingRuntime.shareActivityLogFile(),
     openLogsFolder: () => loggingRuntime.openLogsDirectory()
+});
+
+registerSupportIpc({
+    getAppInfo: () => supportRuntime.getAppInfo(),
+    contactSupport: () => supportRuntime.contactSupport(),
+    sendSupportDiagnostics: () => supportRuntime.sendSupportDiagnostics()
+});
+
+registerAiIpc({
+    getAiSettings: getAiAssistantSettings,
+    saveAiSettings: (settings) => saveAiAssistantSettings(settings),
+    getAiAvailability: () => aiRuntime.getAiAvailability(),
+    askAssistant: (payload) => aiRuntime.askAssistant(payload)
 });
 
 registerAlertsIpc({

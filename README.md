@@ -8,6 +8,7 @@ iMonitor is the desktop app for IBM i teams. Inside it, `IBMEye` is the alert an
 - Auto-starts live monitoring after connect
 - Shows active job health, waits, CPU, and SQL details
 - Shows root-cause guidance in the job detail drawer
+- Includes an Ollama-backed AI analyst on the dashboard for alert, SQL, and selected-job analysis
 - Supports drawer-based operator actions for hold, release, and end job
 - Raises operator alerts, desktop notifications, and SMTP email notifications
 - Keeps a local operator log and daily log files
@@ -66,6 +67,19 @@ You can:
 - send a test email before relying on it during incidents
 
 Alert-triggering conditions such as `MSGW`, `LCKW`, high CPU, failed polls, and disconnects can now send email when the alert itself is enabled and the SMTP settings are valid.
+
+## AI Analysis
+
+The `IBMEye Watch` area on the dashboard now includes a local AI analyst panel.
+
+It can:
+
+- summarize current alerts
+- explain selected-job waits
+- review recent SQL and operator log activity
+- suggest likely cause and next best action
+
+For now this uses local Ollama on `http://127.0.0.1:11434`. The feature is intentionally isolated so it can be licensed or removed later without changing the rest of iMonitor.
 
 ## Current Operator Actions
 

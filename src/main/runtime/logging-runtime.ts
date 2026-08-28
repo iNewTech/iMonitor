@@ -189,6 +189,9 @@ export function createLoggingRuntime(dependencies: LoggingRuntimeDependencies) {
         getActivityLog() {
             return activityLog.slice();
         },
+        getOperatorLogText() {
+            return buildOperatorLogText();
+        },
         recordActivity(entry: Omit<ActivityLogEntry, 'id' | 'timestamp'>) {
             activitySequence += 1;
             const activityEntry: ActivityLogEntry = {

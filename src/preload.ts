@@ -31,7 +31,7 @@ interface MonitoringState {
 interface ActivityLogEntry {
     id: string;
     timestamp: string;
-    area: 'connection' | 'sql' | 'monitoring' | 'navigation' | 'storage';
+    area: 'connection' | 'sql' | 'monitoring' | 'navigation' | 'storage' | 'support' | 'ai';
     level: 'info' | 'success' | 'warning' | 'error';
     message: string;
     detail?: string;
@@ -153,11 +153,47 @@ interface ThemeSettings {
     themes: ThemeOption[];
 }
 
+interface AiAssistantSettings {
+    enabled: boolean;
+    provider: 'ollama';
+    endpoint: string;
+    model: string;
+    temperature: number;
+    replyStyle: string;
+    historyLimit: number;
+    activityLimit: number;
+    jobLimit: number;
+    alertLimit: number;
+}
+
+interface AiAssistantAvailability {
+    enabled: boolean;
+    provider: 'ollama';
+    endpoint: string;
+    selectedModel: string | null;
+    availableModels: string[];
+    healthy: boolean;
+    featureAccess: 'included';
+    message: string;
+}
+
+interface AiAssistantMessage {
+    role: 'system' | 'user' | 'assistant';
+    content: string;
+}
+
+interface AppInfo {
+    appName: string;
+    appVersion: string;
+    supportEmail: string;
+}
+
 contextBridge.exposeInMainWorld('electronAPI', {
     navigateToMonitor: () => ipcRenderer.invoke('navigate-to-monitor'),
     navigateToConnection: () => ipcRenderer.invoke('navigate-to-connection'),
 
     getConnectionState: () => ipcRenderer.invoke('get-connection-state') as Promise<ConnectionState>,
+    getAppInfo: () => ipcRenderer.invoke('get-app-info') as Promise<AppInfo>,
     getAppFlags: () => ipcRenderer.invoke('get-app-flags') as Promise<{
         demoModeEnabled: boolean;
         demoModeReason?: string;
@@ -166,6 +202,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }>,
     getThemeSettings: () => ipcRenderer.invoke('get-theme-settings') as Promise<ThemeSettings>,
     saveThemeSettings: (themeId: ThemeOption['id']) => ipcRenderer.invoke('save-theme-settings', themeId) as Promise<ThemeSettings>,
+    getAiSettings: () => ipcRenderer.invoke('get-ai-settings') as Promise<AiAssistantSettings>,
+    saveAiSettings: (settings: Partial<AiAssistantSettings>) => (
+        ipcRenderer.invoke('save-ai-settings', settings) as Promise<AiAssistantSettings>
+    ),
+    getAiAvailability: () => ipcRenderer.invoke('get-ai-availability') as Promise<AiAssistantAvailability>,
+    askAiAssistant: (payload: {
+        message: string;
+        selectedJobName?: string;
+        conversation?: AiAssistantMessage[];
+    }) => ipcRenderer.invoke('ask-ai-assistant', payload) as Promise<{
+        success: boolean;
+        reply?: string;
+        availability?: AiAssistantAvailability;
+        error?: string;
+    }>,
     getMonitoringState: () => ipcRenderer.invoke('get-monitoring-state') as Promise<MonitoringState>,
     getActivityLog: () => ipcRenderer.invoke('get-activity-log') as Promise<ActivityLogEntry[]>,
     downloadActivityLog: () => ipcRenderer.invoke('download-activity-log') as Promise<{
@@ -180,6 +231,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openLogsFolder: () => ipcRenderer.invoke('open-logs-folder') as Promise<{
         success: boolean;
         directoryPath?: string;
+    }>,
+    contactSupport: () => ipcRenderer.invoke('contact-support') as Promise<{
+        success: boolean;
+        mailtoUrl?: string;
+        error?: string;
+    }>,
+    sendSupportDiagnostics: () => ipcRenderer.invoke('send-support-diagnostics') as Promise<{
+        success: boolean;
+        filePath?: string;
+        mailtoUrl?: string;
+        error?: string;
     }>,
     getMonitoringHistory: () => ipcRenderer.invoke('get-monitoring-history') as Promise<MonitoringSnapshot[]>,
     getActiveAlerts: () => ipcRenderer.invoke('get-active-alerts') as Promise<MonitorAlert[]>,

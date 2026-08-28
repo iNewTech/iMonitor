@@ -38,6 +38,22 @@ export function buildAlertDetail(job: ActiveJobRecord) {
     return `${getJobTitle(job)} is in ${job.STATUS || 'UNKNOWN'} at ${cpu}% CPU.${sqlStatus}`;
 }
 
+function hashSeed(value: string) {
+    return Array.from(value).reduce((total, char, index) => (
+        total + (char.charCodeAt(0) * (index + 1))
+    ), 0);
+}
+
+function buildAlertEventTimestamp(baseTimestamp: string, alertId: string, spreadWindowMs = 20 * 60 * 1000) {
+    const baseTime = new Date(baseTimestamp).getTime();
+    if (!Number.isFinite(baseTime)) {
+        return baseTimestamp;
+    }
+
+    const offsetMs = hashSeed(alertId) % spreadWindowMs;
+    return new Date(baseTime + offsetMs).toISOString();
+}
+
 /**
  * Recomputes the operator alert queue from the latest jobs poll.
  */
@@ -65,9 +81,13 @@ export function evaluateAlertRules(
             const alertId = `msgw:${jobKey}`;
             if (!dismissedAlertIds.has(alertId)) {
                 const existingAlert = existingAlerts.get(alertId);
+                const eventTimestamp = existingAlert?.isActive !== false && existingAlert?.timestamp
+                    ? existingAlert.timestamp
+                    : buildAlertEventTimestamp(timestamp, alertId);
                 const nextWorkflowState = buildNextWorkflowState({
                     alertId,
                     timestamp,
+                    eventTimestamp,
                     detail: buildWaitReason(job),
                     existingAlert,
                     workflowStateByAlertId: nextWorkflowStateByAlertId
@@ -76,7 +96,7 @@ export function evaluateAlertRules(
                     id: alertId,
                     kind: 'messageWait',
                     severity: 'critical',
-                    timestamp: existingAlert?.timestamp ?? timestamp,
+                    timestamp: existingAlert?.timestamp ?? eventTimestamp,
                     lastSeenAt: timestamp,
                     resolvedAt: undefined,
                     isActive: true,
@@ -99,9 +119,13 @@ export function evaluateAlertRules(
             const alertId = `lckw:${jobKey}`;
             if (!dismissedAlertIds.has(alertId)) {
                 const existingAlert = existingAlerts.get(alertId);
+                const eventTimestamp = existingAlert?.isActive !== false && existingAlert?.timestamp
+                    ? existingAlert.timestamp
+                    : buildAlertEventTimestamp(timestamp, alertId);
                 const nextWorkflowState = buildNextWorkflowState({
                     alertId,
                     timestamp,
+                    eventTimestamp,
                     detail: buildWaitReason(job),
                     existingAlert,
                     workflowStateByAlertId: nextWorkflowStateByAlertId
@@ -110,7 +134,7 @@ export function evaluateAlertRules(
                     id: alertId,
                     kind: 'lockWait',
                     severity: 'critical',
-                    timestamp: existingAlert?.timestamp ?? timestamp,
+                    timestamp: existingAlert?.timestamp ?? eventTimestamp,
                     lastSeenAt: timestamp,
                     resolvedAt: undefined,
                     isActive: true,
@@ -133,9 +157,13 @@ export function evaluateAlertRules(
             const alertId = `cpu:${jobKey}`;
             if (!dismissedAlertIds.has(alertId)) {
                 const existingAlert = existingAlerts.get(alertId);
+                const eventTimestamp = existingAlert?.isActive !== false && existingAlert?.timestamp
+                    ? existingAlert.timestamp
+                    : buildAlertEventTimestamp(timestamp, alertId);
                 const nextWorkflowState = buildNextWorkflowState({
                     alertId,
                     timestamp,
+                    eventTimestamp,
                     detail: buildAlertDetail(job),
                     existingAlert,
                     workflowStateByAlertId: nextWorkflowStateByAlertId
@@ -144,7 +172,7 @@ export function evaluateAlertRules(
                     id: alertId,
                     kind: 'highCpu',
                     severity: cpu >= settings.highCpuThreshold + 10 ? 'critical' : 'warning',
-                    timestamp: existingAlert?.timestamp ?? timestamp,
+                    timestamp: existingAlert?.timestamp ?? eventTimestamp,
                     lastSeenAt: timestamp,
                     resolvedAt: undefined,
                     isActive: true,
@@ -209,9 +237,13 @@ export function createPollFailureAlert(
 
     const existingAlert = activeAlerts.find((alert) => alert.id === alertId);
     const timestamp = new Date().toISOString();
+    const eventTimestamp = existingAlert?.isActive !== false && existingAlert?.timestamp
+        ? existingAlert.timestamp
+        : buildAlertEventTimestamp(timestamp, alertId, 5 * 60 * 1000);
     const nextWorkflowState = buildNextWorkflowState({
         alertId,
         timestamp,
+        eventTimestamp,
         detail: errorMessage,
         existingAlert,
         workflowStateByAlertId
@@ -221,7 +253,7 @@ export function createPollFailureAlert(
             id: alertId,
             kind: 'pollFailure',
             severity: 'critical',
-            timestamp: existingAlert?.timestamp ?? timestamp,
+            timestamp: existingAlert?.timestamp ?? eventTimestamp,
             lastSeenAt: timestamp,
             resolvedAt: undefined,
             isActive: true,
@@ -281,19 +313,21 @@ export function clearAlertById(alertId: string, activeAlerts: MonitorAlert[], di
 function buildNextWorkflowState(params: {
     alertId: string;
     timestamp: string;
+    eventTimestamp?: string;
     detail?: string;
     existingAlert?: MonitorAlert;
     workflowStateByAlertId: Record<string, StoredAlertWorkflowState>;
 }) {
-    const { alertId, timestamp, detail, existingAlert, workflowStateByAlertId } = params;
+    const { alertId, timestamp, eventTimestamp, detail, existingAlert, workflowStateByAlertId } = params;
     const storedState = workflowStateByAlertId[alertId];
+    const effectiveEventTimestamp = eventTimestamp || timestamp;
 
     if (!storedState) {
-        return createAlertWorkflowState(timestamp, detail);
+        return createAlertWorkflowState(effectiveEventTimestamp, detail);
     }
 
     if (!existingAlert || existingAlert.isActive === false || storedState.status === 'resolved' || storedState.status === 'cleared') {
-        return reopenAlertWorkflow(storedState, timestamp, detail);
+        return reopenAlertWorkflow(storedState, effectiveEventTimestamp, detail);
     }
 
     return markAlertConditionSeen(normalizeAlertWorkflowState(storedState, timestamp), timestamp);

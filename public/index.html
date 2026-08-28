@@ -8,7 +8,7 @@
     <link href="../node_modules/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
-<body class="app-body">
+<body class="app-body connection-body">
     <main class="app-shell">
         <section class="screen-frame connection-frame">
             <div class="connection-layout">
@@ -65,24 +65,25 @@
 
                 <section class="workspace-panel surface-card">
                     <div class="panel-header">
-                        <div>
+                        <div class="workspace-header-copy">
                             <p class="eyebrow mb-2">iMonitor Connect</p>
                             <h2 class="panel-title">Connect iMonitor to an IBM i system</h2>
                             <p class="panel-copy mb-0">
                                 Start a live Mapepire session now, or save trusted profiles for the systems your team checks every day.
                             </p>
-                        </div>
-                        <div class="workspace-tools">
-                            <span id="saved-count" class="panel-badge">0 saved profiles</span>
-                            <div class="connection-theme-control">
-                                <label for="theme-selector" class="hero-control-label">Theme</label>
-                                <select id="theme-selector" class="form-select connection-theme-select"></select>
+                            <div class="workspace-header-meta">
+                                <span id="saved-count" class="panel-badge">0 saved profiles</span>
                             </div>
                         </div>
+                        <div class="workspace-tools">
+                            <details id="theme-menu" class="theme-menu">
+                                <summary class="theme-menu-summary" aria-label="Open theme menu">
+                                    <i class="bi bi-palette"></i>
+                                </summary>
+                                <div id="theme-menu-options" class="theme-menu-panel"></div>
+                            </details>
+                        </div>
                     </div>
-                    <p id="theme-description" class="connection-theme-description mb-0">
-                        Warm glass surfaces with deep green operator accents.
-                    </p>
 
                     <div class="saved-connections-panel">
                         <div class="saved-connections-header">
@@ -159,6 +160,26 @@
                     </form>
                 </section>
             </div>
+            <footer class="app-footer surface-card">
+                <div class="app-footer-meta">
+                    <span id="app-version-label" class="app-version-label">iMonitor</span>
+                    <p class="app-footer-copy mb-0">Support is available before and after you connect.</p>
+                </div>
+                <details id="support-menu" class="support-menu">
+                    <summary class="support-menu-summary">
+                        <i class="bi bi-life-preserver me-2"></i>Support
+                    </summary>
+                    <div class="support-menu-panel">
+                        <button id="support-contact-only" type="button" class="btn btn-outline-ink btn-sm">
+                            <i class="bi bi-envelope me-2"></i>Contact Only
+                        </button>
+                        <button id="support-send-diagnostics" type="button" class="btn btn-primary-strong btn-sm">
+                            <i class="bi bi-bug me-2"></i>Contact + Send Diagnostics
+                        </button>
+                    </div>
+                </details>
+                <p id="support-status" class="support-status" hidden></p>
+            </footer>
         </section>
     </main>
     <script src="../node_modules/@popperjs/core/dist/umd/popper.min.js"></script>

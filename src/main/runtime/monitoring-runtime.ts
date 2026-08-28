@@ -27,6 +27,10 @@ interface MonitoringRuntimeDependencies {
     persistPoll: (jobs: ActiveJobRecord[], timestamp: string, intervalMs: number) => void;
 }
 
+interface TimestampedQueryResult<T> extends QueryResult<T> {
+    generatedAt?: string;
+}
+
 /**
  * Runs the monitoring poll loop and keeps runtime monitor state in sync.
  */
@@ -84,7 +88,12 @@ export function createMonitoringRuntime(dependencies: MonitoringRuntimeDependenc
 
     const applyStatusUpdate = (result: QueryResult<ActiveJobRecord>) => {
         const jobs = Array.isArray(result.data) ? result.data : [];
-        const timestamp = new Date().toISOString();
+        const timestamp = (
+            typeof (result as TimestampedQueryResult<ActiveJobRecord>).generatedAt === 'string'
+            && (result as TimestampedQueryResult<ActiveJobRecord>).generatedAt
+        )
+            ? String((result as TimestampedQueryResult<ActiveJobRecord>).generatedAt)
+            : new Date().toISOString();
         const settings = dependencies.getAlertSettings();
 
         dependencies.monitoringState.refreshTrackedJobs(jobs, timestamp);

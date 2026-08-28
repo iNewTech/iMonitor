@@ -81,8 +81,8 @@ test('supports expand, acknowledge, start, note, resolve, and clear in the alert
         await expect(firstAlert.getByTestId('alert-note-composer')).toBeVisible();
         await firstAlert.getByTestId('alert-note-input').fill('Checked by e2e smoke test');
         await firstAlert.getByTestId('alert-note-save').click();
-        await expect(firstAlert.getByTestId('alert-note-item').first()).toContainText('Checked by e2e smoke test');
         await expect(firstAlert.getByTestId('alert-timeline')).toContainText('Note added');
+        await expect(firstAlert.getByTestId('alert-timeline')).toContainText('Checked by e2e smoke test');
 
         await firstAlert.getByTestId('alert-resolve').click();
         await expect(firstAlert.getByTestId('alert-workflow-badge')).toHaveText('RESOLVED');
