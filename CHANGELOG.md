@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-08-30
+
+### Changed
+
+- ClickUp settings now save per operator instead of one shared app-wide value
+- Settings now show which operator owns the current ClickUp configuration
+- Demo mode now uses `GajenderT` as the operator identity for alert ownership and per-user settings
+
+### Fixed
+
+- Alert workflow mutations now use the same current-operator resolver as the rest of the app
+- Legacy shared ClickUp settings now migrate forward into the current operator's saved settings on first read
+
 ## 2026-08-29
 
 ### Added

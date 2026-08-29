@@ -15,9 +15,13 @@ import {
     type AiAssistantSettings
 } from '../features/ibmeyeai/ai-model';
 import {
+    DEFAULT_STORED_CLICKUP_SETTINGS_BY_USER,
     DEFAULT_STORED_CLICKUP_SETTINGS,
+    normalizeClickUpSettingsUserKey,
+    normalizeStoredClickUpSettingsByUser,
     normalizeStoredClickUpSettings,
-    type StoredClickUpSettings
+    type StoredClickUpSettings,
+    type StoredClickUpSettingsByUser
 } from '../features/integrations/clickup/clickup-model';
 import { DEFAULT_THEME_ID, normalizeThemeId, type ThemeId } from '../features/theme/theme-model';
 import type { StoredConnection } from '../utils/connections';
@@ -28,6 +32,7 @@ export interface StoreSchema {
     alertSettings: AlertSettings;
     emailNotificationSettings: StoredEmailNotificationSettings;
     aiAssistantSettings: StoredAiAssistantSettings;
+    clickUpSettingsByUser: StoredClickUpSettingsByUser;
     clickUpSettings: StoredClickUpSettings;
     alertWorkflowState: Record<string, StoredAlertWorkflowState>;
     themeId: ThemeId;
@@ -53,6 +58,7 @@ export function createAppStore() {
             alertSettings: DEFAULT_ALERT_SETTINGS,
             emailNotificationSettings: DEFAULT_STORED_EMAIL_NOTIFICATION_SETTINGS,
             aiAssistantSettings: DEFAULT_STORED_AI_ASSISTANT_SETTINGS,
+            clickUpSettingsByUser: DEFAULT_STORED_CLICKUP_SETTINGS_BY_USER,
             clickUpSettings: DEFAULT_STORED_CLICKUP_SETTINGS,
             alertWorkflowState: {},
             themeId: DEFAULT_THEME_ID
@@ -119,13 +125,52 @@ export function getNormalizedAiAssistantSettings(store: AppStore) {
 /**
  * Loads encrypted ClickUp integration settings from the store and normalizes them.
  */
-export function getNormalizedStoredClickUpSettings(store: AppStore) {
-    const storedSettings = store.get('clickUpSettings');
-    const normalized = normalizeStoredClickUpSettings(storedSettings);
+export function getNormalizedStoredClickUpSettings(store: AppStore, operatorName: string) {
+    const normalizedOperatorName = normalizeClickUpSettingsUserKey(operatorName);
+    const storedSettingsByUser = store.get('clickUpSettingsByUser');
+    const normalizedSettingsByUser = normalizeStoredClickUpSettingsByUser(storedSettingsByUser);
 
-    if (JSON.stringify(storedSettings) !== JSON.stringify(normalized)) {
-        store.set('clickUpSettings', normalized);
+    if (JSON.stringify(storedSettingsByUser) !== JSON.stringify(normalizedSettingsByUser)) {
+        store.set('clickUpSettingsByUser', normalizedSettingsByUser);
     }
 
-    return normalized;
+    const storedSettings = normalizedSettingsByUser[normalizedOperatorName];
+    if (storedSettings) {
+        return storedSettings;
+    }
+
+    const legacyStoredSettings = store.get('clickUpSettings');
+    const normalizedLegacySettings = normalizeStoredClickUpSettings(legacyStoredSettings);
+    if (JSON.stringify(legacyStoredSettings) !== JSON.stringify(normalizedLegacySettings)) {
+        store.set('clickUpSettings', normalizedLegacySettings);
+    }
+
+    const hasLegacySettings = JSON.stringify(normalizedLegacySettings) !== JSON.stringify(DEFAULT_STORED_CLICKUP_SETTINGS);
+    if (!hasLegacySettings) {
+        return normalizedLegacySettings;
+    }
+
+    const nextSettingsByUser = {
+        ...normalizedSettingsByUser,
+        [normalizedOperatorName]: normalizedLegacySettings
+    };
+    store.set('clickUpSettingsByUser', nextSettingsByUser);
+    return normalizedLegacySettings;
+}
+
+/**
+ * Persists one operator's encrypted ClickUp settings.
+ */
+export function setStoredClickUpSettingsForUser(
+    store: AppStore,
+    operatorName: string,
+    settings: StoredClickUpSettings
+) {
+    const normalizedOperatorName = normalizeClickUpSettingsUserKey(operatorName);
+    const nextSettingsByUser = {
+        ...normalizeStoredClickUpSettingsByUser(store.get('clickUpSettingsByUser')),
+        [normalizedOperatorName]: normalizeStoredClickUpSettings(settings)
+    };
+
+    store.set('clickUpSettingsByUser', nextSettingsByUser);
 }

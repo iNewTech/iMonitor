@@ -23,14 +23,14 @@ function randomFloat(min: number, max: number, digits = 1) {
 
 function createDemoJob(overrides: Partial<ActiveJobRecord>): ActiveJobRecord {
     return {
-        JOB_NAME: '000000/DEMO/DEMOJOB',
+        JOB_NAME: '000000/GajenderT/DEMOJOB',
         JOB_NAME_SHORT: 'DEMOJOB',
         JOB_NUMBER: '000000',
-        JOB_USER: 'DEMO',
+        JOB_USER: 'GajenderT',
         SUBSYSTEM: 'QSYSWRK',
         SUBSYSTEM_LIBRARY_NAME: 'QSYS',
         SUBSYSTEM_JOB: 'QSYSWRK/DEMOJOB',
-        CURRENT_USER: 'DEMO',
+        CURRENT_USER: 'GajenderT',
         TYPE: 'BATCH',
         CPU: 0,
         CPU_TIME: 0,

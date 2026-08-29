@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
     DEFAULT_CLICKUP_SETTINGS,
     DEFAULT_STORED_CLICKUP_SETTINGS,
+    normalizeClickUpSettingsUserKey,
     normalizeClickUpSettings,
+    normalizeStoredClickUpSettingsByUser,
     normalizeStoredClickUpSettings,
     toRenderableClickUpSettings,
     toStoredClickUpSettings
@@ -66,5 +68,23 @@ describe('clickup-model', () => {
 
         const renderable = toRenderableClickUpSettings(stored, (value) => value.replace(/^enc:/, ''));
         expect(renderable.apiToken).toBe('pk_secret');
+    });
+
+    it('normalizes per-user settings keys and values', () => {
+        const settingsByUser = normalizeStoredClickUpSettingsByUser({
+            ' GajenderT ': {
+                ...DEFAULT_STORED_CLICKUP_SETTINGS,
+                encryptedApiToken: ' enc:gajender '
+            },
+            '': {
+                ...DEFAULT_STORED_CLICKUP_SETTINGS,
+                encryptedApiToken: ' enc:fallback '
+            }
+        });
+
+        expect(normalizeClickUpSettingsUserKey(' GajenderT ')).toBe('GajenderT');
+        expect(normalizeClickUpSettingsUserKey('')).toBe('local-operator');
+        expect(settingsByUser.GajenderT.encryptedApiToken).toBe('enc:gajender');
+        expect(settingsByUser['local-operator'].encryptedApiToken).toBe('enc:fallback');
     });
 });

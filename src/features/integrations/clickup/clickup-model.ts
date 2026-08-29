@@ -22,6 +22,8 @@ export interface StoredClickUpSettings {
     syncComments: boolean;
 }
 
+export type StoredClickUpSettingsByUser = Record<string, StoredClickUpSettings>;
+
 export interface ClickUpWorkspaceOption {
     id: string;
     name: string;
@@ -74,6 +76,8 @@ export const DEFAULT_STORED_CLICKUP_SETTINGS: StoredClickUpSettings = {
     listName: '',
     syncComments: true
 };
+
+export const DEFAULT_STORED_CLICKUP_SETTINGS_BY_USER: StoredClickUpSettingsByUser = {};
 
 function normalizeSharedSettings(candidate: Partial<ClickUpSettings> | Partial<StoredClickUpSettings> | undefined) {
     return {
@@ -136,4 +140,28 @@ export function toRenderableClickUpSettings(
         ...normalized,
         apiToken: normalized.encryptedApiToken ? revealSecret(normalized.encryptedApiToken) : ''
     };
+}
+
+/**
+ * Normalizes the user key used to partition saved ClickUp settings.
+ */
+export function normalizeClickUpSettingsUserKey(candidate: string | undefined) {
+    return String(candidate ?? '').trim() || 'local-operator';
+}
+
+/**
+ * Normalizes the per-user ClickUp settings map stored on disk.
+ */
+export function normalizeStoredClickUpSettingsByUser(
+    candidate: StoredClickUpSettingsByUser | undefined
+): StoredClickUpSettingsByUser {
+    if (!candidate || typeof candidate !== 'object') {
+        return {};
+    }
+
+    return Object.entries(candidate).reduce<StoredClickUpSettingsByUser>((nextSettings, [userKey, settings]) => {
+        const normalizedUserKey = normalizeClickUpSettingsUserKey(userKey);
+        nextSettings[normalizedUserKey] = normalizeStoredClickUpSettings(settings);
+        return nextSettings;
+    }, {});
 }

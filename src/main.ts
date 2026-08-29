@@ -63,7 +63,8 @@ import {
     getNormalizedAlertSettings,
     getNormalizedStoredClickUpSettings,
     getNormalizedStoredEmailNotificationSettings,
-    getNormalizedThemeId
+    getNormalizedThemeId,
+    setStoredClickUpSettingsForUser
 } from './main/store';
 import { createWindowRuntime } from './main/window/window-runtime';
 import { protectPassword, revealPassword } from './utils/password-store';
@@ -75,6 +76,7 @@ const MAX_JOB_STATUS_HISTORY = 12;
 const NOTIFICATION_COOLDOWN_MS = 120000;
 const SUPPORT_EMAIL = 'gajendertyagi.tyagi@gmail.com';
 const LOCAL_OPERATOR_NAME = os.userInfo().username?.trim() || 'local-operator';
+const DEMO_OPERATOR_NAME = 'GajenderT';
 
 function resolveAppIconPath() {
     if (app.isPackaged) {
@@ -119,6 +121,17 @@ function getThemeId() {
     return getNormalizedThemeId(store);
 }
 
+function getCurrentOperatorName() {
+    const currentConnection = connectionState.getState().currentConnection;
+    const isDemoSession = monitoringState.getMonitorMode() === 'dummy'
+        || currentConnection?.host === 'dummy.local'
+        || currentConnection?.user === DEMO_OPERATOR_NAME;
+
+    return isDemoSession
+        ? DEMO_OPERATOR_NAME
+        : LOCAL_OPERATOR_NAME;
+}
+
 function getAiAssistantSettings() {
     return toRenderableAiAssistantSettings(
         getNormalizedAiAssistantSettings(store),
@@ -137,7 +150,7 @@ function saveAiAssistantSettings(candidate: Partial<AiAssistantSettings> | undef
 
 function getClickUpSettings() {
     return toRenderableClickUpSettings(
-        getNormalizedStoredClickUpSettings(store),
+        getNormalizedStoredClickUpSettings(store, getCurrentOperatorName()),
         revealSecret
     );
 }
@@ -147,7 +160,13 @@ function saveClickUpSettings(candidate: Partial<ClickUpSettings> | undefined) {
         ...getClickUpSettings(),
         ...(candidate ?? {})
     });
-    store.set('clickUpSettings', toStoredClickUpSettings(merged, protectSecret));
+
+    setStoredClickUpSettingsForUser(
+        store,
+        getCurrentOperatorName(),
+        toStoredClickUpSettings(merged, protectSecret)
+    );
+
     return merged;
 }
 
@@ -485,7 +504,7 @@ registerAlertsIpc({
     markAlertWorkDone,
     addAlertWorkflowNote,
     normalizeAlertSettings,
-    getOperatorName: () => LOCAL_OPERATOR_NAME,
+    getOperatorName: getCurrentOperatorName,
     syncLinkedExternalWorkItem: async (payload) => {
         await clickUpRuntime.syncAlertWorkflowComment(payload);
     },

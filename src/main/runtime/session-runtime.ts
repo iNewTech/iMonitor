@@ -60,6 +60,18 @@ interface SessionRuntimeDependencies {
 export function createSessionRuntime(dependencies: SessionRuntimeDependencies) {
     let ibmiService: Db | null = null;
     const localOperatorName = os.userInfo().username?.trim() || 'local-operator';
+    const demoOperatorName = 'GajenderT';
+
+    const getCurrentOperatorName = () => {
+        const currentConnection = dependencies.connectionState.getState().currentConnection;
+        const isDemoSession = dependencies.monitoringState.getMonitorMode() === 'dummy'
+            || currentConnection?.host === 'dummy.local'
+            || currentConnection?.user === demoOperatorName;
+
+        return isDemoSession
+            ? demoOperatorName
+            : localOperatorName
+    };
 
     const getErrorMessage = (error: unknown) => {
         if (error instanceof Error) {
@@ -179,7 +191,7 @@ export function createSessionRuntime(dependencies: SessionRuntimeDependencies) {
             return {
                 demoModeEnabled: demoAvailability.enabled,
                 demoModeReason: demoAvailability.reason,
-                operatorName: localOperatorName,
+                operatorName: getCurrentOperatorName(),
                 themeId: dependencies.getThemeId(),
                 themes: THEME_OPTIONS
             };
@@ -409,7 +421,7 @@ export function createSessionRuntime(dependencies: SessionRuntimeDependencies) {
                         id: `demo-${Date.now()}`,
                         name: config.name?.trim() || 'iMonitor Demo System',
                         host: 'dummy.local',
-                        user: 'DEMO',
+                        user: demoOperatorName,
                         encryptedPassword: '',
                         port: DEFAULT_PORT
                     });

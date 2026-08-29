@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const backButton = document.getElementById('settings-back');
     const backLabel = document.getElementById('settings-back-label');
     const themeDescription = document.getElementById('settings-theme-description');
+    const clickUpUser = document.getElementById('settings-clickup-user');
 
     const aiSettings = initAiProvidersSettings({
         root: document
@@ -15,9 +16,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         root: document
     });
 
-    const [connectionState, themeSettings] = await Promise.all([
+    const [connectionState, themeSettings, appFlags] = await Promise.all([
         window.electronAPI.getConnectionState(),
-        window.electronAPI.getThemeSettings()
+        window.electronAPI.getThemeSettings(),
+        window.electronAPI.getAppFlags()
     ]);
 
     applyTheme(themeSettings.themeId);
@@ -31,6 +33,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (backLabel) {
         backLabel.textContent = connectionState?.isConnected ? 'Back To Dashboard' : 'Back To Connect';
+    }
+
+    if (clickUpUser) {
+        const operatorName = String(appFlags?.operatorName || '').trim() || 'local-operator';
+        clickUpUser.textContent = `Saved for operator: ${operatorName}`;
     }
 
     backButton?.addEventListener('click', async () => {
