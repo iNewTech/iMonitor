@@ -44,6 +44,8 @@ test('opens the dedicated settings page and switches AI provider setup', async (
     const app = await launchTestApp();
 
     try {
+        await app.page.locator('#launch-demo').click();
+        await expect(app.page.getByRole('heading', { name: 'iMonitor Dashboard', exact: true })).toBeVisible();
         await app.page.locator('#open-settings').click();
         await expect(app.page.getByRole('heading', { name: 'Configure AI providers and action integrations', exact: true })).toBeVisible();
         await expect(app.page.getByRole('heading', { name: 'ClickUp action tracking', exact: true })).toBeVisible();

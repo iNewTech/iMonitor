@@ -8,6 +8,9 @@ export interface ClickUpSettings {
     listId: string;
     listName: string;
     syncComments: boolean;
+    userEmail: string;
+    memberId: string;
+    assigneeUserId: string;
 }
 
 export interface StoredClickUpSettings {
@@ -20,6 +23,9 @@ export interface StoredClickUpSettings {
     listId: string;
     listName: string;
     syncComments: boolean;
+    userEmail: string;
+    memberId: string;
+    assigneeUserId: string;
 }
 
 export type StoredClickUpSettingsByUser = Record<string, StoredClickUpSettings>;
@@ -62,7 +68,10 @@ export const DEFAULT_CLICKUP_SETTINGS: ClickUpSettings = {
     spaceName: '',
     listId: '',
     listName: '',
-    syncComments: true
+    syncComments: true,
+    userEmail: '',
+    memberId: '',
+    assigneeUserId: ''
 };
 
 export const DEFAULT_STORED_CLICKUP_SETTINGS: StoredClickUpSettings = {
@@ -74,12 +83,18 @@ export const DEFAULT_STORED_CLICKUP_SETTINGS: StoredClickUpSettings = {
     spaceName: '',
     listId: '',
     listName: '',
-    syncComments: true
+    syncComments: true,
+    userEmail: '',
+    memberId: '',
+    assigneeUserId: ''
 };
 
 export const DEFAULT_STORED_CLICKUP_SETTINGS_BY_USER: StoredClickUpSettingsByUser = {};
 
 function normalizeSharedSettings(candidate: Partial<ClickUpSettings> | Partial<StoredClickUpSettings> | undefined) {
+    const directMemberId = String(candidate?.memberId ?? candidate?.assigneeUserId ?? '').trim();
+    const legacyAssigneeUserId = String(candidate?.assigneeUserId ?? '').trim();
+
     return {
         enabled: Boolean(candidate?.enabled),
         workspaceId: String(candidate?.workspaceId ?? '').trim(),
@@ -88,7 +103,10 @@ function normalizeSharedSettings(candidate: Partial<ClickUpSettings> | Partial<S
         spaceName: String(candidate?.spaceName ?? '').trim(),
         listId: String(candidate?.listId ?? '').trim(),
         listName: String(candidate?.listName ?? '').trim(),
-        syncComments: candidate?.syncComments ?? DEFAULT_CLICKUP_SETTINGS.syncComments
+        syncComments: candidate?.syncComments ?? DEFAULT_CLICKUP_SETTINGS.syncComments,
+        userEmail: String(candidate?.userEmail ?? '').trim(),
+        memberId: directMemberId || legacyAssigneeUserId,
+        assigneeUserId: legacyAssigneeUserId || directMemberId
     };
 }
 
@@ -147,6 +165,82 @@ export function toRenderableClickUpSettings(
  */
 export function normalizeClickUpSettingsUserKey(candidate: string | undefined) {
     return String(candidate ?? '').trim() || 'local-operator';
+}
+
+/**
+ * Matches the configured ClickUp user email to a ClickUp member id.
+ */
+export function matchClickUpUserByEmail(
+    userEmail: string | undefined,
+    users: Array<{
+        id?: string | number;
+        username?: string;
+        email?: string;
+        first_name?: string;
+        last_name?: string;
+    }> | undefined
+) {
+    const normalizedEmail = String(userEmail ?? '').trim().toLowerCase();
+    if (!normalizedEmail || !Array.isArray(users)) {
+        return undefined;
+    }
+
+    const match = users.find((user) => (
+        String(user.email ?? '').trim().toLowerCase() === normalizedEmail
+        || String(user.username ?? '').trim().toLowerCase() === normalizedEmail
+    ));
+
+    return match?.id ? String(match.id) : undefined;
+}
+
+/**
+ * Tries to match the current app operator to a ClickUp member by username/email.
+ */
+export function matchClickUpUserForOperator(
+    operatorName: string | undefined,
+    users: Array<{
+        id?: string | number;
+        username?: string;
+        email?: string;
+        first_name?: string;
+        last_name?: string;
+    }> | undefined
+) {
+    const normalizedOperator = normalizeClickUpSettingsUserKey(operatorName).toLowerCase();
+    if (!normalizedOperator || !Array.isArray(users)) {
+        return undefined;
+    }
+
+    const normalizeText = (value: string | undefined) => String(value ?? '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+    const operatorKey = normalizeText(normalizedOperator);
+    const matches = users.filter((user) => {
+        const candidateKeys = [
+            normalizeText(user.username),
+            normalizeText(user.email),
+            normalizeText(user.email?.split('@')[0]),
+            normalizeText(user.first_name),
+            normalizeText(user.last_name),
+            normalizeText(`${user.first_name || ''} ${user.last_name || ''}`)
+        ].filter(Boolean);
+
+        return candidateKeys.some((candidateKey) => {
+            if (!candidateKey) {
+                return false;
+            }
+
+            return candidateKey === operatorKey
+                || operatorKey === candidateKey
+                || candidateKey.startsWith(operatorKey)
+                || candidateKey.endsWith(operatorKey)
+                || operatorKey.startsWith(candidateKey)
+                || operatorKey.endsWith(candidateKey)
+                || operatorKey.includes(candidateKey)
+                || candidateKey.includes(operatorKey);
+        });
+    });
+
+    return matches[0]?.id ? String(matches[0].id) : undefined;
 }
 
 /**

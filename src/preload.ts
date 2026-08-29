@@ -289,6 +289,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
         listId: string;
         listName: string;
         syncComments: boolean;
+        userEmail: string;
+        memberId: string;
+        assigneeUserId: string;
     }>,
     saveClickUpSettings: (settings: {
         enabled?: boolean;
@@ -300,6 +303,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
         listId?: string;
         listName?: string;
         syncComments?: boolean;
+        userEmail?: string;
+        memberId?: string;
+        assigneeUserId?: string;
     }) => ipcRenderer.invoke('save-clickup-settings', settings) as Promise<{
         enabled: boolean;
         apiToken: string;
@@ -310,6 +316,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
         listId: string;
         listName: string;
         syncComments: boolean;
+        userEmail: string;
+        memberId: string;
+        assigneeUserId: string;
     }>,
     loadClickUpTargetOptions: () => ipcRenderer.invoke('load-clickup-target-options') as Promise<{
         workspaces: Array<{ id: string; name: string; }>;

@@ -17,6 +17,7 @@ interface AlertStateDependencies {
     initialWorkflowStateByAlertId: Record<string, StoredAlertWorkflowState>;
     persistWorkflowState: (workflowStateByAlertId: Record<string, StoredAlertWorkflowState>) => void;
     onAlertsChanged: (alerts: MonitorAlert[]) => void;
+    onAlertCreated?: (alert: MonitorAlert) => void | Promise<void>;
 }
 
 /**
@@ -94,6 +95,7 @@ export function createAlertStateStore(dependencies: AlertStateDependencies) {
             settings: AlertSettings,
             notify: (key: string, title: string, body: string) => void
         ) {
+            const previousAlertIds = new Set(activeAlerts.map((alert) => alert.id));
             const result = evaluateAlertQueue(jobs, {
                 activeAlerts,
                 dismissedAlertIds,
@@ -106,6 +108,12 @@ export function createAlertStateStore(dependencies: AlertStateDependencies) {
             workflowStateByAlertId = result.workflowStateByAlertId;
             persistWorkflowState();
             setActiveAlerts(result.alerts);
+
+            result.alerts.forEach((alert) => {
+                if (!previousAlertIds.has(alert.id)) {
+                    void dependencies.onAlertCreated?.(alert);
+                }
+            });
         },
         setPollFailureAlert(
             errorMessage: string,
@@ -131,8 +139,11 @@ export function createAlertStateStore(dependencies: AlertStateDependencies) {
             persistWorkflowState();
             setActiveAlerts([nextAlert, ...remainingAlerts]);
 
-            if (isNew && settings.watchFailedPolls) {
-                notify(nextAlert.id, nextAlert.title, `${nextAlert.message} ${errorMessage}`);
+            if (isNew) {
+                void dependencies.onAlertCreated?.(nextAlert);
+                if (settings.watchFailedPolls) {
+                    notify(nextAlert.id, nextAlert.title, `${nextAlert.message} ${errorMessage}`);
+                }
             }
         },
         clearRuntimeState() {

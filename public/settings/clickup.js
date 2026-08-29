@@ -24,6 +24,8 @@ export function initClickUpSettings(dependencies) {
     const form = root.querySelector('#settings-clickup-form');
     const enabledInput = root.querySelector('#settings-clickup-enabled');
     const tokenInput = root.querySelector('#settings-clickup-token');
+    const memberIdInput = root.querySelector('#settings-clickup-member-id');
+    const userEmailInput = root.querySelector('#settings-clickup-user-email');
     const workspaceInput = root.querySelector('#settings-clickup-workspace');
     const spaceInput = root.querySelector('#settings-clickup-space');
     const listInput = root.querySelector('#settings-clickup-list');
@@ -58,6 +60,12 @@ export function initClickUpSettings(dependencies) {
         if (tokenInput) {
             tokenInput.value = settings.apiToken || '';
         }
+        if (memberIdInput) {
+            memberIdInput.value = settings.memberId || settings.assigneeUserId || '';
+        }
+        if (userEmailInput) {
+            userEmailInput.value = settings.userEmail || '';
+        }
         if (syncCommentsInput) {
             syncCommentsInput.checked = Boolean(settings.syncComments);
         }
@@ -82,6 +90,9 @@ export function initClickUpSettings(dependencies) {
         const draftSettings = {
             enabled: Boolean(enabledInput?.checked),
             apiToken: tokenInput?.value || '',
+            memberId: memberIdInput?.value || settings?.memberId || settings?.assigneeUserId || '',
+            userEmail: userEmailInput?.value || '',
+            assigneeUserId: settings?.assigneeUserId || memberIdInput?.value || '',
             workspaceId: workspaceInput?.value || settings?.workspaceId || '',
             workspaceName: settings?.workspaceName || '',
             spaceId: spaceInput?.value || settings?.spaceId || '',
@@ -152,6 +163,9 @@ export function initClickUpSettings(dependencies) {
             settings = await window.electronAPI.saveClickUpSettings({
                 enabled: Boolean(enabledInput?.checked),
                 apiToken: tokenInput?.value || '',
+                memberId: memberIdInput?.value || settings?.memberId || settings?.assigneeUserId || '',
+                userEmail: userEmailInput?.value || '',
+                assigneeUserId: settings?.assigneeUserId || memberIdInput?.value || '',
                 workspaceId: workspaceInput?.value || '',
                 workspaceName: workspace?.name || '',
                 spaceId: spaceInput?.value || '',

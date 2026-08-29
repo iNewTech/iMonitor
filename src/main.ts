@@ -225,6 +225,20 @@ const alertState = createAlertStateStore({
     },
     onAlertsChanged: (alerts) => {
         windowRuntime.sendToWindow('alerts-updated', alerts);
+    },
+    onAlertCreated: async (alert) => {
+        try {
+            const task = await clickUpRuntime.createTaskForAlert(alert);
+            alertState.mutateAlertWorkflow(alert.id, (state) => attachClickUpTaskToWorkflow(state, task, new Date().toISOString()));
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            loggingRuntime.recordActivity({
+                area: 'monitoring',
+                level: 'warning',
+                message: 'Automatic ClickUp task creation failed.',
+                detail: `${alert.id}\n${message}`
+            });
+        }
     }
 });
 
@@ -256,6 +270,8 @@ const loggingRuntime = createLoggingRuntime({
 
 const clickUpRuntime = createClickUpRuntime({
     getSettings: getClickUpSettings,
+    saveSettings: (settings) => saveClickUpSettings(settings),
+    getOperatorName: getCurrentOperatorName,
     recordActivity: loggingRuntime.recordActivity
 });
 

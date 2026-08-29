@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createPollFailureAlert, evaluateAlertRules } from './alert-workflow';
 import type { AlertSettings } from './alert-model';
 import type { ActiveJobRecord } from '../../services/ibmi';
+import { createAlertStateStore } from '../../main/state/alert-state';
 
 function createJob(overrides: Partial<ActiveJobRecord>): ActiveJobRecord {
     return {
@@ -101,5 +102,22 @@ describe('alert workflow evaluation', () => {
         expect(failure?.alert.workflowStatus).toBe('new');
         expect(failure?.workflowState.status).toBe('new');
         expect(failure?.alert.kind).toBe('pollFailure');
+    });
+
+    it('notifies when a brand-new alert is created', () => {
+        const onAlertCreated = vi.fn();
+        const alertStore = createAlertStateStore({
+            initialWorkflowStateByAlertId: {},
+            persistWorkflowState: vi.fn(),
+            onAlertsChanged: vi.fn(),
+            onAlertCreated
+        });
+
+        alertStore.evaluateAlertRules([
+            createJob({ STATUS: 'MSGW', MESSAGE_REPLY: 'YES' })
+        ], '2026-08-23T12:00:00.000Z', settings, vi.fn());
+
+        expect(onAlertCreated).toHaveBeenCalledTimes(1);
+        expect(onAlertCreated.mock.calls[0]?.[0]?.id).toBe('msgw:123456/DEMO/TESTJOB');
     });
 });

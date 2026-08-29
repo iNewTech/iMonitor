@@ -28,17 +28,30 @@
                             <button id="open-settings" class="btn btn-outline-ink btn-sm">
                                 <i class="bi bi-gear me-2"></i>Settings
                             </button>
-                            <div class="hero-theme-control">
-                                <label for="theme-selector" class="hero-control-label">Theme</label>
-                                <select id="theme-selector" class="form-select hero-theme-select" data-testid="theme-selector"></select>
-                            </div>
                             <button id="disconnect" class="btn btn-danger-soft">
                                 <i class="bi bi-power me-2"></i>Disconnect
                             </button>
+                            <details class="hero-theme-menu">
+                                <summary
+                                    id="theme-menu-trigger"
+                                    class="hero-theme-button"
+                                    title="Choose theme"
+                                    aria-label="Choose theme"
+                                >
+                                    <i class="bi bi-palette"></i>
+                                </summary>
+                                <div class="hero-theme-popover">
+                                    <div class="hero-theme-popover-header">
+                                        <span class="hero-control-label mb-0">Themes</span>
+                                    </div>
+                                    <div id="theme-menu-options" class="hero-theme-options" data-testid="theme-menu-options"></div>
+                                    <p id="theme-description" class="hero-theme-description mb-0" data-testid="theme-description">
+                                        Warm glass surfaces with deep green operator accents.
+                                    </p>
+                                    <select id="theme-selector" class="visually-hidden" data-testid="theme-selector" aria-hidden="true"></select>
+                                </div>
+                            </details>
                         </div>
-                        <p id="theme-description" class="hero-theme-description mb-0" data-testid="theme-description">
-                            Warm glass surfaces with deep green operator accents.
-                        </p>
                     </div>
                 </div>
                 <div class="hero-meta">

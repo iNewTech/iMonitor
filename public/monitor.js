@@ -106,6 +106,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const connectedSystem = document.getElementById('connected-system');
     const monitoringState = document.getElementById('monitoring-state');
     const themeSelector = document.getElementById('theme-selector');
+    const themeMenu = document.querySelector('.hero-theme-menu');
+    const themeMenuOptions = document.getElementById('theme-menu-options');
     const themeDescription = document.getElementById('theme-description');
 
     let monitoring = false;
@@ -165,6 +167,18 @@ document.addEventListener('DOMContentLoaded', () => {
         applyTheme(settings.themeId);
 
         const selectedTheme = availableThemes.find((theme) => theme.id === themeSelector.value);
+        if (themeMenuOptions) {
+            themeMenuOptions.innerHTML = availableThemes.map((theme) => `
+                <button
+                    type="button"
+                    class="hero-theme-option${theme.id === themeSelector.value ? ' is-active' : ''}"
+                    data-theme-id="${escapeHtml(theme.id)}"
+                >
+                    <span class="hero-theme-option-label">${escapeHtml(theme.label)}</span>
+                    <span class="hero-theme-option-check" aria-hidden="true">${theme.id === themeSelector.value ? '<i class="bi bi-check2"></i>' : ''}</span>
+                </button>
+            `).join('');
+        }
         if (themeDescription) {
             themeDescription.textContent = selectedTheme?.description || '';
         }
@@ -1347,10 +1361,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            startMonitoring();
+            setMonitoringState(false, 'idle');
         } catch (error) {
             console.error('Error initializing monitoring:', error);
-            startMonitoring();
+            setMonitoringState(false, 'idle');
         }
     }
 
@@ -1410,9 +1424,32 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const settings = await window.electronAPI.saveThemeSettings(nextThemeId);
             renderThemeSettings(settings);
+            if (themeMenu instanceof HTMLDetailsElement) {
+                themeMenu.open = false;
+            }
         } catch (error) {
             console.error('Error saving theme settings:', error);
         }
+    });
+
+    themeMenuOptions?.addEventListener('click', async (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) {
+            return;
+        }
+
+        const option = target.closest('[data-theme-id]');
+        if (!(option instanceof HTMLElement) || !themeSelector) {
+            return;
+        }
+
+        const nextThemeId = option.dataset.themeId || '';
+        if (!nextThemeId || nextThemeId === themeSelector.value) {
+            return;
+        }
+
+        themeSelector.value = nextThemeId;
+        themeSelector.dispatchEvent(new Event('change', { bubbles: true }));
     });
 
     disconnectButton?.addEventListener('click', async () => {

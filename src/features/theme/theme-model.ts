@@ -1,7 +1,12 @@
 /**
  * Supported UI theme ids.
  */
-export type ThemeId = 'operator-light' | 'night-console' | 'paper-terminal';
+export type ThemeId =
+    | 'operator-light'
+    | 'night-console'
+    | 'paper-terminal'
+    | 'aurora-mist'
+    | 'copper-nocturne';
 
 /**
  * Selectable theme metadata for the renderer switcher.
@@ -35,6 +40,16 @@ export const THEME_OPTIONS: ThemeOption[] = [
         id: 'paper-terminal',
         label: 'Paper Terminal',
         description: 'Soft paper tones with ink-heavy terminals and amber highlights.'
+    },
+    {
+        id: 'aurora-mist',
+        label: 'Aurora Mist',
+        description: 'Cool pearl panels with sea-glass accents and low-contrast depth.'
+    },
+    {
+        id: 'copper-nocturne',
+        label: 'Copper Nocturne',
+        description: 'Deep evening surfaces with copper signals and restrained contrast.'
     }
 ];
 

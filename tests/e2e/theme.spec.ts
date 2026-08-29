@@ -58,8 +58,9 @@ test('applies the selected theme and restores it after restart', async () => {
         app = await launchWithEnvironment(sandbox.env);
         await openDemoMonitor(app.page);
 
-        await expect(app.page.getByTestId('theme-selector')).toBeVisible();
-        await app.page.getByTestId('theme-selector').selectOption('night-console');
+        await app.page.locator('#theme-menu-trigger').click();
+        await expect(app.page.getByTestId('theme-menu-options')).toBeVisible();
+        await app.page.locator('[data-theme-id="night-console"]').click();
         await expect(app.page.locator('body')).toHaveAttribute('data-theme', 'night-console');
         await expect(app.page.getByTestId('theme-description')).toContainText('Dark graphite panels');
 

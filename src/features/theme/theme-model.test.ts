@@ -16,14 +16,18 @@ describe('theme model', () => {
         expect(normalizeThemeId('operator-light')).toBe('operator-light');
         expect(normalizeThemeId('night-console')).toBe('night-console');
         expect(normalizeThemeId('paper-terminal')).toBe('paper-terminal');
+        expect(normalizeThemeId('aurora-mist')).toBe('aurora-mist');
+        expect(normalizeThemeId('copper-nocturne')).toBe('copper-nocturne');
     });
 
-    it('exposes three selectable themes with stable ids and labels', () => {
-        expect(THEME_OPTIONS).toHaveLength(3);
+    it('exposes five selectable themes with stable ids and labels', () => {
+        expect(THEME_OPTIONS).toHaveLength(5);
         expect(THEME_OPTIONS.map((theme) => theme.id)).toEqual([
             'operator-light',
             'night-console',
-            'paper-terminal'
+            'paper-terminal',
+            'aurora-mist',
+            'copper-nocturne'
         ]);
         expect(getThemeOption('night-console')?.label).toBe('Night Console');
     });

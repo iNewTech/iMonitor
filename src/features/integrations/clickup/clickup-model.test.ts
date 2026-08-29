@@ -7,7 +7,8 @@ import {
     normalizeStoredClickUpSettingsByUser,
     normalizeStoredClickUpSettings,
     toRenderableClickUpSettings,
-    toStoredClickUpSettings
+    toStoredClickUpSettings,
+    matchClickUpUserForOperator
 } from './clickup-model';
 
 describe('clickup-model', () => {
@@ -21,7 +22,10 @@ describe('clickup-model', () => {
             spaceName: ' NOC ',
             listId: ' 789 ',
             listName: ' Incidents ',
-            syncComments: false
+            syncComments: false,
+            userEmail: '  ops@example.com  ',
+            memberId: ' 44 ',
+            assigneeUserId: ' 44 '
         });
 
         expect(settings).toEqual({
@@ -34,7 +38,10 @@ describe('clickup-model', () => {
             spaceName: 'NOC',
             listId: '789',
             listName: 'Incidents',
-            syncComments: false
+            syncComments: false,
+            userEmail: 'ops@example.com',
+            memberId: '44',
+            assigneeUserId: '44'
         });
     });
 
@@ -86,5 +93,14 @@ describe('clickup-model', () => {
         expect(normalizeClickUpSettingsUserKey('')).toBe('local-operator');
         expect(settingsByUser.GajenderT.encryptedApiToken).toBe('enc:gajender');
         expect(settingsByUser['local-operator'].encryptedApiToken).toBe('enc:fallback');
+    });
+
+    it('matches the active operator to a ClickUp assignee by username or email', () => {
+        const match = matchClickUpUserForOperator('GajenderT', [
+            { id: 123, username: 'gajender', email: 'gajender@example.com' },
+            { id: 456, username: 'ops', email: 'ops@example.com', first_name: 'Gajender', last_name: 'Tyagi' }
+        ]);
+
+        expect(match).toBe('123');
     });
 });

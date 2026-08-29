@@ -1,13 +1,17 @@
 import type { MonitorAlert, StoredAlertWorkflowState } from '../../features/alerts/alert-model';
-import type {
-    ClickUpListOption,
-    ClickUpSettings,
-    ClickUpTargetOptions,
-    ClickUpTaskReference
+import {
+    matchClickUpUserByEmail,
+    matchClickUpUserForOperator,
+    type ClickUpListOption,
+    type ClickUpSettings,
+    type ClickUpTargetOptions,
+    type ClickUpTaskReference
 } from '../../features/integrations/clickup/clickup-model';
 
 interface ClickUpRuntimeDependencies {
     getSettings: () => ClickUpSettings;
+    saveSettings?: (settings: Partial<ClickUpSettings>) => ClickUpSettings;
+    getOperatorName?: () => string;
     recordActivity: (entry: {
         area: 'storage' | 'monitoring';
         level: 'info' | 'success' | 'warning' | 'error';
@@ -162,12 +166,57 @@ export function createClickUpRuntime(dependencies: ClickUpRuntimeDependencies) {
         };
     }
 
+    async function resolveAssigneeIdForAlert(settings: ClickUpSettings, alert: MonitorAlert): Promise<string | undefined> {
+        const savedMemberId = settings.memberId?.trim() || settings.assigneeUserId?.trim();
+        if (savedMemberId) {
+            return savedMemberId;
+        }
+
+        const configuredEmail = settings.userEmail?.trim();
+        const operatorName = alert.owner?.trim() || dependencies.getOperatorName?.() || '';
+        if (!settings.workspaceId || (!configuredEmail && !operatorName)) {
+            return undefined;
+        }
+
+        try {
+            const membersResponse = await request<{ users?: Array<{ id?: string | number; username?: string; email?: string; first_name?: string; last_name?: string; }> }>(
+                settings,
+                `/team/${encodeURIComponent(settings.workspaceId)}/user`
+            );
+
+            const matchedId = configuredEmail
+                ? matchClickUpUserByEmail(configuredEmail, membersResponse.users)
+                : matchClickUpUserForOperator(operatorName, membersResponse.users);
+
+            if (matchedId && dependencies.saveSettings) {
+                dependencies.saveSettings({
+                    ...settings,
+                    memberId: matchedId,
+                    assigneeUserId: matchedId,
+                    userEmail: configuredEmail || settings.userEmail || ''
+                });
+            }
+
+            return matchedId || undefined;
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            dependencies.recordActivity({
+                area: 'monitoring',
+                level: 'warning',
+                message: 'Unable to match a ClickUp assignee for this alert.',
+                detail: message
+            });
+            return undefined;
+        }
+    }
+
     async function createTaskForAlert(alert: MonitorAlert): Promise<ClickUpTaskReference> {
         const settings = getConfiguredSettings();
         if (!settings.listId) {
             throw new Error('Choose a ClickUp target list in Settings before creating tasks.');
         }
 
+        const assigneeId = await resolveAssigneeIdForAlert(settings, alert);
         const response = await request<{ id: string; name?: string; url?: string; }>(
             settings,
             `/list/${encodeURIComponent(settings.listId)}/task`,
@@ -184,7 +233,8 @@ export function createClickUpRuntime(dependencies: ClickUpRuntimeDependencies) {
                         '',
                         alert.message,
                         alert.detail || ''
-                    ].filter(Boolean).join('\n')
+                    ].filter(Boolean).join('\n'),
+                    ...(assigneeId ? { assignees: [assigneeId] } : {})
                 })
             }
         );
