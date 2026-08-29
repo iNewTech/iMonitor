@@ -64,3 +64,26 @@ test('shows the provider model source hint in the panel and floating widget', as
         await app.cleanup();
     }
 });
+
+test('sends preset prompts directly to the transcript and exposes alert and job AI actions', async () => {
+    const app = await launchTestApp();
+
+    try {
+        await openDemoMonitor(app.page);
+
+        await app.page.getByTestId('ai-prompt-incident-summary').click();
+        await expect(app.page.locator('#ai-chat-transcript')).toContainText('current incident picture');
+        await expect(app.page.locator('#ai-assistant-input')).toHaveValue('');
+
+        const firstAlert = app.page.getByTestId('alert-card').first();
+        await firstAlert.getByTestId('alert-toggle').click();
+        await expect(firstAlert.getByTestId('alert-ai-explain')).toBeVisible();
+        await expect(firstAlert.getByTestId('alert-ai-next-actions')).toBeVisible();
+
+        await app.page.locator('tbody .job-row').first().click();
+        await expect(app.page.getByTestId('detail-ai-health')).toBeVisible();
+        await expect(app.page.getByTestId('detail-ai-health')).toBeEnabled();
+    } finally {
+        await app.cleanup();
+    }
+});

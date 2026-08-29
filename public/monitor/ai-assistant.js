@@ -14,6 +14,7 @@ export function initAiAssistant(dependencies) {
     if (!root) {
         return {
             refresh: async () => {},
+            submitPrompt: async () => false,
             destroy() {}
         };
     }
@@ -36,6 +37,7 @@ export function initAiAssistant(dependencies) {
 
     return {
         refresh: aiState.refresh,
+        submitPrompt: aiState.submitPrompt,
         destroy() {
             panel.destroy();
             widget.destroy();

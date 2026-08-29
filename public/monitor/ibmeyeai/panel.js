@@ -1,5 +1,11 @@
 import { loadIBMEyeAiPreferences, saveIBMEyeAiPreferences } from './prefs.js';
 import {
+    buildIncidentSummaryPrompt,
+    buildSelectedJobHealthPrompt,
+    buildShiftHandoffPrompt,
+    buildSqlActivityPrompt
+} from './action-prompts.js';
+import {
     getAiProviderOption,
     getProviderCatalog,
     getProviderModels,
@@ -171,6 +177,17 @@ export function initIBMEyeAiPanel(dependencies) {
         input.disabled = busy;
     }
 
+    function submitAssistantPrompt(message) {
+        const normalizedMessage = String(message || '').trim();
+        if (!normalizedMessage) {
+            input.focus();
+            return;
+        }
+
+        input.value = '';
+        void aiState.submitPrompt(normalizedMessage);
+    }
+
     function syncTopToolbar(snapshot) {
         if (!providerQuickInput || !modelQuickInput) {
             return;
@@ -268,9 +285,7 @@ export function initIBMEyeAiPanel(dependencies) {
 
     form.addEventListener('submit', (event) => {
         event.preventDefault();
-        const message = input.value || '';
-        input.value = '';
-        void aiState.submitPrompt(message);
+        submitAssistantPrompt(input.value || '');
     });
 
     input.addEventListener('keydown', (event) => {
@@ -279,9 +294,7 @@ export function initIBMEyeAiPanel(dependencies) {
         }
 
         event.preventDefault();
-        const message = input.value || '';
-        input.value = '';
-        void aiState.submitPrompt(message);
+        submitAssistantPrompt(input.value || '');
     });
 
     refreshButton.addEventListener('click', () => {
@@ -290,10 +303,20 @@ export function initIBMEyeAiPanel(dependencies) {
 
     promptButtons.forEach((button) => {
         button.addEventListener('click', () => {
-            const prompt = button.dataset.aiPrompt || '';
-            input.value = prompt;
-            input.focus();
-            input.setSelectionRange(prompt.length, prompt.length);
+            const promptType = button.dataset.aiPromptType || '';
+            const fallbackPrompt = button.dataset.aiPrompt || '';
+
+            const prompt = promptType === 'incident-summary'
+                ? buildIncidentSummaryPrompt()
+                : promptType === 'shift-handoff'
+                    ? buildShiftHandoffPrompt()
+                    : promptType === 'sql-activity'
+                        ? buildSqlActivityPrompt()
+                        : promptType === 'job-health'
+                            ? buildSelectedJobHealthPrompt(dependencies.getSelectedJobName?.())
+                            : fallbackPrompt;
+
+            submitAssistantPrompt(prompt);
         });
     });
 

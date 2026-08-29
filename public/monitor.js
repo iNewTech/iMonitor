@@ -1,5 +1,10 @@
 import { renderHistory as renderHistoryView } from './monitor/history.js';
 import { initAiAssistant } from './monitor/ai-assistant.js';
+import {
+    buildAlertExplanationPrompt,
+    buildAlertNextActionsPrompt,
+    buildSelectedJobHealthPrompt
+} from './monitor/ibmeyeai/action-prompts.js';
 import { filterJobs as filterVisibleJobs, getSubsystemOptions } from './monitor/jobs-filter.js';
 import { initSupportPanel } from './shared/support.js';
 import {
@@ -81,6 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const detailGuidanceTechnical = document.getElementById('detail-guidance-technical');
     const detailOperatorActions = document.getElementById('detail-operator-actions');
     const detailOperatorActionNote = document.getElementById('detail-operator-action-note');
+    const detailAiHealth = document.getElementById('detail-ai-health');
     const detailStatusHistory = document.getElementById('detail-status-history');
     const detailSqlStatus = document.getElementById('detail-sql-status');
     const detailSqlText = document.getElementById('detail-sql-text');
@@ -654,6 +660,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 Add Note
             </button>
         `;
+        const explainButton = `
+            <button class="btn btn-outline-ink btn-sm alert-ai-explain" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-ai-explain">
+                Explain Alert
+            </button>
+        `;
+        const nextActionsButton = `
+            <button class="btn btn-outline-ink btn-sm alert-ai-next-actions" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-ai-next-actions">
+                Next Best Action
+            </button>
+        `;
         const clearAlertButton = `
             <button class="btn btn-outline-ink btn-sm alert-clear" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-clear">
                 Clear
@@ -719,6 +735,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             ${startButton}
                             ${resolveButton}
                             ${noteButton}
+                            ${explainButton}
+                            ${nextActionsButton}
                             ${openJobButton}
                             ${clearAlertButton}
                         </div>
@@ -886,6 +904,28 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const aiExplainButton = target.closest('.alert-ai-explain');
+        if (aiExplainButton?.dataset?.alertId) {
+            const alert = latestAlerts.find((entry) => entry.id === aiExplainButton.dataset.alertId);
+            if (!alert) {
+                return;
+            }
+
+            void aiAssistant.submitPrompt(buildAlertExplanationPrompt(alert));
+            return;
+        }
+
+        const aiNextActionsButton = target.closest('.alert-ai-next-actions');
+        if (aiNextActionsButton?.dataset?.alertId) {
+            const alert = latestAlerts.find((entry) => entry.id === aiNextActionsButton.dataset.alertId);
+            if (!alert) {
+                return;
+            }
+
+            void aiAssistant.submitPrompt(buildAlertNextActionsPrompt(alert));
+            return;
+        }
+
         const clearButton = target.closest('.alert-clear');
         if (clearButton?.dataset?.alertId) {
             if (focusedAlertId === clearButton.dataset.alertId) {
@@ -997,6 +1037,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 row.classList.remove('is-selected');
             });
         }
+
+        if (detailAiHealth) {
+            detailAiHealth.disabled = true;
+        }
     }
 
     function populateJobDetails(payload) {
@@ -1041,6 +1085,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (detailDiskIo) {
             detailDiskIo.textContent = formatNumber(job.ELAPSED_TOTAL_DISK_IO_COUNT || job.TOTAL_DISK_IO_COUNT);
+        }
+        if (detailAiHealth) {
+            detailAiHealth.disabled = false;
         }
         if (detailWaitReason) {
             detailWaitReason.textContent = payload.waitReason || 'No wait reason available.';
@@ -1483,6 +1530,14 @@ document.addEventListener('DOMContentLoaded', () => {
             actionButton.disabled = false;
             actionButton.innerHTML = originalMarkup;
         }
+    });
+
+    detailAiHealth?.addEventListener('click', () => {
+        if (!selectedJobName) {
+            return;
+        }
+
+        void aiAssistant.submitPrompt(buildSelectedJobHealthPrompt(selectedJobName));
     });
 
     closeJobDrawer?.addEventListener('click', () => {

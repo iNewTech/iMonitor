@@ -222,17 +222,17 @@
                         </p>
 
                         <div class="ai-quick-actions">
-                            <button type="button" class="btn btn-outline-ink btn-sm ai-prompt-chip" data-ai-prompt="What needs operator attention right now?">
-                                What needs attention?
+                            <button type="button" class="btn btn-outline-ink btn-sm ai-prompt-chip" data-ai-prompt-type="incident-summary" data-testid="ai-prompt-incident-summary">
+                                Incident summary
                             </button>
-                            <button type="button" class="btn btn-outline-ink btn-sm ai-prompt-chip" data-ai-prompt="Summarize the current alerts and likely impact.">
-                                Summarize alerts
+                            <button type="button" class="btn btn-outline-ink btn-sm ai-prompt-chip" data-ai-prompt-type="shift-handoff" data-testid="ai-prompt-shift-handoff">
+                                Shift handoff summary
                             </button>
-                            <button type="button" class="btn btn-outline-ink btn-sm ai-prompt-chip" data-ai-prompt="Look at the recent SQL and explain what stands out.">
+                            <button type="button" class="btn btn-outline-ink btn-sm ai-prompt-chip" data-ai-prompt-type="sql-activity" data-testid="ai-prompt-sql-activity">
                                 Explain SQL activity
                             </button>
-                            <button type="button" class="btn btn-outline-ink btn-sm ai-prompt-chip" data-ai-prompt="Use the selected job and tell me the likely cause and next action.">
-                                Analyze selected job
+                            <button type="button" class="btn btn-outline-ink btn-sm ai-prompt-chip" data-ai-prompt-type="job-health" data-testid="ai-prompt-job-health">
+                                Job health summary
                             </button>
                         </div>
 
@@ -719,6 +719,21 @@
                 <p id="detail-guidance-cause" class="panel-copy mb-3">-</p>
                 <div id="detail-guidance-steps" class="status-history-list"></div>
                 <p id="detail-guidance-technical" class="stat-note mt-3 mb-0">-</p>
+            </section>
+
+            <section class="job-detail-section">
+                <div class="history-card-header">
+                    <div>
+                        <p class="eyebrow mb-2">IBMEye AI Analysis</p>
+                        <h3 class="section-title">Job health summary</h3>
+                    </div>
+                </div>
+                <div id="detail-ai-actions" class="alert-actions">
+                    <button id="detail-ai-health" class="btn btn-outline-ink btn-sm" data-testid="detail-ai-health" disabled>
+                        Ask IBMEye AI
+                    </button>
+                </div>
+                <p class="stat-note mt-3 mb-0">Uses the selected job, recent alerts, logs, and SQL context.</p>
             </section>
 
             <section class="job-detail-section">
