@@ -38,6 +38,7 @@ export function initAiAssistant(dependencies) {
     return {
         refresh: aiState.refresh,
         submitPrompt: aiState.submitPrompt,
+        openWidget: widget.open,
         destroy() {
             panel.destroy();
             widget.destroy();

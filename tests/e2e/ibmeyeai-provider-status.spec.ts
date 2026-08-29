@@ -79,6 +79,17 @@ test('sends preset prompts directly to the transcript and exposes alert and job 
         await firstAlert.getByTestId('alert-toggle').click();
         await expect(firstAlert.getByTestId('alert-ai-explain')).toBeVisible();
         await expect(firstAlert.getByTestId('alert-ai-next-actions')).toBeVisible();
+        await expect(app.page.locator('#ai-assistant-refresh')).toHaveAttribute(
+            'title',
+            'Re-check the AI provider, reload available models, and refresh AI status.'
+        );
+
+        await firstAlert.getByTestId('alert-ai-explain').click();
+        await expect(app.page.locator('#ibmeyeai-widget')).toHaveAttribute('data-open', 'true');
+        await expect(app.page.locator('#ibmeyeai-widget-refresh')).toHaveAttribute(
+            'title',
+            'Re-check the AI provider, reload available models, and refresh AI status.'
+        );
 
         await app.page.locator('tbody .job-row').first().click();
         await expect(app.page.getByTestId('detail-ai-health')).toBeVisible();

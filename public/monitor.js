@@ -661,12 +661,14 @@ document.addEventListener('DOMContentLoaded', () => {
             </button>
         `;
         const explainButton = `
-            <button class="btn btn-outline-ink btn-sm alert-ai-explain" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-ai-explain">
+            <button class="btn btn-outline-ink btn-sm alert-ai-button alert-ai-explain" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-ai-explain">
+                <img src="assets/ibmeyeai-eye-open.svg" alt="" aria-hidden="true" class="alert-ai-button-icon">
                 Explain Alert
             </button>
         `;
         const nextActionsButton = `
-            <button class="btn btn-outline-ink btn-sm alert-ai-next-actions" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-ai-next-actions">
+            <button class="btn btn-outline-ink btn-sm alert-ai-button alert-ai-next-actions" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-ai-next-actions">
+                <img src="assets/ibmeyeai-eye-open.svg" alt="" aria-hidden="true" class="alert-ai-button-icon">
                 Next Best Action
             </button>
         `;
@@ -911,6 +913,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            aiAssistant.openWidget();
             void aiAssistant.submitPrompt(buildAlertExplanationPrompt(alert));
             return;
         }
@@ -922,6 +925,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            aiAssistant.openWidget();
             void aiAssistant.submitPrompt(buildAlertNextActionsPrompt(alert));
             return;
         }
@@ -1537,6 +1541,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        aiAssistant.openWidget();
         void aiAssistant.submitPrompt(buildSelectedJobHealthPrompt(selectedJobName));
     });
 

@@ -127,6 +127,10 @@ export function initIBMEyeAiWidget(dependencies) {
         }
     }
 
+    function open() {
+        toggle(true);
+    }
+
     function submitCurrentPrompt() {
         const message = input.value || '';
         input.value = '';
@@ -196,6 +200,7 @@ export function initIBMEyeAiWidget(dependencies) {
     });
 
     return {
+        open,
         destroy() {
             unsubscribe();
             resizeObserver.disconnect();

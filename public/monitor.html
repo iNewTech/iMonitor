@@ -258,7 +258,12 @@
                                 <button id="ai-assistant-submit" type="submit" class="btn btn-primary-strong">
                                     <i class="bi bi-stars me-2"></i>Analyze
                                 </button>
-                                <button id="ai-assistant-refresh" type="button" class="btn btn-outline-ink">
+                                <button
+                                    id="ai-assistant-refresh"
+                                    type="button"
+                                    class="btn btn-outline-ink"
+                                    title="Re-check the AI provider, reload available models, and refresh AI status."
+                                >
                                     <i class="bi bi-arrow-repeat me-2"></i>Refresh AI Status
                                 </button>
                             </div>
@@ -599,7 +604,13 @@
                     <h3 class="section-title mb-0">Quick chat</h3>
                 </div>
                 <div class="ibmeyeai-popout-tools">
-                    <button id="ibmeyeai-widget-refresh" class="btn btn-outline-ink btn-sm" type="button" aria-label="Refresh AI status">
+                    <button
+                        id="ibmeyeai-widget-refresh"
+                        class="btn btn-outline-ink btn-sm"
+                        type="button"
+                        aria-label="Refresh AI status"
+                        title="Re-check the AI provider, reload available models, and refresh AI status."
+                    >
                         <i class="bi bi-arrow-repeat"></i>
                     </button>
                     <button id="ibmeyeai-widget-close" class="btn btn-outline-ink btn-sm" type="button" aria-label="Close AI chat">
@@ -607,13 +618,15 @@
                     </button>
                 </div>
             </div>
-            <div class="ibmeyeai-popout-provider-row">
-                <select id="ibmeyeai-widget-provider" class="form-select ibmeyeai-widget-select"></select>
-                <select id="ibmeyeai-widget-model" class="form-select ibmeyeai-widget-select"></select>
+            <div class="ibmeyeai-widget-provider-shell">
+                <div class="ibmeyeai-popout-provider-row">
+                    <select id="ibmeyeai-widget-provider" class="form-select ibmeyeai-widget-select"></select>
+                    <select id="ibmeyeai-widget-model" class="form-select ibmeyeai-widget-select"></select>
+                </div>
+                <p id="ibmeyeai-widget-model-source" class="stat-note ibmeyeai-widget-model-source mb-0">
+                    Checking provider models.
+                </p>
             </div>
-            <p id="ibmeyeai-widget-model-source" class="stat-note ibmeyeai-widget-model-source mb-0">
-                Checking provider models.
-            </p>
             <div class="ibmeyeai-widget-transcript-shell">
                 <div id="ibmeyeai-widget-transcript" class="ai-chat-transcript ibmeyeai-widget-transcript">
                     <div class="activity-log-empty">
@@ -729,7 +742,8 @@
                     </div>
                 </div>
                 <div id="detail-ai-actions" class="alert-actions">
-                    <button id="detail-ai-health" class="btn btn-outline-ink btn-sm" data-testid="detail-ai-health" disabled>
+                    <button id="detail-ai-health" class="btn btn-outline-ink btn-sm job-ai-button" data-testid="detail-ai-health" disabled>
+                        <img src="assets/ibmeyeai-eye-open.svg" alt="" aria-hidden="true" class="job-ai-button-icon">
                         Ask IBMEye AI
                     </button>
                 </div>
