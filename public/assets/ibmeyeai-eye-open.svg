@@ -1,0 +1,44 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ibmeyeai-eye-open-title">
+  <title id="ibmeyeai-eye-open-title">IBMEye AI open eye</title>
+  <defs>
+    <linearGradient id="openOrb" x1="18%" y1="18%" x2="82%" y2="82%">
+      <stop offset="0%" stop-color="#7C6CFF" />
+      <stop offset="55%" stop-color="#9B5CF6" />
+      <stop offset="100%" stop-color="#D946A9" />
+    </linearGradient>
+    <radialGradient id="openGlow" cx="50%" cy="42%" r="62%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.5" />
+      <stop offset="55%" stop-color="#FFFFFF" stop-opacity="0.12" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <filter id="openShadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="10" stdDeviation="8" flood-color="#09131E" flood-opacity="0.22" />
+    </filter>
+    <linearGradient id="openStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E8FBFF" />
+      <stop offset="100%" stop-color="#9EDEFF" />
+    </linearGradient>
+    <radialGradient id="openIris" cx="45%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#86F7FF" />
+      <stop offset="100%" stop-color="#23B8D1" />
+    </radialGradient>
+  </defs>
+
+  <circle cx="64" cy="64" r="54" fill="url(#openOrb)" filter="url(#openShadow)" />
+  <circle cx="64" cy="64" r="54" fill="url(#openGlow)" />
+  <circle cx="64" cy="64" r="50" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="2" />
+
+  <path
+    d="M26 64C34 49 47 41 64 41C81 41 94 49 102 64C94 79 81 87 64 87C47 87 34 79 26 64Z"
+    fill="rgba(9, 20, 29, 0.22)"
+    stroke="url(#openStroke)"
+    stroke-width="5"
+    stroke-linejoin="round"
+  />
+  <circle cx="64" cy="64" r="16" fill="url(#openIris)" />
+  <circle cx="64" cy="64" r="7" fill="#102331" />
+  <circle cx="69" cy="59" r="3" fill="#FFFFFF" opacity="0.92" />
+
+  <circle cx="39" cy="42" r="3" fill="#FFD18A" opacity="0.75" />
+  <circle cx="92" cy="88" r="2.5" fill="#86F7FF" opacity="0.75" />
+</svg>

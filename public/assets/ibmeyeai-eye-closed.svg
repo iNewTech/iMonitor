@@ -1,0 +1,45 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ibmeyeai-eye-closed-title">
+  <title id="ibmeyeai-eye-closed-title">IBMEye AI closed eye</title>
+  <defs>
+    <linearGradient id="closedOrb" x1="18%" y1="18%" x2="82%" y2="82%">
+      <stop offset="0%" stop-color="#7C6CFF" />
+      <stop offset="55%" stop-color="#9B5CF6" />
+      <stop offset="100%" stop-color="#D946A9" />
+    </linearGradient>
+    <radialGradient id="closedGlow" cx="50%" cy="42%" r="62%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.46" />
+      <stop offset="55%" stop-color="#FFFFFF" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <filter id="closedShadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="10" stdDeviation="8" flood-color="#09131E" flood-opacity="0.22" />
+    </filter>
+    <linearGradient id="closedStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E8FBFF" />
+      <stop offset="100%" stop-color="#9EDEFF" />
+    </linearGradient>
+  </defs>
+
+  <circle cx="64" cy="64" r="54" fill="url(#closedOrb)" filter="url(#closedShadow)" />
+  <circle cx="64" cy="64" r="54" fill="url(#closedGlow)" />
+  <circle cx="64" cy="64" r="50" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="2" />
+
+  <path
+    d="M30 67C42 55 54 51 64 51C74 51 86 55 98 67"
+    fill="none"
+    stroke="url(#closedStroke)"
+    stroke-width="6"
+    stroke-linecap="round"
+  />
+  <path
+    d="M35 79C45 73 54 70 64 70C74 70 83 73 93 79"
+    fill="none"
+    stroke="#17384A"
+    stroke-opacity="0.32"
+    stroke-width="3"
+    stroke-linecap="round"
+  />
+
+  <circle cx="39" cy="42" r="3" fill="#FFD18A" opacity="0.75" />
+  <circle cx="92" cy="88" r="2.5" fill="#86F7FF" opacity="0.75" />
+</svg>

@@ -155,9 +155,10 @@ interface ThemeSettings {
 
 interface AiAssistantSettings {
     enabled: boolean;
-    provider: 'ollama';
+    provider: 'ollama' | 'openai' | 'anthropic' | 'grok';
     endpoint: string;
     model: string;
+    apiKey: string;
     temperature: number;
     replyStyle: string;
     historyLimit: number;
@@ -168,7 +169,9 @@ interface AiAssistantSettings {
 
 interface AiAssistantAvailability {
     enabled: boolean;
-    provider: 'ollama';
+    provider: AiAssistantSettings['provider'];
+    providerLabel: string;
+    providerFamily: 'ollama' | 'openai-compatible' | 'anthropic';
     endpoint: string;
     selectedModel: string | null;
     availableModels: string[];
@@ -180,6 +183,26 @@ interface AiAssistantAvailability {
 interface AiAssistantMessage {
     role: 'system' | 'user' | 'assistant';
     content: string;
+}
+
+interface AiProviderCatalogEntry {
+    id: AiAssistantSettings['provider'];
+    label: string;
+    family: AiAssistantAvailability['providerFamily'];
+    defaultEndpoint: string;
+    requiresApiKey: boolean;
+    description: string;
+    setupTitle: string;
+    symbol: string;
+    docsLabel: string;
+    authLabel: string;
+    endpointLabel: string;
+    apiKeyLabel: string;
+    modelLabel: string;
+    helper: string;
+    setupSteps: string[];
+    suggestedModels: string[];
+    defaultModel: string;
 }
 
 interface AppInfo {
@@ -202,6 +225,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }>,
     getThemeSettings: () => ipcRenderer.invoke('get-theme-settings') as Promise<ThemeSettings>,
     saveThemeSettings: (themeId: ThemeOption['id']) => ipcRenderer.invoke('save-theme-settings', themeId) as Promise<ThemeSettings>,
+    getAiProviderCatalog: () => ipcRenderer.invoke('get-ai-provider-catalog') as Promise<AiProviderCatalogEntry[]>,
     getAiSettings: () => ipcRenderer.invoke('get-ai-settings') as Promise<AiAssistantSettings>,
     saveAiSettings: (settings: Partial<AiAssistantSettings>) => (
         ipcRenderer.invoke('save-ai-settings', settings) as Promise<AiAssistantSettings>

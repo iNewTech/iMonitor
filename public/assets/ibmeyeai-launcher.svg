@@ -1,0 +1,100 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ibmeyeai-launcher-title">
+  <title id="ibmeyeai-launcher-title">IBMEye AI launcher</title>
+  <defs>
+    <linearGradient id="launcherOrb" x1="18%" y1="18%" x2="82%" y2="82%">
+      <stop offset="0%" stop-color="#7C6CFF" />
+      <stop offset="55%" stop-color="#9B5CF6" />
+      <stop offset="100%" stop-color="#D946A9" />
+    </linearGradient>
+    <radialGradient id="launcherGlow" cx="50%" cy="42%" r="62%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.55" />
+      <stop offset="55%" stop-color="#FFFFFF" stop-opacity="0.12" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="eyeStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#DFFBFF" />
+      <stop offset="100%" stop-color="#A5E6FF" />
+    </linearGradient>
+    <radialGradient id="irisFill" cx="45%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#86F7FF" />
+      <stop offset="100%" stop-color="#23B8D1" />
+    </radialGradient>
+    <filter id="launcherShadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="10" stdDeviation="8" flood-color="#09131E" flood-opacity="0.24" />
+    </filter>
+    <filter id="eyeGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="1.6" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <clipPath id="eyeClip">
+      <path d="M26 64C34 48 47 40 64 40C81 40 94 48 102 64C94 80 81 88 64 88C47 88 34 80 26 64Z" />
+    </clipPath>
+  </defs>
+
+  <circle cx="64" cy="64" r="54" fill="url(#launcherOrb)" filter="url(#launcherShadow)" />
+  <circle cx="64" cy="64" r="54" fill="url(#launcherGlow)" />
+  <circle cx="64" cy="64" r="50" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="2" opacity="0.75" />
+
+  <g opacity="0.32">
+    <path d="M23 35C35 24 49 18 64 18C79 18 93 24 105 35" fill="none" stroke="#FFF4FF" stroke-width="2" stroke-linecap="round" />
+    <path d="M23 93C35 104 49 110 64 110C79 110 93 104 105 93" fill="none" stroke="#FFF4FF" stroke-width="2" stroke-linecap="round" />
+  </g>
+
+  <g>
+    <path d="M26 64C34 48 47 40 64 40C81 40 94 48 102 64C94 80 81 88 64 88C47 88 34 80 26 64Z"
+      fill="rgba(11,25,36,0.18)"
+      stroke="url(#eyeStroke)"
+      stroke-width="4"
+      stroke-linejoin="round"
+      filter="url(#eyeGlow)">
+      <animate attributeName="d"
+        dur="5.4s"
+        repeatCount="indefinite"
+        values="
+          M26 64C34 48 47 40 64 40C81 40 94 48 102 64C94 80 81 88 64 88C47 88 34 80 26 64Z;
+          M26 64C34 48 47 40 64 40C81 40 94 48 102 64C94 80 81 88 64 88C47 88 34 80 26 64Z;
+          M28 64C37 58 48 56 64 56C80 56 91 58 100 64C91 70 80 72 64 72C48 72 37 70 28 64Z;
+          M26 64C34 48 47 40 64 40C81 40 94 48 102 64C94 80 81 88 64 88C47 88 34 80 26 64Z;
+          M26 64C34 48 47 40 64 40C81 40 94 48 102 64C94 80 81 88 64 88C47 88 34 80 26 64Z" />
+    </path>
+
+    <g clip-path="url(#eyeClip)">
+      <ellipse cx="64" cy="64" rx="16" ry="16" fill="url(#irisFill)" filter="url(#eyeGlow)">
+        <animateTransform attributeName="transform"
+          type="translate"
+          values="0 0; -2 -1; 3 1; -1 2; 0 0"
+          dur="6.5s"
+          repeatCount="indefinite" />
+      </ellipse>
+      <circle cx="64" cy="64" r="7" fill="#102331">
+        <animateTransform attributeName="transform"
+          type="translate"
+          values="0 0; -2 -1; 3 1; -1 2; 0 0"
+          dur="6.5s"
+          repeatCount="indefinite" />
+      </circle>
+      <circle cx="69" cy="59" r="3" fill="#FFFFFF" opacity="0.92">
+        <animateTransform attributeName="transform"
+          type="translate"
+          values="0 0; -2 -1; 3 1; -1 2; 0 0"
+          dur="6.5s"
+          repeatCount="indefinite" />
+      </circle>
+    </g>
+  </g>
+
+  <g opacity="0.7">
+    <circle cx="35" cy="39" r="3" fill="#F9C8FF">
+      <animate attributeName="opacity" values="0.2;0.8;0.2" dur="2.6s" repeatCount="indefinite" />
+    </circle>
+    <circle cx="97" cy="89" r="2.6" fill="#86F7FF">
+      <animate attributeName="opacity" values="0.25;0.9;0.25" dur="2.1s" repeatCount="indefinite" begin="0.5s" />
+    </circle>
+    <circle cx="95" cy="34" r="2" fill="#FFD18A">
+      <animate attributeName="opacity" values="0.15;0.75;0.15" dur="3.1s" repeatCount="indefinite" begin="1s" />
+    </circle>
+  </g>
+</svg>

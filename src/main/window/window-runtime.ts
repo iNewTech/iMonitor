@@ -5,6 +5,7 @@ interface WindowRuntimeDependencies {
     preloadPath: string;
     isDevelopment: boolean;
     onClosed: () => void;
+    iconPath?: string;
 }
 
 /**
@@ -38,6 +39,7 @@ export function createWindowRuntime(dependencies: WindowRuntimeDependencies) {
             mainWindow = new BrowserWindow({
                 width: 1280,
                 height: 860,
+                icon: dependencies.iconPath,
                 webPreferences: {
                     nodeIntegration: false,
                     contextIsolation: true,

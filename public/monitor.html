@@ -191,10 +191,10 @@
             <details class="surface-card panel-disclosure ai-assistant-panel" open>
                 <summary class="panel-disclosure-summary">
                     <div>
-                        <p class="eyebrow mb-2">IBMEye AI Watch</p>
-                        <h2 class="section-title">AI incident analyst</h2>
+                        <p class="eyebrow mb-2">IBMEye AI Analysis</p>
+                        <h2 class="section-title">Incident analysis workspace</h2>
                         <p class="panel-copy mb-0">
-                            Ask for log-based analysis, likely cause, and next best action from the current monitor context.
+                            Review alerts, inspect SQL, and ask for likely cause and next best action from the current monitor context.
                         </p>
                     </div>
                     <div class="panel-disclosure-meta ai-assistant-meta">
@@ -207,6 +207,20 @@
                 </summary>
                 <div class="panel-disclosure-body">
                     <div class="ai-assistant-layout">
+                        <div class="ai-provider-toolbar">
+                            <label class="ai-provider-control" for="ai-provider-quick">
+                                <span class="jobs-toolbar-label">Provider</span>
+                                <select id="ai-provider-quick" class="form-select ai-toolbar-select"></select>
+                            </label>
+                            <label class="ai-provider-control" for="ai-model-quick">
+                                <span class="jobs-toolbar-label">Model</span>
+                                <select id="ai-model-quick" class="form-select ai-toolbar-select"></select>
+                            </label>
+                        </div>
+                        <p id="ai-provider-model-source" class="stat-note ai-provider-model-source mb-0">
+                            Checking provider models.
+                        </p>
+
                         <div class="ai-quick-actions">
                             <button type="button" class="btn btn-outline-ink btn-sm ai-prompt-chip" data-ai-prompt="What needs operator attention right now?">
                                 What needs attention?
@@ -222,7 +236,7 @@
                             </button>
                         </div>
 
-                        <div class="ai-chat-shell">
+                        <div id="ai-chat-shell" class="ai-chat-shell">
                             <div id="ai-chat-transcript" class="ai-chat-transcript">
                                 <div class="activity-log-empty">
                                     <i class="bi bi-robot"></i>
@@ -232,7 +246,7 @@
                         </div>
 
                         <form id="ai-assistant-form" class="ai-assistant-form ai-composer-shell">
-                            <label for="ai-assistant-input" class="control-label">Ask the AI analyst</label>
+                            <label for="ai-assistant-input" class="control-label">Ask IBMEye AI analysis</label>
                             <textarea
                                 id="ai-assistant-input"
                                 class="form-control ai-assistant-input"
@@ -255,7 +269,7 @@
                             <summary class="email-settings-summary">
                                 <span>
                                     <strong>AI provider settings</strong>
-                                    <small>Prepared for future feature gating, using local Ollama for now</small>
+                                    <small>Choose one provider, complete its setup, then save it as the active IBMEye AI source</small>
                                 </span>
                                 <i class="bi bi-chevron-down"></i>
                             </summary>
@@ -264,31 +278,29 @@
                                     <span>Enable AI analyst</span>
                                     <input type="checkbox" id="ai-enabled">
                                 </label>
-                                <div class="control-select">
-                                    <label for="ai-endpoint" class="control-label">Ollama endpoint</label>
-                                    <input type="text" id="ai-endpoint" class="form-control" placeholder="http://127.0.0.1:11434" autocomplete="off">
+                                <div class="ai-provider-setup-intro">
+                                    <p class="control-label mb-0">First-time setup</p>
+                                    <p class="stat-note mb-0">Pick a provider, fill only that provider’s required fields, then use refresh to confirm the available models.</p>
                                 </div>
-                                <div class="control-select">
-                                    <label for="ai-model" class="control-label">Local model</label>
-                                    <select id="ai-model" class="form-select">
-                                        <option value="">Auto-select first installed model</option>
-                                    </select>
-                                </div>
-                                <div class="control-select">
-                                    <label for="ai-temperature" class="control-label">Response style</label>
-                                    <div class="input-group">
-                                        <input type="number" id="ai-temperature" class="form-control" min="0" max="1" step="0.1" value="0.2">
-                                        <span class="input-group-text">0-1</span>
+                                <div id="ai-provider-switcher" class="ai-provider-switcher" role="tablist" aria-label="AI providers"></div>
+                                <div id="ai-provider-panel" class="ai-provider-panel-shell"></div>
+                                <div class="ai-settings-common">
+                                    <div class="control-select">
+                                        <label for="ai-temperature" class="control-label">Response style</label>
+                                        <div class="input-group">
+                                            <input type="number" id="ai-temperature" class="form-control" min="0" max="1" step="0.1" value="0.2">
+                                            <span class="input-group-text">0-1</span>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="control-select">
-                                    <label for="ai-reply-style" class="control-label">Default reply style</label>
-                                    <textarea
-                                        id="ai-reply-style"
-                                        class="form-control ai-settings-textarea"
-                                        rows="3"
-                                        placeholder="Example: Reply in a human tone, keep details short and precise, and do not leave out important operator guidance."
-                                    ></textarea>
+                                    <div class="control-select">
+                                        <label for="ai-reply-style" class="control-label">Default reply style</label>
+                                        <textarea
+                                            id="ai-reply-style"
+                                            class="form-control ai-settings-textarea"
+                                            rows="3"
+                                            placeholder="Example: Reply in a human tone, keep details short and precise, and do not leave out important operator guidance."
+                                        ></textarea>
+                                    </div>
                                 </div>
                                 <div class="ai-settings-actions">
                                     <button type="submit" class="btn btn-outline-ink">
@@ -560,6 +572,74 @@
             </footer>
         </section>
     </main>
+
+    <div id="ibmeyeai-widget" class="ibmeyeai-widget" data-open="false">
+        <button
+            id="ibmeyeai-launcher"
+            class="ibmeyeai-launcher"
+            type="button"
+            aria-expanded="false"
+            aria-controls="ibmeyeai-popout"
+        >
+            <span class="ibmeyeai-launcher-orb">
+                <img
+                    id="ibmeyeai-launcher-art"
+                    src="assets/ibmeyeai-eye-closed.svg"
+                    alt=""
+                    class="ibmeyeai-launcher-art"
+                    aria-hidden="true"
+                >
+            </span>
+        </button>
+
+        <aside id="ibmeyeai-popout" class="ibmeyeai-popout" aria-hidden="true">
+            <div class="ibmeyeai-popout-header">
+                <div>
+                    <p class="eyebrow mb-1">IBMEye AI Quick Chat</p>
+                    <h3 class="section-title mb-0">Quick chat</h3>
+                </div>
+                <div class="ibmeyeai-popout-tools">
+                    <button id="ibmeyeai-widget-refresh" class="btn btn-outline-ink btn-sm" type="button" aria-label="Refresh AI status">
+                        <i class="bi bi-arrow-repeat"></i>
+                    </button>
+                    <button id="ibmeyeai-widget-close" class="btn btn-outline-ink btn-sm" type="button" aria-label="Close AI chat">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="ibmeyeai-popout-provider-row">
+                <select id="ibmeyeai-widget-provider" class="form-select ibmeyeai-widget-select"></select>
+                <select id="ibmeyeai-widget-model" class="form-select ibmeyeai-widget-select"></select>
+            </div>
+            <p id="ibmeyeai-widget-model-source" class="stat-note ibmeyeai-widget-model-source mb-0">
+                Checking provider models.
+            </p>
+            <div class="ibmeyeai-widget-transcript-shell">
+                <div id="ibmeyeai-widget-transcript" class="ai-chat-transcript ibmeyeai-widget-transcript">
+                    <div class="activity-log-empty">
+                        <i class="bi bi-robot"></i>
+                        <span>Ask IBMEye AI about alerts, waits, SQL, or the selected job.</span>
+                    </div>
+                </div>
+            </div>
+            <form id="ibmeyeai-widget-form" class="ibmeyeai-widget-form">
+                <div class="ibmeyeai-widget-composer">
+                    <textarea
+                        id="ibmeyeai-widget-input"
+                        class="form-control ibmeyeai-widget-input"
+                        rows="2"
+                        placeholder="Ask IBMEye AI about the current system..."
+                    ></textarea>
+                    <button id="ibmeyeai-widget-submit" type="submit" class="btn btn-primary-strong btn-sm ibmeyeai-widget-send" aria-label="Send message">
+                        <i class="bi bi-send-fill"></i>
+                    </button>
+                </div>
+                <div class="ibmeyeai-widget-footer">
+                    <p id="ibmeyeai-widget-status" class="stat-note mb-0">Local Ollama analysis is preparing.</p>
+                </div>
+            </form>
+        </aside>
+    </div>
 
     <div id="job-drawer-overlay" class="job-drawer-overlay"></div>
     <aside id="job-detail-drawer" class="job-detail-drawer" aria-hidden="true">

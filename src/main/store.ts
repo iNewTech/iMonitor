@@ -8,9 +8,12 @@ import {
 } from '../features/notifications/email-notification';
 import {
     DEFAULT_AI_ASSISTANT_SETTINGS,
+    DEFAULT_STORED_AI_ASSISTANT_SETTINGS,
     normalizeAiAssistantSettings,
+    normalizeStoredAiAssistantSettings,
+    type StoredAiAssistantSettings,
     type AiAssistantSettings
-} from '../features/ai/ai-model';
+} from '../features/ibmeyeai/ai-model';
 import { DEFAULT_THEME_ID, normalizeThemeId, type ThemeId } from '../features/theme/theme-model';
 import type { StoredConnection } from '../utils/connections';
 import type { StoredAlertWorkflowState } from '../features/alerts/alert-model';
@@ -19,7 +22,7 @@ export interface StoreSchema {
     connections: StoredConnection[];
     alertSettings: AlertSettings;
     emailNotificationSettings: StoredEmailNotificationSettings;
-    aiAssistantSettings: AiAssistantSettings;
+    aiAssistantSettings: StoredAiAssistantSettings;
     alertWorkflowState: Record<string, StoredAlertWorkflowState>;
     themeId: ThemeId;
 }
@@ -43,7 +46,7 @@ export function createAppStore() {
             connections: [],
             alertSettings: DEFAULT_ALERT_SETTINGS,
             emailNotificationSettings: DEFAULT_STORED_EMAIL_NOTIFICATION_SETTINGS,
-            aiAssistantSettings: DEFAULT_AI_ASSISTANT_SETTINGS,
+            aiAssistantSettings: DEFAULT_STORED_AI_ASSISTANT_SETTINGS,
             alertWorkflowState: {},
             themeId: DEFAULT_THEME_ID
         }
@@ -97,7 +100,7 @@ export function getNormalizedThemeId(store: AppStore) {
  */
 export function getNormalizedAiAssistantSettings(store: AppStore) {
     const storedSettings = store.get('aiAssistantSettings');
-    const normalized = normalizeAiAssistantSettings(storedSettings);
+    const normalized = normalizeStoredAiAssistantSettings(storedSettings);
 
     if (JSON.stringify(storedSettings) !== JSON.stringify(normalized)) {
         store.set('aiAssistantSettings', normalized);

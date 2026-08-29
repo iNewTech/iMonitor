@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain } from 'electron/main';
-import { Notification, dialog, safeStorage, shell } from 'electron';
+import { Notification, dialog, nativeImage, safeStorage, shell } from 'electron';
 import * as path from 'path';
 import Db, { type ServiceLogEntry } from './services/ibmi';
 import {
@@ -20,9 +20,12 @@ import {
     type EmailNotificationSettings
 } from './features/notifications/email-notification';
 import {
+    getAiProviderCatalog,
     normalizeAiAssistantSettings,
+    toRenderableAiAssistantSettings,
+    toStoredAiAssistantSettings,
     type AiAssistantSettings
-} from './features/ai/ai-model';
+} from './features/ibmeyeai/ai-model';
 import {
     buildOperatorActionPlan,
     getAvailableOperatorActions,
@@ -61,6 +64,26 @@ const MAX_JOB_STATUS_HISTORY = 12;
 const NOTIFICATION_COOLDOWN_MS = 120000;
 const SUPPORT_EMAIL = 'gajendertyagi.tyagi@gmail.com';
 
+function resolveAppIconPath() {
+    if (app.isPackaged) {
+        return path.join(process.resourcesPath, 'icons', 'icon.png');
+    }
+
+    return path.join(__dirname, '../build/icons/icon.png');
+}
+
+function resolveNotificationOptions(title: string, body: string) {
+    const iconPath = resolveAppIconPath();
+    const iconImage = nativeImage.createFromPath(iconPath);
+
+    return {
+        title: truncateForNotification(title, 64),
+        body: truncateForNotification(body, 200),
+        icon: iconImage.isEmpty() ? undefined : iconImage,
+        contentImage: iconImage.isEmpty() ? undefined : iconImage
+    };
+}
+
 const store = createAppStore();
 const connectionState = createConnectionStateStore();
 const monitoringState = createMonitoringStateStore(
@@ -85,7 +108,10 @@ function getThemeId() {
 }
 
 function getAiAssistantSettings() {
-    return getNormalizedAiAssistantSettings(store);
+    return toRenderableAiAssistantSettings(
+        getNormalizedAiAssistantSettings(store),
+        revealSecret
+    );
 }
 
 function saveAiAssistantSettings(candidate: Partial<AiAssistantSettings> | undefined) {
@@ -93,7 +119,7 @@ function saveAiAssistantSettings(candidate: Partial<AiAssistantSettings> | undef
         ...getAiAssistantSettings(),
         ...(candidate ?? {})
     });
-    store.set('aiAssistantSettings', merged);
+    store.set('aiAssistantSettings', toStoredAiAssistantSettings(merged, protectSecret));
     return merged;
 }
 
@@ -139,6 +165,7 @@ let sessionRuntime!: ReturnType<typeof createSessionRuntime>;
 const windowRuntime = createWindowRuntime({
     preloadPath: path.join(__dirname, 'preload.js'),
     isDevelopment: process.env.NODE_ENV === 'development',
+    iconPath: resolveAppIconPath(),
     onClosed: () => {
         sessionRuntime.handleWindowClosed();
     }
@@ -255,10 +282,7 @@ function maybeShowNotification(key: string, title: string, body: string) {
 
     alertState.getNotificationLedger().set(key, now);
     try {
-        const notification = new Notification({
-            title: truncateForNotification(title, 64),
-            body: truncateForNotification(body, 200)
-        });
+        const notification = new Notification(resolveNotificationOptions(title, body));
         notification.show();
     } catch (error) {
         console.warn('Unable to show desktop notification.', error);
@@ -375,6 +399,7 @@ registerSupportIpc({
 });
 
 registerAiIpc({
+    getAiProviderCatalog,
     getAiSettings: getAiAssistantSettings,
     saveAiSettings: (settings) => saveAiAssistantSettings(settings),
     getAiAvailability: () => aiRuntime.getAiAvailability(),
@@ -476,6 +501,10 @@ app.whenReady().then(() => {
     const userDataDirectoryOverride = process.env.IBM_EYE_USER_DATA_DIR?.trim();
     if (userDataDirectoryOverride) {
         app.setPath('userData', userDataDirectoryOverride);
+    }
+
+    if (process.platform === 'darwin' && app.dock) {
+        app.dock.setIcon(resolveAppIconPath());
     }
 
     sessionRuntime.migrateStoredConnections();
