@@ -67,7 +67,7 @@ describe('alert workflow evaluation', () => {
         expect(notify).toHaveBeenCalledTimes(1);
     });
 
-    it('marks a tracked alert resolved when the condition clears', () => {
+    it('marks a tracked alert system cleared when the condition clears', () => {
         const notify = vi.fn();
         const initial = evaluateAlertRules([
             createJob({ STATUS: 'MSGW', MESSAGE_REPLY: 'YES' })
@@ -90,8 +90,8 @@ describe('alert workflow evaluation', () => {
         });
 
         expect(followUp.alerts[0]?.isActive).toBe(false);
-        expect(followUp.alerts[0]?.workflowStatus).toBe('resolved');
-        expect(followUp.workflowStateByAlertId[followUp.alerts[0].id]?.status).toBe('resolved');
+        expect(followUp.alerts[0]?.workflowStatus).toBe('system_cleared');
+        expect(followUp.workflowStateByAlertId[followUp.alerts[0].id]?.status).toBe('system_cleared');
     });
 
     it('creates or refreshes the poll failure alert with workflow state', () => {

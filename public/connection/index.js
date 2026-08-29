@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         deleteConnectionButton: document.getElementById('delete-connection'),
         savedCount: document.getElementById('saved-count'),
         savedHint: document.getElementById('saved-hint'),
+        openSettingsButton: document.getElementById('open-settings'),
         themeMenu: document.getElementById('theme-menu'),
         themeMenuOptions: document.getElementById('theme-menu-options')
     };
@@ -195,6 +196,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             elements.launchDemoButton.disabled = false;
             elements.connectButton.disabled = false;
         }
+    });
+
+    elements.openSettingsButton?.addEventListener('click', async () => {
+        await window.electronAPI.navigateToSettings();
     });
 
     elements.togglePasswordButton?.addEventListener('click', () => {

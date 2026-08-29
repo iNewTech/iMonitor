@@ -17,6 +17,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const startButton = document.getElementById('start-monitoring');
     const stopButton = document.getElementById('stop-monitoring');
     const disconnectButton = document.getElementById('disconnect');
+    const openSettingsButton = document.getElementById('open-settings');
+    const openAiSettingsButton = document.getElementById('open-ai-settings');
     const refreshInterval = document.getElementById('refresh-interval');
     const systemStats = document.getElementById('system-stats');
     const activityLog = document.getElementById('activity-log');
@@ -118,6 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const expandedAlertIds = new Set();
     let focusedAlertId = null;
     let availableThemes = [];
+    let currentOperatorName = 'local-operator';
     let jobFilters = {
         subsystem: 'ALL',
         query: ''
@@ -208,6 +211,35 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         return `${parsed.toFixed(2)}%`;
+    }
+
+    function formatWorkflowLabel(status) {
+        const normalized = String(status || 'new').replace(/_/g, ' ');
+        switch (normalized) {
+            case 'work done':
+                return 'WORK DONE';
+            case 'system cleared':
+                return 'SYSTEM CLEARED';
+            default:
+                return normalized.toUpperCase();
+        }
+    }
+
+    function getAlertOwner(alert) {
+        return String(alert?.owner || '').trim();
+    }
+
+    function isOwnedByCurrentOperator(alert) {
+        return Boolean(getAlertOwner(alert)) && getAlertOwner(alert) === currentOperatorName;
+    }
+
+    function isClaimedAlert(alert) {
+        return String(alert?.workflowStatus || '') === 'claimed';
+    }
+
+    function isOwnedWorkAlert(alert) {
+        const status = String(alert?.workflowStatus || '');
+        return isOwnedByCurrentOperator(alert) && (status === 'claimed' || status === 'work_done');
     }
 
     function formatMegabytes(value) {
@@ -590,12 +622,15 @@ document.addEventListener('DOMContentLoaded', () => {
     function buildAlertMarkup(alert, options = {}) {
         const isExpanded = Boolean(options.expanded);
         const isFocused = Boolean(options.focused);
-        const workflowLabel = String(alert.workflowStatus || 'new').replace(/_/g, ' ').toUpperCase();
+        const workflowLabel = formatWorkflowLabel(alert.workflowStatus);
+        const owner = getAlertOwner(alert);
+        const ownedByCurrentOperator = isOwnedByCurrentOperator(alert);
+        const claimedByAnotherOperator = isClaimedAlert(alert) && Boolean(owner) && !ownedByCurrentOperator;
         const stateMarkup = alert.isActive === false
-            ? `<span class="activity-log-badge">RESOLVED ${formatTimestamp(alert.resolvedAt || alert.timestamp)}</span>`
+            ? `<span class="activity-log-badge">SYSTEM CLEARED ${formatTimestamp(alert.resolvedAt || alert.timestamp)}</span>`
             : '<span class="activity-log-badge">ACTIVE</span>';
-        const ownerMarkup = alert.owner
-            ? `<p class="alert-owner">Owner: ${escapeHtml(alert.owner)}</p>`
+        const ownerMarkup = owner
+            ? `<p class="alert-owner">${isClaimedAlert(alert) ? 'Working owner' : 'Assigned to'}: ${escapeHtml(owner)}</p>`
             : '';
         const timelineMarkup = Array.isArray(alert.timeline) && alert.timeline.length
             ? `
@@ -609,6 +644,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="alert-timeline-entry">
                                 <strong>${escapeHtml(entry.label)}</strong>
                                 <span>${formatTimestamp(entry.timestamp)}</span>
+                                ${entry.actor ? `<p>Operator: ${escapeHtml(entry.actor)}</p>` : ''}
                                 ${entry.detail ? `<p>${escapeHtml(entry.detail)}</p>` : ''}
                             </div>
                         `).join('')}
@@ -623,17 +659,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 </button>
             `
             : '';
-        const workButton = isFocused
-            ? `
-                <button class="btn btn-outline-ink btn-sm alert-unfocus" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-unfocus">
-                    Return To Queue
-                </button>
-            `
-            : `
-                <button class="btn btn-outline-ink btn-sm alert-focus" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-focus">
-                    Work On This
-                </button>
-            `;
         const acknowledgeButton = alert.workflowStatus === 'new'
             ? `
                 <button class="btn btn-outline-ink btn-sm alert-acknowledge" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-acknowledge">
@@ -641,22 +666,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 </button>
             `
             : '';
-        const startButton = alert.workflowStatus === 'acknowledged' || alert.workflowStatus === 'new'
+        const claimButton = alert.isActive !== false && !claimedByAnotherOperator && !isClaimedAlert(alert)
             ? `
-                <button class="btn btn-outline-ink btn-sm alert-start" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-start">
+                <button class="btn btn-outline-ink btn-sm alert-claim" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-claim">
                     Start Work
                 </button>
             `
             : '';
-        const resolveButton = alert.workflowStatus !== 'resolved' && alert.workflowStatus !== 'cleared'
+        const releaseButton = isOwnedWorkAlert(alert)
             ? `
-                <button class="btn btn-outline-ink btn-sm alert-resolve" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-resolve">
-                    Resolve
+                <button class="btn btn-outline-ink btn-sm alert-release" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-release">
+                    Return To Queue
+                </button>
+            `
+            : '';
+        const workDoneButton = ownedByCurrentOperator && isClaimedAlert(alert)
+            ? `
+                <button class="btn btn-outline-ink btn-sm alert-work-done" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-work-done">
+                    Mark Work Done
                 </button>
             `
             : '';
         const noteButton = `
-            <button class="btn btn-outline-ink btn-sm alert-note-action" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-note-toggle">
+            <button class="btn btn-outline-ink btn-sm alert-note-action" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-note-toggle"${claimedByAnotherOperator ? ` disabled title="Claimed by ${escapeHtml(owner)}"` : ''}>
                 Add Note
             </button>
         `;
@@ -672,11 +704,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 Next Best Action
             </button>
         `;
-        const clearAlertButton = `
-            <button class="btn btn-outline-ink btn-sm alert-clear" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-clear">
-                Clear
-            </button>
-        `;
+        const clickUpButton = alert.clickUpTask?.id
+            ? `
+                <button class="btn btn-outline-ink btn-sm alert-clickup-open" data-task-url="${escapeHtml(alert.clickUpTask.url || '')}" data-testid="alert-clickup-open">
+                    Open ClickUp Task
+                </button>
+            `
+            : `
+                <button class="btn btn-outline-ink btn-sm alert-clickup-create" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-clickup-create">
+                    Create ClickUp Task
+                </button>
+            `;
         const noteComposerMarkup = noteComposerAlertId === alert.id
             ? `
                 <div class="alert-note-composer" data-testid="alert-note-composer">
@@ -732,15 +770,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${timelineMarkup}
                         ${noteComposerMarkup}
                         <div class="alert-actions">
-                            ${workButton}
                             ${acknowledgeButton}
-                            ${startButton}
-                            ${resolveButton}
+                            ${claimButton}
+                            ${releaseButton}
+                            ${workDoneButton}
                             ${noteButton}
                             ${explainButton}
                             ${nextActionsButton}
+                            ${clickUpButton}
                             ${openJobButton}
-                            ${clearAlertButton}
                         </div>
                     </div>
                 ` : ''}
@@ -756,7 +794,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const scrollState = captureAlertScrollState();
         const nextAlerts = Array.isArray(alerts) ? alerts : [];
         latestAlerts = nextAlerts;
-        if (focusedAlertId && !nextAlerts.some((alert) => alert?.id === focusedAlertId)) {
+        const ownedAlertIds = new Set(
+            nextAlerts.filter((alert) => isOwnedWorkAlert(alert)).map((alert) => alert.id)
+        );
+        if (focusedAlertId && !ownedAlertIds.has(focusedAlertId)) {
             focusedAlertId = null;
         }
         if (noteComposerAlertId && !nextAlerts.some((alert) => alert?.id === noteComposerAlertId)) {
@@ -769,9 +810,13 @@ document.addEventListener('DOMContentLoaded', () => {
             alertCount.textContent = `${activeAlertTotal} active ${label} | ${nextAlerts.length} tracked`;
         }
 
-        const focusedAlert = focusedAlertId
+        const fallbackFocusedAlert = focusedAlertId
             ? nextAlerts.find((alert) => alert.id === focusedAlertId) || null
             : null;
+        const focusedAlert = fallbackFocusedAlert || nextAlerts.find((alert) => isOwnedWorkAlert(alert)) || null;
+        if (focusedAlert && focusedAlertId !== focusedAlert.id) {
+            focusedAlertId = focusedAlert.id;
+        }
         const queuedAlerts = focusedAlert
             ? nextAlerts.filter((alert) => alert.id !== focusedAlert.id)
             : nextAlerts;
@@ -805,6 +850,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function openAlertNoteComposer(alertId) {
+        const alert = latestAlerts.find((entry) => entry.id === alertId);
+        if (alert && isClaimedAlert(alert) && getAlertOwner(alert) && !isOwnedByCurrentOperator(alert)) {
+            return;
+        }
         noteComposerAlertId = alertId;
         if (!noteDraftByAlertId.has(alertId)) {
             noteDraftByAlertId.set(alertId, '');
@@ -869,7 +918,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 alertId: noteSaveButton.dataset.alertId,
                 action: 'note',
                 note,
-                owner: 'Local operator'
+                owner: currentOperatorName
             });
             noteDraftByAlertId.delete(noteSaveButton.dataset.alertId);
             noteComposerAlertId = null;
@@ -883,14 +932,16 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const workflowButton = target.closest('.alert-acknowledge, .alert-start, .alert-resolve, .alert-note-action');
+        const workflowButton = target.closest('.alert-acknowledge, .alert-claim, .alert-release, .alert-work-done, .alert-note-action');
         if (workflowButton?.dataset?.alertId) {
             const action = workflowButton.classList.contains('alert-acknowledge')
                 ? 'acknowledge'
-                : workflowButton.classList.contains('alert-start')
-                    ? 'start'
-                    : workflowButton.classList.contains('alert-resolve')
-                        ? 'resolve'
+                : workflowButton.classList.contains('alert-claim')
+                    ? 'claim'
+                    : workflowButton.classList.contains('alert-release')
+                        ? 'release'
+                        : workflowButton.classList.contains('alert-work-done')
+                            ? 'workDone'
                         : 'note';
 
             if (action === 'note') {
@@ -898,10 +949,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            if (action === 'claim') {
+                setFocusedAlert(workflowButton.dataset.alertId);
+            }
+            if (action === 'release') {
+                clearFocusedAlert(workflowButton.dataset.alertId);
+            }
+
             void window.electronAPI.updateAlertWorkflow({
                 alertId: workflowButton.dataset.alertId,
                 action,
-                owner: 'Local operator'
+                owner: currentOperatorName
             });
             return;
         }
@@ -930,24 +988,18 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const clearButton = target.closest('.alert-clear');
-        if (clearButton?.dataset?.alertId) {
-            if (focusedAlertId === clearButton.dataset.alertId) {
-                focusedAlertId = null;
-            }
-            void window.electronAPI.clearAlert(clearButton.dataset.alertId);
+        const clickUpCreateButton = target.closest('.alert-clickup-create');
+        if (clickUpCreateButton?.dataset?.alertId) {
+            void window.electronAPI.createClickUpTaskForAlert(clickUpCreateButton.dataset.alertId)
+                .catch((error) => {
+                    console.error('Unable to create ClickUp task:', error);
+                });
             return;
         }
 
-        const focusButton = target.closest('.alert-focus');
-        if (focusButton?.dataset?.alertId) {
-            setFocusedAlert(focusButton.dataset.alertId);
-            return;
-        }
-
-        const unfocusButton = target.closest('.alert-unfocus');
-        if (unfocusButton?.dataset?.alertId) {
-            clearFocusedAlert(unfocusButton.dataset.alertId);
+        const clickUpOpenButton = target.closest('.alert-clickup-open');
+        if (clickUpOpenButton?.dataset?.taskUrl) {
+            void window.electronAPI.openExternalUrl(clickUpOpenButton.dataset.taskUrl);
             return;
         }
 
@@ -1155,15 +1207,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadInitialMonitorData() {
         try {
-            const [entries, history, alerts, settings, emailSettings, themeSettings] = await Promise.all([
+            const [entries, history, alerts, settings, emailSettings, themeSettings, appFlags] = await Promise.all([
                 window.electronAPI.getActivityLog(),
                 window.electronAPI.getMonitoringHistory(),
                 window.electronAPI.getActiveAlerts(),
                 window.electronAPI.getAlertSettings(),
                 window.electronAPI.getEmailNotificationSettings(),
-                window.electronAPI.getThemeSettings()
+                window.electronAPI.getThemeSettings(),
+                window.electronAPI.getAppFlags()
             ]);
 
+            currentOperatorName = String(appFlags?.operatorName || '').trim() || 'local-operator';
             mergeActivityEntries(Array.isArray(entries) ? entries : []);
             renderHistory(history);
             renderAlerts(alerts);
@@ -1495,7 +1549,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     releaseFocusAlertButton?.addEventListener('click', () => {
-        clearFocusedAlert(focusedAlertId);
+        const alertId = focusedAlertId;
+        if (!alertId) {
+            return;
+        }
+
+        clearFocusedAlert(alertId);
+        void window.electronAPI.updateAlertWorkflow({
+            alertId,
+            action: 'release',
+            owner: currentOperatorName
+        });
+    });
+
+    openSettingsButton?.addEventListener('click', () => {
+        void window.electronAPI.navigateToSettings();
+    });
+
+    openAiSettingsButton?.addEventListener('click', () => {
+        void window.electronAPI.navigateToSettings();
     });
 
     detailOperatorActions?.addEventListener('click', async (event) => {

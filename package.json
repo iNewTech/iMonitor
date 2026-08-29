@@ -1,6 +1,6 @@
 {
   "name": "imonitor",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "iMonitor desktop app for IBM i operations monitoring",
   "main": "dist/main.js",
   "scripts": {

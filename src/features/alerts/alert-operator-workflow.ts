@@ -25,7 +25,7 @@ export function createAlertWorkflowState(timestamp: string, detail?: string): St
         status: 'new',
         notes: [],
         timeline: [
-            createTimelineEntry('created', timestamp, 'Alert created', detail)
+            createTimelineEntry('created', timestamp, 'Alert created', undefined, detail)
         ],
         updatedAt: timestamp,
         lastActionSummary: 'New alert'
@@ -44,14 +44,24 @@ export function normalizeAlertWorkflowState(
     }
 
     return {
-        status: state.status ?? 'new',
+        status: normalizeWorkflowStatus(state.status),
         owner: state.owner?.trim() || undefined,
-        notes: Array.isArray(state.notes) ? state.notes.slice(-20) : [],
+        notes: Array.isArray(state.notes)
+            ? state.notes.slice(-20).map((note) => ({
+                ...note,
+                author: note.author?.trim() || undefined
+            }))
+            : [],
         timeline: Array.isArray(state.timeline) && state.timeline.length
-            ? state.timeline.slice(-30)
+            ? state.timeline.slice(-30).map((entry) => ({
+                ...entry,
+                action: normalizeWorkflowAction(entry.action),
+                actor: entry.actor?.trim() || undefined
+            }))
             : createAlertWorkflowState(timestamp).timeline,
         updatedAt: state.updatedAt ?? timestamp,
-        lastActionSummary: state.lastActionSummary
+        lastActionSummary: state.lastActionSummary,
+        clickUpTask: state.clickUpTask
     };
 }
 
@@ -69,8 +79,29 @@ export function applyWorkflowStateToAlert(
         notes: workflowState.notes,
         timeline: workflowState.timeline,
         workflowUpdatedAt: workflowState.updatedAt,
-        lastActionSummary: workflowState.lastActionSummary
+        lastActionSummary: workflowState.lastActionSummary,
+        clickUpTask: workflowState.clickUpTask
     };
+}
+
+/**
+ * Attaches the linked ClickUp task for future syncs and deep-linking.
+ */
+export function attachClickUpTaskToWorkflow(
+    state: StoredAlertWorkflowState,
+    task: StoredAlertWorkflowState['clickUpTask'],
+    timestamp: string
+): StoredAlertWorkflowState {
+    if (!task?.id) {
+        return state;
+    }
+
+    return appendWorkflowEntry({
+        ...state,
+        clickUpTask: task,
+        updatedAt: timestamp,
+        lastActionSummary: 'ClickUp task linked'
+    }, 'condition_seen', timestamp, 'ClickUp task linked', undefined, `${task.name || task.id}${task.url ? ` | ${task.url}` : ''}`);
 }
 
 /**
@@ -87,7 +118,7 @@ export function markAlertConditionSeen(
 }
 
 /**
- * Marks an alert reopened when a previously resolved or cleared condition recurs.
+ * Marks an alert reopened when a previously cleared condition recurs.
  */
 export function reopenAlertWorkflow(
     state: StoredAlertWorkflowState | undefined,
@@ -101,7 +132,7 @@ export function reopenAlertWorkflow(
         status: 'new',
         updatedAt: timestamp,
         lastActionSummary: 'Condition returned'
-    }, 'reopened', timestamp, 'Condition returned', detail);
+    }, 'reopened', timestamp, 'Condition returned', undefined, detail);
 }
 
 /**
@@ -111,28 +142,52 @@ export function acknowledgeAlertWorkflow(
     state: StoredAlertWorkflowState,
     mutation: AlertWorkflowMutation
 ): StoredAlertWorkflowState {
-    return mutateWorkflowState(state, {
-        ...mutation,
-        action: 'acknowledged',
-        label: 'Acknowledged',
+    const actor = mutation.owner?.trim() || undefined;
+
+    return appendWorkflowEntry({
+        ...state,
         status: 'acknowledged',
-        defaultSummary: 'Acknowledged'
-    });
+        owner: actor || state.owner,
+        updatedAt: mutation.timestamp,
+        lastActionSummary: 'Acknowledged'
+    }, 'acknowledged', mutation.timestamp, 'Acknowledged', actor, actor ? `operator: ${actor}` : undefined);
 }
 
 /**
- * Marks an alert as actively being worked.
+ * Claims an alert for one local operator.
  */
-export function startAlertWorkflow(
+export function claimAlertWorkflow(
     state: StoredAlertWorkflowState,
     mutation: AlertWorkflowMutation
 ): StoredAlertWorkflowState {
     return mutateWorkflowState(state, {
         ...mutation,
-        action: 'started',
-        label: 'Work started',
-        status: 'in_progress',
-        defaultSummary: 'In progress'
+        action: 'claimed',
+        label: 'Work claimed',
+        status: 'claimed',
+        defaultSummary: 'Claimed for work'
+    });
+}
+
+/**
+ * Releases an active work claim and returns the alert to the queue.
+ */
+export function releaseAlertWorkflow(
+    state: StoredAlertWorkflowState,
+    mutation: AlertWorkflowMutation
+): StoredAlertWorkflowState {
+    const nextStatus = state.status === 'new' ? 'new' : 'acknowledged';
+
+    return mutateWorkflowState({
+        ...state,
+        owner: undefined
+    }, {
+        ...mutation,
+        owner: undefined,
+        action: 'released',
+        label: 'Returned to queue',
+        status: nextStatus,
+        defaultSummary: 'Returned to queue'
     });
 }
 
@@ -148,50 +203,91 @@ export function addAlertWorkflowNote(
         return state;
     }
 
-    const nextState = appendWorkflowEntry({
+    return appendWorkflowEntry({
         ...state,
         owner: mutation.owner?.trim() || state.owner,
         notes: [
             ...state.notes,
-            createNote(mutation.timestamp, noteText)
+            createNote(mutation.timestamp, mutation.owner, noteText)
         ].slice(-20),
         updatedAt: mutation.timestamp,
         lastActionSummary: 'Note added'
-    }, 'note_added', mutation.timestamp, 'Note added', noteText);
-
-    return nextState;
+    }, 'note_added', mutation.timestamp, 'Note added', mutation.owner, noteText);
 }
 
 /**
- * Marks an alert resolved by the operator or by the system condition clearing.
+ * Marks operator work as complete while keeping the incident tracked until the system clears it.
  */
-export function resolveAlertWorkflow(
+export function markAlertWorkDone(
     state: StoredAlertWorkflowState,
     mutation: AlertWorkflowMutation
 ): StoredAlertWorkflowState {
     return mutateWorkflowState(state, {
         ...mutation,
-        action: 'resolved',
-        label: 'Resolved',
-        status: 'resolved',
-        defaultSummary: 'Resolved'
+        action: 'work_marked_done',
+        label: 'Work marked done',
+        status: 'work_done',
+        defaultSummary: 'Work marked done'
     });
 }
 
 /**
- * Marks an alert cleared from the operator queue.
+ * Marks an alert as cleared by a later system poll instead of a manual clear button.
  */
-export function clearAlertWorkflow(
+export function systemClearAlertWorkflow(
     state: StoredAlertWorkflowState,
     mutation: AlertWorkflowMutation
 ): StoredAlertWorkflowState {
     return mutateWorkflowState(state, {
         ...mutation,
-        action: 'cleared',
-        label: 'Cleared',
-        status: 'cleared',
-        defaultSummary: 'Cleared'
+        owner: state.owner,
+        action: 'system_cleared',
+        label: 'System cleared',
+        status: 'system_cleared',
+        defaultSummary: 'System cleared'
     });
+}
+
+function normalizeWorkflowStatus(status: string | undefined): AlertWorkflowStatus {
+    switch (status) {
+        case 'acknowledged':
+            return 'acknowledged';
+        case 'claimed':
+        case 'in_progress':
+            return 'claimed';
+        case 'work_done':
+            return 'work_done';
+        case 'resolved':
+        case 'cleared':
+        case 'system_cleared':
+            return 'system_cleared';
+        case 'new':
+        default:
+            return 'new';
+    }
+}
+
+function normalizeWorkflowAction(action: string | undefined): AlertWorkflowAction {
+    switch (action) {
+        case 'created':
+        case 'condition_seen':
+        case 'acknowledged':
+        case 'note_added':
+        case 'reopened':
+            return action;
+        case 'started':
+        case 'claimed':
+            return 'claimed';
+        case 'released':
+            return 'released';
+        case 'resolved':
+            return 'work_marked_done';
+        case 'cleared':
+        case 'system_cleared':
+            return 'system_cleared';
+        default:
+            return 'condition_seen';
+    }
 }
 
 function mutateWorkflowState(
@@ -203,8 +299,9 @@ function mutateWorkflowState(
         defaultSummary: string;
     }
 ) {
+    const actor = mutation.owner?.trim() || undefined;
     const detailParts = [
-        mutation.owner?.trim() ? `owner: ${mutation.owner.trim()}` : '',
+        actor ? `operator: ${actor}` : '',
         mutation.note?.trim() ? `note: ${mutation.note.trim()}` : '',
         mutation.detail?.trim() ? mutation.detail.trim() : ''
     ].filter(Boolean);
@@ -212,10 +309,10 @@ function mutateWorkflowState(
     return appendWorkflowEntry({
         ...state,
         status: mutation.status,
-        owner: mutation.owner?.trim() || state.owner,
+        owner: mutation.action === 'released' ? undefined : actor || state.owner,
         updatedAt: mutation.timestamp,
         lastActionSummary: mutation.defaultSummary
-    }, mutation.action, mutation.timestamp, mutation.label, detailParts.join(' | ') || undefined);
+    }, mutation.action, mutation.timestamp, mutation.label, actor, detailParts.join(' | ') || undefined);
 }
 
 function appendWorkflowEntry(
@@ -223,21 +320,23 @@ function appendWorkflowEntry(
     action: AlertWorkflowAction,
     timestamp: string,
     label: string,
+    actor?: string,
     detail?: string
 ) {
     return {
         ...state,
         timeline: [
-            createTimelineEntry(action, timestamp, label, detail),
+            createTimelineEntry(action, timestamp, label, actor, detail),
             ...state.timeline
         ].slice(0, 30)
     };
 }
 
-function createNote(timestamp: string, text: string): AlertNote {
+function createNote(timestamp: string, author: string | undefined, text: string): AlertNote {
     return {
         id: `note-${timestamp}-${Math.random().toString(36).slice(2, 8)}`,
         timestamp,
+        author: author?.trim() || undefined,
         text
     };
 }
@@ -246,6 +345,7 @@ function createTimelineEntry(
     action: AlertWorkflowAction,
     timestamp: string,
     label: string,
+    actor?: string,
     detail?: string
 ): AlertTimelineEntry {
     return {
@@ -253,6 +353,7 @@ function createTimelineEntry(
         timestamp,
         action,
         label,
+        actor: actor?.trim() || undefined,
         detail
     };
 }

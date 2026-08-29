@@ -150,7 +150,7 @@ export function initIBMEyeAiPanel(dependencies) {
     const temperatureInput = root.querySelector('#ai-temperature');
     const replyStyleInput = root.querySelector('#ai-reply-style');
 
-    if (!transcript || !status || !input || !providerPanel) {
+    if (!transcript || !status || !input) {
         return {
             destroy() {}
         };
@@ -203,6 +203,10 @@ export function initIBMEyeAiPanel(dependencies) {
     }
 
     function renderSettingsWorkspace(snapshot) {
+        if (!providerPanel) {
+            return;
+        }
+
         const activeProviderId = getActiveProviderId(snapshot);
         const catalog = getProviderCatalog(snapshot);
         const provider = getAiProviderOption(snapshot, activeProviderId);

@@ -80,7 +80,8 @@ export function createAlertStateStore(dependencies: AlertStateDependencies) {
                         notes: nextState.notes,
                         timeline: nextState.timeline,
                         workflowUpdatedAt: nextState.updatedAt,
-                        lastActionSummary: nextState.lastActionSummary
+                        lastActionSummary: nextState.lastActionSummary,
+                        clickUpTask: nextState.clickUpTask
                     }
                     : alert
             )));

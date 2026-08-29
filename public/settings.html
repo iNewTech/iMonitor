@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>iMonitor Settings</title>
+    <link href="../node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="../node_modules/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="app-body settings-body">
+    <main class="app-shell">
+        <section class="screen-frame settings-frame">
+            <header class="surface-card settings-hero">
+                <div class="settings-hero-main">
+                    <div>
+                        <p class="eyebrow mb-2">iMonitor Settings</p>
+                        <h1 class="hero-title settings-hero-title">Configure AI providers and action integrations</h1>
+                        <p class="hero-subtitle mb-0">
+                            Keep the dashboard focused on operations. Set up IBMEye AI and ClickUp once here, then use them from alerts and analysis views.
+                        </p>
+                    </div>
+                    <div class="settings-hero-actions">
+                        <button id="settings-back" type="button" class="btn btn-outline-ink">
+                            <i class="bi bi-arrow-left me-2"></i><span id="settings-back-label">Back</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="hero-meta">
+                    <span id="settings-theme-description" class="hero-connection">Theme loads from your current app preference.</span>
+                </div>
+            </header>
+
+            <section class="settings-grid">
+                <article class="surface-card settings-card">
+                    <div class="settings-card-header">
+                        <div>
+                            <p class="eyebrow mb-2">IBMEye AI</p>
+                            <h2 class="section-title">Provider setup</h2>
+                            <p class="panel-copy mb-0">Choose the active provider, set its required fields, and control the default reply style.</p>
+                        </div>
+                        <button id="ai-settings-refresh" type="button" class="btn btn-outline-ink btn-sm">
+                            <i class="bi bi-arrow-repeat me-2"></i>Refresh Models
+                        </button>
+                    </div>
+                    <form id="settings-ai-form" class="settings-form-grid">
+                        <label class="toggle-row">
+                            <span>Enable IBMEye AI</span>
+                            <input type="checkbox" id="settings-ai-enabled">
+                        </label>
+                        <div>
+                            <span class="control-label">Provider family</span>
+                            <div id="settings-ai-provider-switcher" class="settings-provider-switcher" role="tablist" aria-label="AI providers"></div>
+                        </div>
+                        <div class="settings-field-grid settings-field-grid-two">
+                            <input id="settings-ai-provider" type="hidden">
+                            <label class="control-select">
+                                <span id="settings-ai-model-label" class="control-label">Model</span>
+                                <select id="settings-ai-model" class="form-select"></select>
+                            </label>
+                            <div id="settings-ai-provider-summary" class="settings-provider-summary" aria-live="polite"></div>
+                        </div>
+                        <div class="settings-provider-signal">
+                            <span id="settings-ai-source-hint" class="settings-provider-chip">Checking provider models.</span>
+                        </div>
+                        <div id="settings-ai-provider-copy" class="settings-provider-copy"></div>
+                        <div class="settings-field-grid settings-field-grid-two">
+                            <label class="control-select">
+                                <span id="settings-ai-endpoint-label" class="control-label">Endpoint</span>
+                                <input id="settings-ai-endpoint" type="text" class="form-control" autocomplete="off">
+                            </label>
+                            <label class="control-select">
+                                <span id="settings-ai-api-key-label" class="control-label">API key</span>
+                                <input id="settings-ai-api-key" type="password" class="form-control" autocomplete="off" placeholder="Only required for hosted providers">
+                            </label>
+                        </div>
+                        <div class="settings-field-grid settings-field-grid-two">
+                            <label class="control-select">
+                                <span class="control-label">Response style</span>
+                                <div class="input-group">
+                                    <input id="settings-ai-temperature" type="number" class="form-control" min="0" max="1" step="0.1">
+                                    <span class="input-group-text">0-1</span>
+                                </div>
+                            </label>
+                            <label class="control-select">
+                                <span class="control-label">History kept in chat</span>
+                                <input id="settings-ai-history-limit" type="number" class="form-control" min="1" max="50">
+                            </label>
+                        </div>
+                        <label class="control-select">
+                            <span class="control-label">Default reply style</span>
+                            <textarea id="settings-ai-reply-style" class="form-control ai-settings-textarea" rows="4"></textarea>
+                        </label>
+                        <div class="settings-actions">
+                            <button type="submit" class="btn btn-primary-strong">
+                                <i class="bi bi-sliders me-2"></i>Save AI Settings
+                            </button>
+                        </div>
+                        <p id="settings-ai-status" class="stat-note mb-0">AI settings are loading.</p>
+                    </form>
+                </article>
+
+                <article class="surface-card settings-card">
+                    <div class="settings-card-header">
+                        <div>
+                            <p class="eyebrow mb-2">Integrations</p>
+                            <h2 class="section-title">ClickUp action tracking</h2>
+                            <p class="panel-copy mb-0">Link alerts to one ClickUp list so operators can create a task once and keep adding updates to the same task.</p>
+                        </div>
+                        <button id="clickup-load-targets" type="button" class="btn btn-outline-ink btn-sm">
+                            <i class="bi bi-arrow-repeat me-2"></i>Load Targets
+                        </button>
+                    </div>
+                    <form id="settings-clickup-form" class="settings-form-grid">
+                        <label class="toggle-row">
+                            <span>Enable ClickUp integration</span>
+                            <input type="checkbox" id="settings-clickup-enabled">
+                        </label>
+                        <label class="control-select">
+                            <span class="control-label">API token</span>
+                            <input id="settings-clickup-token" type="password" class="form-control" autocomplete="off" placeholder="Stored locally in encrypted app storage">
+                        </label>
+                        <div class="settings-field-grid settings-field-grid-three">
+                            <label class="control-select">
+                                <span class="control-label">Workspace</span>
+                                <select id="settings-clickup-workspace" class="form-select"></select>
+                            </label>
+                            <label class="control-select">
+                                <span class="control-label">Space</span>
+                                <select id="settings-clickup-space" class="form-select"></select>
+                            </label>
+                            <label class="control-select">
+                                <span class="control-label">List</span>
+                                <select id="settings-clickup-list" class="form-select"></select>
+                            </label>
+                        </div>
+                        <label class="toggle-row">
+                            <span>Sync future notes and workflow updates as ClickUp comments</span>
+                            <input type="checkbox" id="settings-clickup-sync-comments">
+                        </label>
+                        <div class="settings-actions">
+                            <button type="submit" class="btn btn-primary-strong">
+                                <i class="bi bi-kanban me-2"></i>Save ClickUp Settings
+                            </button>
+                        </div>
+                        <p id="settings-clickup-status" class="stat-note mb-0">ClickUp settings are loading.</p>
+                    </form>
+                </article>
+            </section>
+
+            <footer class="app-footer surface-card">
+                <div class="app-footer-meta">
+                    <span id="app-version-label" class="app-version-label">iMonitor</span>
+                    <p class="app-footer-copy mb-0">Need help with setup? Contact support or prepare diagnostics from here too.</p>
+                </div>
+                <details id="support-menu" class="support-menu">
+                    <summary class="support-menu-summary">
+                        <i class="bi bi-life-preserver me-2"></i>Support
+                    </summary>
+                    <div class="support-menu-panel">
+                        <button id="support-contact-only" type="button" class="btn btn-outline-ink btn-sm">
+                            <i class="bi bi-envelope me-2"></i>Contact Only
+                        </button>
+                        <button id="support-send-diagnostics" type="button" class="btn btn-primary-strong btn-sm">
+                            <i class="bi bi-bug me-2"></i>Contact + Send Diagnostics
+                        </button>
+                    </div>
+                </details>
+                <p id="support-status" class="support-status" hidden></p>
+            </footer>
+        </section>
+    </main>
+    <script src="../node_modules/@popperjs/core/dist/umd/popper.min.js"></script>
+    <script src="../node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+    <script type="module" src="settings.js"></script>
+</body>
+</html>

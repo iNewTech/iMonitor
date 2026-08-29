@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-08-29
+
+### Added
+
+- Dedicated `iMonitor Settings` page for AI and integration setup
+- ClickUp action tracking with saved workspace, space, and list selection
+- `Create ClickUp Task` alert action that links one task back to the incident
+- Automatic ClickUp comment sync for later notes and workflow updates
+- End-to-end smoke test coverage for the new Settings page
+
+### Changed
+
+- Alert workflow now separates `Acknowledge`, `Start Work`, `Mark Work Done`, and `Return To Queue`
+- `Mark Work Done` keeps the alert with the assigned operator until it is explicitly returned
+- AI provider setup now uses provider-specific selection with provider-to-model mapping on the Settings page
+
+### Fixed
+
+- Preserved linked ClickUp task references when alerts clear from later system polls
+- Fixed alert workflow behavior that dropped a worked alert out of the operator area before it could be returned
+- Simplified the ClickUp API runtime base URL handling
+
 ## 2026-08-28
 
 ### Added

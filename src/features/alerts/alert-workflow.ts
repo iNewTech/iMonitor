@@ -5,7 +5,7 @@ import {
     markAlertConditionSeen,
     normalizeAlertWorkflowState,
     reopenAlertWorkflow,
-    resolveAlertWorkflow
+    systemClearAlertWorkflow
 } from './alert-operator-workflow';
 import {
     buildWaitReason,
@@ -198,7 +198,7 @@ export function evaluateAlertRules(
         }
 
         dismissedAlertIds.delete(alertId);
-        const resolvedWorkflowState = resolveAlertWorkflow(
+        const resolvedWorkflowState = systemClearAlertWorkflow(
             normalizeAlertWorkflowState(nextWorkflowStateByAlertId[alertId], timestamp),
             {
                 timestamp,
@@ -267,7 +267,7 @@ export function createPollFailureAlert(
 }
 
 /**
- * Marks an alert resolved when a later system event proves it recovered.
+ * Marks an alert system-cleared when a later runtime event proves it recovered.
  */
 export function resolveAlertById(
     alertId: string,
@@ -290,13 +290,14 @@ export function resolveAlertById(
                 isActive: false,
                 resolvedAt: timestamp,
                 detail: detail ?? alert.detail
-            }, resolveAlertWorkflow(normalizeAlertWorkflowState({
+            }, systemClearAlertWorkflow(normalizeAlertWorkflowState({
                 status: alert.workflowStatus,
                 owner: alert.owner,
                 notes: alert.notes,
                 timeline: alert.timeline,
                 updatedAt: alert.workflowUpdatedAt,
-                lastActionSummary: alert.lastActionSummary
+                lastActionSummary: alert.lastActionSummary,
+                clickUpTask: alert.clickUpTask
             }, timestamp), { timestamp, detail }))
             : alert
     ));
@@ -326,7 +327,7 @@ function buildNextWorkflowState(params: {
         return createAlertWorkflowState(effectiveEventTimestamp, detail);
     }
 
-    if (!existingAlert || existingAlert.isActive === false || storedState.status === 'resolved' || storedState.status === 'cleared') {
+    if (!existingAlert || existingAlert.isActive === false || storedState.status === 'system_cleared') {
         return reopenAlertWorkflow(storedState, effectiveEventTimestamp, detail);
     }
 

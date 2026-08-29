@@ -1,3 +1,5 @@
+import type { ClickUpTaskReference } from '../integrations/clickup/clickup-model';
+
 /**
  * Alert severities shown in the operator queue.
  */
@@ -11,7 +13,7 @@ export type AlertKind = 'highCpu' | 'messageWait' | 'lockWait' | 'pollFailure';
 /**
  * Operator workflow states for tracked alerts.
  */
-export type AlertWorkflowStatus = 'new' | 'acknowledged' | 'in_progress' | 'resolved' | 'cleared';
+export type AlertWorkflowStatus = 'new' | 'acknowledged' | 'claimed' | 'work_done' | 'system_cleared';
 
 /**
  * Supported operator actions on an alert.
@@ -20,10 +22,11 @@ export type AlertWorkflowAction =
     | 'created'
     | 'condition_seen'
     | 'acknowledged'
-    | 'started'
+    | 'claimed'
+    | 'released'
     | 'note_added'
-    | 'resolved'
-    | 'cleared'
+    | 'work_marked_done'
+    | 'system_cleared'
     | 'reopened';
 
 /**
@@ -60,6 +63,7 @@ export interface MonitorAlert {
     timeline: AlertTimelineEntry[];
     workflowUpdatedAt: string;
     lastActionSummary?: string;
+    clickUpTask?: ClickUpTaskReference;
 }
 
 /**
@@ -68,6 +72,7 @@ export interface MonitorAlert {
 export interface AlertNote {
     id: string;
     timestamp: string;
+    author?: string;
     text: string;
 }
 
@@ -79,6 +84,7 @@ export interface AlertTimelineEntry {
     timestamp: string;
     action: AlertWorkflowAction;
     label: string;
+    actor?: string;
     detail?: string;
 }
 
@@ -92,6 +98,7 @@ export interface StoredAlertWorkflowState {
     timeline: AlertTimelineEntry[];
     updatedAt: string;
     lastActionSummary?: string;
+    clickUpTask?: ClickUpTaskReference;
 }
 
 /**

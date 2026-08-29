@@ -5,6 +5,8 @@ interface RegisterNavigationIpcDependencies {
     canOpenMonitor: () => boolean;
     loadMonitorPage: () => void;
     loadConnectionPage: () => void;
+    loadSettingsPage: () => void;
+    openExternalUrl: (target: string) => Promise<void> | void;
     recordActivity: (entry: {
         area: 'navigation';
         level: 'info';
@@ -38,6 +40,21 @@ export function registerNavigationIpc(dependencies: RegisterNavigationIpcDepende
             level: 'info',
             message: 'Returned to the connection workspace.'
         });
+        return { success: true };
+    });
+
+    ipcMain.handle('navigate-to-settings', async () => {
+        dependencies.loadSettingsPage();
+        dependencies.recordActivity({
+            area: 'navigation',
+            level: 'info',
+            message: 'Opened the settings workspace.'
+        });
+        return { success: true };
+    });
+
+    ipcMain.handle('open-external-url', async (_event, target: string) => {
+        await dependencies.openExternalUrl(target);
         return { success: true };
     });
 }

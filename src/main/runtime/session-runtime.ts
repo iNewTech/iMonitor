@@ -1,4 +1,5 @@
 import { app } from 'electron/main';
+import os from 'node:os';
 import type { DaemonServer } from '@ibm/mapepire-js';
 import type Db from '../../services/ibmi';
 import dB, { type ActiveJobRecord, type QueryResult, type ServiceLogEntry } from '../../services/ibmi';
@@ -58,6 +59,7 @@ interface SessionRuntimeDependencies {
  */
 export function createSessionRuntime(dependencies: SessionRuntimeDependencies) {
     let ibmiService: Db | null = null;
+    const localOperatorName = os.userInfo().username?.trim() || 'local-operator';
 
     const getErrorMessage = (error: unknown) => {
         if (error instanceof Error) {
@@ -177,6 +179,7 @@ export function createSessionRuntime(dependencies: SessionRuntimeDependencies) {
             return {
                 demoModeEnabled: demoAvailability.enabled,
                 demoModeReason: demoAvailability.reason,
+                operatorName: localOperatorName,
                 themeId: dependencies.getThemeId(),
                 themes: THEME_OPTIONS
             };

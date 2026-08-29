@@ -12,23 +12,29 @@ interface RegisterAlertsIpcDependencies {
         settings: Partial<EmailNotificationSettings> | undefined
     ) => EmailNotificationSettings;
     sendTestEmailNotification: () => Promise<{ success: boolean; error?: string; }>;
-    clearAlertById: (alertId: string) => void;
     mutateAlertWorkflow: (
         alertId: string,
         mutation: (state: StoredAlertWorkflowState) => StoredAlertWorkflowState
     ) => StoredAlertWorkflowState;
     acknowledgeAlertWorkflow: (state: StoredAlertWorkflowState, payload: { timestamp: string; owner: string; }) => StoredAlertWorkflowState;
-    startAlertWorkflow: (state: StoredAlertWorkflowState, payload: { timestamp: string; owner: string; }) => StoredAlertWorkflowState;
-    resolveOperatorAlertWorkflow: (
+    claimAlertWorkflow: (state: StoredAlertWorkflowState, payload: { timestamp: string; owner: string; }) => StoredAlertWorkflowState;
+    releaseAlertWorkflow: (state: StoredAlertWorkflowState, payload: { timestamp: string; owner: string; }) => StoredAlertWorkflowState;
+    markAlertWorkDone: (
         state: StoredAlertWorkflowState,
         payload: { timestamp: string; owner: string; note?: string; }
     ) => StoredAlertWorkflowState;
-    clearAlertWorkflow: (state: StoredAlertWorkflowState, payload: { timestamp: string; owner: string; }) => StoredAlertWorkflowState;
     addAlertWorkflowNote: (
         state: StoredAlertWorkflowState,
         payload: { timestamp: string; owner: string; note?: string; }
     ) => StoredAlertWorkflowState;
     normalizeAlertSettings: (candidate?: Partial<AlertSettings>) => AlertSettings;
+    getOperatorName: () => string;
+    syncLinkedExternalWorkItem?: (payload: {
+        alertId: string;
+        action: 'acknowledge' | 'claim' | 'release' | 'workDone' | 'note';
+        note?: string;
+        nextState: StoredAlertWorkflowState;
+    }) => Promise<void> | void;
     recordActivity: (entry: {
         area: 'monitoring';
         level: 'info';
@@ -44,41 +50,25 @@ interface RegisterAlertsIpcDependencies {
 export function registerAlertsIpc(dependencies: RegisterAlertsIpcDependencies) {
     ipcMain.handle('get-active-alerts', () => dependencies.getActiveAlerts());
 
-    ipcMain.handle('clear-alert', (_event, alertId: string) => {
-        const timestamp = new Date().toISOString();
-        const nextState = dependencies.mutateAlertWorkflow(alertId, (state) => dependencies.clearAlertWorkflow(state, {
-            timestamp,
-            owner: 'Local operator'
-        }));
-        dependencies.clearAlertById(alertId);
-        dependencies.recordActivity({
-            area: 'monitoring',
-            level: 'info',
-            message: 'Alert cleared by the operator.',
-            detail: `${alertId} | ${nextState.lastActionSummary ?? 'Cleared'}`
-        });
-        return { success: true };
-    });
-
-    ipcMain.handle('update-alert-workflow', (_event, payload: {
+    ipcMain.handle('update-alert-workflow', async (_event, payload: {
         alertId: string;
-        action: 'acknowledge' | 'start' | 'resolve' | 'clear' | 'note';
+        action: 'acknowledge' | 'claim' | 'release' | 'workDone' | 'note';
         note?: string;
         owner?: string;
     }) => {
-        const owner = payload.owner?.trim() || 'Local operator';
+        const owner = dependencies.getOperatorName();
         const timestamp = new Date().toISOString();
 
         const nextState = dependencies.mutateAlertWorkflow(payload.alertId, (state) => {
             switch (payload.action) {
                 case 'acknowledge':
                     return dependencies.acknowledgeAlertWorkflow(state, { timestamp, owner });
-                case 'start':
-                    return dependencies.startAlertWorkflow(state, { timestamp, owner });
-                case 'resolve':
-                    return dependencies.resolveOperatorAlertWorkflow(state, { timestamp, owner, note: payload.note });
-                case 'clear':
-                    return dependencies.clearAlertWorkflow(state, { timestamp, owner });
+                case 'claim':
+                    return dependencies.claimAlertWorkflow(state, { timestamp, owner });
+                case 'release':
+                    return dependencies.releaseAlertWorkflow(state, { timestamp, owner });
+                case 'workDone':
+                    return dependencies.markAlertWorkDone(state, { timestamp, owner, note: payload.note });
                 case 'note':
                     return dependencies.addAlertWorkflowNote(state, { timestamp, owner, note: payload.note });
                 default:
@@ -86,15 +76,18 @@ export function registerAlertsIpc(dependencies: RegisterAlertsIpcDependencies) {
             }
         });
 
-        if (payload.action === 'clear') {
-            dependencies.clearAlertById(payload.alertId);
-        }
-
         dependencies.recordActivity({
             area: 'monitoring',
             level: 'info',
             message: `Alert workflow updated: ${payload.action}.`,
             detail: `${payload.alertId} | ${nextState.lastActionSummary ?? payload.action}${payload.note ? ` | ${payload.note}` : ''}`
+        });
+
+        await dependencies.syncLinkedExternalWorkItem?.({
+            alertId: payload.alertId,
+            action: payload.action,
+            note: payload.note,
+            nextState
         });
 
         return { success: true };

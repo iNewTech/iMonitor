@@ -25,6 +25,9 @@
                     </div>
                     <div class="monitor-hero-actions">
                         <div class="hero-actions-row">
+                            <button id="open-settings" class="btn btn-outline-ink btn-sm">
+                                <i class="bi bi-gear me-2"></i>Settings
+                            </button>
                             <div class="hero-theme-control">
                                 <label for="theme-selector" class="hero-control-label">Theme</label>
                                 <select id="theme-selector" class="form-select hero-theme-select" data-testid="theme-selector"></select>
@@ -234,6 +237,9 @@
                             <button type="button" class="btn btn-outline-ink btn-sm ai-prompt-chip" data-ai-prompt-type="job-health" data-testid="ai-prompt-job-health">
                                 Job health summary
                             </button>
+                            <button type="button" class="btn btn-outline-ink btn-sm" id="open-ai-settings">
+                                <i class="bi bi-sliders me-2"></i>AI & Integrations Settings
+                            </button>
                         </div>
 
                         <div id="ai-chat-shell" class="ai-chat-shell">
@@ -257,50 +263,6 @@
                             <p id="ai-assistant-status" class="stat-note mb-0">Local Ollama analysis is preparing.</p>
                         </form>
 
-                        <details class="email-settings-disclosure ai-settings-disclosure">
-                            <summary class="email-settings-summary">
-                                <span>
-                                    <strong>AI provider settings</strong>
-                                    <small>Choose one provider, complete its setup, then save it as the active IBMEye AI source</small>
-                                </span>
-                                <i class="bi bi-chevron-down"></i>
-                            </summary>
-                            <form id="ai-settings-form" class="email-settings-body ai-settings-body">
-                                <label class="toggle-row">
-                                    <span>Enable AI analyst</span>
-                                    <input type="checkbox" id="ai-enabled">
-                                </label>
-                                <div class="ai-provider-setup-intro">
-                                    <p class="control-label mb-0">First-time setup</p>
-                                    <p class="stat-note mb-0">Pick a provider, fill only that provider’s required fields, then use refresh to confirm the available models.</p>
-                                </div>
-                                <div id="ai-provider-switcher" class="ai-provider-switcher" role="tablist" aria-label="AI providers"></div>
-                                <div id="ai-provider-panel" class="ai-provider-panel-shell"></div>
-                                <div class="ai-settings-common">
-                                    <div class="control-select">
-                                        <label for="ai-temperature" class="control-label">Response style</label>
-                                        <div class="input-group">
-                                            <input type="number" id="ai-temperature" class="form-control" min="0" max="1" step="0.1" value="0.2">
-                                            <span class="input-group-text">0-1</span>
-                                        </div>
-                                    </div>
-                                    <div class="control-select">
-                                        <label for="ai-reply-style" class="control-label">Default reply style</label>
-                                        <textarea
-                                            id="ai-reply-style"
-                                            class="form-control ai-settings-textarea"
-                                            rows="3"
-                                            placeholder="Example: Reply in a human tone, keep details short and precise, and do not leave out important operator guidance."
-                                        ></textarea>
-                                    </div>
-                                </div>
-                                <div class="ai-settings-actions">
-                                    <button type="submit" class="btn btn-outline-ink">
-                                        <i class="bi bi-sliders me-2"></i>Save AI Settings
-                                    </button>
-                                </div>
-                            </form>
-                        </details>
                     </div>
                 </div>
             </details>

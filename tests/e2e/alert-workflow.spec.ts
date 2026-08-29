@@ -61,7 +61,7 @@ test('launches the demo monitor and renders live alert cards', async () => {
     }
 });
 
-test('supports expand, acknowledge, start, note, resolve, and clear in the alert workflow', async () => {
+test('supports acknowledge, claim, note, work done, and return-to-queue in the alert workflow', async () => {
     const app = await launchTestApp();
 
     try {
@@ -70,26 +70,42 @@ test('supports expand, acknowledge, start, note, resolve, and clear in the alert
         const firstAlert = app.page.getByTestId('alert-card').first();
         await firstAlert.getByTestId('alert-toggle').click();
         await expect(firstAlert.getByTestId('alert-body')).toBeVisible();
+        const alertId = await firstAlert.getAttribute('data-alert-id');
 
         await firstAlert.getByTestId('alert-acknowledge').click();
-        await expect(firstAlert.getByTestId('alert-workflow-badge')).toHaveText('ACKNOWLEDGED');
+        await expect.poll(async () => {
+            const alerts = await app.page.evaluate(() => window.electronAPI.getActiveAlerts());
+            return alerts.find((entry) => entry.id === alertId)?.workflowStatus;
+        }).toBe('acknowledged');
 
-        await firstAlert.getByTestId('alert-start').click();
-        await expect(firstAlert.getByTestId('alert-workflow-badge')).toHaveText('IN PROGRESS');
+        await firstAlert.getByTestId('alert-claim').click();
+        const workingAlert = app.page.getByTestId('focus-alert-card');
+        await expect(workingAlert).toBeVisible();
+        await expect.poll(async () => {
+            const alerts = await app.page.evaluate(() => window.electronAPI.getActiveAlerts());
+            return alerts.find((entry) => entry.id === alertId)?.workflowStatus;
+        }).toBe('claimed');
 
-        await firstAlert.getByTestId('alert-note-toggle').click();
-        await expect(firstAlert.getByTestId('alert-note-composer')).toBeVisible();
-        await firstAlert.getByTestId('alert-note-input').fill('Checked by e2e smoke test');
-        await firstAlert.getByTestId('alert-note-save').click();
-        await expect(firstAlert.getByTestId('alert-timeline')).toContainText('Note added');
-        await expect(firstAlert.getByTestId('alert-timeline')).toContainText('Checked by e2e smoke test');
+        await workingAlert.getByTestId('alert-note-toggle').click();
+        await expect(workingAlert.getByTestId('alert-note-composer')).toBeVisible();
+        await workingAlert.getByTestId('alert-note-input').fill('Checked by e2e smoke test');
+        await workingAlert.getByTestId('alert-note-save').click();
+        await expect(workingAlert.getByTestId('alert-timeline')).toContainText('Note added');
+        await expect(workingAlert.getByTestId('alert-timeline')).toContainText('Checked by e2e smoke test');
 
-        await firstAlert.getByTestId('alert-resolve').click();
-        await expect(firstAlert.getByTestId('alert-workflow-badge')).toHaveText('RESOLVED');
+        await workingAlert.getByTestId('alert-work-done').click();
+        await expect.poll(async () => {
+            const alerts = await app.page.evaluate(() => window.electronAPI.getActiveAlerts());
+            return alerts.find((entry) => entry.id === alertId)?.workflowStatus;
+        }).toBe('work_done');
 
-        const initialCount = await app.page.getByTestId('alert-card').count();
-        await firstAlert.getByTestId('alert-clear').click();
-        await expect(app.page.getByTestId('alert-card')).toHaveCount(initialCount - 1);
+        await workingAlert.getByTestId('alert-release').click();
+        const returnedAlert = app.page.getByTestId('alert-card').first();
+        await expect.poll(async () => {
+            const alerts = await app.page.evaluate(() => window.electronAPI.getActiveAlerts());
+            return alerts.find((entry) => entry.id === alertId)?.owner || '';
+        }).toBe('');
+        await expect(returnedAlert.getByTestId('alert-workflow-badge')).toHaveText('ACKNOWLEDGED');
     } finally {
         await app.cleanup();
     }

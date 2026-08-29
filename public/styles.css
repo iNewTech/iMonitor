@@ -226,8 +226,17 @@ body.connection-body .app-shell {
     padding-bottom: 20px;
 }
 
+body.settings-body .app-shell {
+    padding-top: 24px;
+    padding-bottom: 24px;
+}
+
 body.connection-body .screen-frame {
     max-width: 1520px;
+}
+
+body.settings-body .screen-frame {
+    max-width: 1360px;
 }
 
 body.app-body::before {
@@ -314,6 +323,162 @@ body.app-body::before {
 .brand-panel,
 .workspace-panel {
     padding: 20px 22px;
+}
+
+.settings-hero,
+.settings-card {
+    padding: 22px 24px;
+}
+
+.settings-hero-main,
+.settings-card-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    align-items: start;
+}
+
+.settings-hero-title {
+    color: var(--ink);
+    font-size: clamp(1.95rem, 2.6vw, 2.8rem);
+}
+
+.settings-hero-actions,
+.settings-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.settings-grid,
+.settings-card,
+.settings-form-grid,
+.settings-provider-copy {
+    display: grid;
+    gap: 16px;
+}
+
+.settings-grid {
+    margin-top: 16px;
+}
+
+.settings-field-grid {
+    display: grid;
+    gap: 14px;
+}
+
+.settings-field-grid-two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.settings-field-grid-three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.settings-provider-copy-card {
+    padding: 14px 16px;
+    border-radius: 18px;
+    border: 1px solid var(--border);
+    background: var(--bg-soft);
+}
+
+.settings-provider-switcher {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.settings-provider-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 54px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--surface-panel);
+    color: var(--text-strong);
+    font-size: 0.96rem;
+    font-weight: 700;
+    transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.settings-provider-tab:hover,
+.settings-provider-tab:focus-visible,
+.settings-provider-tab.is-active {
+    border-color: color-mix(in srgb, var(--accent) 52%, var(--border));
+    box-shadow: 0 14px 28px color-mix(in srgb, var(--accent) 12%, transparent);
+    transform: translateY(-1px);
+}
+
+.settings-provider-tab-symbol {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.9rem;
+    height: 1.9rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--accent) 12%, var(--surface-elevated));
+    color: var(--accent-deep);
+    font-size: 1rem;
+}
+
+.settings-provider-summary {
+    min-height: 100%;
+}
+
+.settings-provider-summary-card {
+    min-height: 100%;
+    padding: 14px 16px;
+    border-radius: 18px;
+    border: 1px solid var(--border);
+    background: var(--bg-soft);
+}
+
+.settings-provider-summary-title {
+    margin: 0 0 6px;
+    color: var(--text-strong);
+    font-size: 0.98rem;
+    font-weight: 700;
+}
+
+.settings-provider-summary-copy {
+    margin: 0 0 10px;
+    color: var(--muted);
+    line-height: 1.55;
+}
+
+.settings-provider-summary-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.settings-provider-signal {
+    display: flex;
+    align-items: center;
+}
+
+.settings-provider-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface-panel);
+    color: var(--text-strong);
+    font-size: 0.92rem;
+    font-weight: 700;
+}
+
+.settings-provider-steps {
+    margin: 0;
+    padding-left: 1.1rem;
+    color: var(--muted);
 }
 
 .brand-panel {
@@ -1824,10 +1989,18 @@ body.connection-body .support-status {
 }
 
 .alert-actions {
-    display: flex;
-    align-items: center;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 10px;
-    flex-wrap: wrap;
+    align-items: stretch;
+}
+
+.alert-actions .btn {
+    width: 100%;
+    min-width: 0;
+    white-space: normal;
+    justify-content: center;
+    text-align: center;
 }
 
 .alert-note-composer {
@@ -2652,6 +2825,11 @@ body.connection-body .support-status {
         grid-template-columns: 1fr;
     }
 
+    .settings-field-grid-two,
+    .settings-field-grid-three {
+        grid-template-columns: 1fr;
+    }
+
     .jobs-toolbar-control,
     .jobs-toolbar-search,
     .jobs-toolbar-actions {
@@ -2694,5 +2872,11 @@ body.connection-body .support-status {
     .btn-danger-soft,
     .btn-soft-danger {
         width: 100%;
+    }
+
+    .settings-hero-main,
+    .settings-card-header {
+        display: grid;
+        grid-template-columns: 1fr;
     }
 }

@@ -31,7 +31,7 @@ describe('alert-model', () => {
                 timestamp: '2026-08-28T10:01:00.000Z',
                 resolvedAt: '2026-08-28T10:15:00.000Z',
                 isActive: false,
-                workflowStatus: 'resolved'
+                workflowStatus: 'system_cleared'
             }),
             createAlert({
                 id: 'active-oldest',
@@ -43,7 +43,7 @@ describe('alert-model', () => {
                 timestamp: '2026-08-28T10:02:00.000Z',
                 resolvedAt: '2026-08-28T10:20:00.000Z',
                 isActive: false,
-                workflowStatus: 'resolved'
+                workflowStatus: 'system_cleared'
             })
         ]);
 

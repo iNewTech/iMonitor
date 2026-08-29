@@ -14,6 +14,11 @@ import {
     type StoredAiAssistantSettings,
     type AiAssistantSettings
 } from '../features/ibmeyeai/ai-model';
+import {
+    DEFAULT_STORED_CLICKUP_SETTINGS,
+    normalizeStoredClickUpSettings,
+    type StoredClickUpSettings
+} from '../features/integrations/clickup/clickup-model';
 import { DEFAULT_THEME_ID, normalizeThemeId, type ThemeId } from '../features/theme/theme-model';
 import type { StoredConnection } from '../utils/connections';
 import type { StoredAlertWorkflowState } from '../features/alerts/alert-model';
@@ -23,6 +28,7 @@ export interface StoreSchema {
     alertSettings: AlertSettings;
     emailNotificationSettings: StoredEmailNotificationSettings;
     aiAssistantSettings: StoredAiAssistantSettings;
+    clickUpSettings: StoredClickUpSettings;
     alertWorkflowState: Record<string, StoredAlertWorkflowState>;
     themeId: ThemeId;
 }
@@ -47,6 +53,7 @@ export function createAppStore() {
             alertSettings: DEFAULT_ALERT_SETTINGS,
             emailNotificationSettings: DEFAULT_STORED_EMAIL_NOTIFICATION_SETTINGS,
             aiAssistantSettings: DEFAULT_STORED_AI_ASSISTANT_SETTINGS,
+            clickUpSettings: DEFAULT_STORED_CLICKUP_SETTINGS,
             alertWorkflowState: {},
             themeId: DEFAULT_THEME_ID
         }
@@ -104,6 +111,20 @@ export function getNormalizedAiAssistantSettings(store: AppStore) {
 
     if (JSON.stringify(storedSettings) !== JSON.stringify(normalized)) {
         store.set('aiAssistantSettings', normalized);
+    }
+
+    return normalized;
+}
+
+/**
+ * Loads encrypted ClickUp integration settings from the store and normalizes them.
+ */
+export function getNormalizedStoredClickUpSettings(store: AppStore) {
+    const storedSettings = store.get('clickUpSettings');
+    const normalized = normalizeStoredClickUpSettings(storedSettings);
+
+    if (JSON.stringify(storedSettings) !== JSON.stringify(normalized)) {
+        store.set('clickUpSettings', normalized);
     }
 
     return normalized;

@@ -71,11 +71,12 @@ interface MonitorAlert {
     message: string;
     detail?: string;
     jobName?: string;
-    workflowStatus: 'new' | 'acknowledged' | 'in_progress' | 'resolved' | 'cleared';
+    workflowStatus: 'new' | 'acknowledged' | 'claimed' | 'work_done' | 'system_cleared';
     owner?: string;
     notes: Array<{
         id: string;
         timestamp: string;
+        author?: string;
         text: string;
     }>;
     timeline: Array<{
@@ -83,10 +84,16 @@ interface MonitorAlert {
         timestamp: string;
         action: string;
         label: string;
+        actor?: string;
         detail?: string;
     }>;
     workflowUpdatedAt: string;
     lastActionSummary?: string;
+    clickUpTask?: {
+        id: string;
+        url?: string;
+        name?: string;
+    };
 }
 
 interface MonitoringSnapshot {
@@ -214,12 +221,15 @@ interface AppInfo {
 contextBridge.exposeInMainWorld('electronAPI', {
     navigateToMonitor: () => ipcRenderer.invoke('navigate-to-monitor'),
     navigateToConnection: () => ipcRenderer.invoke('navigate-to-connection'),
+    navigateToSettings: () => ipcRenderer.invoke('navigate-to-settings'),
+    openExternalUrl: (target: string) => ipcRenderer.invoke('open-external-url', target) as Promise<{ success: boolean; }>,
 
     getConnectionState: () => ipcRenderer.invoke('get-connection-state') as Promise<ConnectionState>,
     getAppInfo: () => ipcRenderer.invoke('get-app-info') as Promise<AppInfo>,
     getAppFlags: () => ipcRenderer.invoke('get-app-flags') as Promise<{
         demoModeEnabled: boolean;
         demoModeReason?: string;
+        operatorName?: string;
         themeId: ThemeOption['id'];
         themes: ThemeOption[];
     }>,
@@ -269,12 +279,51 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }>,
     getMonitoringHistory: () => ipcRenderer.invoke('get-monitoring-history') as Promise<MonitoringSnapshot[]>,
     getActiveAlerts: () => ipcRenderer.invoke('get-active-alerts') as Promise<MonitorAlert[]>,
-    clearAlert: (alertId: string) => ipcRenderer.invoke('clear-alert', alertId) as Promise<{
+    getClickUpSettings: () => ipcRenderer.invoke('get-clickup-settings') as Promise<{
+        enabled: boolean;
+        apiToken: string;
+        workspaceId: string;
+        workspaceName: string;
+        spaceId: string;
+        spaceName: string;
+        listId: string;
+        listName: string;
+        syncComments: boolean;
+    }>,
+    saveClickUpSettings: (settings: {
+        enabled?: boolean;
+        apiToken?: string;
+        workspaceId?: string;
+        workspaceName?: string;
+        spaceId?: string;
+        spaceName?: string;
+        listId?: string;
+        listName?: string;
+        syncComments?: boolean;
+    }) => ipcRenderer.invoke('save-clickup-settings', settings) as Promise<{
+        enabled: boolean;
+        apiToken: string;
+        workspaceId: string;
+        workspaceName: string;
+        spaceId: string;
+        spaceName: string;
+        listId: string;
+        listName: string;
+        syncComments: boolean;
+    }>,
+    loadClickUpTargetOptions: () => ipcRenderer.invoke('load-clickup-target-options') as Promise<{
+        workspaces: Array<{ id: string; name: string; }>;
+        spaces: Array<{ id: string; name: string; }>;
+        lists: Array<{ id: string; name: string; source: 'folder' | 'folderless'; folderName?: string; }>;
+    }>,
+    createClickUpTaskForAlert: (alertId: string) => ipcRenderer.invoke('create-clickup-task-for-alert', alertId) as Promise<{
         success: boolean;
+        reused?: boolean;
+        task?: { id: string; url?: string; name?: string; };
     }>,
     updateAlertWorkflow: (payload: {
         alertId: string;
-        action: 'acknowledge' | 'start' | 'resolve' | 'clear' | 'note';
+        action: 'acknowledge' | 'claim' | 'release' | 'workDone' | 'note';
         note?: string;
         owner?: string;
     }) => ipcRenderer.invoke('update-alert-workflow', payload) as Promise<{

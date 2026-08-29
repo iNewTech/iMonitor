@@ -9,6 +9,7 @@ iMonitor is the desktop app for IBM i teams. Inside it, `IBMEye` is the alert an
 - Shows active job health, waits, CPU, and SQL details
 - Shows root-cause guidance in the job detail drawer
 - Includes an Ollama-backed AI analyst on the dashboard for alert, SQL, and selected-job analysis
+- Includes a dedicated Settings page for AI providers and action integrations
 - Supports drawer-based operator actions for hold, release, and end job
 - Raises operator alerts, desktop notifications, and SMTP email notifications
 - Keeps a local operator log and daily log files
@@ -80,6 +81,19 @@ It can:
 - suggest likely cause and next best action
 
 For now this uses local Ollama on `http://127.0.0.1:11434`. The feature is intentionally isolated so it can be licensed or removed later without changing the rest of iMonitor.
+
+Use `Settings` to switch the active AI provider, choose that provider's model, and save its required setup values in one place. The dashboard keeps the chat and AI actions, while setup now lives off the main monitor screen.
+
+## ClickUp Action Tracking
+
+The new `Settings` page also includes ClickUp setup for action tracking.
+
+You can:
+
+- save one ClickUp token locally
+- choose the workspace, space, and list used for alert tasks
+- create one task from an alert card
+- keep later operator notes and workflow updates synced as ClickUp comments
 
 ## Current Operator Actions
 

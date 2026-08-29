@@ -15,6 +15,7 @@ interface RegisterConnectionIpcDependencies {
     getAppFlags: () => {
         demoModeEnabled: boolean;
         demoModeReason?: string;
+        operatorName?: string;
         themeId: string;
         themes: unknown[];
     };

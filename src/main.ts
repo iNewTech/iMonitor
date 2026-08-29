@@ -1,13 +1,15 @@
 import { app, BrowserWindow, ipcMain } from 'electron/main';
 import { Notification, dialog, nativeImage, safeStorage, shell } from 'electron';
+import os from 'node:os';
 import * as path from 'path';
 import Db, { type ServiceLogEntry } from './services/ibmi';
 import {
     acknowledgeAlertWorkflow,
     addAlertWorkflowNote,
-    clearAlertWorkflow,
-    resolveAlertWorkflow as resolveOperatorAlertWorkflow,
-    startAlertWorkflow
+    attachClickUpTaskToWorkflow,
+    claimAlertWorkflow,
+    markAlertWorkDone,
+    releaseAlertWorkflow
 } from './features/alerts/alert-operator-workflow';
 import { normalizeAlertSettings } from './features/alerts/alert-model';
 import { getDemoAvailability } from './features/demo/demo-runtime';
@@ -27,6 +29,12 @@ import {
     type AiAssistantSettings
 } from './features/ibmeyeai/ai-model';
 import {
+    normalizeClickUpSettings,
+    toRenderableClickUpSettings,
+    toStoredClickUpSettings,
+    type ClickUpSettings
+} from './features/integrations/clickup/clickup-model';
+import {
     buildOperatorActionPlan,
     getAvailableOperatorActions,
     type OperatorActionKind
@@ -37,12 +45,14 @@ import { createMonitoringStateStore } from './main/state/monitoring-state';
 import { registerAlertsIpc } from './main/ipc/alerts-ipc';
 import { registerAiIpc } from './main/ipc/ai-ipc';
 import { registerConnectionIpc } from './main/ipc/connection-ipc';
+import { registerClickUpIpc } from './main/ipc/clickup-ipc';
 import { registerJobsIpc } from './main/ipc/jobs-ipc';
 import { registerLogsIpc } from './main/ipc/logs-ipc';
 import { registerNavigationIpc } from './main/ipc/navigation-ipc';
 import { registerSupportIpc } from './main/ipc/support-ipc';
 import { createAiRuntime } from './main/runtime/ai-runtime';
 import { createEmailNotificationRuntime } from './main/runtime/email-notification-runtime';
+import { createClickUpRuntime } from './main/runtime/clickup-runtime';
 import { createMonitoringRuntime } from './main/runtime/monitoring-runtime';
 import { createLoggingRuntime } from './main/runtime/logging-runtime';
 import { createSessionRuntime } from './main/runtime/session-runtime';
@@ -51,6 +61,7 @@ import {
     createAppStore,
     getNormalizedAiAssistantSettings,
     getNormalizedAlertSettings,
+    getNormalizedStoredClickUpSettings,
     getNormalizedStoredEmailNotificationSettings,
     getNormalizedThemeId
 } from './main/store';
@@ -63,6 +74,7 @@ const MAX_MONITORING_HISTORY = 90;
 const MAX_JOB_STATUS_HISTORY = 12;
 const NOTIFICATION_COOLDOWN_MS = 120000;
 const SUPPORT_EMAIL = 'gajendertyagi.tyagi@gmail.com';
+const LOCAL_OPERATOR_NAME = os.userInfo().username?.trim() || 'local-operator';
 
 function resolveAppIconPath() {
     if (app.isPackaged) {
@@ -120,6 +132,22 @@ function saveAiAssistantSettings(candidate: Partial<AiAssistantSettings> | undef
         ...(candidate ?? {})
     });
     store.set('aiAssistantSettings', toStoredAiAssistantSettings(merged, protectSecret));
+    return merged;
+}
+
+function getClickUpSettings() {
+    return toRenderableClickUpSettings(
+        getNormalizedStoredClickUpSettings(store),
+        revealSecret
+    );
+}
+
+function saveClickUpSettings(candidate: Partial<ClickUpSettings> | undefined) {
+    const merged = normalizeClickUpSettings({
+        ...getClickUpSettings(),
+        ...(candidate ?? {})
+    });
+    store.set('clickUpSettings', toStoredClickUpSettings(merged, protectSecret));
     return merged;
 }
 
@@ -205,6 +233,11 @@ const loggingRuntime = createLoggingRuntime({
     getJobKey,
     toNumber: (value) => toNumber(value as string | number | null | undefined),
     maxActivityEntries: MAX_ACTIVITY_LOG_ENTRIES
+});
+
+const clickUpRuntime = createClickUpRuntime({
+    getSettings: getClickUpSettings,
+    recordActivity: loggingRuntime.recordActivity
 });
 
 const emailNotificationRuntime = createEmailNotificationRuntime({
@@ -381,6 +414,8 @@ registerNavigationIpc({
     canOpenMonitor: () => connectionState.getState().isConnected,
     loadMonitorPage: windowRuntime.loadMonitorPage,
     loadConnectionPage: windowRuntime.loadConnectionPage,
+    loadSettingsPage: windowRuntime.loadSettingsPage,
+    openExternalUrl: (target) => shell.openExternal(target),
     recordActivity: loggingRuntime.recordActivity
 });
 
@@ -404,6 +439,16 @@ registerAiIpc({
     saveAiSettings: (settings) => saveAiAssistantSettings(settings),
     getAiAvailability: () => aiRuntime.getAiAvailability(),
     askAssistant: (payload) => aiRuntime.askAssistant(payload)
+});
+
+registerClickUpIpc({
+    getClickUpSettings,
+    saveClickUpSettings: (settings) => saveClickUpSettings(settings),
+    loadClickUpTargetOptions: () => clickUpRuntime.loadTargetOptions(),
+    getAlertById: (alertId) => alertState.getActiveAlerts().find((alert) => alert.id === alertId),
+    mutateAlertWorkflow: (alertId, mutation) => alertState.mutateAlertWorkflow(alertId, mutation),
+    attachClickUpTaskToWorkflow,
+    createTaskForAlert: (alert) => clickUpRuntime.createTaskForAlert(alert)
 });
 
 registerAlertsIpc({
@@ -433,14 +478,17 @@ registerAlertsIpc({
             };
         }
     },
-    clearAlertById: (alertId) => alertState.clearAlertById(alertId),
     mutateAlertWorkflow: (alertId, mutation) => alertState.mutateAlertWorkflow(alertId, mutation),
     acknowledgeAlertWorkflow,
-    startAlertWorkflow,
-    resolveOperatorAlertWorkflow,
-    clearAlertWorkflow,
+    claimAlertWorkflow,
+    releaseAlertWorkflow,
+    markAlertWorkDone,
     addAlertWorkflowNote,
     normalizeAlertSettings,
+    getOperatorName: () => LOCAL_OPERATOR_NAME,
+    syncLinkedExternalWorkItem: async (payload) => {
+        await clickUpRuntime.syncAlertWorkflowComment(payload);
+    },
     recordActivity: loggingRuntime.recordActivity,
     onSettingsSaved: () => {
         const latestJobs = monitoringState.getLatestJobs();
@@ -473,7 +521,7 @@ registerJobsIpc({
                 area: 'monitoring',
                 level: 'success',
                 message: `Simulated operator action: ${payload.kind}.`,
-                detail: `${payload.jobName} | ${command}`
+                detail: `${LOCAL_OPERATOR_NAME} | ${payload.jobName} | ${command}`
             });
             return;
         }
@@ -488,7 +536,7 @@ registerJobsIpc({
             area: 'monitoring',
             level: 'success',
             message: `Operator action completed: ${payload.kind}.`,
-            detail: `${payload.jobName} | ${command}`
+            detail: `${LOCAL_OPERATOR_NAME} | ${payload.jobName} | ${command}`
         });
 
         await monitoringRuntime.publishSystemStatus();
