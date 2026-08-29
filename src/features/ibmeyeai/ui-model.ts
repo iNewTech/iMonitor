@@ -6,10 +6,10 @@ export interface IBMEyeAiUiPreferences {
 }
 
 export const DEFAULT_IBMEYEAI_UI_PREFERENCES: IBMEyeAiUiPreferences = {
-    transcriptHeight: 320,
+    transcriptHeight: 760,
     widgetOpen: false,
-    widgetWidth: 480,
-    widgetHeight: 700
+    widgetWidth: 680,
+    widgetHeight: 920
 };
 
 /**
@@ -24,14 +24,14 @@ export function normalizeIBMEyeAiUiPreferences(
 
     return {
         transcriptHeight: Number.isFinite(transcriptHeight)
-            ? Math.max(220, Math.min(560, Math.round(transcriptHeight)))
+            ? Math.max(260, Math.min(760, Math.round(transcriptHeight)))
             : DEFAULT_IBMEYEAI_UI_PREFERENCES.transcriptHeight,
         widgetOpen: candidate?.widgetOpen ?? DEFAULT_IBMEYEAI_UI_PREFERENCES.widgetOpen,
         widgetWidth: Number.isFinite(widgetWidth)
-            ? Math.max(340, Math.min(720, Math.round(widgetWidth)))
+            ? Math.max(420, Math.min(680, Math.round(widgetWidth)))
             : DEFAULT_IBMEYEAI_UI_PREFERENCES.widgetWidth,
         widgetHeight: Number.isFinite(widgetHeight)
-            ? Math.max(420, Math.min(820, Math.round(widgetHeight)))
+            ? Math.max(520, Math.min(920, Math.round(widgetHeight)))
             : DEFAULT_IBMEYEAI_UI_PREFERENCES.widgetHeight
     };
 }

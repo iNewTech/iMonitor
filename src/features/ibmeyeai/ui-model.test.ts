@@ -7,10 +7,10 @@ import {
 describe('ibmeyeai ui-model', () => {
     it('returns defaults when no preferences are stored', () => {
         expect(normalizeIBMEyeAiUiPreferences(undefined)).toEqual({
-            transcriptHeight: 320,
+            transcriptHeight: 760,
             widgetOpen: false,
-            widgetWidth: 480,
-            widgetHeight: 700
+            widgetWidth: 680,
+            widgetHeight: 920
         });
     });
 
@@ -21,9 +21,9 @@ describe('ibmeyeai ui-model', () => {
             widgetHeight: 999,
             widgetOpen: true
         })).toEqual({
-            transcriptHeight: 560,
-            widgetWidth: 340,
-            widgetHeight: 820,
+            transcriptHeight: 760,
+            widgetWidth: 420,
+            widgetHeight: 920,
             widgetOpen: true
         });
     });

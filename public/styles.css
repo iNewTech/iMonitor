@@ -1142,8 +1142,8 @@ body.connection-body .support-status {
 }
 
 .ai-chat-shell {
-    min-height: 260px;
-    max-height: 62vh;
+    min-height: 320px;
+    max-height: min(82vh, 760px);
     resize: vertical;
     overflow: auto;
 }
@@ -1504,10 +1504,10 @@ body.connection-body .support-status {
     bottom: calc(100% + 14px);
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
-    gap: 14px;
-    width: 480px;
-    height: 700px;
-    padding: 20px;
+    gap: 10px;
+    width: 680px;
+    height: 920px;
+    padding: 16px;
     border: 1px solid rgba(24, 33, 43, 0.08);
     border-radius: 26px;
     background: linear-gradient(180deg, rgba(245, 252, 250, 0.98), rgba(252, 248, 241, 0.95));
@@ -1538,16 +1538,32 @@ body.connection-body .support-status {
 .ibmeyeai-popout-header,
 .ibmeyeai-widget-actions {
     justify-content: space-between;
-    gap: 12px;
+    gap: 10px;
 }
 
 .ibmeyeai-popout-tools {
-    gap: 10px;
+    gap: 8px;
+}
+
+.ibmeyeai-popout-header .eyebrow {
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+}
+
+.ibmeyeai-popout-header .section-title {
+    font-size: 1.1rem;
+}
+
+.ibmeyeai-popout-tools .btn {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 14px;
 }
 
 .ibmeyeai-widget-provider-shell {
     display: grid;
-    gap: 8px;
+    gap: 6px;
 }
 
 .ibmeyeai-popout-provider-row {
@@ -1566,7 +1582,7 @@ body.connection-body .support-status {
 }
 
 .ibmeyeai-widget-select {
-    min-height: 42px;
+    min-height: 40px;
     border-radius: 14px;
     border-color: rgba(68, 146, 131, 0.18);
     background: rgba(255, 255, 255, 0.9);
@@ -1588,7 +1604,7 @@ body.connection-body .support-status {
 
 .ibmeyeai-widget-form {
     display: grid;
-    gap: 6px;
+    gap: 4px;
     align-self: end;
 }
 
@@ -1605,11 +1621,11 @@ body.connection-body .support-status {
 }
 
 .ibmeyeai-widget-input {
-    min-height: 58px;
-    max-height: 120px;
+    min-height: 48px;
+    max-height: 140px;
     resize: none;
     line-height: 1.42;
-    font-size: 0.95rem;
+    font-size: 0.92rem;
     border: 0;
     box-shadow: none;
     padding: 0.2rem 0.3rem;
@@ -1633,7 +1649,7 @@ body.connection-body .support-status {
 }
 
 .ibmeyeai-widget-footer {
-    padding: 0 4px 2px;
+    padding: 0 2px 0;
 }
 
 .ibmeyeai-widget-footer .stat-note {
@@ -2635,8 +2651,8 @@ body.connection-body .support-status {
     }
 
     .ibmeyeai-popout {
-        width: min(100%, 420px);
-        height: min(72vh, 700px);
+        width: min(100%, 680px);
+        height: min(86vh, 920px);
         justify-self: end;
     }
 
