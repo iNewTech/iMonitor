@@ -27,7 +27,6 @@ export function initIBMEyeAiWidget(dependencies) {
     const launcherArt = root.querySelector('#ibmeyeai-launcher-art');
     const popout = root.querySelector('#ibmeyeai-popout');
     const closeButton = root.querySelector('#ibmeyeai-widget-close');
-    const refreshButton = root.querySelector('#ibmeyeai-widget-refresh');
     const providerInput = root.querySelector('#ibmeyeai-widget-provider');
     const modelInput = root.querySelector('#ibmeyeai-widget-model');
     const modelSource = root.querySelector('#ibmeyeai-widget-model-source');
@@ -67,9 +66,6 @@ export function initIBMEyeAiWidget(dependencies) {
         submitButton.innerHTML = busy
             ? '<i class="bi bi-hourglass-split"></i>'
             : '<i class="bi bi-send-fill"></i>';
-        if (refreshButton) {
-            refreshButton.disabled = busy;
-        }
     }
 
     function render(snapshot) {
@@ -160,10 +156,6 @@ export function initIBMEyeAiWidget(dependencies) {
 
     closeButton?.addEventListener('click', () => {
         toggle(false);
-    });
-
-    refreshButton?.addEventListener('click', () => {
-        void aiState.refresh();
     });
 
     providerInput.addEventListener('change', () => {

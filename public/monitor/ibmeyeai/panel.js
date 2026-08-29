@@ -142,8 +142,6 @@ export function initIBMEyeAiPanel(dependencies) {
     const modelSourceHint = root.querySelector('#ai-provider-model-source');
     const form = root.querySelector('#ai-assistant-form');
     const input = root.querySelector('#ai-assistant-input');
-    const submitButton = root.querySelector('#ai-assistant-submit');
-    const refreshButton = root.querySelector('#ai-assistant-refresh');
     const promptButtons = Array.from(root.querySelectorAll('.ai-prompt-chip'));
     const settingsForm = root.querySelector('#ai-settings-form');
     const enabledInput = root.querySelector('#ai-enabled');
@@ -152,7 +150,7 @@ export function initIBMEyeAiPanel(dependencies) {
     const temperatureInput = root.querySelector('#ai-temperature');
     const replyStyleInput = root.querySelector('#ai-reply-style');
 
-    if (!transcript || !status || !submitButton || !refreshButton || !input || !providerPanel) {
+    if (!transcript || !status || !input || !providerPanel) {
         return {
             destroy() {}
         };
@@ -169,11 +167,6 @@ export function initIBMEyeAiPanel(dependencies) {
     }
 
     function setBusy(busy) {
-        submitButton.disabled = busy;
-        submitButton.innerHTML = busy
-            ? '<i class="bi bi-hourglass-split me-2"></i>Analyzing'
-            : '<i class="bi bi-stars me-2"></i>Analyze';
-        refreshButton.disabled = busy;
         input.disabled = busy;
     }
 
@@ -295,10 +288,6 @@ export function initIBMEyeAiPanel(dependencies) {
 
         event.preventDefault();
         submitAssistantPrompt(input.value || '');
-    });
-
-    refreshButton.addEventListener('click', () => {
-        void aiState.refresh();
     });
 
     promptButtons.forEach((button) => {
