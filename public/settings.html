@@ -32,18 +32,76 @@
             </header>
 
             <section class="settings-grid">
-                <article class="surface-card settings-card">
-                    <div class="settings-card-header">
+                <details id="settings-alert-panel" class="surface-card settings-card settings-disclosure">
+                    <summary class="settings-card-summary">
+                        <div>
+                            <p class="eyebrow mb-2">IBMEye Alerts</p>
+                            <h2 class="section-title">Alert delivery &amp; watch rules</h2>
+                            <p class="panel-copy mb-0">Choose where alerts go and which IBM i conditions stay visible to operators.</p>
+                        </div>
+                        <div class="settings-card-summary-meta">
+                            <span id="settings-alert-summary-status" class="settings-provider-chip">Loading</span>
+                            <i class="bi bi-chevron-down settings-card-chevron" aria-hidden="true"></i>
+                        </div>
+                    </summary>
+                    <div class="settings-disclosure-body">
+                        <form id="settings-alert-form" class="settings-form-grid">
+                            <div class="settings-alert-group">
+                                <div>
+                                    <p class="control-label mb-1">Notification channels</p>
+                                    <p class="stat-note mb-0">Slack and Email details are configured in their cards below.</p>
+                                </div>
+                                <div class="settings-check-grid">
+                                    <label class="toggle-row"><span><i class="bi bi-display me-2"></i>Desktop</span><input type="checkbox" id="settings-alert-desktop"></label>
+                                    <label class="toggle-row"><span><i class="bi bi-slack me-2"></i>Slack</span><input type="checkbox" id="settings-alert-slack"></label>
+                                    <label class="toggle-row"><span><i class="bi bi-envelope me-2"></i>Email</span><input type="checkbox" id="settings-alert-email"></label>
+                                    <label class="toggle-row is-disabled"><span><i class="bi bi-chat-square-text me-2"></i>SMS <small>Coming soon</small></span><input type="checkbox" disabled></label>
+                                </div>
+                            </div>
+                            <div class="settings-alert-group">
+                                <div>
+                                    <p class="control-label mb-1">Conditions to watch</p>
+                                    <p class="stat-note mb-0">Turn off only conditions your support team does not need.</p>
+                                </div>
+                                <div class="settings-check-grid settings-alert-rules-grid">
+                                    <label class="toggle-row"><span>High CPU</span><input type="checkbox" id="settings-alert-high-cpu"></label>
+                                    <label class="toggle-row"><span>MSGW</span><input type="checkbox" id="settings-alert-message-wait"></label>
+                                    <label class="toggle-row"><span>LCKW</span><input type="checkbox" id="settings-alert-lock-wait"></label>
+                                    <label class="toggle-row"><span>DLYW</span><input type="checkbox" id="settings-alert-delay-wait"></label>
+                                    <label class="toggle-row"><span>DEQW</span><input type="checkbox" id="settings-alert-dequeue-wait"></label>
+                                    <label class="toggle-row"><span>Poll failures</span><input type="checkbox" id="settings-alert-poll-failure"></label>
+                                    <label class="toggle-row"><span>Disconnects</span><input type="checkbox" id="settings-alert-disconnect"></label>
+                                </div>
+                            </div>
+                            <label class="control-select settings-threshold-field">
+                                <span class="control-label">High CPU threshold</span>
+                                <div class="input-group"><input id="settings-alert-cpu-threshold" type="number" class="form-control" min="1" max="100"><span class="input-group-text">%</span></div>
+                            </label>
+                            <div class="settings-actions"><button type="submit" class="btn btn-primary-strong"><i class="bi bi-bell me-2"></i>Save Alert Settings</button></div>
+                            <p id="settings-alert-status" class="stat-note mb-0">Alert settings are loading.</p>
+                        </form>
+                    </div>
+                </details>
+
+                <details id="settings-ai-panel" class="surface-card settings-card settings-disclosure">
+                    <summary class="settings-card-summary">
                         <div>
                             <p class="eyebrow mb-2">IBMEye AI</p>
                             <h2 class="section-title">Provider setup</h2>
                             <p class="panel-copy mb-0">Choose the active provider, set its required fields, and control the default reply style.</p>
                         </div>
-                        <button id="ai-settings-refresh" type="button" class="btn btn-outline-ink btn-sm">
-                            <i class="bi bi-arrow-repeat me-2"></i>Refresh Models
-                        </button>
-                    </div>
-                    <form id="settings-ai-form" class="settings-form-grid">
+                        <div class="settings-card-summary-meta">
+                            <span id="settings-ai-summary-status" class="settings-provider-chip">Not configured</span>
+                            <i class="bi bi-chevron-down settings-card-chevron" aria-hidden="true"></i>
+                        </div>
+                    </summary>
+                    <div class="settings-disclosure-body">
+                        <div class="settings-card-tools">
+                            <button id="ai-settings-refresh" type="button" class="btn btn-outline-ink btn-sm">
+                                <i class="bi bi-arrow-repeat me-2"></i>Refresh Models
+                            </button>
+                        </div>
+                        <form id="settings-ai-form" class="settings-form-grid">
                         <label class="toggle-row">
                             <span>Enable IBMEye AI</span>
                             <input type="checkbox" id="settings-ai-enabled">
@@ -97,22 +155,25 @@
                             </button>
                         </div>
                         <p id="settings-ai-status" class="stat-note mb-0">AI settings are loading.</p>
-                    </form>
-                </article>
+                        </form>
+                    </div>
+                </details>
 
-                <article class="surface-card settings-card">
-                    <div class="settings-card-header">
+                <details id="settings-clickup-panel" class="surface-card settings-card settings-disclosure">
+                    <summary class="settings-card-summary">
                         <div>
                             <p class="eyebrow mb-2">Integrations</p>
                             <h2 class="section-title">ClickUp action tracking</h2>
                             <p class="panel-copy mb-0">Link alerts to one ClickUp list so operators can create a task once and keep adding updates to the same task.</p>
                             <p id="settings-clickup-user" class="stat-note mb-0">Saved for the current operator.</p>
                         </div>
-                        <button id="clickup-load-targets" type="button" class="btn btn-outline-ink btn-sm">
-                            <i class="bi bi-arrow-repeat me-2"></i>Load Targets
-                        </button>
-                    </div>
-                    <form id="settings-clickup-form" class="settings-form-grid">
+                        <div class="settings-card-summary-meta">
+                            <span id="settings-clickup-summary-status" class="settings-provider-chip">Not configured</span>
+                            <i class="bi bi-chevron-down settings-card-chevron" aria-hidden="true"></i>
+                        </div>
+                    </summary>
+                    <div class="settings-disclosure-body">
+                        <form id="settings-clickup-form" class="settings-form-grid">
                         <label class="toggle-row">
                             <span>Enable ClickUp integration</span>
                             <input type="checkbox" id="settings-clickup-enabled">
@@ -122,13 +183,23 @@
                             <input id="settings-clickup-token" type="password" class="form-control" autocomplete="off" placeholder="Stored locally in encrypted app storage">
                         </label>
                         <label class="control-select">
-                            <span class="control-label">ClickUp member ID</span>
-                            <input id="settings-clickup-member-id" type="text" class="form-control" autocomplete="off" placeholder="Use this if you already know the ClickUp member ID">
+                            <span class="control-label">ClickUp assignee email</span>
+                            <input id="settings-clickup-user-email" type="email" class="form-control" autocomplete="email" placeholder="name@company.com">
+                            <span class="form-footnote">Saving resolves this email against the selected workspace and caches the member ID for the current IBM i operator.</span>
                         </label>
                         <label class="control-select">
-                            <span class="control-label">Your ClickUp user email</span>
-                            <input id="settings-clickup-user-email" type="email" class="form-control" autocomplete="email" placeholder="name@company.com">
+                            <span class="control-label">Resolved ClickUp member ID</span>
+                            <input id="settings-clickup-member-id" type="text" class="form-control settings-readonly-field" readonly placeholder="Resolved after settings are saved">
                         </label>
+                        <div class="settings-target-heading">
+                            <div>
+                                <p class="control-label mb-1">Ticket destination</p>
+                                <p class="stat-note mb-0">Load the workspaces, spaces, and lists available to this API token.</p>
+                            </div>
+                            <button id="clickup-load-targets" type="button" class="btn btn-outline-ink btn-sm" title="Refresh ClickUp workspaces, spaces, and lists">
+                                <i class="bi bi-arrow-repeat me-1"></i>Load Targets
+                            </button>
+                        </div>
                         <div class="settings-field-grid settings-field-grid-three">
                             <label class="control-select">
                                 <span class="control-label">Workspace</span>
@@ -144,7 +215,7 @@
                             </label>
                         </div>
                         <label class="toggle-row">
-                            <span>Sync future notes and workflow updates as ClickUp comments</span>
+                            <span>Sync future notes and workflow updates as ClickUp comments <small class="form-footnote d-block">When off, changes remain in the local audit log only.</small></span>
                             <input type="checkbox" id="settings-clickup-sync-comments">
                         </label>
                         <div class="settings-actions">
@@ -153,8 +224,66 @@
                             </button>
                         </div>
                         <p id="settings-clickup-status" class="stat-note mb-0">ClickUp settings are loading.</p>
-                    </form>
-                </article>
+                        </form>
+                    </div>
+                </details>
+
+                <details id="settings-slack-panel" class="surface-card settings-card settings-disclosure">
+                    <summary class="settings-card-summary">
+                        <div>
+                            <p class="eyebrow mb-2">Integrations</p>
+                            <h2 class="section-title">Slack channel alerts</h2>
+                            <p class="panel-copy mb-0">Send concise new-alert notifications to one shared Slack operations channel.</p>
+                        </div>
+                        <div class="settings-card-summary-meta">
+                            <span id="settings-slack-summary-status" class="settings-provider-chip">Not configured</span>
+                            <i class="bi bi-chevron-down settings-card-chevron" aria-hidden="true"></i>
+                        </div>
+                    </summary>
+                    <div class="settings-disclosure-body">
+                        <div class="settings-card-tools">
+                            <span class="settings-provider-chip"><i class="bi bi-slack me-1"></i>Channel only</span>
+                        </div>
+                        <form id="settings-slack-form" class="settings-form-grid">
+                        <label class="toggle-row">
+                            <span>Enable Slack alerts</span>
+                            <input type="checkbox" id="settings-slack-enabled">
+                        </label>
+                        <p class="form-footnote mb-0">Create an Incoming Webhook in Slack and paste its URL here. The webhook is already connected to its channel, so no Slack user selection is needed.</p>
+                        <label class="control-select">
+                            <span class="control-label">Incoming webhook URL</span>
+                            <input id="settings-slack-webhook" type="password" class="form-control" autocomplete="off" placeholder="https://hooks.slack.com/services/...">
+                        </label>
+                        <label class="control-select">
+                            <span class="control-label">Channel label</span>
+                            <input id="settings-slack-channel" type="text" class="form-control" autocomplete="off" placeholder="#ibmi-operations">
+                        </label>
+                        <div class="alert-settings-group">
+                            <div>
+                                <p class="control-label mb-1">Send Slack alerts for</p>
+                                <p class="stat-note mb-0">Start with operator-impacting conditions. Repeated polls for the same condition are not sent again until it clears and returns.</p>
+                            </div>
+                            <div class="slack-rules-grid">
+                                <label class="toggle-row"><span>MSGW</span><input type="checkbox" id="settings-slack-message-wait"></label>
+                                <label class="toggle-row"><span>LCKW</span><input type="checkbox" id="settings-slack-lock-wait"></label>
+                                <label class="toggle-row"><span>High CPU</span><input type="checkbox" id="settings-slack-high-cpu"></label>
+                                <label class="toggle-row"><span>DLYW</span><input type="checkbox" id="settings-slack-delay-wait"></label>
+                                <label class="toggle-row"><span>DEQW</span><input type="checkbox" id="settings-slack-dequeue-wait"></label>
+                                <label class="toggle-row"><span>Poll failures</span><input type="checkbox" id="settings-slack-poll-failure"></label>
+                            </div>
+                        </div>
+                        <div class="settings-actions">
+                            <button type="submit" class="btn btn-primary-strong">
+                                <i class="bi bi-slack me-2"></i>Save Slack Settings
+                            </button>
+                            <button id="settings-slack-test" type="button" class="btn btn-outline-ink">
+                                <i class="bi bi-send me-2"></i>Send Test
+                            </button>
+                        </div>
+                        <p id="settings-slack-status" class="stat-note mb-0">Slack settings are loading.</p>
+                        </form>
+                    </div>
+                </details>
             </section>
 
             <footer class="app-footer surface-card">

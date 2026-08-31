@@ -64,6 +64,28 @@ describe('clickup-model', () => {
         });
     });
 
+    it('migrates a legacy email assignee into the email field without treating it as a member ID', () => {
+        const settings = normalizeStoredClickUpSettings({
+            assigneeUserId: ' support@example.com '
+        });
+
+        expect(settings.userEmail).toBe('support@example.com');
+        expect(settings.memberId).toBe('');
+        expect(settings.assigneeUserId).toBe('');
+    });
+
+    it('rejects non-numeric values from the resolved member ID fields', () => {
+        const settings = normalizeClickUpSettings({
+            userEmail: 'support@example.com',
+            memberId: 'support@example.com',
+            assigneeUserId: 'support@example.com'
+        });
+
+        expect(settings.userEmail).toBe('support@example.com');
+        expect(settings.memberId).toBe('');
+        expect(settings.assigneeUserId).toBe('');
+    });
+
     it('converts between renderable and stored token formats', () => {
         const stored = toStoredClickUpSettings({
             ...DEFAULT_CLICKUP_SETTINGS,

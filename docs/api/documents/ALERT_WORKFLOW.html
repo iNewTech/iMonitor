@@ -11,11 +11,12 @@
 <li><a href="" aria-current="page">ALERT_WORKFLOW</a></li></ul></div>
 <div class="tsd-panel tsd-typography"><h1 id="alert-workflow" class="tsd-anchor-link">Alert Workflow<a href="#alert-workflow" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h1>
 <h2 id="current-state" class="tsd-anchor-link">Current State<a href="#current-state" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
-<p>IBMEye currently supports:</p>
+<p>The <code>IBMEye</code> alert module inside <code>iMonitor</code> currently supports:</p>
 <ul>
 <li>active alerts</li>
 <li>resolved alerts</li>
 <li>manual clear</li>
+<li>DLYW and DEQW wait detection</li>
 <li>newest-first ordering</li>
 <li>sticky queue behavior</li>
 <li>scroll-stable refresh behavior while reading expanded alerts</li>
@@ -27,6 +28,18 @@
 <li>manual clear hides an alert until the condition clears and reoccurs</li>
 <li>failed poll alerts resolve after a successful later poll</li>
 </ul>
+<h2 id="clickup-automation" class="tsd-anchor-link">ClickUp Automation<a href="#clickup-automation" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Each alert kind has its own task-creation rule. The default policy creates ClickUp tasks for MSGW, LCKW, and high CPU, while DLYW, DEQW, and poll-failure tasks are opt-in. The alert keeps one linked task reference so a recurring condition does not create duplicate tasks.</p>
+<p>When an automatic task is created, the backend:</p>
+<ol>
+<li>assigns it to the authenticated ClickUp user</li>
+<li>posts an AI report with <code>Issue</code>, <code>Why</code>, and <code>How to resolve</code> sections</li>
+<li>attaches the current readable iMonitor daily log</li>
+</ol>
+<p>AI and attachment failures are recorded in the local operator log and do not remove the task or alert.</p>
+<h2 id="slack-delivery" class="tsd-anchor-link">Slack Delivery<a href="#slack-delivery" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Slack delivery uses one Incoming Webhook configured for a shared operations channel. The default routing sends MSGW, LCKW, and high CPU alerts; DLYW, DEQW, and poll failures can be enabled independently in Settings. Each newly created alert is sent once, while repeated polls for the same active condition remain quiet.</p>
+<p>Webhook failures are written to <code>iMonitor Logs</code> and do not interrupt monitoring.</p>
 <h2 id="planned-workflow-states" class="tsd-anchor-link">Planned Workflow States<a href="#planned-workflow-states" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <ul>
 <li>New</li>
@@ -65,6 +78,8 @@
 <ul>
 <li><a href="#current-state"><span>Current <wbr/>State</span></a></li>
 <li><a href="#current-rules"><span>Current <wbr/>Rules</span></a></li>
+<li><a href="#clickup-automation"><span>Click<wbr/>Up <wbr/>Automation</span></a></li>
+<li><a href="#slack-delivery"><span>Slack <wbr/>Delivery</span></a></li>
 <li><a href="#planned-workflow-states"><span>Planned <wbr/>Workflow <wbr/>States</span></a></li>
 <li><a href="#planned-user-actions"><span>Planned <wbr/>User <wbr/>Actions</span></a></li>
 <li><a href="#planned-persistence"><span>Planned <wbr/>Persistence</span></a></li></ul></div></details></div>

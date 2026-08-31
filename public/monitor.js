@@ -28,6 +28,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const activityLogExportStatus = document.getElementById('activity-log-export-status');
     const activeAlerts = document.getElementById('active-alerts');
     const alertCount = document.getElementById('alert-count');
+    const alertSearchInput = document.getElementById('alert-search-input');
+    const loadSystemMessagesButton = document.getElementById('load-system-messages');
+    const systemMessagesStatus = document.getElementById('system-messages-status');
+    const systemMessagesList = document.getElementById('system-messages-list');
+    const systemMessageCount = document.getElementById('system-message-count');
     const focusAlertShell = document.getElementById('focus-alert-shell');
     const focusAlertCard = document.getElementById('focus-alert-card');
     const releaseFocusAlertButton = document.getElementById('release-focus-alert');
@@ -37,6 +42,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const highCpuThreshold = document.getElementById('high-cpu-threshold');
     const watchMessageWait = document.getElementById('watch-message-wait');
     const watchLockWait = document.getElementById('watch-lock-wait');
+    const watchDelayWait = document.getElementById('watch-delay-wait');
+    const watchDequeueWait = document.getElementById('watch-dequeue-wait');
     const watchFailedPolls = document.getElementById('watch-failed-polls');
     const watchDisconnects = document.getElementById('watch-disconnects');
     const emailNotificationsEnabled = document.getElementById('email-notifications-enabled');
@@ -92,6 +99,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const detailStatusHistory = document.getElementById('detail-status-history');
     const detailSqlStatus = document.getElementById('detail-sql-status');
     const detailSqlText = document.getElementById('detail-sql-text');
+    const loadJobContextButton = document.getElementById('load-job-context');
+    const loadJobLogButton = document.getElementById('load-job-log');
+    const loadJobMessagesButton = document.getElementById('load-job-messages');
+    const jobOnDemandStatus = document.getElementById('job-on-demand-status');
+    const jobContextOutput = document.getElementById('job-context-output');
+    const jobLogOutput = document.getElementById('job-log-output');
+    const jobMessagesOutput = document.getElementById('job-messages-output');
     const tbody = systemStats?.querySelector('tbody');
     const jobsSubsystemFilter = document.getElementById('jobs-subsystem-filter');
     const jobsSearchInput = document.getElementById('jobs-search-input');
@@ -121,6 +135,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const noteDraftByAlertId = new Map();
     const expandedAlertIds = new Set();
     let focusedAlertId = null;
+    let alertSearchQuery = '';
+    const pendingRecheckAlertIds = new Set();
     let availableThemes = [];
     let currentOperatorName = 'local-operator';
     let jobFilters = {
@@ -724,11 +740,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     Open ClickUp Task
                 </button>
             `
-            : `
-                <button class="btn btn-outline-ink btn-sm alert-clickup-create" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-clickup-create">
-                    Create ClickUp Task
+            : '';
+        const recheckButton = alert.isActive !== false
+            ? `
+                <button class="btn btn-outline-ink btn-sm alert-recheck" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-recheck"${pendingRecheckAlertIds.has(alert.id) ? ' disabled' : ''}>
+                    <i class="bi bi-arrow-repeat me-1"></i>${pendingRecheckAlertIds.has(alert.id) ? 'Checking...' : 'Recheck'}
                 </button>
-            `;
+            `
+            : '';
         const noteComposerMarkup = noteComposerAlertId === alert.id
             ? `
                 <div class="alert-note-composer" data-testid="alert-note-composer">
@@ -792,6 +811,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             ${explainButton}
                             ${nextActionsButton}
                             ${clickUpButton}
+                            ${recheckButton}
                             ${openJobButton}
                         </div>
                     </div>
@@ -831,13 +851,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (focusedAlert && focusedAlertId !== focusedAlert.id) {
             focusedAlertId = focusedAlert.id;
         }
-        const queuedAlerts = focusedAlert
-            ? nextAlerts.filter((alert) => alert.id !== focusedAlert.id)
+        const visibleAlerts = alertSearchQuery
+            ? nextAlerts.filter((alert) => {
+                const haystack = [
+                    alert.id, alert.title, alert.message, alert.detail, alert.jobName, alert.owner,
+                    ...(alert.notes || []).map((note) => note.text)
+                ].filter(Boolean).join(' ').toLowerCase();
+                return haystack.includes(alertSearchQuery);
+            })
             : nextAlerts;
+        const visibleFocusedAlert = focusedAlert && visibleAlerts.some((alert) => alert.id === focusedAlert.id)
+            ? focusedAlert
+            : null;
+        const queuedAlerts = visibleFocusedAlert
+            ? visibleAlerts.filter((alert) => alert.id !== visibleFocusedAlert.id)
+            : visibleAlerts;
 
-        if (focusedAlert) {
+        if (visibleFocusedAlert) {
             focusAlertShell.hidden = false;
-            focusAlertCard.innerHTML = buildAlertMarkup(focusedAlert, {
+            focusAlertCard.innerHTML = buildAlertMarkup(visibleFocusedAlert, {
                 expanded: true,
                 focused: true
             });
@@ -850,7 +882,7 @@ document.addEventListener('DOMContentLoaded', () => {
             activeAlerts.innerHTML = `
                 <div class="activity-log-empty">
                     <i class="bi bi-shield-check"></i>
-                    <span>${focusedAlert ? 'No other alerts in the queue.' : 'No active alerts.'}</span>
+                    <span>${alertSearchQuery ? 'No alerts match this search.' : visibleFocusedAlert ? 'No other alerts in the queue.' : 'No active alerts.'}</span>
                 </div>
             `;
             return;
@@ -918,6 +950,41 @@ document.addEventListener('DOMContentLoaded', () => {
         const toggleButton = target.closest('.alert-toggle');
         if (toggleButton?.dataset?.alertId) {
             toggleAlertExpanded(toggleButton.dataset.alertId);
+            return;
+        }
+
+        const recheckButton = target.closest('.alert-recheck');
+        if (recheckButton?.dataset?.alertId) {
+            const alertId = recheckButton.dataset.alertId;
+            pendingRecheckAlertIds.add(alertId);
+            renderAlerts(latestAlerts);
+            void window.electronAPI.recheckAlert(alertId).then((result) => {
+                if (result?.status === 'cleared') {
+                    mergeActivityEntries([{
+                        id: `recheck-${alertId}-${Date.now()}`,
+                        timestamp: new Date().toISOString(),
+                        area: 'monitoring',
+                        level: 'success',
+                        message: 'Alert rechecked: condition is clear.',
+                        detail: alertId
+                    }]);
+                }
+                if (result?.status === 'unavailable' && result.error) {
+                    mergeActivityEntries([{
+                        id: `recheck-${alertId}-${Date.now()}`,
+                        timestamp: new Date().toISOString(),
+                        area: 'monitoring',
+                        level: 'warning',
+                        message: 'Alert recheck was unavailable.',
+                        detail: result.error
+                    }]);
+                }
+            }).catch((error) => {
+                console.error('Unable to recheck alert:', error);
+            }).finally(() => {
+                pendingRecheckAlertIds.delete(alertId);
+                renderAlerts(latestAlerts);
+            });
             return;
         }
 
@@ -1002,15 +1069,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const clickUpCreateButton = target.closest('.alert-clickup-create');
-        if (clickUpCreateButton?.dataset?.alertId) {
-            void window.electronAPI.createClickUpTaskForAlert(clickUpCreateButton.dataset.alertId)
-                .catch((error) => {
-                    console.error('Unable to create ClickUp task:', error);
-                });
-            return;
-        }
-
         const clickUpOpenButton = target.closest('.alert-clickup-open');
         if (clickUpOpenButton?.dataset?.taskUrl) {
             void window.electronAPI.openExternalUrl(clickUpOpenButton.dataset.taskUrl);
@@ -1042,6 +1100,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (watchLockWait) {
             watchLockWait.checked = Boolean(settings.watchLockWait);
+        }
+        if (watchDelayWait) {
+            watchDelayWait.checked = Boolean(settings.watchDelayWait);
+        }
+        if (watchDequeueWait) {
+            watchDequeueWait.checked = Boolean(settings.watchDequeueWait);
         }
         if (watchFailedPolls) {
             watchFailedPolls.checked = Boolean(settings.watchFailedPolls);
@@ -1358,13 +1422,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (state?.active) {
                 setMonitoringState(true, 'live');
-                return;
+                return state;
             }
 
             setMonitoringState(false, 'idle');
+            return state;
         } catch (error) {
             console.error('Error initializing monitoring:', error);
             setMonitoringState(false, 'idle');
+            return null;
         }
     }
 
@@ -1483,6 +1549,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 highCpuThreshold: Number.parseInt(highCpuThreshold?.value || '80', 10) || 80,
                 watchMessageWait: Boolean(watchMessageWait?.checked),
                 watchLockWait: Boolean(watchLockWait?.checked),
+                watchDelayWait: Boolean(watchDelayWait?.checked),
+                watchDequeueWait: Boolean(watchDequeueWait?.checked),
                 watchFailedPolls: Boolean(watchFailedPolls?.checked),
                 watchDisconnects: Boolean(watchDisconnects?.checked)
             });
@@ -1713,6 +1781,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        await initializeMonitoring();
+        const monitoringState = await initializeMonitoring();
+        if (!monitoringState?.active && !latestJobs.length) {
+            startMonitoring();
+        }
     })();
 });

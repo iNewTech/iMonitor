@@ -406,6 +406,125 @@ body.app-body::before {
     padding: 22px 24px;
 }
 
+.settings-disclosure {
+    padding: 0;
+    overflow: hidden;
+}
+
+.settings-card-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 22px 24px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.settings-card-summary::-webkit-details-marker {
+    display: none;
+}
+
+.settings-card-summary > div:first-child {
+    min-width: 0;
+}
+
+.settings-card-summary-meta,
+.settings-card-tools {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.settings-card-summary-meta {
+    flex: 0 0 auto;
+}
+
+.settings-card-chevron {
+    color: var(--muted);
+    font-size: 1.05rem;
+    transition: transform 0.2s ease;
+}
+
+.settings-disclosure[open] .settings-card-chevron {
+    transform: rotate(180deg);
+}
+
+.settings-disclosure[open] .settings-card-summary {
+    border-bottom: 1px solid var(--border);
+}
+
+.settings-disclosure-body {
+    display: grid;
+    gap: 16px;
+    padding: 22px 24px;
+}
+
+.settings-card-tools {
+    justify-content: flex-end;
+}
+
+.settings-target-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 4px;
+}
+
+.settings-target-heading .btn {
+    flex: 0 0 auto;
+    width: auto;
+}
+
+.settings-readonly-field {
+    color: var(--muted);
+    background: color-mix(in srgb, var(--surface) 88%, var(--accent-soft));
+    cursor: default;
+}
+
+#settings-ai-panel {
+    --settings-card-accent: #27877c;
+}
+
+#settings-alert-panel { --settings-card-accent: #b34a3f; }
+
+.settings-alert-group { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-soft); }
+.settings-check-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.settings-alert-rules-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.settings-check-grid .toggle-row { min-height: 48px; padding: 10px 12px; background: var(--surface); }
+.settings-check-grid .toggle-row small { display: block; color: var(--muted); font-size: .72rem; font-weight: 600; }
+.settings-check-grid .toggle-row.is-disabled { opacity: .58; }
+.settings-threshold-field { max-width: 280px; }
+.monitor-legacy-alert-settings { }
+
+#settings-clickup-panel {
+    --settings-card-accent: #5278a4;
+}
+
+#settings-slack-panel {
+    --settings-card-accent: #b06a35;
+}
+
+.settings-disclosure:not([open]) {
+    border-color: color-mix(in srgb, var(--settings-card-accent) 28%, var(--border));
+}
+
+.settings-disclosure:not([open]) .settings-card-summary {
+    background: linear-gradient(
+        100deg,
+        color-mix(in srgb, var(--settings-card-accent) 11%, var(--surface)) 0%,
+        color-mix(in srgb, var(--settings-card-accent) 4%, var(--surface)) 52%,
+        var(--surface) 100%
+    );
+    box-shadow: inset 4px 0 0 color-mix(in srgb, var(--settings-card-accent) 75%, transparent);
+}
+
+.settings-disclosure:not([open]) .eyebrow,
+.settings-disclosure:not([open]) .settings-card-chevron {
+    color: color-mix(in srgb, var(--settings-card-accent) 78%, var(--ink));
+}
+
 .settings-hero-main,
 .settings-card-header {
     display: flex;
@@ -1044,11 +1163,14 @@ body.connection-body .support-status {
     justify-content: space-between;
     align-items: flex-start;
     gap: 18px;
+    position: relative;
 }
 
 .monitor-hero-main {
     display: grid;
     gap: 10px;
+    min-width: 0;
+    flex: 1 1 auto;
 }
 
 .hero-title-row {
@@ -1074,6 +1196,7 @@ body.connection-body .support-status {
     justify-content: flex-end;
     min-width: auto;
     margin-left: auto;
+    align-self: flex-start;
 }
 
 .hero-actions-row {
@@ -1082,6 +1205,7 @@ body.connection-body .support-status {
     flex-wrap: nowrap;
     gap: 12px;
     align-items: center;
+    margin-left: auto;
 }
 
 .hero-control-label {
@@ -1351,7 +1475,54 @@ body.connection-body .support-status {
 }
 
 .panel-disclosure {
+    --panel-accent: var(--accent);
+    --panel-accent-rgb: 15, 108, 92;
     overflow: hidden;
+}
+
+.panel-disclosure:not([open]) {
+    border-color: rgba(var(--panel-accent-rgb), 0.22);
+    background:
+        linear-gradient(100deg, rgba(var(--panel-accent-rgb), 0.11), rgba(var(--panel-accent-rgb), 0.025) 58%, transparent),
+        var(--surface);
+    box-shadow:
+        inset 4px 0 0 rgba(var(--panel-accent-rgb), 0.72),
+        var(--shadow);
+}
+
+.panel-disclosure:not([open]) .eyebrow {
+    color: var(--panel-accent);
+}
+
+.panel-disclosure:not([open]) .panel-disclosure-icon {
+    border-color: rgba(var(--panel-accent-rgb), 0.24);
+    background: rgba(var(--panel-accent-rgb), 0.1);
+    color: var(--panel-accent);
+}
+
+.panel-tone-incidents {
+    --panel-accent: #A5463D;
+    --panel-accent-rgb: 165, 70, 61;
+}
+
+.panel-tone-ai {
+    --panel-accent: #247F76;
+    --panel-accent-rgb: 36, 127, 118;
+}
+
+.panel-tone-operations {
+    --panel-accent: #3E6F9D;
+    --panel-accent-rgb: 62, 111, 157;
+}
+
+.panel-tone-alerts {
+    --panel-accent: #A86621;
+    --panel-accent-rgb: 168, 102, 33;
+}
+
+.panel-tone-logs {
+    --panel-accent: #677182;
+    --panel-accent-rgb: 103, 113, 130;
 }
 
 .panel-disclosure-summary {
@@ -2258,6 +2429,27 @@ body.connection-body .support-status {
     gap: 14px;
 }
 
+.alert-settings-group {
+    display: grid;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-soft);
+}
+
+.slack-rules-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.slack-rules-grid .toggle-row {
+    min-height: 48px;
+    padding: 10px 12px;
+    background: var(--surface);
+}
+
 .email-settings-disclosure {
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
@@ -2945,6 +3137,35 @@ body.connection-body .support-status {
     .panel-disclosure-body {
         padding-left: 22px;
         padding-right: 22px;
+    }
+
+    .settings-card-summary,
+    .settings-disclosure-body {
+        padding-left: 18px;
+        padding-right: 18px;
+    }
+
+    .settings-card-summary {
+        align-items: flex-start;
+        gap: 14px;
+    }
+
+    .settings-card-summary-meta {
+        align-items: flex-start;
+    }
+
+    .settings-target-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .slack-rules-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .settings-check-grid,
+    .settings-alert-rules-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .brand-grid,

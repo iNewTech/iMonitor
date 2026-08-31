@@ -10,6 +10,7 @@ interface RegisterClickUpIpcDependencies {
     getClickUpSettings: () => ClickUpSettings;
     saveClickUpSettings: (settings: Partial<ClickUpSettings> | undefined) => ClickUpSettings;
     loadClickUpTargetOptions: () => Promise<ClickUpTargetOptions>;
+    resolveConfiguredAssignee: () => Promise<{ memberId: string; userEmail: string } | undefined>;
     getAlertById: (alertId: string) => MonitorAlert | undefined;
     mutateAlertWorkflow: (
         alertId: string,
@@ -30,6 +31,20 @@ export function registerClickUpIpc(dependencies: RegisterClickUpIpcDependencies)
     ipcMain.handle('get-clickup-settings', () => dependencies.getClickUpSettings());
     ipcMain.handle('save-clickup-settings', (_event, settings) => dependencies.saveClickUpSettings(settings));
     ipcMain.handle('load-clickup-target-options', () => dependencies.loadClickUpTargetOptions());
+    ipcMain.handle('resolve-clickup-assignee', async () => {
+        try {
+            const assignee = await dependencies.resolveConfiguredAssignee();
+            return {
+                success: true,
+                ...assignee
+            };
+        } catch (error) {
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : String(error)
+            };
+        }
+    });
 
     ipcMain.handle('create-clickup-task-for-alert', async (_event, alertId: string) => {
         const alert = dependencies.getAlertById(alertId);

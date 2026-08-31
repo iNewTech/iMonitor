@@ -24,6 +24,7 @@
 <li>active jobs table</li>
 <li>live refresh interval control</li>
 <li>peak CPU, running jobs, waiting jobs summary</li>
+<li>local AI analyst panel for alert and log analysis</li>
 <li>job details drawer</li>
 <li>root-cause guidance in job details</li>
 <li>SQL detail display</li>
@@ -31,22 +32,55 @@
 </ul>
 <h3 id="alerts" class="tsd-anchor-link">Alerts<a href="#alerts" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul>
+<li><code>IBMEye Alerts</code> module inside <code>iMonitor</code></li>
 <li>MSGW alerts</li>
 <li>LCKW alerts</li>
+<li>DLYW alerts</li>
+<li>DEQW alerts</li>
 <li>high CPU alerts</li>
 <li>failed poll alerts</li>
 <li>desktop notifications</li>
+<li>SMTP email notifications</li>
+<li>Slack channel alert notifications through an Incoming Webhook</li>
+<li>test email action from the monitor screen</li>
 <li>sticky queue with active and resolved alerts</li>
 <li>clear alert action</li>
 </ul>
 <h3 id="logs" class="tsd-anchor-link">Logs<a href="#logs" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul>
+<li><code>iMonitor Logs</code></li>
 <li>operator activity log</li>
 <li>share operator log</li>
 <li>download operator log</li>
 <li>open logs folder</li>
 <li>daily readable and structured logs</li>
 <li>structured poll history foundation for future cross-session replay</li>
+</ul>
+<h3 id="alert-ticket-automation" class="tsd-anchor-link">Alert ticket automation<a href="#alert-ticket-automation" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul>
+<li>independent ClickUp task rule for each alert type</li>
+<li>default task creation for MSGW, LCKW, and high CPU</li>
+<li>optional task creation for DLYW, DEQW, and poll failures</li>
+<li>one task reference retained per incident</li>
+<li>authenticated ClickUp user assignment</li>
+<li>AI diagnostic comment with issue, cause, and resolution guidance</li>
+<li>current readable daily log attached to the task</li>
+<li>failures recorded locally without removing the ClickUp task</li>
+</ul>
+<h3 id="slack-channel-alerts" class="tsd-anchor-link">Slack channel alerts<a href="#slack-channel-alerts" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul>
+<li>encrypted per-operator webhook settings</li>
+<li>one shared channel destination per configured webhook</li>
+<li>independent routing rules for each alert type</li>
+<li>test delivery action from Settings</li>
+<li>asynchronous delivery that does not block polling</li>
+</ul>
+<h3 id="support" class="tsd-anchor-link">Support<a href="#support" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul>
+<li>one-click support diagnostics bundle</li>
+<li>support contact and diagnostics actions available before login</li>
+<li>read-only monitor and job investigation surfaces</li>
+<li>guided cause, impact, and next-step help for common failures</li>
 </ul>
 <h2 id="development-only-features" class="tsd-anchor-link">Development-Only Features<a href="#development-only-features" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <ul>
@@ -108,7 +142,10 @@
 <li><a href="#connection"><span>Connection</span></a></li>
 <li><a href="#monitoring"><span>Monitoring</span></a></li>
 <li><a href="#alerts"><span>Alerts</span></a></li>
-<li><a href="#logs"><span>Logs</span></a></li></ul></li>
+<li><a href="#logs"><span>Logs</span></a></li>
+<li><a href="#alert-ticket-automation"><span>Alert ticket automation</span></a></li>
+<li><a href="#slack-channel-alerts"><span>Slack channel alerts</span></a></li>
+<li><a href="#support"><span>Support</span></a></li></ul></li>
 <li><a href="#development-only-features"><span>Development-<wbr/>Only <wbr/>Features</span></a></li>
 <li><a href="#planned-feature-track"><span>Planned <wbr/>Feature <wbr/>Track</span></a></li>
 <li>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>iMonitor Dashboard</title>
+    <title>iMonitor ActionBoard</title>
     <link href="../node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="../node_modules/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
@@ -18,7 +18,7 @@
                         <div class="hero-title-row">
                             <img src="assets/ibm-eye.svg" alt="IBMEye" class="hero-logo">
                             <div>
-                                <h1 class="hero-title">iMonitor Dashboard</h1>
+                                <h1 class="hero-title">iMonitor ActionBoard</h1>
                                 <p class="hero-subtitle mb-0">Jobs, waits, IBMEye alerts, and SQL in one surface.</p>
                             </div>
                         </div>
@@ -98,7 +98,7 @@
                 </article>
             </section>
 
-            <details class="surface-card panel-disclosure alerts-panel" open>
+            <details class="surface-card panel-disclosure panel-tone-incidents alerts-panel">
                 <summary class="panel-disclosure-summary">
                     <div>
                         <p class="eyebrow mb-2">IBMEye Alerts</p>
@@ -115,6 +115,10 @@
                     </div>
                 </summary>
                 <div class="panel-disclosure-body">
+                    <div class="alert-toolbar">
+                        <label class="visually-hidden" for="alert-search-input">Search alerts</label>
+                        <input id="alert-search-input" class="form-control" type="search" placeholder="Search alerts by job, type, or message">
+                    </div>
                     <div id="focus-alert-shell" class="focus-alert-shell" hidden>
                         <div class="focus-alert-header">
                             <div>
@@ -133,6 +137,14 @@
                             <span>No active alerts.</span>
                         </div>
                     </div>
+                    <details class="on-demand-panel">
+                        <summary>QSYSOPR messages <span id="system-message-count" class="table-caption">Load when needed</span></summary>
+                        <div class="on-demand-panel-body">
+                            <button id="load-system-messages" type="button" class="btn btn-outline-ink btn-sm">Load messages</button>
+                            <p id="system-messages-status" class="stat-note mb-0">Read-only view. Loading does not change the message queue.</p>
+                            <div id="system-messages-list" class="on-demand-output"></div>
+                        </div>
+                    </details>
                 </div>
             </details>
 
@@ -204,7 +216,7 @@
                 </article>
             </section>
 
-            <details class="surface-card panel-disclosure ai-assistant-panel" open>
+            <details class="surface-card panel-disclosure panel-tone-ai ai-assistant-panel">
                 <summary class="panel-disclosure-summary">
                     <div>
                         <p class="eyebrow mb-2">IBMEye AI Analysis</p>
@@ -281,7 +293,7 @@
             </details>
 
             <section class="operations-grid">
-                <details class="table-shell surface-card panel-disclosure" open>
+                <details class="table-shell surface-card panel-disclosure panel-tone-operations">
                     <summary class="panel-disclosure-summary">
                         <div>
                             <p class="eyebrow mb-2">Active Jobs</p>
@@ -367,7 +379,7 @@
                 </details>
             </section>
 
-            <details class="surface-card panel-disclosure alert-rules-panel">
+            <details class="surface-card panel-disclosure panel-tone-alerts alert-rules-panel monitor-legacy-alert-settings">
                 <summary class="panel-disclosure-summary">
                     <div>
                         <p class="eyebrow mb-2">IBMEye Alerts</p>
@@ -407,6 +419,14 @@
                         <label class="toggle-row">
                             <span>LCKW alerts</span>
                             <input type="checkbox" id="watch-lock-wait">
+                        </label>
+                        <label class="toggle-row">
+                            <span>DLYW alerts</span>
+                            <input type="checkbox" id="watch-delay-wait">
+                        </label>
+                        <label class="toggle-row">
+                            <span>DEQW alerts</span>
+                            <input type="checkbox" id="watch-dequeue-wait">
                         </label>
                         <label class="toggle-row">
                             <span>Failed poll alerts</span>
@@ -475,7 +495,7 @@
                 </div>
             </details>
 
-            <details class="activity-log-shell surface-card panel-disclosure">
+            <details class="activity-log-shell surface-card panel-disclosure panel-tone-logs">
                 <summary class="panel-disclosure-summary">
                     <div>
                         <p class="eyebrow mb-2">iMonitor Logs</p>
@@ -706,7 +726,7 @@
             <section class="job-detail-section">
                 <div class="history-card-header">
                     <div>
-                        <p class="eyebrow mb-2">Operator Actions</p>
+                        <p class="eyebrow mb-2">iMonitor ActionBoard</p>
                         <h3 class="section-title">Take action from the drawer</h3>
                     </div>
                 </div>
@@ -735,6 +755,24 @@
                     <span id="detail-sql-status" class="table-caption">No SQL detected</span>
                 </div>
                 <pre id="detail-sql-text" class="activity-log-sql">No SQL statement captured for this job.</pre>
+            </section>
+
+            <section class="job-detail-section on-demand-panel">
+                <div class="history-card-header">
+                    <div>
+                        <p class="eyebrow mb-2">IBM i details</p>
+                        <h3 class="section-title">Load more only when needed</h3>
+                    </div>
+                </div>
+                <div class="alert-actions">
+                    <button id="load-job-context" type="button" class="btn btn-outline-ink btn-sm">Job, queue &amp; subsystem</button>
+                    <button id="load-job-log" type="button" class="btn btn-outline-ink btn-sm">Load job log</button>
+                    <button id="load-job-messages" type="button" class="btn btn-outline-ink btn-sm">Load MSGW context</button>
+                </div>
+                <p id="job-on-demand-status" class="stat-note mt-3 mb-0">These queries run only when requested.</p>
+                <div id="job-context-output" class="on-demand-output"></div>
+                <div id="job-log-output" class="on-demand-output"></div>
+                <div id="job-messages-output" class="on-demand-output"></div>
             </section>
         </div>
     </aside>

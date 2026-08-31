@@ -44,8 +44,16 @@ const settings: AlertSettings = {
     highCpuThreshold: 80,
     watchMessageWait: true,
     watchLockWait: true,
+    watchDelayWait: true,
+    watchDequeueWait: true,
     watchFailedPolls: true,
-    watchDisconnects: true
+    watchDisconnects: true,
+    createClickUpForHighCpu: true,
+    createClickUpForMessageWait: true,
+    createClickUpForLockWait: true,
+    createClickUpForDelayWait: false,
+    createClickUpForDequeueWait: false,
+    createClickUpForPollFailure: false
 };
 
 describe('alert workflow evaluation', () => {
@@ -102,6 +110,24 @@ describe('alert workflow evaluation', () => {
         expect(failure?.alert.workflowStatus).toBe('new');
         expect(failure?.workflowState.status).toBe('new');
         expect(failure?.alert.kind).toBe('pollFailure');
+    });
+
+    it('creates optional DLYW and DEQW alerts when those watchers are enabled', () => {
+        const result = evaluateAlertRules([
+            createJob({ JOB_NAME: '1/DEMO/DLYW', STATUS: 'DLYW' }),
+            createJob({ JOB_NAME: '2/DEMO/DEQW', STATUS: 'DEQW' })
+        ], {
+            activeAlerts: [],
+            dismissedAlertIds: new Set<string>(),
+            workflowStateByAlertId: {},
+            settings,
+            timestamp: '2026-08-23T12:00:00.000Z',
+            notify: vi.fn()
+        });
+
+        expect(result.alerts.map((alert) => alert.kind)).toEqual(
+            expect.arrayContaining(['dequeueWait', 'delayWait'])
+        );
     });
 
     it('notifies when a brand-new alert is created', () => {

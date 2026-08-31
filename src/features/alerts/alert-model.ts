@@ -8,7 +8,7 @@ export type AlertSeverity = 'critical' | 'warning';
 /**
  * Supported alert categories in the IBMEye module.
  */
-export type AlertKind = 'highCpu' | 'messageWait' | 'lockWait' | 'pollFailure';
+export type AlertKind = 'highCpu' | 'messageWait' | 'lockWait' | 'delayWait' | 'dequeueWait' | 'pollFailure';
 
 /**
  * Operator workflow states for tracked alerts.
@@ -38,8 +38,16 @@ export interface AlertSettings {
     highCpuThreshold: number;
     watchMessageWait: boolean;
     watchLockWait: boolean;
+    watchDelayWait: boolean;
+    watchDequeueWait: boolean;
     watchFailedPolls: boolean;
     watchDisconnects: boolean;
+    createClickUpForHighCpu: boolean;
+    createClickUpForMessageWait: boolean;
+    createClickUpForLockWait: boolean;
+    createClickUpForDelayWait: boolean;
+    createClickUpForDequeueWait: boolean;
+    createClickUpForPollFailure: boolean;
 }
 
 /**
@@ -110,8 +118,16 @@ export const DEFAULT_ALERT_SETTINGS: AlertSettings = {
     highCpuThreshold: 80,
     watchMessageWait: true,
     watchLockWait: true,
+    watchDelayWait: true,
+    watchDequeueWait: true,
     watchFailedPolls: true,
-    watchDisconnects: true
+    watchDisconnects: true,
+    createClickUpForHighCpu: true,
+    createClickUpForMessageWait: true,
+    createClickUpForLockWait: true,
+    createClickUpForDelayWait: false,
+    createClickUpForDequeueWait: false,
+    createClickUpForPollFailure: false
 };
 
 /**
@@ -128,9 +144,39 @@ export function normalizeAlertSettings(candidate: Partial<AlertSettings> | undef
             : DEFAULT_ALERT_SETTINGS.highCpuThreshold,
         watchMessageWait: candidate?.watchMessageWait ?? DEFAULT_ALERT_SETTINGS.watchMessageWait,
         watchLockWait: candidate?.watchLockWait ?? DEFAULT_ALERT_SETTINGS.watchLockWait,
+        watchDelayWait: candidate?.watchDelayWait ?? DEFAULT_ALERT_SETTINGS.watchDelayWait,
+        watchDequeueWait: candidate?.watchDequeueWait ?? DEFAULT_ALERT_SETTINGS.watchDequeueWait,
         watchFailedPolls: candidate?.watchFailedPolls ?? DEFAULT_ALERT_SETTINGS.watchFailedPolls,
-        watchDisconnects: candidate?.watchDisconnects ?? DEFAULT_ALERT_SETTINGS.watchDisconnects
+        watchDisconnects: candidate?.watchDisconnects ?? DEFAULT_ALERT_SETTINGS.watchDisconnects,
+        createClickUpForHighCpu: candidate?.createClickUpForHighCpu ?? DEFAULT_ALERT_SETTINGS.createClickUpForHighCpu,
+        createClickUpForMessageWait: candidate?.createClickUpForMessageWait ?? DEFAULT_ALERT_SETTINGS.createClickUpForMessageWait,
+        createClickUpForLockWait: candidate?.createClickUpForLockWait ?? DEFAULT_ALERT_SETTINGS.createClickUpForLockWait,
+        createClickUpForDelayWait: candidate?.createClickUpForDelayWait ?? DEFAULT_ALERT_SETTINGS.createClickUpForDelayWait,
+        createClickUpForDequeueWait: candidate?.createClickUpForDequeueWait ?? DEFAULT_ALERT_SETTINGS.createClickUpForDequeueWait,
+        createClickUpForPollFailure: candidate?.createClickUpForPollFailure ?? DEFAULT_ALERT_SETTINGS.createClickUpForPollFailure
     };
+}
+
+/**
+ * Returns whether a new alert kind should create a ClickUp task.
+ */
+export function shouldCreateClickUpTask(settings: AlertSettings, kind: AlertKind) {
+    switch (kind) {
+        case 'highCpu':
+            return settings.createClickUpForHighCpu;
+        case 'messageWait':
+            return settings.createClickUpForMessageWait;
+        case 'lockWait':
+            return settings.createClickUpForLockWait;
+        case 'delayWait':
+            return settings.createClickUpForDelayWait;
+        case 'dequeueWait':
+            return settings.createClickUpForDequeueWait;
+        case 'pollFailure':
+            return settings.createClickUpForPollFailure;
+        default:
+            return false;
+    }
 }
 
 function severityRank(severity: AlertSeverity) {

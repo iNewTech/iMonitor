@@ -44,7 +44,36 @@ export interface ActiveJobRecord {
   INTERNAL_MACHINE_LOCK_WAIT_TIME: number | string | null;
   SQL_STATEMENT_TEXT: string | null;
   SQL_STATEMENT_STATUS: string | null;
-  SQL_STATEMENT_START_TIMESTAMP: string | null;
+    SQL_STATEMENT_START_TIMESTAMP: string | null;
+}
+
+export interface JobLogRecord {
+  ORDINAL_POSITION: number | null;
+  MESSAGE_ID: string | null;
+  MESSAGE_TYPE: string | null;
+  MESSAGE_TIMESTAMP: string | null;
+  MESSAGE_TEXT: string | null;
+  MESSAGE_SECOND_LEVEL_TEXT: string | null;
+  MESSAGE_KEY_HEX: string | null;
+  QUALIFIED_JOB_NAME: string | null;
+}
+
+export interface JobMessageRecord extends JobLogRecord {
+  MESSAGE_QUEUE_LIBRARY: string | null;
+  MESSAGE_QUEUE_NAME: string | null;
+}
+
+export interface SystemMessageRecord {
+  MESSAGE_QUEUE_LIBRARY: string | null;
+  MESSAGE_QUEUE_NAME: string | null;
+  MESSAGE_KEY_HEX: string | null;
+  MESSAGE_ID: string | null;
+  MESSAGE_TYPE: string | null;
+  FROM_USER: string | null;
+  FROM_JOB: string | null;
+  MESSAGE_TIMESTAMP: string | null;
+  MESSAGE_TEXT: string | null;
+  MESSAGE_SECOND_LEVEL_TEXT: string | null;
 }
 
 interface PeerCertificateIdentity {
@@ -242,5 +271,113 @@ export default class Db {
    */
   async executeClCommand(command: string) {
     return this.query('CALL QSYS2.QCMDEXC(?)', [command]);
+  }
+
+  /**
+   * Loads the current IBM i job properties, including queue metadata.
+   */
+  async getJobProperties(jobName: string) {
+    const result = await this.query<QueryResult<Record<string, unknown>>>(`
+      SELECT *
+      FROM TABLE(QSYS2.JOB_INFO(JOB_NAME_FILTER => ?))
+      FETCH FIRST 1 ROW ONLY
+    `, [jobName]);
+    return result.data?.[0] ?? null;
+  }
+
+  /**
+   * Loads the job queue definition associated with a job.
+   */
+  async getJobQueueDetails(queueName: string, queueLibrary = 'QGPL') {
+    const result = await this.query<QueryResult<Record<string, unknown>>>(`
+      SELECT *
+      FROM QSYS2.JOB_QUEUE_INFO
+      WHERE JOB_QUEUE_NAME = ?
+        AND JOB_QUEUE_LIBRARY = ?
+      FETCH FIRST 1 ROW ONLY
+    `, [queueName, queueLibrary]);
+    return result.data?.[0] ?? null;
+  }
+
+  /**
+   * Loads operational information for a subsystem.
+   */
+  async getSubsystemDetails(subsystemName: string, subsystemLibrary = 'QSYS') {
+    const result = await this.query<QueryResult<Record<string, unknown>>>(`
+      SELECT *
+      FROM QSYS2.SUBSYSTEM_INFO
+      WHERE SUBSYSTEM_DESCRIPTION = ?
+        AND SUBSYSTEM_DESCRIPTION_LIBRARY = ?
+      FETCH FIRST 1 ROW ONLY
+    `, [subsystemName, subsystemLibrary]);
+    return result.data?.[0] ?? null;
+  }
+
+  /**
+   * Loads the most recent messages from an IBM i job log.
+   */
+  async getJobLog(jobName: string) {
+    const result = await this.query<QueryResult<JobLogRecord>>(`
+      SELECT ORDINAL_POSITION, MESSAGE_ID, MESSAGE_TYPE, MESSAGE_TIMESTAMP,
+             MESSAGE_TEXT, MESSAGE_SECOND_LEVEL_TEXT, HEX(MESSAGE_KEY) AS MESSAGE_KEY_HEX,
+             QUALIFIED_JOB_NAME
+      FROM TABLE(QSYS2.JOBLOG_INFO(?, 'YES'))
+      ORDER BY ORDINAL_POSITION DESC
+      FETCH FIRST 100 ROWS ONLY
+    `, [jobName]);
+    return result.data ?? [];
+  }
+
+  /**
+   * Loads inquiry messages with their queue and message key for safe replies.
+   */
+  async getJobMessages(jobName: string) {
+    const result = await this.query<QueryResult<JobMessageRecord>>(`
+      SELECT MESSAGE_QUEUE_LIBRARY, MESSAGE_QUEUE_NAME, HEX(MESSAGE_KEY) AS MESSAGE_KEY_HEX,
+             MESSAGE_ID, MESSAGE_TYPE, FROM_USER, FROM_JOB, MESSAGE_TIMESTAMP,
+             MESSAGE_TEXT, MESSAGE_SECOND_LEVEL_TEXT
+      FROM QSYS2.MESSAGE_QUEUE_INFO
+      WHERE FROM_JOB = ?
+        AND MESSAGE_TYPE IN ('INQUIRY', 'NOTIFY')
+      ORDER BY MESSAGE_TIMESTAMP DESC
+      FETCH FIRST 20 ROWS ONLY
+    `, [jobName]);
+    return result.data ?? [];
+  }
+
+  /**
+   * Loads recent operator messages without changing QSYSOPR state.
+   */
+  async getSystemMessages() {
+    const result = await this.query<QueryResult<SystemMessageRecord>>(`
+      SELECT MESSAGE_QUEUE_LIBRARY, MESSAGE_QUEUE_NAME, HEX(MESSAGE_KEY) AS MESSAGE_KEY_HEX,
+             MESSAGE_ID, MESSAGE_TYPE, FROM_USER, FROM_JOB, MESSAGE_TIMESTAMP,
+             MESSAGE_TEXT, MESSAGE_SECOND_LEVEL_TEXT
+      FROM TABLE(QSYS2.MESSAGE_QUEUE_INFO('QSYS', 'QSYSOPR', 'ALL', 0))
+      ORDER BY MESSAGE_TIMESTAMP DESC
+      FETCH FIRST 100 ROWS ONLY
+    `);
+    return result.data ?? [];
+  }
+
+  /**
+   * Loads a job together with its queue and subsystem context.
+   */
+  async getJobContext(jobName: string) {
+    const jobInfo = await this.getJobProperties(jobName);
+    if (!jobInfo) {
+      return { jobInfo: null, jobQueue: null, subsystem: null };
+    }
+
+    const queueName = String(jobInfo.JOB_QUEUE_NAME || '').trim();
+    const queueLibrary = String(jobInfo.JOB_QUEUE_LIBRARY || 'QGPL').trim() || 'QGPL';
+    const subsystemName = String(jobInfo.JOB_SUBSYSTEM || '').trim();
+    const subsystemLibrary = String(jobInfo.SUBSYSTEM_DESCRIPTION_LIBRARY || 'QSYS').trim() || 'QSYS';
+    const [jobQueue, subsystem] = await Promise.all([
+      queueName ? this.getJobQueueDetails(queueName, queueLibrary) : Promise.resolve(null),
+      subsystemName ? this.getSubsystemDetails(subsystemName, subsystemLibrary) : Promise.resolve(null)
+    ]);
+
+    return { jobInfo, jobQueue, subsystem };
   }
 }

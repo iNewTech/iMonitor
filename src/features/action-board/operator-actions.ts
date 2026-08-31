@@ -14,7 +14,16 @@ export interface OperatorActionRequest {
     jobName: string;
     replyText?: string;
     messageKey?: string;
+    messageQueue?: string;
+    confirmed?: boolean;
     endOption?: EndJobOption;
+}
+
+/**
+ * Identifies actions that must be explicitly confirmed by an operator.
+ */
+export function requiresOperatorConfirmation(kind: OperatorActionKind) {
+    return kind === 'holdJob' || kind === 'releaseJob' || kind === 'endJob' || kind === 'replyMessage';
 }
 
 export interface OperatorActionPlan {
@@ -47,22 +56,9 @@ export function getAvailableOperatorActions(job: ActionableJobShape): OperatorAc
                 ? 'Waiting for message context to be loaded before a safe reply can be sent.'
                 : 'Only available when the job is in MSGW.'
         },
-        {
-            kind: 'holdJob',
-            label: 'Hold Job',
-            enabled: !isEnded
-        },
-        {
-            kind: 'releaseJob',
-            label: 'Release Job',
-            enabled: !isEnded
-        },
-        {
-            kind: 'endJob',
-            label: 'End Job',
-            enabled: !isEnded,
-            dangerous: true
-        },
+        { kind: 'holdJob', label: 'Hold Job', enabled: !isEnded },
+        { kind: 'releaseJob', label: 'Release Job', enabled: !isEnded },
+        { kind: 'endJob', label: 'End Job', enabled: !isEnded, dangerous: true },
         {
             kind: 'inspectLocks',
             label: 'Inspect Locks',
@@ -91,17 +87,9 @@ export function buildOperatorActionPlan(request: OperatorActionRequest): Operato
 
     switch (normalized.kind) {
         case 'holdJob':
-            return {
-                kind: normalized.kind,
-                executionType: 'cl',
-                command: `HLDJOB JOB(${normalized.jobName})`
-            };
+            return { kind: normalized.kind, executionType: 'cl', command: `HLDJOB JOB(${normalized.jobName})` };
         case 'releaseJob':
-            return {
-                kind: normalized.kind,
-                executionType: 'cl',
-                command: `RLSJOB JOB(${normalized.jobName})`
-            };
+            return { kind: normalized.kind, executionType: 'cl', command: `RLSJOB JOB(${normalized.jobName})` };
         case 'endJob':
             return {
                 kind: normalized.kind,
@@ -109,22 +97,26 @@ export function buildOperatorActionPlan(request: OperatorActionRequest): Operato
                 command: `ENDJOB JOB(${normalized.jobName}) OPTION(${normalized.endOption === 'immediate' ? '*IMMED' : '*CNTRLD'})`
             };
         case 'inspectLocks':
-            return {
-                kind: normalized.kind,
-                executionType: 'blocked',
-                reason: 'Lock inspection needs a dedicated query path and is not wired yet.'
-            };
+            return { kind: normalized.kind, executionType: 'blocked', reason: 'Lock inspection needs a dedicated query path and is not wired yet.' };
         case 'replyMessage':
+            if (!normalized.replyText?.trim() || !normalized.messageKey?.trim() || !normalized.messageQueue?.trim()) {
+                return { kind: normalized.kind, executionType: 'blocked', reason: 'MSGW reply needs a message, queue, and reply value.' };
+            }
+
+            if (!/^[0-9a-f]{8}$/i.test(normalized.messageKey.trim())) {
+                return { kind: normalized.kind, executionType: 'blocked', reason: 'The message key is not in a safe IBM i format.' };
+            }
+
+            if (!/^[A-Z0-9_$#./]+$/i.test(normalized.messageQueue.trim())) {
+                return { kind: normalized.kind, executionType: 'blocked', reason: 'The message queue is not in a safe IBM i format.' };
+            }
+
             return {
                 kind: normalized.kind,
-                executionType: 'blocked',
-                reason: 'MSGW reply needs message-level job context that is not fetched yet.'
+                executionType: 'cl',
+                command: `SNDRPY MSGKEY(X'${normalized.messageKey.trim().toUpperCase()}') MSGQ(${normalized.messageQueue.trim()}) RPY('${normalized.replyText.trim().replace(/'/g, "''")}') RMV(*NO)`
             };
         default:
-            return {
-                kind: normalized.kind,
-                executionType: 'blocked',
-                reason: 'Unsupported operator action.'
-            };
+            return { kind: normalized.kind, executionType: 'blocked', reason: 'Unsupported operator action.' };
     }
 }

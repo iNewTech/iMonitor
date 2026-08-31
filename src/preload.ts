@@ -44,8 +44,16 @@ interface AlertSettings {
     highCpuThreshold: number;
     watchMessageWait: boolean;
     watchLockWait: boolean;
+    watchDelayWait: boolean;
+    watchDequeueWait: boolean;
     watchFailedPolls: boolean;
     watchDisconnects: boolean;
+    createClickUpForHighCpu: boolean;
+    createClickUpForMessageWait: boolean;
+    createClickUpForLockWait: boolean;
+    createClickUpForDelayWait: boolean;
+    createClickUpForDequeueWait: boolean;
+    createClickUpForPollFailure: boolean;
 }
 
 interface EmailNotificationSettings {
@@ -59,9 +67,21 @@ interface EmailNotificationSettings {
     toAddresses: string;
 }
 
+interface SlackSettings {
+    enabled: boolean;
+    webhookUrl: string;
+    channelName: string;
+    sendHighCpu: boolean;
+    sendMessageWait: boolean;
+    sendLockWait: boolean;
+    sendDelayWait: boolean;
+    sendDequeueWait: boolean;
+    sendPollFailure: boolean;
+}
+
 interface MonitorAlert {
     id: string;
-    kind: 'highCpu' | 'messageWait' | 'lockWait' | 'pollFailure';
+    kind: 'highCpu' | 'messageWait' | 'lockWait' | 'delayWait' | 'dequeueWait' | 'pollFailure';
     severity: 'critical' | 'warning';
     timestamp: string;
     lastSeenAt?: string;
@@ -130,6 +150,20 @@ interface JobDetailsPayload {
         dangerous?: boolean;
         reason?: string;
     }>;
+}
+
+interface JobContextPayload {
+    success: boolean;
+    error?: string;
+    jobInfo?: Record<string, unknown> | null;
+    jobQueue?: Record<string, unknown> | null;
+    subsystem?: Record<string, unknown> | null;
+}
+
+interface JobLogPayload {
+    success: boolean;
+    error?: string;
+    records: Array<Record<string, unknown>>;
 }
 
 interface ConnectionTestStatus {
@@ -325,6 +359,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
         spaces: Array<{ id: string; name: string; }>;
         lists: Array<{ id: string; name: string; source: 'folder' | 'folderless'; folderName?: string; }>;
     }>,
+    resolveClickUpAssignee: () => ipcRenderer.invoke('resolve-clickup-assignee') as Promise<{
+        success: boolean;
+        memberId?: string;
+        userEmail?: string;
+        error?: string;
+    }>,
     createClickUpTaskForAlert: (alertId: string) => ipcRenderer.invoke('create-clickup-task-for-alert', alertId) as Promise<{
         success: boolean;
         reused?: boolean;
@@ -351,6 +391,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     sendTestEmailNotification: () => (
         ipcRenderer.invoke('send-test-email-notification') as Promise<{ success: boolean; error?: string; }>
     ),
+    getSlackSettings: () => ipcRenderer.invoke('get-slack-settings') as Promise<SlackSettings>,
+    saveSlackSettings: (settings: Partial<SlackSettings>) => (
+        ipcRenderer.invoke('save-slack-settings', settings) as Promise<SlackSettings>
+    ),
+    sendTestSlackMessage: () => (
+        ipcRenderer.invoke('send-test-slack-message') as Promise<{ success: boolean; error?: string; }>
+    ),
     deployMapepire: (config: {
         host: string;
         user: string;
@@ -368,15 +415,32 @@ contextBridge.exposeInMainWorld('electronAPI', {
         detail?: string;
     }>,
     getJobDetails: (jobName: string) => ipcRenderer.invoke('get-job-details', jobName) as Promise<JobDetailsPayload | null>,
+    getJobContext: (jobName: string) => ipcRenderer.invoke('get-job-context', jobName) as Promise<JobContextPayload>,
+    getJobLog: (jobName: string) => ipcRenderer.invoke('get-job-log', jobName) as Promise<JobLogPayload>,
+    getJobMessages: (jobName: string) => ipcRenderer.invoke('get-job-messages', jobName) as Promise<JobLogPayload>,
     runJobAction: (payload: {
         kind: 'replyMessage' | 'holdJob' | 'releaseJob' | 'endJob' | 'inspectLocks';
         jobName: string;
         replyText?: string;
+        messageKey?: string;
+        messageQueue?: string;
         endOption?: 'controlled' | 'immediate';
+        confirmed?: boolean;
     }) => ipcRenderer.invoke('run-job-action', payload) as Promise<{
         success: boolean;
         error?: string;
         message?: string;
+    }>,
+    recheckAlert: (alertId: string) => ipcRenderer.invoke('recheck-alert', alertId) as Promise<{
+        success: boolean;
+        status: 'active' | 'cleared' | 'unavailable';
+        alert?: MonitorAlert;
+        error?: string;
+    }>,
+    getSystemMessages: () => ipcRenderer.invoke('get-system-messages') as Promise<{
+        success: boolean;
+        records: Array<Record<string, unknown>>;
+        error?: string;
     }>,
     connectToSystem: (config: IBMiConfig) => ipcRenderer.invoke('connect-to-system', config),
     disconnect: () => ipcRenderer.invoke('disconnect'),

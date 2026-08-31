@@ -153,6 +153,82 @@ export function evaluateAlertRules(
             }
         }
 
+        if (settings.watchDelayWait && job.STATUS === 'DLYW') {
+            const alertId = `dlyw:${jobKey}`;
+            if (!dismissedAlertIds.has(alertId)) {
+                const existingAlert = existingAlerts.get(alertId);
+                const eventTimestamp = existingAlert?.isActive !== false && existingAlert?.timestamp
+                    ? existingAlert.timestamp
+                    : buildAlertEventTimestamp(timestamp, alertId);
+                const nextWorkflowState = buildNextWorkflowState({
+                    alertId,
+                    timestamp,
+                    eventTimestamp,
+                    detail: buildWaitReason(job),
+                    existingAlert,
+                    workflowStateByAlertId: nextWorkflowStateByAlertId
+                });
+                const alert = applyWorkflowStateToAlert({
+                    id: alertId,
+                    kind: 'delayWait',
+                    severity: 'warning',
+                    timestamp: existingAlert?.timestamp ?? eventTimestamp,
+                    lastSeenAt: timestamp,
+                    resolvedAt: undefined,
+                    isActive: true,
+                    title: 'DLYW detected',
+                    message: `${getJobTitle(job)} is delayed.`,
+                    detail: buildWaitReason(job),
+                    jobName: jobKey
+                }, nextWorkflowState);
+
+                if (!existingAlert) {
+                    notify(alertId, alert.title, `${alert.message} ${alert.detail || ''}`);
+                }
+
+                nextWorkflowStateByAlertId[alertId] = nextWorkflowState;
+                nextAlerts.set(alertId, alert);
+            }
+        }
+
+        if (settings.watchDequeueWait && job.STATUS === 'DEQW') {
+            const alertId = `deqw:${jobKey}`;
+            if (!dismissedAlertIds.has(alertId)) {
+                const existingAlert = existingAlerts.get(alertId);
+                const eventTimestamp = existingAlert?.isActive !== false && existingAlert?.timestamp
+                    ? existingAlert.timestamp
+                    : buildAlertEventTimestamp(timestamp, alertId);
+                const nextWorkflowState = buildNextWorkflowState({
+                    alertId,
+                    timestamp,
+                    eventTimestamp,
+                    detail: buildWaitReason(job),
+                    existingAlert,
+                    workflowStateByAlertId: nextWorkflowStateByAlertId
+                });
+                const alert = applyWorkflowStateToAlert({
+                    id: alertId,
+                    kind: 'dequeueWait',
+                    severity: 'warning',
+                    timestamp: existingAlert?.timestamp ?? eventTimestamp,
+                    lastSeenAt: timestamp,
+                    resolvedAt: undefined,
+                    isActive: true,
+                    title: 'DEQW detected',
+                    message: `${getJobTitle(job)} is waiting for a dequeue operation.`,
+                    detail: buildWaitReason(job),
+                    jobName: jobKey
+                }, nextWorkflowState);
+
+                if (!existingAlert) {
+                    notify(alertId, alert.title, `${alert.message} ${alert.detail || ''}`);
+                }
+
+                nextWorkflowStateByAlertId[alertId] = nextWorkflowState;
+                nextAlerts.set(alertId, alert);
+            }
+        }
+
         if (settings.watchHighCpu && cpu >= settings.highCpuThreshold) {
             const alertId = `cpu:${jobKey}`;
             if (!dismissedAlertIds.has(alertId)) {

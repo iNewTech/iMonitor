@@ -14,6 +14,7 @@ import {
 import { normalizeAlertSettings } from './features/alerts/alert-model';
 import { getDemoAvailability } from './features/demo/demo-runtime';
 import { buildJobRootCauseGuidance } from './features/guidance/root-cause-guidance';
+import { buildFallbackAlertDiagnostic } from './features/ibmeyeai/alert-diagnostic';
 import { buildWaitReason, getJobKey, toNumber } from './features/monitoring/monitoring-model';
 import {
     normalizeEmailNotificationSettings,
@@ -35,10 +36,17 @@ import {
     type ClickUpSettings
 } from './features/integrations/clickup/clickup-model';
 import {
+    normalizeSlackSettings,
+    shouldSendSlackAlert,
+    toRenderableSlackSettings,
+    toStoredSlackSettings,
+    type SlackSettings
+} from './features/integrations/slack/slack-model';
+import {
     buildOperatorActionPlan,
     getAvailableOperatorActions,
     type OperatorActionKind
-} from './features/operator-actions/operator-actions';
+} from './features/action-board/operator-actions';
 import { createAlertStateStore } from './main/state/alert-state';
 import { createConnectionStateStore } from './main/state/connection-state';
 import { createMonitoringStateStore } from './main/state/monitoring-state';
@@ -49,6 +57,7 @@ import { registerClickUpIpc } from './main/ipc/clickup-ipc';
 import { registerJobsIpc } from './main/ipc/jobs-ipc';
 import { registerLogsIpc } from './main/ipc/logs-ipc';
 import { registerNavigationIpc } from './main/ipc/navigation-ipc';
+import { registerSlackIpc } from './main/ipc/slack-ipc';
 import { registerSupportIpc } from './main/ipc/support-ipc';
 import { createAiRuntime } from './main/runtime/ai-runtime';
 import { createEmailNotificationRuntime } from './main/runtime/email-notification-runtime';
@@ -56,6 +65,7 @@ import { createClickUpRuntime } from './main/runtime/clickup-runtime';
 import { createMonitoringRuntime } from './main/runtime/monitoring-runtime';
 import { createLoggingRuntime } from './main/runtime/logging-runtime';
 import { createSessionRuntime } from './main/runtime/session-runtime';
+import { createSlackRuntime } from './main/runtime/slack-runtime';
 import { createSupportRuntime } from './main/runtime/support-runtime';
 import {
     createAppStore,
@@ -63,8 +73,10 @@ import {
     getNormalizedAlertSettings,
     getNormalizedStoredClickUpSettings,
     getNormalizedStoredEmailNotificationSettings,
+    getNormalizedStoredSlackSettings,
     getNormalizedThemeId,
-    setStoredClickUpSettingsForUser
+    setStoredClickUpSettingsForUser,
+    setStoredSlackSettingsForUser
 } from './main/store';
 import { createWindowRuntime } from './main/window/window-runtime';
 import { protectPassword, revealPassword } from './utils/password-store';
@@ -170,6 +182,28 @@ function saveClickUpSettings(candidate: Partial<ClickUpSettings> | undefined) {
     return merged;
 }
 
+function getSlackSettings() {
+    return toRenderableSlackSettings(
+        getNormalizedStoredSlackSettings(store, getCurrentOperatorName()),
+        revealSecret
+    );
+}
+
+function saveSlackSettings(candidate: Partial<SlackSettings> | undefined) {
+    const merged = normalizeSlackSettings({
+        ...getSlackSettings(),
+        ...(candidate ?? {})
+    });
+
+    setStoredSlackSettingsForUser(
+        store,
+        getCurrentOperatorName(),
+        toStoredSlackSettings(merged, protectSecret)
+    );
+
+    return merged;
+}
+
 function protectSecret(value: string) {
     return protectPassword(value, getCredentialOptions());
 }
@@ -227,15 +261,23 @@ const alertState = createAlertStateStore({
         windowRuntime.sendToWindow('alerts-updated', alerts);
     },
     onAlertCreated: async (alert) => {
+        const shouldSendSlack = Boolean(
+            slackRuntime.canSendAlerts()
+            && shouldSendSlackAlert(getSlackSettings(), alert.kind)
+        );
+
+        if (!shouldSendSlack) {
+            return;
+        }
+
         try {
-            const task = await clickUpRuntime.createTaskForAlert(alert);
-            alertState.mutateAlertWorkflow(alert.id, (state) => attachClickUpTaskToWorkflow(state, task, new Date().toISOString()));
+            await slackRuntime.sendAlert(alert);
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             loggingRuntime.recordActivity({
                 area: 'monitoring',
                 level: 'warning',
-                message: 'Automatic ClickUp task creation failed.',
+                message: 'Slack alert delivery failed.',
                 detail: `${alert.id}\n${message}`
             });
         }
@@ -271,6 +313,66 @@ const loggingRuntime = createLoggingRuntime({
 const clickUpRuntime = createClickUpRuntime({
     getSettings: getClickUpSettings,
     saveSettings: (settings) => saveClickUpSettings(settings),
+    getOperatorName: getCurrentOperatorName,
+    getJobReadableLogFilePath: (jobName) => loggingRuntime.getJobReadableLogFilePath(jobName),
+    recordActivity: loggingRuntime.recordActivity
+});
+
+async function createClickUpTaskForClaimedAlert(alertId: string) {
+    const alert = alertState.getActiveAlerts().find((entry) => entry.id === alertId);
+    if (!alert || alert.clickUpTask?.id) {
+        return;
+    }
+
+    if (!clickUpRuntime.canAutoCreateTasks()) {
+        loggingRuntime.recordActivity({
+            area: 'monitoring',
+            level: 'info',
+            message: 'Alert work started without a ClickUp task.',
+            detail: 'Configure ClickUp and select a target list to create tickets when operators start work.'
+        });
+        return;
+    }
+
+    try {
+        const task = await clickUpRuntime.createTaskForAlert(alert, { assignToOperator: true });
+        alertState.mutateAlertWorkflow(alertId, (state) => (
+            attachClickUpTaskToWorkflow(state, task, new Date().toISOString())
+        ));
+
+        let diagnostic = '';
+        try {
+            const diagnosticResult = await aiRuntime.analyzeAlert(alert);
+            diagnostic = diagnosticResult.success && diagnosticResult.reply
+                ? diagnosticResult.reply
+                : buildFallbackAlertDiagnostic(
+                    alert,
+                    diagnosticResult.error || diagnosticResult.availability?.message || 'No AI response was returned.'
+                );
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            diagnostic = buildFallbackAlertDiagnostic(alert, message);
+        }
+
+        await clickUpRuntime.publishAlertDiagnostic({
+            alertId,
+            taskId: task.id,
+            diagnostic,
+            jobName: alert.jobName
+        });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        loggingRuntime.recordActivity({
+            area: 'monitoring',
+            level: 'warning',
+            message: 'ClickUp task creation failed when work started.',
+            detail: `${alertId}\n${message}`
+        });
+    }
+}
+
+const slackRuntime = createSlackRuntime({
+    getSettings: getSlackSettings,
     getOperatorName: getCurrentOperatorName,
     recordActivity: loggingRuntime.recordActivity
 });
@@ -480,14 +582,63 @@ registerClickUpIpc({
     getClickUpSettings,
     saveClickUpSettings: (settings) => saveClickUpSettings(settings),
     loadClickUpTargetOptions: () => clickUpRuntime.loadTargetOptions(),
+    resolveConfiguredAssignee: () => clickUpRuntime.resolveConfiguredAssignee(),
     getAlertById: (alertId) => alertState.getActiveAlerts().find((alert) => alert.id === alertId),
     mutateAlertWorkflow: (alertId, mutation) => alertState.mutateAlertWorkflow(alertId, mutation),
     attachClickUpTaskToWorkflow,
     createTaskForAlert: (alert) => clickUpRuntime.createTaskForAlert(alert)
 });
 
+registerSlackIpc({
+    getSlackSettings,
+    saveSlackSettings: (settings) => saveSlackSettings(settings),
+    sendTestSlackMessage: async () => {
+        try {
+            await slackRuntime.sendTestMessage();
+            return { success: true };
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            loggingRuntime.recordActivity({
+                area: 'connection',
+                level: 'error',
+                message: 'Test Slack delivery failed.',
+                detail: message
+            });
+            return {
+                success: false,
+                error: message
+            };
+        }
+    }
+});
+
 registerAlertsIpc({
     getActiveAlerts: () => alertState.getActiveAlerts().slice(),
+    recheckAlerts: () => monitoringRuntime.publishSystemStatus(),
+    getSystemMessages: async () => {
+        const service = sessionRuntime.getCurrentService();
+        if (monitoringState.getMonitorMode() === 'live') {
+            if (!service) {
+                throw new Error('Not connected to IBM i');
+            }
+            return service.getSystemMessages();
+        }
+
+        return alertState.getActiveAlerts()
+            .filter((alert) => alert.kind === 'messageWait')
+            .map((alert) => ({
+                MESSAGE_QUEUE_LIBRARY: 'QSYS',
+                MESSAGE_QUEUE_NAME: 'QSYSOPR',
+                MESSAGE_KEY_HEX: null,
+                MESSAGE_ID: 'DEMO0001',
+                MESSAGE_TYPE: 'INQUIRY',
+                FROM_USER: 'QSYSOPR',
+                FROM_JOB: alert.jobName || null,
+                MESSAGE_TIMESTAMP: alert.timestamp,
+                MESSAGE_TEXT: alert.message,
+                MESSAGE_SECOND_LEVEL_TEXT: alert.detail || null
+            }));
+    },
     getAlertSettings,
     setAlertSettings: (settings) => {
         store.set('alertSettings', settings);
@@ -524,6 +675,7 @@ registerAlertsIpc({
     syncLinkedExternalWorkItem: async (payload) => {
         await clickUpRuntime.syncAlertWorkflowComment(payload);
     },
+    createClickUpTaskForClaimedAlert,
     recordActivity: loggingRuntime.recordActivity,
     onSettingsSaved: () => {
         const latestJobs = monitoringState.getLatestJobs();
@@ -541,6 +693,78 @@ registerAlertsIpc({
 registerJobsIpc({
     getJob: (jobName) => monitoringState.getJob(jobName),
     getJobStatusHistory: (jobName) => monitoringState.getJobStatusHistory(jobName),
+    getJobContext: async (jobName) => {
+        const job = monitoringState.getJob(jobName);
+        if (monitoringState.getMonitorMode() === 'live') {
+            const service = sessionRuntime.getCurrentService();
+            if (!service) {
+                throw new Error('Not connected to IBM i');
+            }
+            return service.getJobContext(jobName);
+        }
+
+        return {
+            jobInfo: job ? {
+                ...job,
+                JOB_STATUS: job.STATUS,
+                JOB_SUBSYSTEM: job.SUBSYSTEM,
+                JOB_QUEUE_NAME: null,
+                JOB_QUEUE_LIBRARY: null,
+                JOB_QUEUE_STATUS: null
+            } : null,
+            jobQueue: null,
+            subsystem: job ? {
+                SUBSYSTEM_DESCRIPTION: job.SUBSYSTEM,
+                SUBSYSTEM_DESCRIPTION_LIBRARY: job.SUBSYSTEM_LIBRARY_NAME,
+                STATUS: 'ACTIVE',
+                CURRENT_ACTIVE_JOBS: monitoringState.getLatestJobs().filter((candidate) => candidate.SUBSYSTEM === job.SUBSYSTEM).length,
+                TEXT_DESCRIPTION: 'Demo subsystem context'
+            } : null
+        };
+    },
+    getJobLog: async (jobName) => {
+        if (monitoringState.getMonitorMode() === 'live') {
+            const service = sessionRuntime.getCurrentService();
+            if (!service) {
+                throw new Error('Not connected to IBM i');
+            }
+            return service.getJobLog(jobName);
+        }
+
+        return monitoringState.getJobStatusHistory(jobName).map((entry, index) => ({
+            ORDINAL_POSITION: index + 1,
+            MESSAGE_ID: null,
+            MESSAGE_TYPE: 'STATUS',
+            MESSAGE_TIMESTAMP: entry.timestamp,
+            MESSAGE_TEXT: entry.label,
+            MESSAGE_SECOND_LEVEL_TEXT: null,
+            MESSAGE_KEY_HEX: null,
+            QUALIFIED_JOB_NAME: jobName
+        }));
+    },
+    getJobMessages: async (jobName) => {
+        if (monitoringState.getMonitorMode() === 'live') {
+            const service = sessionRuntime.getCurrentService();
+            if (!service) {
+                throw new Error('Not connected to IBM i');
+            }
+            return service.getJobMessages(jobName);
+        }
+
+        const job = monitoringState.getJob(jobName);
+        return job?.STATUS === 'MSGW' ? [{
+            MESSAGE_QUEUE_LIBRARY: 'QSYS',
+            MESSAGE_QUEUE_NAME: 'QSYSOPR',
+            MESSAGE_KEY_HEX: null,
+            MESSAGE_ID: 'DEMO0001',
+            MESSAGE_TYPE: 'INQUIRY',
+            FROM_USER: job.CURRENT_USER,
+            FROM_JOB: job.JOB_NAME,
+            MESSAGE_TIMESTAMP: new Date().toISOString(),
+            MESSAGE_TEXT: 'Demo MSGW requires an operator reply.',
+            MESSAGE_SECOND_LEVEL_TEXT: 'Demo mode does not contain a live message key.'
+        }] : [];
+    },
     buildWaitReason,
     buildJobRootCauseGuidance: (job) => buildJobRootCauseGuidance(job, getAlertSettings().highCpuThreshold),
     getAvailableOperatorActions,
@@ -577,6 +801,20 @@ registerJobsIpc({
         await monitoringRuntime.publishSystemStatus();
     },
     isLiveMonitorMode: () => monitoringState.getMonitorMode() === 'live',
+    getOperatorName: getCurrentOperatorName,
+    recordActionAudit: (entry) => {
+        loggingRuntime.recordActivity({
+            area: 'monitoring',
+            level: entry.result === 'success' ? 'success' : 'error',
+            message: `ActionBoard action ${entry.result}: ${entry.action}.`,
+            detail: [
+                `operator=${entry.operator}`,
+                `job=${entry.jobName}`,
+                entry.incidentId ? `incident=${entry.incidentId}` : undefined,
+                entry.detail
+            ].filter(Boolean).join(' | ')
+        });
+    },
     recordActivity: loggingRuntime.recordActivity
 });
 

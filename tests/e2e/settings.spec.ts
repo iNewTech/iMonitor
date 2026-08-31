@@ -45,10 +45,23 @@ test('opens the dedicated settings page and switches AI provider setup', async (
 
     try {
         await app.page.locator('#launch-demo').click();
-        await expect(app.page.getByRole('heading', { name: 'iMonitor Dashboard', exact: true })).toBeVisible();
+        await expect(app.page.getByRole('heading', { name: 'iMonitor ActionBoard', exact: true })).toBeVisible();
         await app.page.locator('#open-settings').click();
         await expect(app.page.getByRole('heading', { name: 'Configure AI providers and action integrations', exact: true })).toBeVisible();
         await expect(app.page.getByRole('heading', { name: 'ClickUp action tracking', exact: true })).toBeVisible();
+        await expect(app.page.getByRole('heading', { name: 'Slack channel alerts', exact: true })).toBeVisible();
+
+        const aiPanel = app.page.locator('#settings-ai-panel');
+        const clickUpPanel = app.page.locator('#settings-clickup-panel');
+        const slackPanel = app.page.locator('#settings-slack-panel');
+        await expect(aiPanel).not.toHaveAttribute('open', '');
+        await expect(clickUpPanel).not.toHaveAttribute('open', '');
+        await expect(slackPanel).not.toHaveAttribute('open', '');
+
+        await aiPanel.locator(':scope > summary').click();
+        await expect(aiPanel).toHaveAttribute('open', '');
+        await expect(clickUpPanel).not.toHaveAttribute('open', '');
+        await expect(slackPanel).not.toHaveAttribute('open', '');
 
         const providerTabs = app.page.locator('#settings-ai-provider-switcher .settings-provider-tab');
         await expect(providerTabs).toHaveCount(4);
@@ -62,6 +75,47 @@ test('opens the dedicated settings page and switches AI provider setup', async (
         await expect(app.page.locator('#settings-ai-endpoint-label')).toHaveText('API endpoint');
         await expect(app.page.locator('#settings-ai-api-key-label')).toHaveText('OpenAI API key');
         await expect(app.page.locator('#settings-ai-model-label')).toHaveText('OpenAI model');
+
+        await slackPanel.locator(':scope > summary').click();
+        await expect(slackPanel).toHaveAttribute('open', '');
+        await expect(aiPanel).not.toHaveAttribute('open', '');
+        await expect(app.page.locator('#settings-slack-summary-status')).toHaveText('Disabled');
+        await expect(app.page.locator('#settings-slack-message-wait')).toBeChecked();
+        await expect(app.page.locator('#settings-slack-lock-wait')).toBeChecked();
+        await expect(app.page.locator('#settings-slack-high-cpu')).toBeChecked();
+        await expect(app.page.locator('#settings-slack-delay-wait')).toBeChecked();
+        await expect(app.page.locator('#settings-slack-dequeue-wait')).toBeChecked();
+        await expect(app.page.locator('#settings-slack-poll-failure')).toBeChecked();
+
+        await clickUpPanel.locator(':scope > summary').click();
+        await expect(clickUpPanel).toHaveAttribute('open', '');
+        await expect(slackPanel).not.toHaveAttribute('open', '');
+        const emailInput = app.page.locator('#settings-clickup-user-email');
+        const memberIdInput = app.page.locator('#settings-clickup-member-id');
+        await expect(emailInput).toBeVisible();
+        await expect(memberIdInput).toBeVisible();
+        await expect(memberIdInput).toHaveAttribute('readonly', '');
+        await expect(clickUpPanel.locator('.settings-target-heading #clickup-load-targets')).toBeVisible();
+
+        await emailInput.fill('support@example.com');
+        await app.page.locator('#settings-clickup-form').evaluate((form: HTMLFormElement) => form.requestSubmit());
+        await expect(app.page.locator('#settings-clickup-status')).toHaveText(
+            'ClickUp settings saved. Add an API token to resolve the member ID.'
+        );
+
+        const emailSettings = await app.page.evaluate(() => window.electronAPI.getClickUpSettings());
+        expect(emailSettings.userEmail).toBe('support@example.com');
+        expect(emailSettings.memberId).toBe('');
+
+        await app.page.evaluate(() => window.electronAPI.saveClickUpSettings({
+            userEmail: 'support@example.com',
+            memberId: '998877',
+            assigneeUserId: '998877'
+        }));
+        await app.page.reload();
+        await app.page.locator('#settings-clickup-panel > summary').click();
+        await expect(app.page.locator('#settings-clickup-user-email')).toHaveValue('support@example.com');
+        await expect(app.page.locator('#settings-clickup-member-id')).toHaveValue('998877');
     } finally {
         await app.cleanup();
     }

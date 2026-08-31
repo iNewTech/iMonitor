@@ -3,6 +3,7 @@ import type { MonitorAlert } from '../../features/alerts/alert-model';
 import type { MonitoringSnapshot } from '../../features/monitoring/monitoring-model';
 import { buildAiAssistantContext } from '../../features/ibmeyeai/ai-context';
 import { buildAiAssistantPrompt } from '../../features/ibmeyeai/ai-prompt';
+import { buildAlertDiagnosticPrompt } from '../../features/ibmeyeai/alert-diagnostic';
 import type {
     AiAssistantAvailability,
     AiAssistantMessage,
@@ -134,8 +135,19 @@ export function createAiRuntime(dependencies: AiRuntimeDependencies) {
         }
     }
 
+    /**
+     * Creates a support-oriented diagnostic for one newly created alert.
+     */
+    async function analyzeAlert(alert: MonitorAlert) {
+        return askAssistant({
+            message: buildAlertDiagnosticPrompt(alert),
+            selectedJobName: alert.jobName
+        });
+    }
+
     return {
         getAiAvailability,
-        askAssistant
+        askAssistant,
+        analyzeAlert
     };
 }

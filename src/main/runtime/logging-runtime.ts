@@ -3,6 +3,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import type { ActiveJobRecord } from '../../services/ibmi';
 import type { ActivityLogEntry, MonitorMode, PersistentLogRecord } from '../types';
+import { buildJobHistoryLog } from '../../features/action-board/job-history-log';
 
 interface LoggingRuntimeDependencies {
     userDataPath: string;
@@ -273,6 +274,34 @@ export function createLoggingRuntime(dependencies: LoggingRuntimeDependencies) {
             })));
             logFilesWithStats.sort((left, right) => right.stats.mtimeMs - left.stats.mtimeMs);
             return logFilesWithStats[0].filePath;
+        },
+        async getJobReadableLogFilePath(jobName: string) {
+            await persistentLogWriteQueue;
+            const dateSegment = getCurrentLogDateSegment();
+            const structuredPath = getDailyLogFilePath(dateSegment);
+            const jobLogPath = path.join(
+                getLogsDirectoryPath(),
+                `ibm-eye-job-${sanitizeFileSegment(jobName)}-${dateSegment}.log`
+            );
+            let records: Array<{ timestamp: string; payload: Record<string, unknown>; }> = [];
+
+            try {
+                const contents = await fs.readFile(structuredPath, 'utf8');
+                records = contents.split('\n').filter(Boolean).flatMap((line) => {
+                    try {
+                        const record = JSON.parse(line) as PersistentLogRecord;
+                        return record.type === 'poll' ? [{ timestamp: record.timestamp, payload: record.payload }] : [];
+                    } catch {
+                        return [];
+                    }
+                });
+            } catch {
+                // The readable file explains when no poll history is available.
+            }
+
+            await fs.mkdir(getLogsDirectoryPath(), { recursive: true });
+            await fs.writeFile(jobLogPath, buildJobHistoryLog(jobName, records, dependencies.getJobKey), 'utf8');
+            return jobLogPath;
         },
         async downloadActivityLogFile() {
             const defaultPath = path.join(dependencies.downloadsPath, buildLogFileName());

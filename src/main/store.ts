@@ -23,6 +23,15 @@ import {
     type StoredClickUpSettings,
     type StoredClickUpSettingsByUser
 } from '../features/integrations/clickup/clickup-model';
+import {
+    DEFAULT_STORED_SLACK_SETTINGS_BY_USER,
+    DEFAULT_STORED_SLACK_SETTINGS,
+    normalizeSlackSettingsUserKey,
+    normalizeStoredSlackSettingsByUser,
+    normalizeStoredSlackSettings,
+    type StoredSlackSettings,
+    type StoredSlackSettingsByUser
+} from '../features/integrations/slack/slack-model';
 import { DEFAULT_THEME_ID, normalizeThemeId, type ThemeId } from '../features/theme/theme-model';
 import type { StoredConnection } from '../utils/connections';
 import type { StoredAlertWorkflowState } from '../features/alerts/alert-model';
@@ -34,6 +43,8 @@ export interface StoreSchema {
     aiAssistantSettings: StoredAiAssistantSettings;
     clickUpSettingsByUser: StoredClickUpSettingsByUser;
     clickUpSettings: StoredClickUpSettings;
+    slackSettingsByUser: StoredSlackSettingsByUser;
+    slackSettings: StoredSlackSettings;
     alertWorkflowState: Record<string, StoredAlertWorkflowState>;
     themeId: ThemeId;
 }
@@ -60,6 +71,8 @@ export function createAppStore() {
             aiAssistantSettings: DEFAULT_STORED_AI_ASSISTANT_SETTINGS,
             clickUpSettingsByUser: DEFAULT_STORED_CLICKUP_SETTINGS_BY_USER,
             clickUpSettings: DEFAULT_STORED_CLICKUP_SETTINGS,
+            slackSettingsByUser: DEFAULT_STORED_SLACK_SETTINGS_BY_USER,
+            slackSettings: DEFAULT_STORED_SLACK_SETTINGS,
             alertWorkflowState: {},
             themeId: DEFAULT_THEME_ID
         }
@@ -173,4 +186,57 @@ export function setStoredClickUpSettingsForUser(
     };
 
     store.set('clickUpSettingsByUser', nextSettingsByUser);
+}
+
+/**
+ * Loads encrypted Slack settings for one operator and migrates the legacy value once.
+ */
+export function getNormalizedStoredSlackSettings(store: AppStore, operatorName: string) {
+    const normalizedOperatorName = normalizeSlackSettingsUserKey(operatorName);
+    const storedSettingsByUser = store.get('slackSettingsByUser');
+    const normalizedSettingsByUser = normalizeStoredSlackSettingsByUser(storedSettingsByUser);
+
+    if (JSON.stringify(storedSettingsByUser) !== JSON.stringify(normalizedSettingsByUser)) {
+        store.set('slackSettingsByUser', normalizedSettingsByUser);
+    }
+
+    const storedSettings = normalizedSettingsByUser[normalizedOperatorName];
+    if (storedSettings) {
+        return storedSettings;
+    }
+
+    const legacyStoredSettings = store.get('slackSettings');
+    const normalizedLegacySettings = normalizeStoredSlackSettings(legacyStoredSettings);
+    if (JSON.stringify(legacyStoredSettings) !== JSON.stringify(normalizedLegacySettings)) {
+        store.set('slackSettings', normalizedLegacySettings);
+    }
+
+    const hasLegacySettings = JSON.stringify(normalizedLegacySettings) !== JSON.stringify(DEFAULT_STORED_SLACK_SETTINGS);
+    if (!hasLegacySettings) {
+        return normalizedLegacySettings;
+    }
+
+    const nextSettingsByUser = {
+        ...normalizedSettingsByUser,
+        [normalizedOperatorName]: normalizedLegacySettings
+    };
+    store.set('slackSettingsByUser', nextSettingsByUser);
+    return normalizedLegacySettings;
+}
+
+/**
+ * Persists one operator's encrypted Slack settings.
+ */
+export function setStoredSlackSettingsForUser(
+    store: AppStore,
+    operatorName: string,
+    settings: StoredSlackSettings
+) {
+    const normalizedOperatorName = normalizeSlackSettingsUserKey(operatorName);
+    const nextSettingsByUser = {
+        ...normalizeStoredSlackSettingsByUser(store.get('slackSettingsByUser')),
+        [normalizedOperatorName]: normalizeStoredSlackSettings(settings)
+    };
+
+    store.set('slackSettingsByUser', nextSettingsByUser);
 }

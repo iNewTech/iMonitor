@@ -92,8 +92,11 @@ export const DEFAULT_STORED_CLICKUP_SETTINGS: StoredClickUpSettings = {
 export const DEFAULT_STORED_CLICKUP_SETTINGS_BY_USER: StoredClickUpSettingsByUser = {};
 
 function normalizeSharedSettings(candidate: Partial<ClickUpSettings> | Partial<StoredClickUpSettings> | undefined) {
-    const directMemberId = String(candidate?.memberId ?? candidate?.assigneeUserId ?? '').trim();
+    const directMemberId = String(candidate?.memberId ?? '').trim();
     const legacyAssigneeUserId = String(candidate?.assigneeUserId ?? '').trim();
+    const memberId = [directMemberId, legacyAssigneeUserId].find((value) => /^\d+$/.test(value)) || '';
+    const configuredEmail = String(candidate?.userEmail ?? '').trim();
+    const legacyEmail = [directMemberId, legacyAssigneeUserId].find((value) => value.includes('@')) || '';
 
     return {
         enabled: Boolean(candidate?.enabled),
@@ -104,9 +107,9 @@ function normalizeSharedSettings(candidate: Partial<ClickUpSettings> | Partial<S
         listId: String(candidate?.listId ?? '').trim(),
         listName: String(candidate?.listName ?? '').trim(),
         syncComments: candidate?.syncComments ?? DEFAULT_CLICKUP_SETTINGS.syncComments,
-        userEmail: String(candidate?.userEmail ?? '').trim(),
-        memberId: directMemberId || legacyAssigneeUserId,
-        assigneeUserId: legacyAssigneeUserId || directMemberId
+        userEmail: configuredEmail || legacyEmail,
+        memberId,
+        assigneeUserId: memberId
     };
 }
 

@@ -8,7 +8,7 @@ iMonitor is the desktop app for IBM i teams. Inside it, `IBMEye` is the alert an
 - Auto-starts live monitoring after connect
 - Shows active job health, waits, CPU, and SQL details
 - Shows root-cause guidance in the job detail drawer
-- Includes an Ollama-backed AI analyst on the dashboard for alert, SQL, and selected-job analysis
+- Includes an Ollama-backed IBMEye AI analyst on the ActionBoard for alert, SQL, and selected-job analysis
 - Includes a dedicated Settings page for AI providers and action integrations
 - Supports drawer-based operator actions for hold, release, and end job
 - Raises operator alerts, desktop notifications, and SMTP email notifications
@@ -58,7 +58,7 @@ These are stored in the app logs directory and can be opened from the monitor sc
 
 ## Email Notifications
 
-The iMonitor Dashboard now includes SMTP email notification settings for `IBMEye Alerts`.
+The iMonitor ActionBoard includes SMTP email notification settings for `IBMEye Alerts`.
 
 You can:
 
@@ -68,6 +68,14 @@ You can:
 - send a test email before relying on it during incidents
 
 Alert-triggering conditions such as `MSGW`, `LCKW`, high CPU, failed polls, and disconnects can now send email when the alert itself is enabled and the SMTP settings are valid.
+
+## Alert Tickets And Diagnostics
+
+`IBMEye Alerts` sends newly detected alerts to the configured Slack channel. ClickUp is an action-tracking destination, not an automatic alert sink: no ClickUp task is created when an alert first appears.
+
+When an operator selects `Start Work`, iMonitor creates one ClickUp task for that incident, assigns it to the active operator, and links it back to the alert. The backend then adds an AI-generated diagnostic with the issue, likely cause, and resolution guidance, and attaches the current readable daily log. If a task already exists, later workflow updates are added as comments instead of creating duplicates.
+
+If AI or log attachment is unavailable, iMonitor keeps the ClickUp task and records the failure in `iMonitor Logs` instead of losing the incident.
 
 ## AI Analysis
 
@@ -92,8 +100,22 @@ You can:
 
 - save one ClickUp token locally
 - choose the workspace, space, and list used for alert tasks
-- create one task from an alert card
+- start work on an alert to create one assigned task
 - keep later operator notes and workflow updates synced as ClickUp comments
+- open the linked ClickUp task from the alert
+- add AI diagnostic comments and the current readable log to the task created when work starts
+
+## Slack Channel Alerts
+
+`iMonitor` can send new `IBMEye Alerts` to one shared Slack operations channel through an Incoming Webhook. The webhook is connected to its channel in Slack, so the app does not need to select or message an individual user. Slack settings are saved per local operator.
+
+In `Settings`, paste the webhook URL, enable Slack alerts, choose which alert types should be delivered, and use `Send Test` to verify the connection. All supported alert types are enabled by default. Repeated polls for the same active condition are not sent repeatedly.
+
+## Support Tools
+
+The Support menu is available even before login. `Contact Only` opens a normal email draft. `Contact + Send Diagnostics` creates a one-click support bundle containing the app version, platform details, connection context, recent monitor snapshots, operator activity, and the current readable log.
+
+The ActionBoard and job detail drawer are read-only for investigation until an operator deliberately chooses an IBM i action. Built-in guidance explains likely causes, impact, and safe checks for waits, high CPU, poll failures, and connection failures.
 
 ## Current Operator Actions
 

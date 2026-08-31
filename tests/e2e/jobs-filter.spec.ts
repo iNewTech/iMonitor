@@ -43,7 +43,10 @@ async function launchTestApp(): Promise<{
 async function openDemoMonitor(page: Page) {
     await expect(page.getByTestId('launch-demo')).toBeVisible();
     await page.getByTestId('launch-demo').click();
-    await expect(page.getByRole('heading', { name: 'iMonitor Dashboard', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'iMonitor ActionBoard', exact: true })).toBeVisible();
+    const jobsSummary = page.locator('.table-shell > summary');
+    await expect(jobsSummary).toBeVisible();
+    await jobsSummary.click({ force: true });
 }
 
 test('filters and searches the active jobs table in demo mode', async () => {

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { sortAlerts, type MonitorAlert } from './alert-model';
+import {
+    DEFAULT_ALERT_SETTINGS,
+    normalizeAlertSettings,
+    shouldCreateClickUpTask,
+    sortAlerts,
+    type MonitorAlert
+} from './alert-model';
 
 function createAlert(overrides: Partial<MonitorAlert>): MonitorAlert {
     return {
@@ -19,6 +25,26 @@ function createAlert(overrides: Partial<MonitorAlert>): MonitorAlert {
 }
 
 describe('alert-model', () => {
+    it('defaults ClickUp tickets to operator-impacting alert types', () => {
+        expect(DEFAULT_ALERT_SETTINGS.createClickUpForMessageWait).toBe(true);
+        expect(DEFAULT_ALERT_SETTINGS.createClickUpForLockWait).toBe(true);
+        expect(DEFAULT_ALERT_SETTINGS.createClickUpForHighCpu).toBe(true);
+        expect(DEFAULT_ALERT_SETTINGS.createClickUpForDelayWait).toBe(false);
+        expect(DEFAULT_ALERT_SETTINGS.createClickUpForDequeueWait).toBe(false);
+        expect(DEFAULT_ALERT_SETTINGS.createClickUpForPollFailure).toBe(false);
+        expect(shouldCreateClickUpTask(DEFAULT_ALERT_SETTINGS, 'messageWait')).toBe(true);
+        expect(shouldCreateClickUpTask(DEFAULT_ALERT_SETTINGS, 'lockWait')).toBe(true);
+        expect(shouldCreateClickUpTask(DEFAULT_ALERT_SETTINGS, 'highCpu')).toBe(true);
+        expect(shouldCreateClickUpTask(DEFAULT_ALERT_SETTINGS, 'delayWait')).toBe(false);
+    });
+
+    it('normalizes new wait watchers and ClickUp rules from older settings', () => {
+        expect(normalizeAlertSettings({ watchMessageWait: false })).toEqual({
+            ...DEFAULT_ALERT_SETTINGS,
+            watchMessageWait: false
+        });
+    });
+
     it('keeps active alerts first and orders each section from oldest to newest', () => {
         const alerts = sortAlerts([
             createAlert({

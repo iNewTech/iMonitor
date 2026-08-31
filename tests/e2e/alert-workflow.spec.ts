@@ -46,6 +46,7 @@ async function openDemoMonitor(page: Page) {
     await expect(page.getByTestId('launch-demo')).toBeVisible();
     await page.getByTestId('launch-demo').click();
     await expect(page.getByRole('heading', { name: 'IBMEye Incident Queue', exact: true })).toBeVisible();
+    await page.locator('.alerts-panel > summary').click();
     await expect(page.getByTestId('alert-card').first()).toBeVisible();
 }
 
@@ -54,8 +55,29 @@ test('launches the demo monitor and renders live alert cards', async () => {
 
     try {
         await openDemoMonitor(app.page);
-        await expect(app.page.getByRole('heading', { name: 'iMonitor Dashboard', exact: true })).toBeVisible();
+        await expect(app.page.getByRole('heading', { name: 'iMonitor ActionBoard', exact: true })).toBeVisible();
+        await expect(app.page.locator('.hero-logo')).toHaveAttribute('src', 'assets/ibm-eye.svg');
+        await expect(app.page.locator('.ai-assistant-panel')).toHaveClass(/panel-tone-ai/);
+        await expect(app.page.locator('.alert-rules-panel')).toHaveClass(/panel-tone-alerts/);
+        await expect(app.page.locator('.activity-log-shell')).toHaveClass(/panel-tone-logs/);
         await expect(app.page.getByTestId('alert-count')).toContainText('active alert');
+    } finally {
+        await app.cleanup();
+    }
+});
+
+test('keeps ClickUp ticket creation with the operator workflow', async () => {
+    const app = await launchTestApp();
+
+    try {
+        await openDemoMonitor(app.page);
+
+        const alertRules = app.page.locator('.alert-rules-panel');
+        await alertRules.locator(':scope > summary').click();
+
+        await expect(app.page.locator('[id^="create-clickup-"]')).toHaveCount(0);
+        await expect(app.page.getByTestId('alert-clickup-create')).toHaveCount(0);
+        await expect(alertRules.locator('#alert-settings-form button[type="submit"]')).toBeVisible();
     } finally {
         await app.cleanup();
     }

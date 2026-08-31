@@ -103,6 +103,7 @@ src/
 - showing current connection action status
 - alert and monitor interactions
 - job drawer guidance and operator action UI
+- ActionBoard operator actions and structured audit records
 
 ## Documentation Model
 

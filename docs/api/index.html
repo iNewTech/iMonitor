@@ -8,16 +8,18 @@
 <div class="col-content">
 <div class="tsd-page-title">
 <h1>imonitor</h1></div>
-<div class="tsd-panel tsd-typography"><h1 id="ibmeye" class="tsd-anchor-link">IBMEye<a href="#ibmeye" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h1>
-<p>IBMEye is a desktop operator app for IBM i teams. It connects to a system through Mapepire, watches active jobs, shows alerts such as <code>MSGW</code>, <code>LCKW</code>, and high CPU, and keeps a visible operator log so the user can see what the app is doing.</p>
+<div class="tsd-panel tsd-typography"><h1 id="imonitor" class="tsd-anchor-link">iMonitor<a href="#imonitor" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h1>
+<p>iMonitor is the desktop app for IBM i teams. Inside it, <code>IBMEye</code> is the alert and watch module that tracks conditions such as <code>MSGW</code>, <code>LCKW</code>, high CPU, and failed polls while iMonitor keeps connection, monitoring, and logs in one operator surface.</p>
 <h2 id="what-the-app-does" class="tsd-anchor-link">What The App Does<a href="#what-the-app-does" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <ul>
 <li>Connects to IBM i systems through Mapepire</li>
 <li>Auto-starts live monitoring after connect</li>
 <li>Shows active job health, waits, CPU, and SQL details</li>
 <li>Shows root-cause guidance in the job detail drawer</li>
+<li>Includes an Ollama-backed AI analyst on the dashboard for alert, SQL, and selected-job analysis</li>
+<li>Includes a dedicated Settings page for AI providers and action integrations</li>
 <li>Supports drawer-based operator actions for hold, release, and end job</li>
-<li>Raises operator alerts and desktop notifications</li>
+<li>Raises operator alerts, desktop notifications, and SMTP email notifications</li>
 <li>Keeps a local operator log and daily log files</li>
 <li>Can detect, start, or deploy Mapepire during connect</li>
 <li>Includes a development-only demo system for UI testing without real credentials</li>
@@ -35,7 +37,7 @@
 <ol>
 <li>Enter a connection name, system address, user, password, and Mapepire port.</li>
 <li>Click <code>Connect Now</code>.</li>
-<li>IBMEye will:
+<li>iMonitor will:
 <ul>
 <li>check whether Mapepire is already running</li>
 <li>start it if it is installed but stopped</li>
@@ -49,12 +51,59 @@
 <p>Use <code>Launch Demo</code> to open a local test system with generated jobs, waits, alerts, and logs.</p>
 <p>This is only available in development builds. Packaged production builds do not expose demo mode and will ignore demo connection requests.</p>
 <h2 id="logs" class="tsd-anchor-link">Logs<a href="#logs" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
-<p>IBMEye writes:</p>
+<p>iMonitor writes:</p>
 <ul>
 <li>a readable daily log: <code>ibm-eye-YYYY-MM-DD.log</code></li>
 <li>a structured daily log: <code>ibm-eye-YYYY-MM-DD.log.jsonl</code></li>
 </ul>
 <p>These are stored in the app logs directory and can be opened from the monitor screen.</p>
+<h2 id="email-notifications" class="tsd-anchor-link">Email Notifications<a href="#email-notifications" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>The iMonitor Dashboard now includes SMTP email notification settings for <code>IBMEye Alerts</code>.</p>
+<p>You can:</p>
+<ul>
+<li>enable or disable alert emails</li>
+<li>set SMTP host, port, secure mode, username, and password</li>
+<li>set sender and recipient addresses</li>
+<li>send a test email before relying on it during incidents</li>
+</ul>
+<p>Alert-triggering conditions such as <code>MSGW</code>, <code>LCKW</code>, high CPU, failed polls, and disconnects can now send email when the alert itself is enabled and the SMTP settings are valid.</p>
+<h2 id="alert-tickets-and-diagnostics" class="tsd-anchor-link">Alert Tickets And Diagnostics<a href="#alert-tickets-and-diagnostics" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p><code>IBMEye Alerts</code> can create one ClickUp task for each newly detected alert when ClickUp is configured in Settings. The default ticket rules are:</p>
+<ul>
+<li><code>MSGW</code>, <code>LCKW</code>, and high CPU: enabled</li>
+<li><code>DLYW</code>, <code>DEQW</code>, and poll failures: disabled</li>
+</ul>
+<p>The alert settings panel controls both whether a condition is watched and whether that condition creates a ClickUp task. A task is linked back to the alert, assigned to the authenticated ClickUp user, and reused when the same condition returns. After creation, iMonitor posts a backend-generated diagnostic with the issue, likely cause, and resolution guidance, then attaches the current readable daily log.</p>
+<p>If AI or log attachment is unavailable, iMonitor keeps the ClickUp task and records the failure in <code>iMonitor Logs</code> instead of losing the incident.</p>
+<h2 id="ai-analysis" class="tsd-anchor-link">AI Analysis<a href="#ai-analysis" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>The <code>IBMEye Watch</code> area on the dashboard now includes a local AI analyst panel.</p>
+<p>It can:</p>
+<ul>
+<li>summarize current alerts</li>
+<li>explain selected-job waits</li>
+<li>review recent SQL and operator log activity</li>
+<li>suggest likely cause and next best action</li>
+</ul>
+<p>For now this uses local Ollama on <code>http://127.0.0.1:11434</code>. The feature is intentionally isolated so it can be licensed or removed later without changing the rest of iMonitor.</p>
+<p>Use <code>Settings</code> to switch the active AI provider, choose that provider's model, and save its required setup values in one place. The dashboard keeps the chat and AI actions, while setup now lives off the main monitor screen.</p>
+<h2 id="clickup-action-tracking" class="tsd-anchor-link">ClickUp Action Tracking<a href="#clickup-action-tracking" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>The new <code>Settings</code> page also includes ClickUp setup for action tracking.</p>
+<p>You can:</p>
+<ul>
+<li>save one ClickUp token locally</li>
+<li>choose the workspace, space, and list used for alert tasks</li>
+<li>create one task from an alert card</li>
+<li>keep later operator notes and workflow updates synced as ClickUp comments</li>
+<li>automatically create tasks for selected alert types</li>
+<li>assign new tasks to the authenticated ClickUp user</li>
+<li>add AI diagnostic comments and the current readable log to each automatic task</li>
+</ul>
+<h2 id="slack-channel-alerts" class="tsd-anchor-link">Slack Channel Alerts<a href="#slack-channel-alerts" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p><code>iMonitor</code> can send new <code>IBMEye Alerts</code> to one shared Slack operations channel through an Incoming Webhook. The webhook is connected to its channel in Slack, so the app does not need to select or message an individual user. Slack settings are saved per local operator.</p>
+<p>In <code>Settings</code>, paste the webhook URL, enable Slack alerts, choose which alert types should be delivered, and use <code>Send Test</code> to verify the connection. <code>MSGW</code>, <code>LCKW</code>, and high CPU are enabled by default; <code>DLYW</code>, <code>DEQW</code>, and poll failures are opt-in. Repeated polls for the same active condition are not sent repeatedly.</p>
+<h2 id="support-tools" class="tsd-anchor-link">Support Tools<a href="#support-tools" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>The Support menu is available even before login. <code>Contact Only</code> opens a normal email draft. <code>Contact + Send Diagnostics</code> creates a one-click support bundle containing the app version, platform details, connection context, recent monitor snapshots, operator activity, and the current readable log.</p>
+<p>The dashboard and job detail drawer are read-only for investigation until an operator deliberately chooses an IBM i action. Built-in guidance explains likely causes, impact, and safe checks for waits, high CPU, poll failures, and connection failures.</p>
 <h2 id="current-operator-actions" class="tsd-anchor-link">Current Operator Actions<a href="#current-operator-actions" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <p>The job detail drawer currently supports:</p>
 <ul>
@@ -62,7 +111,7 @@
 <li><code>Release Job</code></li>
 <li><code>End Job</code></li>
 </ul>
-<p>These actions are logged in the Operator Log. In demo mode they are simulated safely for UI and workflow testing.</p>
+<p>These actions are logged in iMonitor Logs. In demo mode they are simulated safely for UI and workflow testing.</p>
 <p><code>Reply to MSGW</code> and deeper lock investigation are the next actions to finish and need additional IBM i message and lock context.</p>
 <h2 id="project-notes" class="tsd-anchor-link">Project Notes<a href="#project-notes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <ul>
@@ -88,7 +137,7 @@
 <div class="tsd-theme-toggle"><label class="settings-label" for="tsd-theme">Theme</label><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div>
 <details open class="tsd-accordion tsd-page-navigation"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-chevronDown"></use></svg>
 <h3>On This Page</h3></summary>
-<div class="tsd-accordion-details"><a href="#ibmeye"><span>IBM<wbr/>Eye</span></a>
+<div class="tsd-accordion-details"><a href="#imonitor"><span>i<wbr/>Monitor</span></a>
 <ul>
 <li><a href="#what-the-app-does"><span>What <wbr/>The <wbr/>App <wbr/>Does</span></a></li>
 <li><a href="#quick-start"><span>Quick <wbr/>Start</span></a></li>
@@ -99,6 +148,12 @@
 <li><a href="#3-use-the-app"><span>3. <wbr/>Use the app</span></a></li></ul></li>
 <li><a href="#demo-mode"><span>Demo <wbr/>Mode</span></a></li>
 <li><a href="#logs"><span>Logs</span></a></li>
+<li><a href="#email-notifications"><span>Email <wbr/>Notifications</span></a></li>
+<li><a href="#alert-tickets-and-diagnostics"><span>Alert <wbr/>Tickets <wbr/>And <wbr/>Diagnostics</span></a></li>
+<li><a href="#ai-analysis"><span>AI <wbr/>Analysis</span></a></li>
+<li><a href="#clickup-action-tracking"><span>Click<wbr/>Up <wbr/>Action <wbr/>Tracking</span></a></li>
+<li><a href="#slack-channel-alerts"><span>Slack <wbr/>Channel <wbr/>Alerts</span></a></li>
+<li><a href="#support-tools"><span>Support <wbr/>Tools</span></a></li>
 <li><a href="#current-operator-actions"><span>Current <wbr/>Operator <wbr/>Actions</span></a></li>
 <li><a href="#project-notes"><span>Project <wbr/>Notes</span></a></li></ul></div></details></div>
 <div class="site-menu">

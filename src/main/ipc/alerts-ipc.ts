@@ -4,6 +4,8 @@ import type { EmailNotificationSettings } from '../../features/notifications/ema
 
 interface RegisterAlertsIpcDependencies {
     getActiveAlerts: () => unknown[];
+    recheckAlerts: () => Promise<unknown>;
+    getSystemMessages: () => Promise<unknown[]>;
     getAlertSettings: () => AlertSettings;
     setAlertSettings: (settings: AlertSettings) => void;
     emitAlertSettings: () => void;
@@ -35,6 +37,7 @@ interface RegisterAlertsIpcDependencies {
         note?: string;
         nextState: StoredAlertWorkflowState;
     }) => Promise<void> | void;
+    createClickUpTaskForClaimedAlert?: (alertId: string) => Promise<void>;
     recordActivity: (entry: {
         area: 'monitoring';
         level: 'info';
@@ -49,6 +52,38 @@ interface RegisterAlertsIpcDependencies {
  */
 export function registerAlertsIpc(dependencies: RegisterAlertsIpcDependencies) {
     ipcMain.handle('get-active-alerts', () => dependencies.getActiveAlerts());
+
+    ipcMain.handle('recheck-alert', async (_event, alertId: string) => {
+        try {
+            await dependencies.recheckAlerts();
+            const alert = dependencies.getActiveAlerts().find((candidate) => (
+                (candidate as { id?: string; isActive?: boolean })?.id === alertId
+            )) as { id?: string; isActive?: boolean } | undefined;
+            return {
+                success: true,
+                status: alert?.isActive === false ? 'cleared' : alert ? 'active' : 'unavailable',
+                alert
+            };
+        } catch (error) {
+            return {
+                success: false,
+                status: 'unavailable',
+                error: error instanceof Error ? error.message : 'Unable to recheck this alert.'
+            };
+        }
+    });
+
+    ipcMain.handle('get-system-messages', async () => {
+        try {
+            return { success: true, records: await dependencies.getSystemMessages() };
+        } catch (error) {
+            return {
+                success: false,
+                records: [],
+                error: error instanceof Error ? error.message : 'Unable to load QSYSOPR messages.'
+            };
+        }
+    });
 
     ipcMain.handle('update-alert-workflow', async (_event, payload: {
         alertId: string;
@@ -89,6 +124,10 @@ export function registerAlertsIpc(dependencies: RegisterAlertsIpcDependencies) {
             note: payload.note,
             nextState
         });
+
+        if (payload.action === 'claim') {
+            await dependencies.createClickUpTaskForClaimedAlert?.(payload.alertId);
+        }
 
         return { success: true };
     });

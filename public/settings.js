@@ -2,18 +2,42 @@ import { applyTheme } from './connection/shared.js';
 import { initSupportPanel } from './shared/support.js';
 import { initAiProvidersSettings } from './settings/ai-providers.js';
 import { initClickUpSettings } from './settings/clickup.js';
+import { initSlackSettings } from './settings/slack.js';
+import { initAlertSettings } from './settings/alerts.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const backButton = document.getElementById('settings-back');
     const backLabel = document.getElementById('settings-back-label');
     const themeDescription = document.getElementById('settings-theme-description');
     const clickUpUser = document.getElementById('settings-clickup-user');
+    const settingsPanels = Array.from(document.querySelectorAll('.settings-disclosure'));
+
+    settingsPanels.forEach((panel) => {
+        panel.addEventListener('toggle', () => {
+            if (!panel.open) {
+                return;
+            }
+
+            settingsPanels.forEach((otherPanel) => {
+                if (otherPanel !== panel) {
+                    otherPanel.open = false;
+                }
+            });
+        });
+    });
 
     const aiSettings = initAiProvidersSettings({
         root: document
     });
     const clickUpSettings = initClickUpSettings({
         root: document
+    });
+    const slackSettings = initSlackSettings({
+        root: document
+    });
+    const alertSettings = initAlertSettings({
+        root: document,
+        slackSettings
     });
 
     const [connectionState, themeSettings, appFlags] = await Promise.all([
@@ -32,7 +56,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     if (backLabel) {
-        backLabel.textContent = connectionState?.isConnected ? 'Back To Dashboard' : 'Back To Connect';
+        backLabel.textContent = connectionState?.isConnected ? 'Back To ActionBoard' : 'Back To Connect';
     }
 
     if (clickUpUser) {
@@ -59,6 +83,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     await Promise.all([
         aiSettings.refresh(),
-        clickUpSettings.refresh()
+        clickUpSettings.refresh(),
+        slackSettings.refresh(),
+        alertSettings.refresh()
     ]);
 });

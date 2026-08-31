@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Renamed the main monitor workspace to `iMonitor ActionBoard`.
+- Added structured ActionBoard audit records for IBM i job actions.
+
 ## 2026-08-30
 
 ### Changed
@@ -7,16 +12,26 @@
 - ClickUp settings now save per operator instead of one shared app-wide value
 - Settings now show which operator owns the current ClickUp configuration
 - Demo mode now uses `GajenderT` as the operator identity for alert ownership and per-user settings
+- ClickUp assignee email now resolves once to a cached, read-only member ID per IBM i operator
+- ClickUp now creates tickets when an operator starts work instead of when alerts are detected
+- Settings and dashboard panels now use subtle category colors when collapsed
+- Slack alerts now use one structured, severity-colored card per webhook message
+- Slack alert defaults now include MSGW, LCKW, high CPU, DLYW, DEQW, and poll failures
 
 ### Fixed
 
 - Alert workflow mutations now use the same current-operator resolver as the rest of the app
 - Legacy shared ClickUp settings now migrate forward into the current operator's saved settings on first read
+- Legacy ClickUp email values are no longer displayed or used as numeric member IDs
 
 ## 2026-08-29
 
 ### Added
 
+- Slack channel alert delivery through encrypted per-operator Incoming Webhook settings
+- Independent Slack routing rules and test delivery action for alert types
+- AI diagnostic comments and readable daily log attachments on operator-started ClickUp tasks
+- Unit and Electron coverage for alert rule persistence and diagnostic delivery
 - Dedicated `iMonitor Settings` page for AI and integration setup
 - ClickUp action tracking with saved workspace, space, and list selection
 - `Create ClickUp Task` alert action that links one task back to the incident
@@ -25,6 +40,8 @@
 
 ### Changed
 
+- Starting work creates and assigns a linked ClickUp ticket to the active operator, then reuses it for updates
+- Support diagnostics and ClickUp delivery failures are retained in `iMonitor Logs` without losing the incident task
 - Alert workflow now separates `Acknowledge`, `Start Work`, `Mark Work Done`, and `Return To Queue`
 - `Mark Work Done` keeps the alert with the assigned operator until it is explicitly returned
 - AI provider setup now uses provider-specific selection with provider-to-model mapping on the Settings page

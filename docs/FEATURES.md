@@ -1,5 +1,7 @@
 # Features
 
+`iMonitor` is the complete desktop application. `IBMEye` provides monitoring and incident detection, `IBMEye AI` provides analysis and guidance, and `iMonitor ActionBoard` is the operator workspace for taking and tracking action.
+
 ## Current Features
 
 ### Connection
@@ -26,10 +28,13 @@
 - `IBMEye Alerts` module inside `iMonitor`
 - MSGW alerts
 - LCKW alerts
+- DLYW alerts
+- DEQW alerts
 - high CPU alerts
 - failed poll alerts
 - desktop notifications
 - SMTP email notifications
+- Slack channel alert notifications through an Incoming Webhook
 - test email action from the monitor screen
 - sticky queue with active and resolved alerts
 - clear alert action
@@ -43,6 +48,34 @@
 - open logs folder
 - daily readable and structured logs
 - structured poll history foundation for future cross-session replay
+
+### Alert action tracking
+
+- no ClickUp task is created when an alert first appears
+- `Start Work` creates one ClickUp task for the incident
+- the task is assigned to the operator who starts work
+- one task reference is retained per incident
+- AI diagnostic comment with issue, cause, and resolution guidance
+- current readable daily log attached to the task
+- later notes and workflow changes are synced as comments
+- failures recorded locally without removing the ClickUp task
+
+### Slack channel alerts
+
+- encrypted per-operator webhook settings
+- one shared channel destination per configured webhook
+- all supported alert types enabled by default
+- one structured Slack message per new alert
+- independent routing rules for each alert type
+- test delivery action from Settings
+- asynchronous delivery that does not block polling
+
+### Support
+
+- one-click support diagnostics bundle
+- support contact and diagnostics actions available before login
+- read-only monitor and job investigation surfaces
+- guided cause, impact, and next-step help for common failures
 
 ## Development-Only Features
 

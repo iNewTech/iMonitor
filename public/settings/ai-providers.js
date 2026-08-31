@@ -97,6 +97,7 @@ export function initAiProvidersSettings(dependencies) {
     const providerCopy = root.querySelector('#settings-ai-provider-copy');
     const providerSummary = root.querySelector('#settings-ai-provider-summary');
     const status = root.querySelector('#settings-ai-status');
+    const summaryStatus = root.querySelector('#settings-ai-summary-status');
     const refreshButton = root.querySelector('#ai-settings-refresh');
 
     let snapshot = {
@@ -171,6 +172,11 @@ export function initAiProvidersSettings(dependencies) {
         }
         if (providerSummary) {
             providerSummary.innerHTML = buildProviderSummary(activeProvider);
+        }
+        if (summaryStatus) {
+            summaryStatus.textContent = snapshot.settings?.enabled
+                ? `${activeProvider?.label || 'AI'} · ${selectedModel || 'provider default'}`
+                : 'Disabled';
         }
     }
 
