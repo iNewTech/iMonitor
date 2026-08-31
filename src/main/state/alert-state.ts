@@ -51,6 +51,10 @@ export function createAlertStateStore(dependencies: AlertStateDependencies) {
         getWorkflowStateByAlertId() {
             return workflowStateByAlertId;
         },
+        clearDemoWorkflowLinks() {
+            workflowStateByAlertId = {};
+            persistWorkflowState();
+        },
         setActiveAlerts,
         persistWorkflowState,
         resolveAlert(alertId: string, timestamp: string, detail?: string) {

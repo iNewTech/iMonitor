@@ -72,12 +72,9 @@ test('keeps ClickUp ticket creation with the operator workflow', async () => {
     try {
         await openDemoMonitor(app.page);
 
-        const alertRules = app.page.locator('.alert-rules-panel');
-        await alertRules.locator(':scope > summary').click();
-
-        await expect(app.page.locator('[id^="create-clickup-"]')).toHaveCount(0);
-        await expect(app.page.getByTestId('alert-clickup-create')).toHaveCount(0);
-        await expect(alertRules.locator('#alert-settings-form button[type="submit"]')).toBeVisible();
+        await expect(app.page.locator('.alert-rules-panel')).toHaveCount(0);
+        await app.page.getByTestId('open-settings').click();
+        await expect(app.page.locator('#settings-alert-panel')).toBeVisible();
     } finally {
         await app.cleanup();
     }

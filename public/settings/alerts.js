@@ -8,6 +8,15 @@ export function initAlertSettings({ root, slackSettings }) {
     const desktop = root.querySelector('#settings-alert-desktop');
     const slack = root.querySelector('#settings-alert-slack');
     const email = root.querySelector('#settings-alert-email');
+    const emailHost = root.querySelector('#email-smtp-host');
+    const emailPort = root.querySelector('#email-smtp-port');
+    const emailSecure = root.querySelector('#email-smtp-secure');
+    const emailUsername = root.querySelector('#email-username');
+    const emailPassword = root.querySelector('#email-password');
+    const emailFrom = root.querySelector('#email-from-address');
+    const emailRecipients = root.querySelector('#email-to-addresses');
+    const emailStatus = root.querySelector('#email-settings-status');
+    const emailTest = root.querySelector('#send-test-email');
     const highCpu = root.querySelector('#settings-alert-high-cpu');
     const messageWait = root.querySelector('#settings-alert-message-wait');
     const lockWait = root.querySelector('#settings-alert-lock-wait');
@@ -39,6 +48,13 @@ export function initAlertSettings({ root, slackSettings }) {
         if (pollFailure) pollFailure.checked = Boolean(alertSettings.watchFailedPolls);
         if (disconnect) disconnect.checked = Boolean(alertSettings.watchDisconnects);
         if (cpuThreshold) cpuThreshold.value = String(alertSettings.highCpuThreshold || 80);
+        if (emailHost) emailHost.value = emailSettings?.smtpHost || '';
+        if (emailPort) emailPort.value = String(emailSettings?.smtpPort || 587);
+        if (emailSecure) emailSecure.checked = Boolean(emailSettings?.secure);
+        if (emailUsername) emailUsername.value = emailSettings?.username || '';
+        if (emailPassword) emailPassword.value = emailSettings?.password || '';
+        if (emailFrom) emailFrom.value = emailSettings?.fromAddress || '';
+        if (emailRecipients) emailRecipients.value = emailSettings?.toAddresses || '';
         if (summary) {
             const channels = [desktop?.checked && 'Desktop', slack?.checked && 'Slack', email?.checked && 'Email'].filter(Boolean);
             summary.textContent = channels.length ? `${channels.join(' · ')} notifications` : 'Notifications off';
@@ -82,8 +98,9 @@ export function initAlertSettings({ root, slackSettings }) {
                 enabled: Boolean(slack?.checked)
             });
             emailSettings = await window.electronAPI.saveEmailNotificationSettings({
-                ...emailSettings,
-                enabled: Boolean(email?.checked)
+                enabled: Boolean(email?.checked), smtpHost: emailHost?.value || '', smtpPort: Number(emailPort?.value || 587),
+                secure: Boolean(emailSecure?.checked), username: emailUsername?.value || '', password: emailPassword?.value || '',
+                fromAddress: emailFrom?.value || '', toAddresses: emailRecipients?.value || ''
             });
             render();
             setStatus('Alert settings saved.');
@@ -92,6 +109,19 @@ export function initAlertSettings({ root, slackSettings }) {
         } finally {
             if (button) button.disabled = false;
         }
+    });
+
+    emailTest?.addEventListener('click', async () => {
+        emailTest.disabled = true;
+        if (emailStatus) { emailStatus.hidden = false; emailStatus.textContent = 'Sending test email...'; }
+        try {
+            emailSettings = await window.electronAPI.saveEmailNotificationSettings({ enabled: Boolean(email?.checked), smtpHost: emailHost?.value || '', smtpPort: Number(emailPort?.value || 587), secure: Boolean(emailSecure?.checked), username: emailUsername?.value || '', password: emailPassword?.value || '', fromAddress: emailFrom?.value || '', toAddresses: emailRecipients?.value || '' });
+            const result = await window.electronAPI.sendTestEmailNotification();
+            if (!result.success) throw new Error(result.error || 'Test email failed.');
+            if (emailStatus) emailStatus.textContent = 'Test email sent.';
+        } catch (error) {
+            if (emailStatus) { emailStatus.textContent = error instanceof Error ? error.message : 'Test email failed.'; emailStatus.style.color = 'var(--danger)'; }
+        } finally { emailTest.disabled = false; }
     });
 
     return { refresh };

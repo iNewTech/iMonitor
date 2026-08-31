@@ -77,6 +77,26 @@
                                 <span class="control-label">High CPU threshold</span>
                                 <div class="input-group"><input id="settings-alert-cpu-threshold" type="number" class="form-control" min="1" max="100"><span class="input-group-text">%</span></div>
                             </label>
+                            <details class="email-settings-disclosure">
+                                <summary class="email-settings-summary"><span><strong>Email notification setup</strong><small>SMTP settings and test delivery</small></span><i class="bi bi-chevron-down"></i></summary>
+                                <div class="email-settings-body">
+                                    <div class="settings-field-grid settings-field-grid-two">
+                                        <label class="control-select"><span class="control-label">SMTP host</span><input id="email-smtp-host" type="text" class="form-control" placeholder="smtp.example.com"></label>
+                                        <label class="control-select"><span class="control-label">SMTP port</span><input id="email-smtp-port" type="number" class="form-control" min="1" max="65535" value="587"></label>
+                                    </div>
+                                    <label class="toggle-row"><span>Use secure SMTP</span><input type="checkbox" id="email-smtp-secure"></label>
+                                    <div class="settings-field-grid settings-field-grid-two">
+                                        <label class="control-select"><span class="control-label">SMTP username</span><input id="email-username" type="text" class="form-control" placeholder="optional"></label>
+                                        <label class="control-select"><span class="control-label">SMTP password</span><input id="email-password" type="password" class="form-control" placeholder="optional"></label>
+                                    </div>
+                                    <div class="settings-field-grid settings-field-grid-two">
+                                        <label class="control-select"><span class="control-label">From address</span><input id="email-from-address" type="email" class="form-control" placeholder="alerts@example.com"></label>
+                                        <label class="control-select"><span class="control-label">Recipients</span><input id="email-to-addresses" type="text" class="form-control" placeholder="ops@example.com"></label>
+                                    </div>
+                                    <button type="button" id="send-test-email" class="btn btn-outline-ink btn-sm"><i class="bi bi-envelope-check me-2"></i>Send Test Email</button>
+                                    <p id="email-settings-status" class="stat-note mb-0" hidden></p>
+                                </div>
+                            </details>
                             <div class="settings-actions"><button type="submit" class="btn btn-primary-strong"><i class="bi bi-bell me-2"></i>Save Alert Settings</button></div>
                             <p id="settings-alert-status" class="stat-note mb-0">Alert settings are loading.</p>
                         </form>

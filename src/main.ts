@@ -496,6 +496,7 @@ sessionRuntime = createSessionRuntime({
     connectionState,
     monitoringState,
     clearRuntimeMonitoringState: monitoringRuntime.clearRuntimeMonitoringState,
+    clearDemoWorkflowLinks: alertState.clearDemoWorkflowLinks,
     loadConnectionPage: windowRuntime.loadConnectionPage,
     sendToWindow: windowRuntime.sendToWindow,
     emitConnectionAction,

@@ -37,6 +37,7 @@ interface SessionRuntimeDependencies {
     connectionState: ReturnType<typeof createConnectionStateStore>;
     monitoringState: ReturnType<typeof createMonitoringStateStore>;
     clearRuntimeMonitoringState: () => void;
+    clearDemoWorkflowLinks?: () => void;
     loadConnectionPage: () => void;
     sendToWindow: (channel: string, payload: unknown) => void;
     emitConnectionAction: (message: string, detail?: string) => void;
@@ -412,6 +413,7 @@ export function createSessionRuntime(dependencies: SessionRuntimeDependencies) {
 
                     ibmiService?.close();
                     ibmiService = null;
+                    dependencies.clearDemoWorkflowLinks?.();
                     dependencies.clearRuntimeMonitoringState();
                     dependencies.monitoringState.setMonitorMode('dummy');
                     const demoDataFilePath = getDemoDataFilePath(app.getPath('userData'));

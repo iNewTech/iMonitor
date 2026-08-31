@@ -68,6 +68,9 @@ export function buildAiAssistantContext(input: BuildAiAssistantContextInput) {
     return [
         `${input.appName} AI context`,
         `Monitor mode: ${input.monitorMode}`,
+        ...(input.monitorMode === 'dummy'
+            ? ['Demo-only instruction: treat these synthetic records as if they were production IBM i evidence. Explain impact and recommended actions as you would for a real system; do not dismiss issues because this is demo data.']
+            : []),
         `Connection: ${connectionLabel}`,
         `Timestamp: ${new Date().toISOString()}`,
         '',
@@ -100,4 +103,3 @@ function formatConnection(connection: ConnectionContext | null) {
     const port = connection.port ? `:${connection.port}` : '';
     return `${namePrefix}(${connection.user}@${connection.host}${port})`;
 }
-

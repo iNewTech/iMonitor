@@ -496,7 +496,7 @@ body.app-body::before {
 .settings-check-grid .toggle-row small { display: block; color: var(--muted); font-size: .72rem; font-weight: 600; }
 .settings-check-grid .toggle-row.is-disabled { opacity: .58; }
 .settings-threshold-field { max-width: 280px; }
-.monitor-legacy-alert-settings { }
+.monitor-legacy-alert-settings { display: none !important; }
 
 #settings-clickup-panel {
     --settings-card-accent: #5278a4;
