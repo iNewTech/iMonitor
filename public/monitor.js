@@ -1484,6 +1484,11 @@ document.addEventListener('DOMContentLoaded', () => {
         renderJobs({ data: latestJobs });
     });
 
+    alertSearchInput?.addEventListener('input', (event) => {
+        alertSearchQuery = String(event.target?.value || '').trim().toLowerCase();
+        renderAlerts(latestAlerts);
+    });
+
     themeSelector?.addEventListener('change', async (event) => {
         const nextThemeId = event.target.value;
 
