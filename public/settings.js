@@ -54,6 +54,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     premiumFeatures.forEach((feature, panelId) => {
         const panel = document.getElementById(panelId);
         if (entitlements?.features?.[feature]) return;
+        if (panelId === 'settings-slack-panel') {
+            panel?.classList.add('premium-panel-locked');
+            panel?.removeAttribute('open');
+            panel?.querySelector('summary')?.addEventListener('click', (event) => {
+                event.preventDefault();
+            });
+            const summaryStatus = panel?.querySelector('#settings-slack-summary-status');
+            if (summaryStatus) {
+                summaryStatus.innerHTML = '<span class="premium-badge"><i class="bi bi-lock-fill me-1" aria-hidden="true"></i>Premium</span>';
+            }
+        }
         panel?.querySelectorAll('input, select, textarea, button').forEach((control) => {
             control.disabled = true;
             control.classList.add('premium-locked');

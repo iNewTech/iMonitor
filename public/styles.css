@@ -562,6 +562,10 @@ body.app-body::before {
     color: color-mix(in srgb, var(--settings-card-accent) 78%, var(--ink));
 }
 
+.premium-panel-locked > .settings-disclosure-body { display: none !important; }
+.premium-panel-locked .settings-card-summary { cursor: default; }
+.premium-panel-locked .settings-card-chevron { display: none; }
+
 .settings-hero-main,
 .settings-card-header {
     display: flex;
