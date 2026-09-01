@@ -3,6 +3,7 @@ import type { AlertSettings, StoredAlertWorkflowState } from '../../features/ale
 import type { EmailNotificationSettings } from '../../features/notifications/email-notification';
 
 interface RegisterAlertsIpcDependencies {
+    requirePremium: () => void;
     getActiveAlerts: () => unknown[];
     recheckAlerts: () => Promise<unknown>;
     getSystemMessages: () => Promise<unknown[]>;
@@ -154,6 +155,7 @@ export function registerAlertsIpc(dependencies: RegisterAlertsIpcDependencies) {
     ipcMain.handle(
         'save-email-notification-settings',
         (_event, candidate: Partial<EmailNotificationSettings> | undefined) => {
+            dependencies.requirePremium();
             const normalized = dependencies.saveEmailNotificationSettings(candidate);
             dependencies.recordActivity({
                 area: 'monitoring',
@@ -167,5 +169,8 @@ export function registerAlertsIpc(dependencies: RegisterAlertsIpcDependencies) {
         }
     );
 
-    ipcMain.handle('send-test-email-notification', async () => dependencies.sendTestEmailNotification());
+    ipcMain.handle('send-test-email-notification', async () => {
+        dependencies.requirePremium();
+        return dependencies.sendTestEmailNotification();
+    });
 }

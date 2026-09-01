@@ -71,10 +71,22 @@
                             <p class="panel-copy mb-0">
                                 Start a live Mapepire session now, or save trusted profiles for the systems your team checks every day.
                             </p>
-                            <div class="workspace-header-meta">
-                                <span id="saved-count" class="panel-badge">0 saved profiles</span>
+                    <div class="workspace-header-meta">
+                        <span id="saved-count" class="panel-badge">0 saved profiles</span>
+                    </div>
+                    <details class="plan-panel" id="plan-panel">
+                        <summary><span><i class="bi bi-stars me-2"></i><strong id="plan-label">Free plan</strong></span><i class="bi bi-chevron-down"></i></summary>
+                        <div class="plan-panel-body">
+                            <p id="plan-copy" class="mb-2">Monitoring, information, alert ownership, and desktop notifications are included.</p>
+                            <p class="plan-preview mb-2"><span class="premium-badge">Premium</span> IBM i job actions and external integrations.</p>
+                            <div class="plan-license-row">
+                                <input id="development-license-key" class="form-control form-control-sm" type="password" placeholder="Development license key">
+                                <button id="activate-development-license" type="button" class="btn btn-outline-ink btn-sm">Activate</button>
                             </div>
+                            <small id="plan-status" class="form-footnote">Premium activation is available only in development builds.</small>
                         </div>
+                    </details>
+                </div>
                         <div class="workspace-tools">
                             <details id="theme-menu" class="theme-menu">
                                 <summary class="theme-menu-summary" aria-label="Open theme menu">

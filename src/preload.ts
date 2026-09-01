@@ -252,6 +252,14 @@ interface AppInfo {
     supportEmail: string;
 }
 
+interface EntitlementState {
+    plan: 'free' | 'premium';
+    source: 'free' | 'development-license' | 'development-override';
+    licenseKey?: string;
+    expiresAt?: string;
+    features: Record<string, boolean>;
+}
+
 contextBridge.exposeInMainWorld('electronAPI', {
     navigateToMonitor: () => ipcRenderer.invoke('navigate-to-monitor'),
     navigateToConnection: () => ipcRenderer.invoke('navigate-to-connection'),
@@ -260,6 +268,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     getConnectionState: () => ipcRenderer.invoke('get-connection-state') as Promise<ConnectionState>,
     getAppInfo: () => ipcRenderer.invoke('get-app-info') as Promise<AppInfo>,
+    getEntitlements: () => ipcRenderer.invoke('get-entitlements') as Promise<EntitlementState>,
+    activateDevelopmentLicense: (key: string) => ipcRenderer.invoke('activate-development-license', key) as Promise<EntitlementState>,
     getAppFlags: () => ipcRenderer.invoke('get-app-flags') as Promise<{
         demoModeEnabled: boolean;
         demoModeReason?: string;

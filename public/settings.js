@@ -45,6 +45,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.electronAPI.getThemeSettings(),
         window.electronAPI.getAppFlags()
     ]);
+    const entitlements = await window.electronAPI.getEntitlements();
+    const premiumFeatures = new Map([
+        ['settings-clickup-panel', 'clickup-integration'],
+        ['settings-slack-panel', 'slack-integration']
+    ]);
+    premiumFeatures.forEach((feature, panelId) => {
+        const panel = document.getElementById(panelId);
+        if (entitlements?.features?.[feature]) return;
+        panel?.querySelectorAll('input, select, textarea, button').forEach((control) => {
+            control.disabled = true;
+            control.classList.add('premium-locked');
+            control.title = 'Premium feature';
+        });
+    });
+    if (!entitlements?.features?.['email-notifications']) {
+        document.querySelectorAll('#send-test-email, #email-smtp-host, #email-smtp-port, #email-smtp-secure, #email-username, #email-password, #email-from-address, #email-to-addresses').forEach((control) => {
+            control.disabled = true;
+            control.classList.add('premium-locked');
+            control.title = 'Premium feature';
+        });
+    }
 
     applyTheme(themeSettings.themeId);
     const selectedTheme = Array.isArray(themeSettings.themes)

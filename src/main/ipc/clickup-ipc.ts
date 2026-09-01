@@ -7,6 +7,7 @@ import type {
 } from '../../features/integrations/clickup/clickup-model';
 
 interface RegisterClickUpIpcDependencies {
+    requirePremium: () => void;
     getClickUpSettings: () => ClickUpSettings;
     saveClickUpSettings: (settings: Partial<ClickUpSettings> | undefined) => ClickUpSettings;
     loadClickUpTargetOptions: () => Promise<ClickUpTargetOptions>;
@@ -29,9 +30,10 @@ interface RegisterClickUpIpcDependencies {
  */
 export function registerClickUpIpc(dependencies: RegisterClickUpIpcDependencies) {
     ipcMain.handle('get-clickup-settings', () => dependencies.getClickUpSettings());
-    ipcMain.handle('save-clickup-settings', (_event, settings) => dependencies.saveClickUpSettings(settings));
-    ipcMain.handle('load-clickup-target-options', () => dependencies.loadClickUpTargetOptions());
+    ipcMain.handle('save-clickup-settings', (_event, settings) => { dependencies.requirePremium(); return dependencies.saveClickUpSettings(settings); });
+    ipcMain.handle('load-clickup-target-options', () => { dependencies.requirePremium(); return dependencies.loadClickUpTargetOptions(); });
     ipcMain.handle('resolve-clickup-assignee', async () => {
+        dependencies.requirePremium();
         try {
             const assignee = await dependencies.resolveConfiguredAssignee();
             return {
@@ -47,6 +49,7 @@ export function registerClickUpIpc(dependencies: RegisterClickUpIpcDependencies)
     });
 
     ipcMain.handle('create-clickup-task-for-alert', async (_event, alertId: string) => {
+        dependencies.requirePremium();
         const alert = dependencies.getAlertById(alertId);
         if (!alert) {
             throw new Error('Alert not found.');

@@ -5,6 +5,7 @@ import type { OperatorActionKind } from '../../features/action-board/operator-ac
 import { createActionAuditEntry } from '../../features/action-board/action-audit';
 
 interface RegisterJobsIpcDependencies {
+    requirePremium: () => void;
     getJob: (jobName: string) => ActiveJobRecord | undefined;
     getJobStatusHistory: (jobName: string) => JobStatusHistoryEntry[];
     getJobContext: (jobName: string) => Promise<Record<string, unknown>>;
@@ -109,6 +110,7 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
         endOption?: 'controlled' | 'immediate';
         confirmed?: boolean;
     }) => {
+        dependencies.requirePremium();
         const job = dependencies.getJob(payload.jobName);
         if (!job) {
             return { success: false, error: 'The selected job is no longer available.' };

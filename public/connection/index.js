@@ -23,7 +23,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         savedCount: document.getElementById('saved-count'),
         savedHint: document.getElementById('saved-hint'),
         themeMenu: document.getElementById('theme-menu'),
-        themeMenuOptions: document.getElementById('theme-menu-options')
+        themeMenuOptions: document.getElementById('theme-menu-options'),
+        planLabel: document.getElementById('plan-label'),
+        planCopy: document.getElementById('plan-copy'),
+        planStatus: document.getElementById('plan-status'),
+        developmentLicenseKey: document.getElementById('development-license-key'),
+        activateDevelopmentLicense: document.getElementById('activate-development-license')
     };
 
     let savedConnections = [];
@@ -111,6 +116,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.electronAPI.getAppFlags(),
         window.electronAPI.getThemeSettings()
     ]);
+    const renderEntitlements = (entitlements) => {
+        const premium = entitlements?.plan === 'premium';
+        if (elements.planLabel) elements.planLabel.textContent = premium ? 'Premium plan' : 'Free plan';
+        if (elements.planCopy) elements.planCopy.textContent = premium
+            ? `Premium features are enabled${entitlements.source === 'development-license' ? ' with the development license.' : ' in development mode.'}`
+            : 'Monitoring, information, alert ownership, and desktop notifications are included.';
+        if (elements.planStatus) elements.planStatus.textContent = premium
+            ? `Active${entitlements.expiresAt ? ` until ${new Date(entitlements.expiresAt).toLocaleDateString()}` : ''}.`
+            : 'Premium activation is available only in development builds.';
+    };
+    renderEntitlements(await window.electronAPI.getEntitlements());
+    elements.activateDevelopmentLicense?.addEventListener('click', async () => {
+        const key = elements.developmentLicenseKey?.value?.trim() || '';
+        const entitlements = await window.electronAPI.activateDevelopmentLicense(key);
+        renderEntitlements(entitlements);
+        if (elements.planStatus) elements.planStatus.textContent = entitlements.plan === 'premium'
+            ? 'Development license activated.'
+            : 'License key was not accepted.';
+    });
     await initSupportPanel({
         versionLabel: document.getElementById('app-version-label'),
         contactButton: document.getElementById('support-contact-only'),

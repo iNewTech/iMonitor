@@ -67,6 +67,14 @@ import { createLoggingRuntime } from './main/runtime/logging-runtime';
 import { createSessionRuntime } from './main/runtime/session-runtime';
 import { createSlackRuntime } from './main/runtime/slack-runtime';
 import { createSupportRuntime } from './main/runtime/support-runtime';
+import { registerEntitlementsIpc } from './main/ipc/entitlements-ipc';
+import {
+    createEntitlementState,
+    hasEntitlement,
+    premiumRequiredMessage,
+    type FeatureId,
+    type EntitlementState
+} from './features/entitlements/entitlements';
 import {
     createAppStore,
     getNormalizedAiAssistantSettings,
@@ -89,6 +97,22 @@ const NOTIFICATION_COOLDOWN_MS = 120000;
 const SUPPORT_EMAIL = 'gajendertyagi.tyagi@gmail.com';
 const LOCAL_OPERATOR_NAME = os.userInfo().username?.trim() || 'local-operator';
 const DEMO_OPERATOR_NAME = 'GajenderT';
+const developmentBuild = !app.isPackaged || process.env.NODE_ENV === 'development';
+let developmentLicenseKey = process.env.IMONITOR_DEV_LICENSE_KEY?.trim() || '';
+
+function getEntitlements(): EntitlementState {
+    return createEntitlementState({
+        development: developmentBuild,
+        licenseKey: developmentLicenseKey,
+        forceFree: process.env.IMONITOR_PREMIUM_DISABLED === '1'
+    });
+}
+
+function requireEntitlement(feature: FeatureId) {
+    if (!hasEntitlement(getEntitlements(), feature)) {
+        throw new Error(premiumRequiredMessage(feature));
+    }
+}
 
 function resolveAppIconPath() {
     if (app.isPackaged) {
@@ -262,6 +286,8 @@ const alertState = createAlertStateStore({
     },
     onAlertCreated: async (alert) => {
         const shouldSendSlack = Boolean(
+            hasEntitlement(getEntitlements(), 'slack-integration')
+            &&
             slackRuntime.canSendAlerts()
             && shouldSendSlackAlert(getSlackSettings(), alert.kind)
         );
@@ -319,6 +345,15 @@ const clickUpRuntime = createClickUpRuntime({
 });
 
 async function createClickUpTaskForClaimedAlert(alertId: string) {
+    if (!hasEntitlement(getEntitlements(), 'clickup-integration')) {
+        loggingRuntime.recordActivity({
+            area: 'monitoring',
+            level: 'info',
+            message: 'ClickUp task creation skipped: Premium is not active.',
+            detail: alertId
+        });
+        return;
+    }
     const alert = alertState.getActiveAlerts().find((entry) => entry.id === alertId);
     if (!alert || alert.clickUpTask?.id) {
         return;
@@ -462,6 +497,10 @@ function maybeShowNotification(key: string, title: string, body: string) {
 async function notifyOperators(key: string, title: string, body: string) {
     maybeShowNotification(key, title, body);
 
+    if (!hasEntitlement(getEntitlements(), 'email-notifications')) {
+        return;
+    }
+
     try {
         await emailNotificationRuntime.sendAlertEmail({
             key,
@@ -571,6 +610,14 @@ registerSupportIpc({
     sendSupportDiagnostics: () => supportRuntime.sendSupportDiagnostics()
 });
 
+registerEntitlementsIpc({
+    getEntitlements,
+    activateDevelopmentLicense: (key) => {
+        developmentLicenseKey = developmentBuild ? key : '';
+        return getEntitlements();
+    }
+});
+
 registerAiIpc({
     getAiProviderCatalog,
     getAiSettings: getAiAssistantSettings,
@@ -580,6 +627,7 @@ registerAiIpc({
 });
 
 registerClickUpIpc({
+    requirePremium: () => requireEntitlement('clickup-integration'),
     getClickUpSettings,
     saveClickUpSettings: (settings) => saveClickUpSettings(settings),
     loadClickUpTargetOptions: () => clickUpRuntime.loadTargetOptions(),
@@ -591,6 +639,7 @@ registerClickUpIpc({
 });
 
 registerSlackIpc({
+    requirePremium: () => requireEntitlement('slack-integration'),
     getSlackSettings,
     saveSlackSettings: (settings) => saveSlackSettings(settings),
     sendTestSlackMessage: async () => {
@@ -614,6 +663,7 @@ registerSlackIpc({
 });
 
 registerAlertsIpc({
+    requirePremium: () => requireEntitlement('email-notifications'),
     getActiveAlerts: () => alertState.getActiveAlerts().slice(),
     recheckAlerts: () => monitoringRuntime.publishSystemStatus(),
     getSystemMessages: async () => {
@@ -692,6 +742,7 @@ registerAlertsIpc({
 });
 
 registerJobsIpc({
+    requirePremium: () => requireEntitlement('job-actions'),
     getJob: (jobName) => monitoringState.getJob(jobName),
     getJobStatusHistory: (jobName) => monitoringState.getJobStatusHistory(jobName),
     getJobContext: async (jobName) => {
@@ -768,7 +819,18 @@ registerJobsIpc({
     },
     buildWaitReason,
     buildJobRootCauseGuidance: (job) => buildJobRootCauseGuidance(job, getAlertSettings().highCpuThreshold),
-    getAvailableOperatorActions,
+    getAvailableOperatorActions: (job) => {
+        const actions = getAvailableOperatorActions(job);
+        if (hasEntitlement(getEntitlements(), 'job-actions')) {
+            return actions;
+        }
+
+        return actions.map((action) => ({
+            ...action,
+            enabled: false,
+            reason: 'IBM i job actions require Premium.'
+        }));
+    },
     getAlertSettings,
     buildOperatorActionPlan,
     runOperatorCommand: async (

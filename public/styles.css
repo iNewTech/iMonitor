@@ -498,6 +498,42 @@ body.app-body::before {
 .settings-threshold-field { max-width: 280px; }
 .monitor-legacy-alert-settings { display: none !important; }
 
+.plan-panel {
+    margin-top: 16px;
+    width: min(100%, 520px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-soft);
+}
+.plan-panel summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 11px 14px;
+    cursor: pointer;
+    list-style: none;
+    color: var(--ink);
+}
+.plan-panel summary::-webkit-details-marker { display: none; }
+.plan-panel-body { padding: 0 14px 14px; color: var(--muted); font-size: .86rem; }
+.plan-license-row { display: flex; gap: 8px; margin: 10px 0 6px; }
+.plan-license-row input { min-width: 0; }
+.premium-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: #f7dfb4;
+    color: #80511e;
+    font-size: .7rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+.premium-locked { opacity: .6; cursor: not-allowed !important; }
+.premium-locked::after { content: ' Premium'; font-size: .7em; font-weight: 800; color: #80511e; }
+
 #settings-clickup-panel {
     --settings-card-accent: #5278a4;
 }
