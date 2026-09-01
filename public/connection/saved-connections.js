@@ -18,6 +18,7 @@ export function fillForm(elements, connection) {
 export function renderSavedConnections(elements, connections, selectedId = '') {
     const {
         savedConnectionsSelect,
+        editConnectionButton,
         deleteConnectionButton,
         savedCount,
         savedHint
@@ -48,5 +49,7 @@ export function renderSavedConnections(elements, connections, selectedId = '') {
     }
 
     savedConnectionsSelect.disabled = connections.length === 0;
-    deleteConnectionButton.style.display = savedConnectionsSelect.value ? 'inline-block' : 'none';
+    const hasSelection = Boolean(savedConnectionsSelect.value);
+    editConnectionButton.hidden = !hasSelection;
+    deleteConnectionButton.hidden = !hasSelection;
 }

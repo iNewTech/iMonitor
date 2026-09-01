@@ -28,6 +28,7 @@ interface RegisterConnectionIpcDependencies {
         themes: unknown[];
     };
     saveConnection: (connection: {
+        id?: string;
         name: string;
         host: string;
         port?: number;

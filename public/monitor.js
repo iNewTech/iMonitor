@@ -71,6 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const waitHistoryMsgw = document.getElementById('wait-history-msgw');
     const waitHistoryLckw = document.getElementById('wait-history-lckw');
     const waitHistoryNote = document.getElementById('wait-history-note');
+    const activityLatestPoll = document.getElementById('activity-latest-poll');
     const drawerOverlay = document.getElementById('job-drawer-overlay');
     const jobDrawer = document.getElementById('job-detail-drawer');
     const closeJobDrawer = document.getElementById('close-job-drawer');
@@ -361,7 +362,24 @@ document.addEventListener('DOMContentLoaded', () => {
         if (lastUpdated) {
             lastUpdated.textContent = label;
         }
+        if (activityLatestPoll) {
+            activityLatestPoll.textContent = label.replace(/^Updated\s*/i, '') || '--';
+        }
     }
+
+    document.querySelectorAll('[data-history-tab]').forEach((tab) => {
+        tab.addEventListener('click', () => {
+            const selectedView = tab.dataset.historyTab;
+            document.querySelectorAll('[data-history-tab]').forEach((item) => {
+                const active = item === tab;
+                item.classList.toggle('is-active', active);
+                item.setAttribute('aria-selected', String(active));
+            });
+            document.querySelectorAll('[data-history-view]').forEach((view) => {
+                view.hidden = view.dataset.historyView !== selectedView;
+            });
+        });
+    });
 
     function formatShortDateTime(value) {
         const timestamp = new Date(value);

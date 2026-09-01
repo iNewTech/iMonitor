@@ -110,13 +110,20 @@
                                     Save frequent systems here for quick reconnects.
                                 </p>
                             </div>
-                            <button id="delete-connection" class="btn btn-soft-danger" style="display: none;">
-                                <i class="bi bi-trash me-2"></i>Delete
-                            </button>
                         </div>
-                        <select id="saved-connections" class="form-select">
-                            <option value="">-- Select Saved Connection --</option>
-                        </select>
+                        <div class="saved-profile-selector">
+                            <select id="saved-connections" class="form-select">
+                                <option value="">-- Select Saved Connection --</option>
+                            </select>
+                            <div class="saved-profile-actions" aria-label="Saved connection actions">
+                                <button id="edit-connection" type="button" class="btn btn-outline-ink btn-icon-label" hidden title="Edit selected connection">
+                                    <i class="bi bi-pencil" aria-hidden="true"></i><span>Edit</span>
+                                </button>
+                                <button id="delete-connection" type="button" class="btn btn-soft-danger btn-icon-label" hidden title="Delete selected connection">
+                                    <i class="bi bi-trash" aria-hidden="true"></i><span>Delete</span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <form id="connection-form" class="connection-form-grid" novalidate>

@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         connectionActionDetail: document.getElementById('connection-action-detail'),
         togglePasswordButton: document.getElementById('toggle-password'),
         savedConnectionsSelect: document.getElementById('saved-connections'),
+        editConnectionButton: document.getElementById('edit-connection'),
         deleteConnectionButton: document.getElementById('delete-connection'),
         savedCount: document.getElementById('saved-count'),
         savedHint: document.getElementById('saved-hint'),
@@ -33,6 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     let savedConnections = [];
+    let editingConnectionId = '';
     let availableThemes = [];
 
     function renderThemeSettings(settings) {
@@ -85,6 +87,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const demoConnection = savedConnections.find((connection) => connection.name === 'Demo connection');
             const preferredId = selectedId || demoConnection?.id || '';
             renderSavedConnections(elements, savedConnections, preferredId);
+            editingConnectionId = '';
             const preferredConnection = savedConnections.find((connection) => connection.id === preferredId);
             if (preferredConnection) {
                 fillForm(elements, preferredConnection);
@@ -179,6 +182,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             user: elements.usernameInput.value.trim(),
             password: elements.passwordInput.value
         };
+        if (editingConnectionId) connectionData.id = editingConnectionId;
 
         elements.connectButton.disabled = true;
         setConnectionAction(elements.connectionActionBar, elements.connectionActionMessage, elements.connectionActionDetail, 'Connecting…', 'Checking server state and preparing the remote Mapepire service.', true);
@@ -271,12 +275,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             await loadSavedConnections(result.id);
-            showAlert(elements.connectionForm, `Connection "${connectionData.name}" has been saved successfully.`, 'success');
+            showAlert(elements.connectionForm, `Connection "${connectionData.name}" has been ${editingConnectionId ? 'updated' : 'saved'} successfully.`, 'success');
         } catch (error) {
             showAlert(elements.connectionForm, error.message || 'Error saving connection. Please try again.');
         } finally {
             elements.saveConnectionButton.disabled = false;
         }
+    });
+
+    elements.editConnectionButton?.addEventListener('click', () => {
+        const selectedConnection = savedConnections.find((connection) => connection.id === elements.savedConnectionsSelect.value);
+        if (!selectedConnection) return;
+        editingConnectionId = selectedConnection.id;
+        fillForm(elements, selectedConnection);
+        elements.saveConnectionButton.innerHTML = '<i class="bi bi-check2 me-2"></i>Update Profile';
+        elements.connectionNameInput.focus();
     });
 
     elements.deleteConnectionButton?.addEventListener('click', async () => {
@@ -294,6 +307,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             elements.savedConnectionsSelect.value = '';
+            editingConnectionId = '';
             clearForm(elements);
             await loadSavedConnections();
             showAlert(elements.connectionForm, 'Saved connection deleted.', 'success');
@@ -307,13 +321,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     elements.savedConnectionsSelect?.addEventListener('change', () => {
         const selectedConnection = savedConnections.find((connection) => connection.id === elements.savedConnectionsSelect.value);
         if (selectedConnection) {
-            elements.deleteConnectionButton.style.display = 'inline-block';
+            editingConnectionId = '';
+            elements.saveConnectionButton.innerHTML = '<i class="bi bi-bookmark-plus me-2"></i>Save Profile';
+            elements.editConnectionButton.hidden = false;
+            elements.deleteConnectionButton.hidden = false;
             fillForm(elements, selectedConnection);
             if (elements.savedHint) {
                 elements.savedHint.textContent = `Profile ready: ${selectedConnection.name} (${selectedConnection.host}:${selectedConnection.port || 8076})`;
             }
         } else {
-            elements.deleteConnectionButton.style.display = 'none';
+            editingConnectionId = '';
+            elements.editConnectionButton.hidden = true;
+            elements.deleteConnectionButton.hidden = true;
+            elements.saveConnectionButton.innerHTML = '<i class="bi bi-bookmark-plus me-2"></i>Save Profile';
             clearForm(elements);
             if (elements.savedHint) {
                 elements.savedHint.textContent = savedConnections.length

@@ -14,7 +14,6 @@ import {
 import {
     DEFAULT_PORT,
     findDuplicateHostUserConnection,
-    hasDuplicateConnectionName,
     removeConnectionById,
     toPublicConnection,
     toRenderableConnection,
@@ -252,6 +251,7 @@ export function createSessionRuntime(dependencies: SessionRuntimeDependencies) {
             };
         },
         async saveConnection(connection: {
+            id?: string;
             name: string;
             host: string;
             port?: number;
@@ -260,7 +260,7 @@ export function createSessionRuntime(dependencies: SessionRuntimeDependencies) {
         }) {
             try {
                 const existingConnections = dependencies.store.get('connections');
-                const nameExists = hasDuplicateConnectionName(existingConnections, connection.name);
+                const nameExists = existingConnections.some((item) => item.name.trim().toLowerCase() === connection.name.trim().toLowerCase() && item.id !== connection.id);
                 if (nameExists) {
                     throw new Error(`Connection name "${connection.name}" is already in use. Please choose a different name.`);
                 }
@@ -270,7 +270,7 @@ export function createSessionRuntime(dependencies: SessionRuntimeDependencies) {
                     connection.host,
                     connection.user
                 );
-                if (existingConnection) {
+                if (existingConnection && existingConnection.id !== connection.id) {
                     throw new Error(`A connection to ${connection.host} with user ${connection.user} already exists as "${existingConnection.name}".`);
                 }
 
@@ -315,7 +315,7 @@ export function createSessionRuntime(dependencies: SessionRuntimeDependencies) {
                     message: 'Connection test successful. Saving connection...'
                 });
 
-                const id = Date.now().toString();
+                const id = connection.id || Date.now().toString();
                 const storedConnection: StoredConnection = {
                     id,
                     name: `${connection.name}`,
@@ -325,12 +325,14 @@ export function createSessionRuntime(dependencies: SessionRuntimeDependencies) {
                     port: connection.port || DEFAULT_PORT
                 };
 
-                const updatedConnections = [...existingConnections, storedConnection];
+                const updatedConnections = connection.id
+                    ? existingConnections.map((item) => item.id === connection.id ? storedConnection : item)
+                    : [...existingConnections, storedConnection];
                 dependencies.store.set('connections', updatedConnections);
                 dependencies.recordActivity({
                     area: 'storage',
                     level: 'success',
-                    message: `Saved profile "${storedConnection.name}".`,
+                    message: `${connection.id ? 'Updated' : 'Saved'} profile "${storedConnection.name}".`,
                     detail: describeConnectionTarget(storedConnection)
                 });
                 dependencies.sendToWindow(
