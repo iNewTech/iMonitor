@@ -45,8 +45,8 @@ async function launchWithEnvironment(env: NodeJS.ProcessEnv): Promise<TestAppHan
 }
 
 async function openDemoMonitor(page: Page) {
-    await expect(page.getByTestId('launch-demo')).toBeVisible();
-    await page.getByTestId('launch-demo').click();
+    await expect(page.locator('#saved-connections')).toHaveValue('demo-connection');
+    await page.locator('#connect').click();
     await expect(page.getByRole('heading', { name: 'IBMEye Incident Queue', exact: true })).toBeVisible();
 }
 

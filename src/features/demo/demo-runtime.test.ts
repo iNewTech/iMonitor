@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getDemoAvailability, isDemoRequest } from './demo-runtime';
+import { DEMO_CONNECTION_NAME, DEMO_CONNECTION_PASSWORD, DEMO_CONNECTION_USER, getDemoAvailability, isDemoRequest } from './demo-runtime';
 
 describe('demo runtime', () => {
     it('enables demo mode in development builds', () => {
@@ -37,5 +37,11 @@ describe('demo runtime', () => {
             mode: 'dummy',
             password: 'ignored'
         })).toBe(true);
+    });
+
+    it('exposes the development demo profile details', () => {
+        expect(DEMO_CONNECTION_NAME).toBe('Demo connection');
+        expect(DEMO_CONNECTION_USER).toBe('Gajtyagi');
+        expect(DEMO_CONNECTION_PASSWORD).toBe('welcome');
     });
 });

@@ -44,7 +44,8 @@ test('opens the dedicated settings page and switches AI provider setup', async (
     const app = await launchTestApp();
 
     try {
-        await app.page.locator('#launch-demo').click();
+        await expect(app.page.locator('#saved-connections')).toHaveValue('demo-connection');
+        await app.page.locator('#connect').click();
         await expect(app.page.getByRole('heading', { name: 'iMonitor ActionBoard', exact: true })).toBeVisible();
         await app.page.locator('#open-settings').click();
         await expect(app.page.getByRole('heading', { name: 'Configure AI providers and action integrations', exact: true })).toBeVisible();

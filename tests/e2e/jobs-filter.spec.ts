@@ -41,8 +41,8 @@ async function launchTestApp(): Promise<{
 }
 
 async function openDemoMonitor(page: Page) {
-    await expect(page.getByTestId('launch-demo')).toBeVisible();
-    await page.getByTestId('launch-demo').click();
+    await expect(page.locator('#saved-connections')).toHaveValue('demo-connection');
+    await page.locator('#connect').click();
     await expect(page.getByRole('heading', { name: 'iMonitor ActionBoard', exact: true })).toBeVisible();
     const jobsSummary = page.locator('.table-shell > summary');
     await expect(jobsSummary).toBeVisible();

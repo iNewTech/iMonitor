@@ -8,6 +8,11 @@ export interface DemoAvailability {
     reason?: string;
 }
 
+export const DEMO_CONNECTION_ID = 'demo-connection';
+export const DEMO_CONNECTION_NAME = 'Demo connection';
+export const DEMO_CONNECTION_USER = 'Gajtyagi';
+export const DEMO_CONNECTION_PASSWORD = 'welcome';
+
 /**
  * Returns the runtime availability of demo mode.
  */
@@ -31,6 +36,6 @@ export function isDemoRequest(
     config: DaemonServer & { mode?: 'live' | 'dummy'; host?: string; user?: string }
 ) {
     return config.mode === 'dummy'
-        || config.host?.trim().toLowerCase() === 'dummy'
+        || ['dummy', 'dummy.local'].includes(config.host?.trim().toLowerCase() || '')
         || config.user?.trim().toLowerCase() === 'dummy';
 }

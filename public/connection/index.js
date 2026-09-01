@@ -82,7 +82,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function loadSavedConnections(selectedId = '') {
         try {
             savedConnections = await window.electronAPI.loadConnections();
-            renderSavedConnections(elements, savedConnections, selectedId);
+            const demoConnection = savedConnections.find((connection) => connection.name === 'Demo connection');
+            const preferredId = selectedId || demoConnection?.id || '';
+            renderSavedConnections(elements, savedConnections, preferredId);
+            const preferredConnection = savedConnections.find((connection) => connection.id === preferredId);
+            if (preferredConnection) {
+                fillForm(elements, preferredConnection);
+                if (elements.savedHint) {
+                    elements.savedHint.textContent = `Profile ready: ${preferredConnection.name} (${preferredConnection.host}:${preferredConnection.port || 8076})`;
+                }
+            }
         } catch (error) {
             console.error('Error loading saved connections:', error);
             showAlert(elements.connectionForm, 'Unable to load saved connections.');
@@ -149,9 +158,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         menuElement: document.getElementById('support-menu')
     });
     renderThemeSettings(themeSettings);
-    if (elements.launchDemoButton && !appFlags.demoModeEnabled) {
-        elements.launchDemoButton.remove();
-    }
+    elements.launchDemoButton?.remove();
 
     await loadSavedConnections();
     setConnectionAction(elements.connectionActionBar, elements.connectionActionMessage, elements.connectionActionDetail, '', '', false);

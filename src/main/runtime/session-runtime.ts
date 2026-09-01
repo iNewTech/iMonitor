@@ -4,6 +4,10 @@ import type { DaemonServer } from '@ibm/mapepire-js';
 import type Db from '../../services/ibmi';
 import dB, { type ActiveJobRecord, type QueryResult, type ServiceLogEntry } from '../../services/ibmi';
 import {
+    DEMO_CONNECTION_ID,
+    DEMO_CONNECTION_NAME,
+    DEMO_CONNECTION_PASSWORD,
+    DEMO_CONNECTION_USER,
     getDemoAvailability,
     isDemoRequest
 } from '../../features/demo/demo-runtime';
@@ -62,6 +66,33 @@ export function createSessionRuntime(dependencies: SessionRuntimeDependencies) {
     let ibmiService: Db | null = null;
     const localOperatorName = os.userInfo().username?.trim() || 'local-operator';
     const demoOperatorName = 'GajenderT';
+
+    function seedDemoConnection() {
+        if (!getDemoAvailability(app.isPackaged).enabled) {
+            return;
+        }
+
+        const connections = dependencies.store.get('connections');
+        if (connections.some((connection) => connection.id === DEMO_CONNECTION_ID)) {
+            return;
+        }
+
+        try {
+            dependencies.store.set('connections', [
+                ...connections,
+                {
+                    id: DEMO_CONNECTION_ID,
+                    name: DEMO_CONNECTION_NAME,
+                    host: 'dummy',
+                    user: DEMO_CONNECTION_USER,
+                    encryptedPassword: protectStoredPassword(DEMO_CONNECTION_PASSWORD),
+                    port: DEFAULT_PORT
+                }
+            ]);
+        } catch (error) {
+            console.warn('Unable to seed the development demo connection.', error);
+        }
+    }
 
     const getCurrentOperatorName = () => {
         const currentConnection = dependencies.connectionState.getState().currentConnection;
@@ -135,6 +166,8 @@ export function createSessionRuntime(dependencies: SessionRuntimeDependencies) {
     const protectStoredPassword = (password: string) => (
         protectPassword(password, dependencies.getCredentialOptions())
     );
+
+    seedDemoConnection();
 
     const decryptStoredPassword = (encryptedPassword: string) => {
         try {
