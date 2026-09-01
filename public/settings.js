@@ -65,6 +65,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 summaryStatus.innerHTML = '<span class="premium-badge"><i class="bi bi-lock-fill me-1" aria-hidden="true"></i>Premium</span>';
             }
         }
+        if (panelId === 'settings-clickup-panel') {
+            panel?.classList.add('premium-preview-overlay');
+            const summaryStatus = panel?.querySelector('#settings-clickup-summary-status');
+            if (summaryStatus) {
+                summaryStatus.innerHTML = '<span class="premium-badge"><i class="bi bi-lock-fill me-1" aria-hidden="true"></i>Premium</span>';
+            }
+        }
         panel?.querySelectorAll('input, select, textarea, button').forEach((control) => {
             control.disabled = true;
             control.classList.add('premium-locked');
