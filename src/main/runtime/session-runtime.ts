@@ -172,7 +172,7 @@ export function createSessionRuntime(dependencies: SessionRuntimeDependencies) {
         try {
             return revealPassword(encryptedPassword, dependencies.getCredentialOptions());
         } catch (error) {
-            console.warn('Unable to decrypt a saved connection password. The password field will be blank.', error);
+            console.info('A saved connection password needs to be entered again because its local encryption key is unavailable.');
             return '';
         }
     };
@@ -353,9 +353,37 @@ export function createSessionRuntime(dependencies: SessionRuntimeDependencies) {
             }
         },
         loadConnections() {
-            return dependencies.store.get('connections').map((connection) => (
-                toRenderableConnection(connection, decryptStoredPassword(connection.encryptedPassword))
-            ));
+            let hasChanges = false;
+            const connections = dependencies.store.get('connections');
+            const renderedConnections = connections.map((connection) => {
+                let password = decryptStoredPassword(connection.encryptedPassword);
+
+                // The development demo has a known password, so it can self-heal after
+                // switching between Electron profiles or clearing the local Keychain.
+                if (!password && connection.id === DEMO_CONNECTION_ID) {
+                    password = DEMO_CONNECTION_PASSWORD;
+                    const repairedConnection = {
+                        ...connection,
+                        encryptedPassword: protectStoredPassword(password)
+                    };
+                    dependencies.store.set('connections', connections.map((item) => (
+                        item.id === connection.id ? repairedConnection : item
+                    )));
+                    hasChanges = true;
+                }
+
+                return toRenderableConnection(connection, password);
+            });
+
+            if (hasChanges) {
+                dependencies.recordActivity({
+                    area: 'storage',
+                    level: 'info',
+                    message: 'Repaired the local demo connection credential.'
+                });
+            }
+
+            return renderedConnections;
         },
         deleteConnection(id: string) {
             try {
