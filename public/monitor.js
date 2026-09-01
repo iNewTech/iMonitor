@@ -367,19 +367,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    document.querySelectorAll('[data-history-tab]').forEach((tab) => {
-        tab.addEventListener('click', () => {
-            const selectedView = tab.dataset.historyTab;
-            document.querySelectorAll('[data-history-tab]').forEach((item) => {
-                const active = item === tab;
-                item.classList.toggle('is-active', active);
-                item.setAttribute('aria-selected', String(active));
-            });
-            document.querySelectorAll('[data-history-view]').forEach((view) => {
-                view.hidden = view.dataset.historyView !== selectedView;
-            });
-        });
-    });
 
     function formatShortDateTime(value) {
         const timestamp = new Date(value);

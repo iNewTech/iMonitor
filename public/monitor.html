@@ -92,12 +92,8 @@
                     </div>
                 </summary>
                 <div class="activity-overview-body">
-                    <div class="history-switcher" role="tablist" aria-label="Activity history">
-                        <button type="button" class="history-switch is-active" data-history-tab="jobs" role="tab" aria-selected="true">Jobs</button>
-                        <button type="button" class="history-switch" data-history-tab="cpu" role="tab" aria-selected="false">CPU</button>
-                        <button type="button" class="history-switch" data-history-tab="waits" role="tab" aria-selected="false">Waits</button>
-                    </div>
-                    <div class="history-view history-view-jobs is-active" data-history-view="jobs">
+                    <div class="history-views-grid">
+                    <div class="history-view history-view-jobs" data-history-view="jobs">
                         <div class="history-card-header">
                             <div><p class="eyebrow mb-2">History</p><h3 class="section-title">Job volume</h3></div>
                             <span id="jobs-history-value" class="table-caption">0 jobs</span>
@@ -106,17 +102,18 @@
                         <svg id="jobs-history-chart" class="trend-chart" viewBox="0 0 320 120" preserveAspectRatio="none"></svg>
                         <p id="jobs-history-note" class="stat-note mb-0">Waiting for snapshot history.</p>
                     </div>
-                    <div class="history-view history-view-cpu" data-history-view="cpu" hidden>
+                    <div class="history-view history-view-cpu" data-history-view="cpu">
                         <div class="history-card-header"><div><p class="eyebrow mb-2">History</p><h3 class="section-title">Peak CPU</h3></div><span id="cpu-history-value" class="table-caption">0.00%</span></div>
                         <div class="history-meta-strip"><div class="history-meta-pill"><span>Range</span><strong id="cpu-history-range">0.00-0.00%</strong></div><div class="history-meta-pill"><span>Running</span><strong id="cpu-history-running">0 jobs</strong></div></div>
                         <svg id="cpu-history-chart" class="trend-chart" viewBox="0 0 320 120" preserveAspectRatio="none"></svg>
                         <p id="cpu-history-note" class="stat-note mb-0">No CPU history collected yet.</p>
                     </div>
-                    <div class="history-view history-view-waits" data-history-view="waits" hidden>
+                    <div class="history-view history-view-waits" data-history-view="waits">
                         <div class="history-card-header"><div><p class="eyebrow mb-2">History</p><h3 class="section-title">Wait states</h3></div><span id="wait-history-value" class="table-caption">0 waits</span></div>
                         <div class="history-meta-strip"><div class="history-meta-pill"><span>MSGW</span><strong id="wait-history-msgw">0</strong></div><div class="history-meta-pill"><span>LCKW</span><strong id="wait-history-lckw">0</strong></div></div>
                         <svg id="wait-history-chart" class="trend-chart" viewBox="0 0 320 120" preserveAspectRatio="none"></svg>
                         <p id="wait-history-note" class="stat-note mb-0">MSGW and LCKW snapshots will appear here.</p>
+                    </div>
                     </div>
                 </div>
             </details>

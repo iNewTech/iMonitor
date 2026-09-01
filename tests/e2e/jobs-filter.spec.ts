@@ -75,7 +75,7 @@ test('filters and searches the active jobs table in demo mode', async () => {
     }
 });
 
-test('switches the compact activity history view without hiding live metrics', async () => {
+test('shows all compact activity history views with live metrics', async () => {
     const app = await launchTestApp();
 
     try {
@@ -87,9 +87,9 @@ test('switches the compact activity history view without hiding live metrics', a
         await expect(app.page.locator('#running-jobs')).toBeVisible();
         await expect(app.page.locator('#waiting-jobs')).toBeVisible();
 
-        await app.page.locator('[data-history-tab="cpu"]').click();
+        await expect(app.page.locator('[data-history-view="jobs"]')).toBeVisible();
         await expect(app.page.locator('[data-history-view="cpu"]')).toBeVisible();
-        await expect(app.page.locator('[data-history-view="jobs"]')).toBeHidden();
+        await expect(app.page.locator('[data-history-view="waits"]')).toBeVisible();
         await expect(app.page.locator('#total-jobs')).toBeVisible();
     } finally {
         await app.cleanup();
