@@ -1235,14 +1235,18 @@ body.connection-body .support-status {
 
 /* Keep the operator's primary work surface immediately below the system header. */
 .monitor-frame > .monitor-hero { order: 1; }
-.monitor-frame > .operations-grid { order: 2; }
-.monitor-frame > .activity-overview { order: 3; }
+.monitor-frame > .activity-overview { order: 2; }
+.monitor-frame > .operations-grid { order: 3; }
 .monitor-frame > .alerts-panel { order: 4; }
 .monitor-frame > .history-grid { display: none; }
 .monitor-frame > .ai-assistant-panel { order: 6; }
 .monitor-frame > .activity-log-shell { order: 7; }
+.monitor-frame > .app-footer { order: 99; }
 
 .monitor-hero {
+    position: relative;
+    z-index: 20;
+    overflow: visible;
     display: grid;
     gap: 14px;
     padding: 18px 22px;
@@ -1365,7 +1369,7 @@ body.connection-body .support-status {
     position: absolute;
     top: calc(100% + 10px);
     right: 0;
-    z-index: 15;
+    z-index: 100;
     width: 240px;
     padding: 14px;
     border-radius: 20px;
