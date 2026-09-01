@@ -70,6 +70,7 @@ import { createSupportRuntime } from './main/runtime/support-runtime';
 import { registerEntitlementsIpc } from './main/ipc/entitlements-ipc';
 import {
     createEntitlementState,
+    DEVELOPMENT_LICENSE_KEY,
     hasEntitlement,
     premiumRequiredMessage,
     type FeatureId,
@@ -98,12 +99,15 @@ const SUPPORT_EMAIL = 'gajendertyagi.tyagi@gmail.com';
 const LOCAL_OPERATOR_NAME = os.userInfo().username?.trim() || 'local-operator';
 const DEMO_OPERATOR_NAME = 'GajenderT';
 const developmentBuild = !app.isPackaged || process.env.NODE_ENV === 'development';
-let developmentLicenseKey = process.env.IMONITOR_DEV_LICENSE_KEY?.trim() || '';
+const expectedDevelopmentLicenseKey = process.env.IMONITOR_DEV_LICENSE_KEY?.trim() || DEVELOPMENT_LICENSE_KEY;
+let activatedDevelopmentLicenseKey = '';
+let selectedDevelopmentPlan: 'free' | 'premium' = developmentBuild ? 'premium' : 'free';
 
 function getEntitlements(): EntitlementState {
     return createEntitlementState({
         development: developmentBuild,
-        licenseKey: developmentLicenseKey,
+        licenseKey: activatedDevelopmentLicenseKey,
+        developmentPlan: selectedDevelopmentPlan,
         forceFree: process.env.IMONITOR_PREMIUM_DISABLED === '1'
     });
 }
@@ -613,7 +617,21 @@ registerSupportIpc({
 registerEntitlementsIpc({
     getEntitlements,
     activateDevelopmentLicense: (key) => {
-        developmentLicenseKey = developmentBuild ? key : '';
+        if (developmentBuild && key === expectedDevelopmentLicenseKey) {
+            activatedDevelopmentLicenseKey = key;
+            selectedDevelopmentPlan = 'premium';
+        } else {
+            activatedDevelopmentLicenseKey = '';
+        }
+        return getEntitlements();
+    },
+    setDevelopmentPlan: (plan) => {
+        if (developmentBuild) {
+            selectedDevelopmentPlan = plan;
+            if (plan === 'free') {
+                activatedDevelopmentLicenseKey = '';
+            }
+        }
         return getEntitlements();
     }
 });

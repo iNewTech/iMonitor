@@ -517,6 +517,7 @@ body.app-body::before {
 }
 .plan-panel summary::-webkit-details-marker { display: none; }
 .plan-panel-body { padding: 0 14px 14px; color: var(--muted); font-size: .86rem; }
+.plan-panel-body .form-select { max-width: 220px; }
 .plan-license-row { display: flex; gap: 8px; margin: 10px 0 6px; }
 .plan-license-row input { min-width: 0; }
 .premium-badge {

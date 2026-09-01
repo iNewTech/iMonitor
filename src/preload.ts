@@ -270,6 +270,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getAppInfo: () => ipcRenderer.invoke('get-app-info') as Promise<AppInfo>,
     getEntitlements: () => ipcRenderer.invoke('get-entitlements') as Promise<EntitlementState>,
     activateDevelopmentLicense: (key: string) => ipcRenderer.invoke('activate-development-license', key) as Promise<EntitlementState>,
+    setDevelopmentPlan: (plan: 'free' | 'premium') => ipcRenderer.invoke('set-development-plan', plan) as Promise<EntitlementState>,
     getAppFlags: () => ipcRenderer.invoke('get-app-flags') as Promise<{
         demoModeEnabled: boolean;
         demoModeReason?: string;

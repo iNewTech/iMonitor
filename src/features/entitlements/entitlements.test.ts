@@ -24,8 +24,13 @@ describe('entitlements', () => {
     });
 
     it('supports a free-mode preview in development', () => {
-        const state = createEntitlementState({ development: true, forceFree: true });
+        const state = createEntitlementState({ development: true, forceFree: true, developmentPlan: 'premium' });
         expect(state.plan).toBe('free');
         expect(premiumRequiredMessage('job-actions')).toContain('Premium');
+    });
+
+    it('supports explicit Free and Premium development plan previews', () => {
+        expect(createEntitlementState({ development: true, developmentPlan: 'free' }).plan).toBe('free');
+        expect(createEntitlementState({ development: true, developmentPlan: 'premium' }).plan).toBe('premium');
     });
 });

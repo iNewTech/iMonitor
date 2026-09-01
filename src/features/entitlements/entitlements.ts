@@ -52,9 +52,13 @@ export function createEntitlementState(options: {
     development: boolean;
     licenseKey?: string;
     forceFree?: boolean;
+    developmentPlan?: Plan;
 }): EntitlementState {
     const validDevelopmentLicense = options.development && options.licenseKey === DEVELOPMENT_LICENSE_KEY;
-    const developmentOverride = options.development && !options.forceFree && !options.licenseKey;
+    const developmentOverride = options.development
+        && !options.forceFree
+        && !options.licenseKey
+        && options.developmentPlan === 'premium';
     const premium = validDevelopmentLicense || developmentOverride;
 
     return {

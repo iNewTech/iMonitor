@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         planLabel: document.getElementById('plan-label'),
         planCopy: document.getElementById('plan-copy'),
         planStatus: document.getElementById('plan-status'),
+        developmentPlanSelect: document.getElementById('development-plan-select'),
         developmentLicenseKey: document.getElementById('development-license-key'),
         activateDevelopmentLicense: document.getElementById('activate-development-license')
     };
@@ -118,6 +119,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     ]);
     const renderEntitlements = (entitlements) => {
         const premium = entitlements?.plan === 'premium';
+        if (elements.developmentPlanSelect) elements.developmentPlanSelect.value = premium ? 'premium' : 'free';
         if (elements.planLabel) elements.planLabel.textContent = premium ? 'Premium plan' : 'Free plan';
         if (elements.planCopy) elements.planCopy.textContent = premium
             ? `Premium features are enabled${entitlements.source === 'development-license' ? ' with the development license.' : ' in development mode.'}`
@@ -127,6 +129,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             : 'Premium activation is available only in development builds.';
     };
     renderEntitlements(await window.electronAPI.getEntitlements());
+    elements.developmentPlanSelect?.addEventListener('change', async () => {
+        const entitlements = await window.electronAPI.setDevelopmentPlan(elements.developmentPlanSelect.value);
+        renderEntitlements(entitlements);
+    });
     elements.activateDevelopmentLicense?.addEventListener('click', async () => {
         const key = elements.developmentLicenseKey?.value?.trim() || '';
         const entitlements = await window.electronAPI.activateDevelopmentLicense(key);

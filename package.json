@@ -16,7 +16,8 @@
     "test:e2e": "playwright test",
     "test:watch": "vitest",
     "docs:api": "typedoc",
-    "docs:serve": "python3 -m http.server 8000 --directory docs"
+    "docs:serve": "python3 -m http.server 8000 --directory docs",
+    "license:dev": "node scripts/generate-dev-license.mjs"
   },
   "build": {
     "appId": "com.inewtech.imonitor",
