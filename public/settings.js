@@ -46,8 +46,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.electronAPI.getAppFlags()
     ]);
     const entitlements = await window.electronAPI.getEntitlements();
+    aiSettings.setEntitlements?.(entitlements);
     const premiumFeatures = new Map([
-        ['settings-ai-panel', 'ai-analysis'],
         ['settings-clickup-panel', 'clickup-integration'],
         ['settings-slack-panel', 'slack-integration']
     ]);

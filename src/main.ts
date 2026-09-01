@@ -633,7 +633,12 @@ registerEntitlementsIpc({
 });
 
 registerAiIpc({
-    requirePremium: () => requireEntitlement('ai-analysis'),
+    requireProviderAccess: (provider) => {
+        const activeProvider = provider || getAiAssistantSettings().provider;
+        if (activeProvider !== 'ollama') {
+            requireEntitlement('hosted-ai-providers');
+        }
+    },
     getAiProviderCatalog,
     getAiSettings: getAiAssistantSettings,
     saveAiSettings: (settings) => saveAiAssistantSettings(settings),

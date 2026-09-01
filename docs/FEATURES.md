@@ -8,7 +8,7 @@ iMonitor uses a simple Free/Premium feature boundary. The application keeps Prem
 - IBMEye alert detection and incident history
 - Alert acknowledgement, ownership, return to queue, notes, and recheck
 - Desktop notifications
-- IBMEye AI explanations and recommendations
+- IBMEye AI explanations and recommendations with local Open Models
 
 ## Premium plan
 
@@ -17,6 +17,7 @@ iMonitor uses a simple Free/Premium feature boundary. The application keeps Prem
 - Slack alert delivery
 - Slack notifications
 - SMS notifications
+- Hosted AI providers such as OpenAI, Claude, and Grok
 - Email notifications using the user's SMTP server remain available on Free.
 
 ## Development license

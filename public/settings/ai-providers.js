@@ -37,19 +37,21 @@ function buildProviderCopy(provider) {
     `;
 }
 
-function buildProviderSwitcher(catalog, activeProviderId) {
+function buildProviderSwitcher(catalog, activeProviderId, canUseProvider) {
     return catalog.map((provider) => {
         const isActive = provider.id === activeProviderId;
+        const available = canUseProvider(provider.id);
         return `
             <button
                 type="button"
-                class="settings-provider-tab${isActive ? ' is-active' : ''}"
+                class="settings-provider-tab${isActive ? ' is-active' : ''}${available ? '' : ' premium-locked'}"
                 data-provider-id="${escapeHtml(provider.id)}"
                 role="tab"
                 aria-selected="${isActive ? 'true' : 'false'}"
+                ${available ? '' : 'disabled title="Hosted AI providers require Premium"'}
             >
                 <span class="settings-provider-tab-symbol" aria-hidden="true">${escapeHtml(provider.symbol || '•')}</span>
-                <span>${escapeHtml(provider.label)}</span>
+                <span>${escapeHtml(provider.label)}${available ? '' : ' <small>Premium</small>'}</span>
             </button>
         `;
     }).join('');
@@ -105,6 +107,11 @@ export function initAiProvidersSettings(dependencies) {
         settings: null,
         availability: null
     };
+    let entitlements = { features: { 'hosted-ai-providers': true } };
+
+    function canUseProvider(providerId) {
+        return providerId === 'ollama' || entitlements.features?.['hosted-ai-providers'] !== false;
+    }
 
     function setStatus(message, isError = false) {
         if (!status) {
@@ -125,7 +132,7 @@ export function initAiProvidersSettings(dependencies) {
             providerInput.value = activeProviderId;
         }
         if (providerSwitcher) {
-            providerSwitcher.innerHTML = buildProviderSwitcher(catalog, activeProviderId);
+            providerSwitcher.innerHTML = buildProviderSwitcher(catalog, activeProviderId, canUseProvider);
         }
 
         if (modelInput) {
@@ -178,6 +185,18 @@ export function initAiProvidersSettings(dependencies) {
                 ? `${activeProvider?.label || 'AI'} · ${selectedModel || 'provider default'}`
                 : 'Disabled';
         }
+
+        const hostedProvider = activeProvider?.id !== 'ollama' && !canUseProvider(activeProvider?.id);
+        form?.querySelectorAll('input, select, textarea, button').forEach((control) => {
+            if (control === refreshButton) {
+                return;
+            }
+            control.disabled = hostedProvider;
+            if (hostedProvider) {
+                control.classList.add('premium-locked');
+                control.title = 'Hosted AI providers require Premium';
+            }
+        });
     }
 
     async function refresh() {
@@ -233,7 +252,8 @@ export function initAiProvidersSettings(dependencies) {
         selectProvider(tab.dataset.providerId || 'ollama');
     });
 
-    refreshButton?.addEventListener('click', () => {
+    refreshButton?.addEventListener('click', (event) => {
+        event.stopPropagation();
         void refresh();
     });
 
@@ -263,6 +283,10 @@ export function initAiProvidersSettings(dependencies) {
     });
 
     return {
-        refresh
+        refresh,
+        setEntitlements(nextEntitlements) {
+            entitlements = nextEntitlements || entitlements;
+            render();
+        }
     };
 }
