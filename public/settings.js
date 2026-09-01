@@ -55,11 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const panel = document.getElementById(panelId);
         if (entitlements?.features?.[feature]) return;
         if (panelId === 'settings-slack-panel') {
-            panel?.classList.add('premium-panel-locked');
-            panel?.removeAttribute('open');
-            panel?.querySelector('summary')?.addEventListener('click', (event) => {
-                event.preventDefault();
-            });
+            panel?.classList.add('premium-preview-overlay');
             const summaryStatus = panel?.querySelector('#settings-slack-summary-status');
             if (summaryStatus) {
                 summaryStatus.innerHTML = '<span class="premium-badge"><i class="bi bi-lock-fill me-1" aria-hidden="true"></i>Premium</span>';
@@ -135,4 +131,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         slackSettings.refresh(),
         alertSettings.refresh()
     ]);
+
+    if (!entitlements?.features?.['slack-integration']) {
+        const slackSummaryStatus = document.getElementById('settings-slack-summary-status');
+        if (slackSummaryStatus) {
+            slackSummaryStatus.innerHTML = '<span class="premium-badge"><i class="bi bi-lock-fill me-1" aria-hidden="true"></i>Premium</span>';
+        }
+    }
 });

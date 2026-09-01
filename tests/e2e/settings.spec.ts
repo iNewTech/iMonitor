@@ -4,7 +4,7 @@ import path from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 import { _electron as electron, type ElectronApplication } from 'playwright';
 
-async function launchTestApp(): Promise<{
+async function launchTestApp(options: { forceFree?: boolean } = {}): Promise<{
     electronApp: ElectronApplication;
     page: Page;
     cleanup: () => Promise<void>;
@@ -26,7 +26,8 @@ async function launchTestApp(): Promise<{
             ...process.env,
             HOME: homeDirectory,
             IBM_EYE_STORE_DIR: storeDirectory,
-            IBM_EYE_USER_DATA_DIR: userDataDirectory
+            IBM_EYE_USER_DATA_DIR: userDataDirectory,
+            ...(options.forceFree ? { IMONITOR_PREMIUM_DISABLED: '1' } : {})
         }
     });
 
@@ -117,6 +118,24 @@ test('opens the dedicated settings page and switches AI provider setup', async (
         await app.page.locator('#settings-clickup-panel > summary').click();
         await expect(app.page.locator('#settings-clickup-user-email')).toHaveValue('support@example.com');
         await expect(app.page.locator('#settings-clickup-member-id')).toHaveValue('998877');
+    } finally {
+        await app.cleanup();
+    }
+});
+
+test('shows the Slack configuration as a Premium preview on the Free plan', async () => {
+    const app = await launchTestApp({ forceFree: true });
+
+    try {
+        await app.page.evaluate(() => window.electronAPI.navigateToSettings());
+        await expect(app.page.getByRole('heading', { name: 'Configure AI providers and action integrations', exact: true })).toBeVisible();
+
+        const slackPanel = app.page.locator('#settings-slack-panel');
+        await expect(app.page.locator('#settings-slack-summary-status')).toContainText('Premium');
+        await slackPanel.locator(':scope > summary').click();
+        await expect(slackPanel).toHaveAttribute('open', '');
+        await expect(slackPanel.locator('.premium-panel-overlay-card')).toBeVisible();
+        await expect(app.page.locator('#settings-slack-webhook')).toBeDisabled();
     } finally {
         await app.cleanup();
     }
