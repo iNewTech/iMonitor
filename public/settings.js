@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     ]);
     const entitlements = await window.electronAPI.getEntitlements();
     const premiumFeatures = new Map([
+        ['settings-ai-panel', 'ai-analysis'],
         ['settings-clickup-panel', 'clickup-integration'],
         ['settings-slack-panel', 'slack-integration']
     ]);
@@ -65,6 +66,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             control.classList.add('premium-locked');
             control.title = 'Premium feature';
         });
+    }
+    if (!entitlements?.features?.['slack-integration']) {
+        const slackChannel = document.querySelector('#settings-alert-slack');
+        if (slackChannel) {
+            slackChannel.disabled = true;
+            slackChannel.classList.add('premium-locked');
+            slackChannel.title = 'Slack notifications require Premium';
+        }
     }
 
     applyTheme(themeSettings.themeId);

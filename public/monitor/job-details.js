@@ -63,7 +63,7 @@ export function renderOperatorActions(detailOperatorActions, detailOperatorActio
             ${action.enabled ? '' : 'disabled'}
             title="${escapeHtml(action.reason || action.label)}"
         >
-            ${escapeHtml(action.label)}
+            ${action.enabled ? '' : '<i class="bi bi-lock-fill premium-action-icon" aria-hidden="true"></i>'} ${escapeHtml(action.label)}
         </button>
     `).join('');
 

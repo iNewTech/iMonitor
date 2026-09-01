@@ -7,6 +7,7 @@ import type {
 } from '../../features/ibmeyeai/ai-model';
 
 interface RegisterAiIpcDependencies {
+    requirePremium: () => void;
     getAiProviderCatalog: () => AiProviderCatalogEntry[];
     getAiSettings: () => AiAssistantSettings;
     saveAiSettings: (settings: Partial<AiAssistantSettings> | undefined) => AiAssistantSettings;
@@ -29,7 +30,7 @@ interface RegisterAiIpcDependencies {
 export function registerAiIpc(dependencies: RegisterAiIpcDependencies) {
     ipcMain.handle('get-ai-provider-catalog', () => dependencies.getAiProviderCatalog());
     ipcMain.handle('get-ai-settings', () => dependencies.getAiSettings());
-    ipcMain.handle('save-ai-settings', (_event, settings) => dependencies.saveAiSettings(settings));
+    ipcMain.handle('save-ai-settings', (_event, settings) => { dependencies.requirePremium(); return dependencies.saveAiSettings(settings); });
     ipcMain.handle('get-ai-availability', () => dependencies.getAiAvailability());
-    ipcMain.handle('ask-ai-assistant', (_event, payload) => dependencies.askAssistant(payload));
+    ipcMain.handle('ask-ai-assistant', (_event, payload) => { dependencies.requirePremium(); return dependencies.askAssistant(payload); });
 }

@@ -32,11 +32,11 @@ export const FEATURE_ENTITLEMENTS: readonly FeatureEntitlement[] = [
     { id: 'job-information', label: 'Job and system information', plan: 'free', description: 'View jobs, waits, SQL context, logs, and system details.' },
     { id: 'alert-workflow', label: 'Alert ownership and notes', plan: 'free', description: 'Acknowledge, claim, recheck, and document incidents.' },
     { id: 'desktop-notifications', label: 'Desktop notifications', plan: 'free', description: 'Receive local notifications for watched conditions.' },
-    { id: 'ai-analysis', label: 'IBMEye AI analysis', plan: 'free', description: 'Ask for evidence-based explanations and recommendations.' },
+    { id: 'ai-analysis', label: 'IBMEye AI analysis', plan: 'premium', description: 'Ask for evidence-based explanations and recommendations.' },
     { id: 'job-actions', label: 'IBM i job actions', plan: 'premium', description: 'Run approved hold, release, end, and message actions.' },
     { id: 'clickup-integration', label: 'ClickUp integration', plan: 'premium', description: 'Create and update external work items.' },
     { id: 'slack-integration', label: 'Slack integration', plan: 'premium', description: 'Deliver alerts to Slack channels.' },
-    { id: 'email-notifications', label: 'Email notifications', plan: 'premium', description: 'Deliver alerts through SMTP email.' },
+    { id: 'email-notifications', label: 'Email notifications', plan: 'free', description: 'Deliver alerts through your configured SMTP server.' },
     { id: 'sms-notifications', label: 'SMS notifications', plan: 'premium', description: 'Deliver concise alerts through SMS.' }
 ];
 

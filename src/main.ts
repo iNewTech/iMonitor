@@ -501,10 +501,6 @@ function maybeShowNotification(key: string, title: string, body: string) {
 async function notifyOperators(key: string, title: string, body: string) {
     maybeShowNotification(key, title, body);
 
-    if (!hasEntitlement(getEntitlements(), 'email-notifications')) {
-        return;
-    }
-
     try {
         await emailNotificationRuntime.sendAlertEmail({
             key,
@@ -637,6 +633,7 @@ registerEntitlementsIpc({
 });
 
 registerAiIpc({
+    requirePremium: () => requireEntitlement('ai-analysis'),
     getAiProviderCatalog,
     getAiSettings: getAiAssistantSettings,
     saveAiSettings: (settings) => saveAiAssistantSettings(settings),
@@ -681,7 +678,6 @@ registerSlackIpc({
 });
 
 registerAlertsIpc({
-    requirePremium: () => requireEntitlement('email-notifications'),
     getActiveAlerts: () => alertState.getActiveAlerts().slice(),
     recheckAlerts: () => monitoringRuntime.publishSystemStatus(),
     getSystemMessages: async () => {

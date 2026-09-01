@@ -15,8 +15,9 @@ iMonitor uses a simple Free/Premium feature boundary. The application keeps Prem
 - IBM i job actions such as hold, release, end, and MSGW reply
 - ClickUp action tracking
 - Slack alert delivery
-- Email notifications
-- Future SMS notifications
+- Slack notifications
+- SMS notifications
+- Email notifications using the user's SMTP server remain available on Free.
 
 ## Development license
 

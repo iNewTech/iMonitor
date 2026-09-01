@@ -13,6 +13,10 @@ describe('entitlements', () => {
         expect(hasEntitlement(state, 'job-information')).toBe(true);
         expect(hasEntitlement(state, 'desktop-notifications')).toBe(true);
         expect(hasEntitlement(state, 'job-actions')).toBe(false);
+        expect(hasEntitlement(state, 'ai-analysis')).toBe(false);
+        expect(hasEntitlement(state, 'email-notifications')).toBe(true);
+        expect(hasEntitlement(state, 'slack-integration')).toBe(false);
+        expect(hasEntitlement(state, 'sms-notifications')).toBe(false);
     });
 
     it('enables Premium with the development license only in development', () => {

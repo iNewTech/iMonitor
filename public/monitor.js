@@ -139,6 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const pendingRecheckAlertIds = new Set();
     let availableThemes = [];
     let currentOperatorName = 'local-operator';
+    let entitlements = { plan: 'premium', features: {} };
     let jobFilters = {
         subsystem: 'ALL',
         query: ''
@@ -270,6 +271,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function isOwnedWorkAlert(alert) {
         const status = String(alert?.workflowStatus || '');
         return isOwnedByCurrentOperator(alert) && (status === 'claimed' || status === 'work_done');
+    }
+
+    function premiumControl(label, feature, className, attributes = '') {
+        const available = entitlements.features?.[feature] !== false;
+        return `<button class="btn btn-outline-ink btn-sm ${className}${available ? '' : ' premium-locked'}" ${available ? '' : 'disabled'} ${attributes}>${available ? '' : '<i class="bi bi-lock-fill premium-action-icon" aria-hidden="true"></i>'}${label}</button>`;
     }
 
     function formatMegabytes(value) {
@@ -722,18 +728,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 Add Note
             </button>
         `;
-        const explainButton = `
-            <button class="btn btn-outline-ink btn-sm alert-ai-button alert-ai-explain" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-ai-explain">
-                <img src="assets/ibmeyeai-eye-open.svg" alt="" aria-hidden="true" class="alert-ai-button-icon">
-                Explain Alert
-            </button>
-        `;
-        const nextActionsButton = `
-            <button class="btn btn-outline-ink btn-sm alert-ai-button alert-ai-next-actions" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-ai-next-actions">
-                <img src="assets/ibmeyeai-eye-open.svg" alt="" aria-hidden="true" class="alert-ai-button-icon">
-                Next Best Action
-            </button>
-        `;
+        const aiAvailable = entitlements.features?.['ai-analysis'] !== false;
+        const explainButton = premiumControl(
+            `${aiAvailable ? '<img src="assets/ibmeyeai-eye-open.svg" alt="" aria-hidden="true" class="alert-ai-button-icon">' : ''}Explain Alert`,
+            'ai-analysis',
+            'alert-ai-button alert-ai-explain',
+            `data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-ai-explain" title="${aiAvailable ? 'Explain this alert with IBMEye AI' : 'IBMEye AI requires Premium'}"`
+        );
+        const nextActionsButton = premiumControl(
+            `${aiAvailable ? '<img src="assets/ibmeyeai-eye-open.svg" alt="" aria-hidden="true" class="alert-ai-button-icon">' : ''}Next Best Action`,
+            'ai-analysis',
+            'alert-ai-button alert-ai-next-actions',
+            `data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-ai-next-actions" title="${aiAvailable ? 'Get the next best action with IBMEye AI' : 'IBMEye AI requires Premium'}"`
+        );
         const clickUpButton = alert.clickUpTask?.id
             ? `
                 <button class="btn btn-outline-ink btn-sm alert-clickup-open" data-task-url="${escapeHtml(alert.clickUpTask.url || '')}" data-testid="alert-clickup-open">
@@ -893,6 +900,17 @@ document.addEventListener('DOMContentLoaded', () => {
         })).join('');
 
         restoreAlertScrollState(scrollState);
+    }
+
+    function applyPremiumUi() {
+        const premium = entitlements.plan === 'premium';
+        document.querySelectorAll('.ibmeyeai-panel input, .ibmeyeai-panel textarea, .ibmeyeai-panel button, #ibmeyeai-widget-input, #ibmeyeai-widget-submit').forEach((control) => {
+            if (premium) return;
+            control.disabled = true;
+            control.classList.add('premium-locked');
+            control.title = 'IBMEye AI requires Premium';
+        });
+        renderAlerts(latestAlerts);
     }
 
     function openAlertNoteComposer(alertId) {
