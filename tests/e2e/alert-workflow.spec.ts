@@ -72,7 +72,7 @@ test('keeps ClickUp ticket creation with the operator workflow', async () => {
     try {
         await openDemoMonitor(app.page);
 
-        await app.page.getByTestId('open-settings').click();
+        await app.page.locator('#open-settings').click();
         await expect(app.page.locator('#settings-alert-panel')).toBeVisible();
     } finally {
         await app.cleanup();
