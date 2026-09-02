@@ -9,6 +9,9 @@ import { filterJobs as filterVisibleJobs, getSubsystemOptions } from './monitor/
 import { initSupportPanel } from './shared/support.js';
 import {
     renderOperatorActions as renderOperatorActionsView,
+    renderJobContext as renderJobContextView,
+    renderJobLog as renderJobLogView,
+    renderJobMessages as renderJobMessagesView,
     renderRootCauseGuidance as renderRootCauseGuidanceView,
     renderStatusHistory as renderStatusHistoryView
 } from './monitor/job-details.js';
@@ -1784,6 +1787,73 @@ document.addEventListener('DOMContentLoaded', () => {
 
         aiAssistant.openWidget();
         void aiAssistant.submitPrompt(buildSelectedJobHealthPrompt(selectedJobName));
+    });
+
+    async function loadOnDemandJobData(button, output, loader, successMessage) {
+        if (!selectedJobName || !button || !output) {
+            return;
+        }
+
+        button.disabled = true;
+        if (jobOnDemandStatus) {
+            jobOnDemandStatus.textContent = 'Loading requested IBM i details...';
+        }
+
+        try {
+            const result = await loader(selectedJobName);
+            if (!result?.success) {
+                throw new Error(result?.error || 'The requested IBM i details could not be loaded.');
+            }
+
+            if (jobOnDemandStatus) {
+                jobOnDemandStatus.textContent = successMessage;
+            }
+            return result;
+        } catch (error) {
+            if (jobOnDemandStatus) {
+                jobOnDemandStatus.textContent = error?.message || 'The requested IBM i details could not be loaded.';
+            }
+            output.innerHTML = `<div class="status-history-empty">${escapeHtml(error?.message || 'Unable to load details.')}</div>`;
+            return null;
+        } finally {
+            button.disabled = false;
+        }
+    }
+
+    loadJobContextButton?.addEventListener('click', async () => {
+        const result = await loadOnDemandJobData(
+            loadJobContextButton,
+            jobContextOutput,
+            (jobName) => window.electronAPI.getJobContext(jobName),
+            'Job, queue, and subsystem properties loaded.'
+        );
+        if (result?.success) {
+            renderJobContextView(jobContextOutput, result);
+        }
+    });
+
+    loadJobLogButton?.addEventListener('click', async () => {
+        const result = await loadOnDemandJobData(
+            loadJobLogButton,
+            jobLogOutput,
+            (jobName) => window.electronAPI.getJobLog(jobName),
+            'Recent job log loaded.'
+        );
+        if (result?.success) {
+            renderJobLogView(jobLogOutput, result.records);
+        }
+    });
+
+    loadJobMessagesButton?.addEventListener('click', async () => {
+        const result = await loadOnDemandJobData(
+            loadJobMessagesButton,
+            jobMessagesOutput,
+            (jobName) => window.electronAPI.getJobMessages(jobName),
+            'Job message context loaded.'
+        );
+        if (result?.success) {
+            renderJobMessagesView(jobMessagesOutput, result.records);
+        }
     });
 
     closeJobDrawer?.addEventListener('click', () => {

@@ -3188,6 +3188,95 @@ body.connection-body .support-status {
     border: 1px solid rgba(24, 33, 43, 0.08);
 }
 
+.on-demand-record-group {
+    display: grid;
+    gap: 10px;
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: 16px;
+    background: rgba(248, 244, 236, 0.72);
+    border: 1px solid rgba(24, 33, 43, 0.08);
+}
+
+.on-demand-record-group h4 {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0;
+    color: var(--ink);
+    font-size: 0.95rem;
+}
+
+.on-demand-record-group h4 span {
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+
+.on-demand-properties {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 18px;
+    margin: 0;
+}
+
+.on-demand-properties div {
+    min-width: 0;
+}
+
+.on-demand-properties dt {
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.on-demand-properties dd {
+    margin: 2px 0 0;
+    color: var(--ink);
+    overflow-wrap: anywhere;
+}
+
+.on-demand-record-list {
+    display: grid;
+    gap: 8px;
+    max-height: 340px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.on-demand-record {
+    min-width: 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--card-strong);
+    border: 1px solid rgba(24, 33, 43, 0.08);
+}
+
+.on-demand-record time,
+.on-demand-record p {
+    color: var(--muted);
+    font-size: 0.84rem;
+}
+
+.on-demand-record time {
+    margin-right: 8px;
+}
+
+.on-demand-record strong {
+    color: var(--ink);
+    font-size: 0.86rem;
+}
+
+.on-demand-record p {
+    margin: 5px 0 0;
+    overflow-wrap: anywhere;
+}
+
+.on-demand-record-detail {
+    opacity: 0.82;
+}
+
 .status-history-status {
     font-size: 0.76rem;
     font-weight: 800;
