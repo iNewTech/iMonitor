@@ -12,7 +12,7 @@ import {
     markAlertWorkDone,
     releaseAlertWorkflow
 } from './features/alerts/alert-operator-workflow';
-import { normalizeAlertSettings } from './features/alerts/alert-model';
+import { normalizeAlertSettings, shouldWatchAlert } from './features/alerts/alert-model';
 import { getDemoAvailability } from './features/demo/demo-runtime';
 import { buildJobRootCauseGuidance } from './features/guidance/root-cause-guidance';
 import { buildFallbackAlertDiagnostic } from './features/ibmeyeai/alert-diagnostic';
@@ -38,7 +38,6 @@ import {
 } from './features/integrations/clickup/clickup-model';
 import {
     normalizeSlackSettings,
-    shouldSendSlackAlert,
     toRenderableSlackSettings,
     toStoredSlackSettings,
     type SlackSettings
@@ -310,7 +309,7 @@ const alertState = createAlertStateStore({
             hasEntitlement(getEntitlements(), 'slack-integration')
             &&
             slackRuntime.canSendAlerts()
-            && shouldSendSlackAlert(getSlackSettings(), alert.kind)
+            && shouldWatchAlert(getAlertSettings(), alert.kind)
         );
 
         if (!shouldSendSlack) {

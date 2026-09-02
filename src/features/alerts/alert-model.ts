@@ -170,6 +170,30 @@ export function normalizeAlertSettings(candidate: Partial<AlertSettings> | undef
 }
 
 /**
+ * Returns whether the shared IBMEye Alerts watch rule allows this alert kind.
+ * Notification channels consume alerts after this decision, so they do not
+ * maintain a second per-channel copy of the same condition rules.
+ */
+export function shouldWatchAlert(settings: AlertSettings, kind: AlertKind) {
+    switch (kind) {
+        case 'highCpu':
+            return settings.watchHighCpu;
+        case 'messageWait':
+            return settings.watchMessageWait;
+        case 'lockWait':
+            return settings.watchLockWait;
+        case 'delayWait':
+            return settings.watchDelayWait;
+        case 'dequeueWait':
+            return settings.watchDequeueWait;
+        case 'pollFailure':
+            return settings.watchFailedPolls;
+        default:
+            return false;
+    }
+}
+
+/**
  * Returns whether a new alert kind should create a ClickUp task.
  */
 export function shouldCreateClickUpTask(settings: AlertSettings, kind: AlertKind) {

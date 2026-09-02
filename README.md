@@ -106,7 +106,7 @@ You can:
 
 `iMonitor` can send new `IBMEye Alerts` to one shared Slack operations channel through an Incoming Webhook. The webhook is connected to its channel in Slack, so the app does not need to select or message an individual user. Slack settings are saved per local operator.
 
-In `Settings`, paste the webhook URL, enable Slack alerts, choose which alert types should be delivered, and use `Send Test` to verify the connection. All supported alert types are enabled by default. Repeated polls for the same active condition are not sent repeatedly.
+In `Settings`, paste the webhook URL and channel label in the Slack card, then enable Slack in the `IBMEye Alerts` notification channels. The alert conditions enabled in that shared panel are the single source of truth for Desktop, Slack, and Email delivery. Use `Send Test` to verify the connection. Repeated polls for the same active condition are not sent repeatedly.
 
 ## Support Tools
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
     DEFAULT_ALERT_SETTINGS,
     normalizeAlertSettings,
+    shouldWatchAlert,
     shouldCreateClickUpTask,
     sortAlerts,
     type MonitorAlert
@@ -49,6 +50,13 @@ describe('alert-model', () => {
         expect(normalizeAlertSettings(undefined).highCpuRecoveryPolls).toBe(3);
         expect(normalizeAlertSettings({ highCpuRecoveryPolls: 0 }).highCpuRecoveryPolls).toBe(1);
         expect(normalizeAlertSettings({ highCpuRecoveryPolls: 25 }).highCpuRecoveryPolls).toBe(10);
+    });
+
+    it('uses the shared watch rules for every notification channel', () => {
+        expect(shouldWatchAlert(DEFAULT_ALERT_SETTINGS, 'messageWait')).toBe(true);
+        expect(shouldWatchAlert(DEFAULT_ALERT_SETTINGS, 'pollFailure')).toBe(true);
+        expect(shouldWatchAlert({ ...DEFAULT_ALERT_SETTINGS, watchHighCpu: false }, 'highCpu')).toBe(false);
+        expect(shouldWatchAlert({ ...DEFAULT_ALERT_SETTINGS, watchFailedPolls: false }, 'pollFailure')).toBe(false);
     });
 
     it('keeps active alerts first and orders each section from oldest to newest', () => {

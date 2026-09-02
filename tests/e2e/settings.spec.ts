@@ -84,12 +84,10 @@ test('opens the dedicated settings page and switches AI provider setup', async (
         await expect(slackPanel).toHaveAttribute('open', '');
         await expect(aiPanel).not.toHaveAttribute('open', '');
         await expect(app.page.locator('#settings-slack-summary-status')).toHaveText('Disabled');
-        await expect(app.page.locator('#settings-slack-message-wait')).toBeChecked();
-        await expect(app.page.locator('#settings-slack-lock-wait')).toBeChecked();
-        await expect(app.page.locator('#settings-slack-high-cpu')).toBeChecked();
-        await expect(app.page.locator('#settings-slack-delay-wait')).toBeChecked();
-        await expect(app.page.locator('#settings-slack-dequeue-wait')).toBeChecked();
-        await expect(app.page.locator('#settings-slack-poll-failure')).toBeChecked();
+        await expect(slackPanel.getByText('Alert conditions are managed above')).toBeVisible();
+        await expect(slackPanel.getByText('Slack follows the conditions enabled in IBMEye Alerts.')).toBeVisible();
+        await expect(slackPanel.locator('.slack-rules-grid')).toHaveCount(0);
+        await expect(slackPanel.locator('#settings-slack-enabled')).toHaveCount(0);
 
         await clickUpPanel.locator(':scope > summary').click();
         await expect(clickUpPanel).toHaveAttribute('open', '');
@@ -139,6 +137,7 @@ test('shows the Slack configuration as a Premium preview on the Free plan', asyn
         await expect(slackPanel).toHaveAttribute('open', '');
         await expect(slackPanel.locator('.premium-panel-overlay-card')).toBeVisible();
         await expect(app.page.locator('#settings-slack-webhook')).toBeDisabled();
+        await expect(slackPanel.locator('.slack-rules-grid')).toHaveCount(0);
     } finally {
         await app.cleanup();
     }

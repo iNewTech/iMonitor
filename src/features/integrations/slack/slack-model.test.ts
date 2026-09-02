@@ -4,20 +4,10 @@ import {
     DEFAULT_SLACK_SETTINGS,
     buildSlackAlertMessage,
     buildSlackAlertPayload,
-    normalizeSlackSettings,
-    shouldSendSlackAlert
+    normalizeSlackSettings
 } from './slack-model';
 
 describe('slack-model', () => {
-    it('defaults Slack delivery to every alert type', () => {
-        expect(shouldSendSlackAlert(DEFAULT_SLACK_SETTINGS, 'messageWait')).toBe(true);
-        expect(shouldSendSlackAlert(DEFAULT_SLACK_SETTINGS, 'lockWait')).toBe(true);
-        expect(shouldSendSlackAlert(DEFAULT_SLACK_SETTINGS, 'highCpu')).toBe(true);
-        expect(shouldSendSlackAlert(DEFAULT_SLACK_SETTINGS, 'delayWait')).toBe(true);
-        expect(shouldSendSlackAlert(DEFAULT_SLACK_SETTINGS, 'dequeueWait')).toBe(true);
-        expect(shouldSendSlackAlert(DEFAULT_SLACK_SETTINGS, 'pollFailure')).toBe(true);
-    });
-
     it('fills missing settings from safe defaults', () => {
         expect(normalizeSlackSettings({ webhookUrl: ' https://hooks.slack.com/services/demo ' })).toEqual({
             ...DEFAULT_SLACK_SETTINGS,

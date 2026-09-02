@@ -62,12 +62,6 @@ interface SlackSettings {
     enabled: boolean;
     webhookUrl: string;
     channelName: string;
-    sendHighCpu: boolean;
-    sendMessageWait: boolean;
-    sendLockWait: boolean;
-    sendDelayWait: boolean;
-    sendDequeueWait: boolean;
-    sendPollFailure: boolean;
 }
 
 interface MonitorAlert {

@@ -34,7 +34,7 @@ AI and attachment failures are recorded in encrypted developer diagnostics and d
 
 ## Slack Delivery
 
-Slack delivery uses one Incoming Webhook configured for a shared operations channel. All supported alert types are enabled by default. Each newly created alert is sent once, while repeated polls for the same active condition remain quiet.
+Slack delivery uses one Incoming Webhook configured for a shared operations channel. The `IBMEye Alerts` watch rules are the single source of truth for which conditions are delivered to Slack; the Slack integration does not duplicate those condition switches. Each newly created alert is sent once, while repeated polls for the same active condition remain quiet.
 
 Webhook failures are recorded in encrypted developer diagnostics and do not interrupt monitoring.
 

@@ -36,8 +36,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         root: document
     });
     const alertSettings = initAlertSettings({
-        root: document,
-        slackSettings
+        root: document
     });
 
     const [connectionState, themeSettings, appFlags] = await Promise.all([
@@ -47,6 +46,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     ]);
     const entitlements = await window.electronAPI.getEntitlements();
     aiSettings.setEntitlements?.(entitlements);
+    alertSettings.setSlackAvailable?.(Boolean(entitlements?.features?.['slack-integration']));
     const premiumFeatures = new Map([
         ['settings-clickup-panel', 'clickup-integration'],
         ['settings-slack-panel', 'slack-integration']

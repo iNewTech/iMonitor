@@ -13,7 +13,7 @@ import {
     getJobTitle,
     toNumber
 } from '../monitoring/monitoring-model';
-import type { AlertSettings, MonitorAlert, StoredAlertWorkflowState } from './alert-model';
+import { shouldWatchAlert, type AlertSettings, type MonitorAlert, type StoredAlertWorkflowState } from './alert-model';
 
 export interface AlertWorkflowDependencies {
     activeAlerts: MonitorAlert[];
@@ -77,7 +77,7 @@ export function evaluateAlertRules(
         const jobKey = getJobKey(job);
         const cpu = toNumber(job.CPU);
 
-        if (settings.watchMessageWait && job.STATUS === 'MSGW') {
+        if (shouldWatchAlert(settings, 'messageWait') && job.STATUS === 'MSGW') {
             const alertId = `msgw:${jobKey}`;
             if (!dismissedAlertIds.has(alertId)) {
                 const existingAlert = existingAlerts.get(alertId);
@@ -117,7 +117,7 @@ export function evaluateAlertRules(
             }
         }
 
-        if (settings.watchLockWait && job.STATUS === 'LCKW') {
+        if (shouldWatchAlert(settings, 'lockWait') && job.STATUS === 'LCKW') {
             const alertId = `lckw:${jobKey}`;
             if (!dismissedAlertIds.has(alertId)) {
                 const existingAlert = existingAlerts.get(alertId);
@@ -157,7 +157,7 @@ export function evaluateAlertRules(
             }
         }
 
-        if (settings.watchDelayWait && job.STATUS === 'DLYW') {
+        if (shouldWatchAlert(settings, 'delayWait') && job.STATUS === 'DLYW') {
             const alertId = `dlyw:${jobKey}`;
             if (!dismissedAlertIds.has(alertId)) {
                 const existingAlert = existingAlerts.get(alertId);
@@ -197,7 +197,7 @@ export function evaluateAlertRules(
             }
         }
 
-        if (settings.watchDequeueWait && job.STATUS === 'DEQW') {
+        if (shouldWatchAlert(settings, 'dequeueWait') && job.STATUS === 'DEQW') {
             const alertId = `deqw:${jobKey}`;
             if (!dismissedAlertIds.has(alertId)) {
                 const existingAlert = existingAlerts.get(alertId);
@@ -237,7 +237,7 @@ export function evaluateAlertRules(
             }
         }
 
-        if (settings.watchHighCpu && cpu >= settings.highCpuThreshold) {
+        if (shouldWatchAlert(settings, 'highCpu') && cpu >= settings.highCpuThreshold) {
             const alertId = `cpu:${jobKey}`;
             if (!dismissedAlertIds.has(alertId)) {
                 const existingAlert = existingAlerts.get(alertId);

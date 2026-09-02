@@ -1,7 +1,7 @@
 /**
  * Initializes the shared IBMEye alert delivery and watch rules.
  */
-export function initAlertSettings({ root, slackSettings }) {
+export function initAlertSettings({ root }) {
     const form = root.querySelector('#settings-alert-form');
     const status = root.querySelector('#settings-alert-status');
     const summary = root.querySelector('#settings-alert-summary-status');
@@ -29,6 +29,7 @@ export function initAlertSettings({ root, slackSettings }) {
     let alertSettings;
     let emailSettings;
     let slackState;
+    let slackAvailable = false;
 
     function setStatus(message, isError = false) {
         if (!status) return;
@@ -96,10 +97,12 @@ export function initAlertSettings({ root, slackSettings }) {
                 watchFailedPolls: Boolean(pollFailure?.checked),
                 watchDisconnects: Boolean(disconnect?.checked)
             });
-            slackState = await window.electronAPI.saveSlackSettings({
-                ...slackState,
-                enabled: Boolean(slack?.checked)
-            });
+            if (slackAvailable) {
+                slackState = await window.electronAPI.saveSlackSettings({
+                    ...slackState,
+                    enabled: Boolean(slack?.checked)
+                });
+            }
             emailSettings = await window.electronAPI.saveEmailNotificationSettings({
                 enabled: Boolean(email?.checked), smtpHost: emailHost?.value || '', smtpPort: Number(emailPort?.value || 587),
                 secure: Boolean(emailSecure?.checked), username: emailUsername?.value || '', password: emailPassword?.value || '',
@@ -127,5 +130,10 @@ export function initAlertSettings({ root, slackSettings }) {
         } finally { emailTest.disabled = false; }
     });
 
-    return { refresh };
+    return {
+        refresh,
+        setSlackAvailable(value) {
+            slackAvailable = Boolean(value);
+        }
+    };
 }

@@ -1,4 +1,4 @@
-import type { AlertKind, MonitorAlert } from '../../alerts/alert-model';
+import type { MonitorAlert } from '../../alerts/alert-model';
 
 /**
  * Per-operator Slack channel delivery settings.
@@ -7,12 +7,6 @@ export interface SlackSettings {
     enabled: boolean;
     webhookUrl: string;
     channelName: string;
-    sendHighCpu: boolean;
-    sendMessageWait: boolean;
-    sendLockWait: boolean;
-    sendDelayWait: boolean;
-    sendDequeueWait: boolean;
-    sendPollFailure: boolean;
 }
 
 /**
@@ -22,12 +16,6 @@ export interface StoredSlackSettings {
     enabled: boolean;
     encryptedWebhookUrl: string;
     channelName: string;
-    sendHighCpu: boolean;
-    sendMessageWait: boolean;
-    sendLockWait: boolean;
-    sendDelayWait: boolean;
-    sendDequeueWait: boolean;
-    sendPollFailure: boolean;
 }
 
 export type StoredSlackSettingsByUser = Record<string, StoredSlackSettings>;
@@ -43,25 +31,13 @@ export interface SlackWebhookPayload {
 export const DEFAULT_SLACK_SETTINGS: SlackSettings = {
     enabled: false,
     webhookUrl: '',
-    channelName: '',
-    sendHighCpu: true,
-    sendMessageWait: true,
-    sendLockWait: true,
-    sendDelayWait: true,
-    sendDequeueWait: true,
-    sendPollFailure: true
+    channelName: ''
 };
 
 export const DEFAULT_STORED_SLACK_SETTINGS: StoredSlackSettings = {
     enabled: false,
     encryptedWebhookUrl: '',
-    channelName: '',
-    sendHighCpu: true,
-    sendMessageWait: true,
-    sendLockWait: true,
-    sendDelayWait: true,
-    sendDequeueWait: true,
-    sendPollFailure: true
+    channelName: ''
 };
 
 export const DEFAULT_STORED_SLACK_SETTINGS_BY_USER: StoredSlackSettingsByUser = {};
@@ -87,13 +63,7 @@ export function normalizeSlackSettings(candidate: Partial<SlackSettings> | undef
     return {
         enabled: Boolean(candidate?.enabled),
         webhookUrl: String(candidate?.webhookUrl ?? '').trim(),
-        channelName: String(candidate?.channelName ?? '').trim(),
-        sendHighCpu: candidate?.sendHighCpu ?? DEFAULT_SLACK_SETTINGS.sendHighCpu,
-        sendMessageWait: candidate?.sendMessageWait ?? DEFAULT_SLACK_SETTINGS.sendMessageWait,
-        sendLockWait: candidate?.sendLockWait ?? DEFAULT_SLACK_SETTINGS.sendLockWait,
-        sendDelayWait: candidate?.sendDelayWait ?? DEFAULT_SLACK_SETTINGS.sendDelayWait,
-        sendDequeueWait: candidate?.sendDequeueWait ?? DEFAULT_SLACK_SETTINGS.sendDequeueWait,
-        sendPollFailure: candidate?.sendPollFailure ?? DEFAULT_SLACK_SETTINGS.sendPollFailure
+        channelName: String(candidate?.channelName ?? '').trim()
     };
 }
 
@@ -105,24 +75,12 @@ export function normalizeStoredSlackSettings(
 ): StoredSlackSettings {
     const normalized = normalizeSlackSettings({
         enabled: candidate?.enabled,
-        channelName: candidate?.channelName,
-        sendHighCpu: candidate?.sendHighCpu,
-        sendMessageWait: candidate?.sendMessageWait,
-        sendLockWait: candidate?.sendLockWait,
-        sendDelayWait: candidate?.sendDelayWait,
-        sendDequeueWait: candidate?.sendDequeueWait,
-        sendPollFailure: candidate?.sendPollFailure
+        channelName: candidate?.channelName
     });
     return {
         enabled: normalized.enabled,
         encryptedWebhookUrl: String(candidate?.encryptedWebhookUrl ?? '').trim(),
-        channelName: normalized.channelName,
-        sendHighCpu: normalized.sendHighCpu,
-        sendMessageWait: normalized.sendMessageWait,
-        sendLockWait: normalized.sendLockWait,
-        sendDelayWait: normalized.sendDelayWait,
-        sendDequeueWait: normalized.sendDequeueWait,
-        sendPollFailure: normalized.sendPollFailure
+        channelName: normalized.channelName
     };
 }
 
@@ -137,13 +95,7 @@ export function toStoredSlackSettings(
     return {
         enabled: normalized.enabled,
         encryptedWebhookUrl: normalized.webhookUrl ? protectSecret(normalized.webhookUrl) : '',
-        channelName: normalized.channelName,
-        sendHighCpu: normalized.sendHighCpu,
-        sendMessageWait: normalized.sendMessageWait,
-        sendLockWait: normalized.sendLockWait,
-        sendDelayWait: normalized.sendDelayWait,
-        sendDequeueWait: normalized.sendDequeueWait,
-        sendPollFailure: normalized.sendPollFailure
+        channelName: normalized.channelName
     };
 }
 
@@ -158,13 +110,7 @@ export function toRenderableSlackSettings(
     return {
         enabled: normalized.enabled,
         webhookUrl: normalized.encryptedWebhookUrl ? revealSecret(normalized.encryptedWebhookUrl) : '',
-        channelName: normalized.channelName,
-        sendHighCpu: normalized.sendHighCpu,
-        sendMessageWait: normalized.sendMessageWait,
-        sendLockWait: normalized.sendLockWait,
-        sendDelayWait: normalized.sendDelayWait,
-        sendDequeueWait: normalized.sendDequeueWait,
-        sendPollFailure: normalized.sendPollFailure
+        channelName: normalized.channelName
     };
 }
 
@@ -173,28 +119,6 @@ export function toRenderableSlackSettings(
  */
 export function normalizeSlackSettingsUserKey(candidate: string | undefined) {
     return String(candidate ?? '').trim() || 'local-operator';
-}
-
-/**
- * Returns whether a new alert kind should be delivered to Slack.
- */
-export function shouldSendSlackAlert(settings: SlackSettings, kind: AlertKind) {
-    switch (kind) {
-        case 'highCpu':
-            return settings.sendHighCpu;
-        case 'messageWait':
-            return settings.sendMessageWait;
-        case 'lockWait':
-            return settings.sendLockWait;
-        case 'delayWait':
-            return settings.sendDelayWait;
-        case 'dequeueWait':
-            return settings.sendDequeueWait;
-        case 'pollFailure':
-            return settings.sendPollFailure;
-        default:
-            return false;
-    }
 }
 
 /**
