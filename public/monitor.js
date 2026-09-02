@@ -99,8 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const detailOperatorActionNote = document.getElementById('detail-operator-action-note');
     const detailAiHealth = document.getElementById('detail-ai-health');
     const detailStatusHistory = document.getElementById('detail-status-history');
-    const detailSqlStatus = document.getElementById('detail-sql-status');
-    const detailSqlText = document.getElementById('detail-sql-text');
     const loadJobContextButton = document.getElementById('load-job-context');
     const loadJobLogButton = document.getElementById('load-job-log');
     const loadJobMessagesButton = document.getElementById('load-job-messages');
@@ -1304,18 +1302,6 @@ document.addEventListener('DOMContentLoaded', () => {
             detailGuidanceTechnical
         }, payload.guidance);
         renderOperatorActionsView(detailOperatorActions, detailOperatorActionNote, payload.actions);
-        if (detailSqlStatus) {
-            const sqlTimestamp = job.SQL_STATEMENT_START_TIMESTAMP
-                ? ` since ${new Date(job.SQL_STATEMENT_START_TIMESTAMP).toLocaleTimeString()}`
-                : '';
-            detailSqlStatus.textContent = job.SQL_STATEMENT_STATUS
-                ? `${job.SQL_STATEMENT_STATUS}${sqlTimestamp}`
-                : 'No SQL detected';
-        }
-        if (detailSqlText) {
-            detailSqlText.textContent = job.SQL_STATEMENT_TEXT || 'No SQL statement captured for this job.';
-        }
-
         renderStatusHistoryView(detailStatusHistory, payload.statusHistory || []);
 
         if (jobDetailEmpty) {

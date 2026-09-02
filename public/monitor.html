@@ -602,7 +602,7 @@
                 <p class="eyebrow mb-2">Job Detail</p>
                 <h2 id="job-detail-title" class="section-title">Select a job</h2>
                 <p id="job-detail-subtitle" class="panel-copy mb-0">
-                    Choose a row from the active jobs table to inspect current SQL, wait reasons, and recent status changes.
+                    Choose a row from the active jobs table to inspect its status, wait reason, and recent history.
                 </p>
             </div>
             <button id="close-job-drawer" class="btn btn-outline-ink">
@@ -712,17 +712,6 @@
                     </div>
                 </div>
                 <div id="detail-status-history" class="status-history-list"></div>
-            </section>
-
-            <section class="job-detail-section">
-                <div class="history-card-header">
-                    <div>
-                        <p class="eyebrow mb-2">SQL Activity</p>
-                        <h3 class="section-title">Current or last SQL statement</h3>
-                    </div>
-                    <span id="detail-sql-status" class="table-caption">No SQL detected</span>
-                </div>
-                <pre id="detail-sql-text" class="activity-log-sql">No SQL statement captured for this job.</pre>
             </section>
 
             <section class="job-detail-section on-demand-panel">
