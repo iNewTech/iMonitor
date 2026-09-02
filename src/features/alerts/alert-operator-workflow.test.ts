@@ -5,6 +5,7 @@ import {
     claimAlertWorkflow,
     createAlertWorkflowState,
     markAlertWorkDone,
+    normalizeAlertWorkflowState,
     reopenAlertWorkflow,
     releaseAlertWorkflow,
     systemClearAlertWorkflow
@@ -76,5 +77,26 @@ describe('alert operator workflow', () => {
         expect(withNote.notes[0]?.author).toBe('local-user');
         expect(reopened.status).toBe('new');
         expect(reopened.timeline[0]?.action).toBe('reopened');
+    });
+
+    it('keeps the newest timeline entries when normalizing a long incident history', () => {
+        const timeline = Array.from({ length: 35 }, (_, index) => ({
+            id: `event-${index}`,
+            timestamp: `2026-08-23T10:${String(index).padStart(2, '0')}:00.000Z`,
+            action: 'condition_seen' as const,
+            label: `Event ${index}`
+        }));
+
+        const normalized = normalizeAlertWorkflowState({
+            status: 'claimed',
+            owner: 'local-user',
+            notes: [],
+            timeline,
+            updatedAt: '2026-08-23T10:34:00.000Z'
+        }, '2026-08-23T10:34:00.000Z');
+
+        expect(normalized.timeline).toHaveLength(30);
+        expect(normalized.timeline[0]?.id).toBe('event-0');
+        expect(normalized.timeline[29]?.id).toBe('event-29');
     });
 });

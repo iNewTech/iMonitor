@@ -136,6 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let noteComposerAlertId = null;
     const noteDraftByAlertId = new Map();
     const expandedAlertIds = new Set();
+    const expandedTimelineAlertIds = new Set();
     let focusedAlertId = null;
     let alertSearchQuery = '';
     const pendingRecheckAlertIds = new Set();
@@ -680,7 +681,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const ownerMarkup = owner
             ? `<p class="alert-owner">${isClaimedAlert(alert) ? 'Working owner' : 'Assigned to'}: ${escapeHtml(owner)}</p>`
             : '';
-        const timelineMarkup = Array.isArray(alert.timeline) && alert.timeline.length
+        const timelineEntries = Array.isArray(alert.timeline) ? alert.timeline : [];
+        const isTimelineExpanded = expandedTimelineAlertIds.has(alert.id);
+        const timelineMarkup = timelineEntries.length
             ? `
                 <div class="alert-history-shell">
                     <div class="alert-history-header">
@@ -688,7 +691,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p class="alert-history-copy">Operator actions and alert events for this incident.</p>
                     </div>
                     <div class="alert-timeline" data-testid="alert-timeline">
-                        ${alert.timeline.slice(0, 4).map((entry) => `
+                        ${timelineEntries.slice(0, isTimelineExpanded ? timelineEntries.length : 4).map((entry) => `
                             <div class="alert-timeline-entry">
                                 <strong>${escapeHtml(entry.label)}</strong>
                                 <span>${formatTimestamp(entry.timestamp)}</span>
@@ -697,6 +700,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                         `).join('')}
                     </div>
+                    ${timelineEntries.length > 4 ? `
+                        <button class="btn btn-outline-ink btn-sm alert-history-toggle" type="button" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-history-toggle">
+                            <i class="bi bi-clock-history me-1" aria-hidden="true"></i>${isTimelineExpanded ? 'Show less history' : `Show all history (${timelineEntries.length})`}
+                        </button>
+                    ` : ''}
                 </div>
             `
             : '';
@@ -972,6 +980,16 @@ document.addEventListener('DOMContentLoaded', () => {
         renderAlerts(latestAlerts);
     }
 
+    function toggleIncidentHistory(alertId) {
+        if (expandedTimelineAlertIds.has(alertId)) {
+            expandedTimelineAlertIds.delete(alertId);
+        } else {
+            expandedTimelineAlertIds.add(alertId);
+        }
+
+        renderAlerts(latestAlerts);
+    }
+
     function handleAlertInteraction(event) {
         const target = event.target;
         if (!(target instanceof HTMLElement)) {
@@ -981,6 +999,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const toggleButton = target.closest('.alert-toggle');
         if (toggleButton?.dataset?.alertId) {
             toggleAlertExpanded(toggleButton.dataset.alertId);
+            return;
+        }
+
+        const historyToggle = target.closest('.alert-history-toggle');
+        if (historyToggle?.dataset?.alertId) {
+            toggleIncidentHistory(historyToggle.dataset.alertId);
             return;
         }
 

@@ -53,7 +53,7 @@ export function normalizeAlertWorkflowState(
             }))
             : [],
         timeline: Array.isArray(state.timeline) && state.timeline.length
-            ? state.timeline.slice(-30).map((entry) => ({
+            ? state.timeline.slice(0, 30).map((entry) => ({
                 ...entry,
                 action: normalizeWorkflowAction(entry.action),
                 actor: entry.actor?.trim() || undefined

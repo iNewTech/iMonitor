@@ -110,12 +110,14 @@ test('supports acknowledge, claim, note, work done, and return-to-queue in the a
         await workingAlert.getByTestId('alert-note-save').click();
         await expect(workingAlert.getByTestId('alert-timeline')).toContainText('Note added');
         await expect(workingAlert.getByTestId('alert-timeline')).toContainText('Checked by e2e smoke test');
-
         await workingAlert.getByTestId('alert-work-done').click();
         await expect.poll(async () => {
             const alerts = await app.page.evaluate(() => window.electronAPI.getActiveAlerts());
             return alerts.find((entry) => entry.id === alertId)?.workflowStatus;
         }).toBe('work_done');
+        await workingAlert.getByTestId('alert-history-toggle').click();
+        await expect(workingAlert.getByTestId('alert-history-toggle')).toContainText('Show less history');
+        await expect(workingAlert.getByTestId('alert-timeline').locator('.alert-timeline-entry')).toHaveCount(5);
 
         await workingAlert.getByTestId('alert-release').click();
         const returnedAlert = app.page.getByTestId('alert-card').first();

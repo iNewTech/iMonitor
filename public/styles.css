@@ -2535,6 +2535,11 @@ body.connection-body .support-status {
     gap: 8px;
 }
 
+.alert-history-toggle {
+    justify-self: start;
+    margin-top: 10px;
+}
+
 .alert-note,
 .alert-timeline-entry {
     padding: 10px 12px;
