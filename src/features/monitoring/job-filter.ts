@@ -3,7 +3,10 @@ import type { ActiveJobRecord } from '../../services/ibmi';
 export interface JobFilterState {
     subsystem: string;
     query: string;
+    status?: string;
 }
+
+const WAITING_STATUSES = new Set(['MSGW', 'LCKW', 'DEQW', 'DLYW']);
 
 /**
  * Returns sorted subsystem options for the latest job list.
@@ -22,9 +25,18 @@ export function getSubsystemOptions(jobs: ActiveJobRecord[]) {
 export function filterJobs(jobs: ActiveJobRecord[], filters: JobFilterState) {
     const subsystem = String(filters.subsystem || '').trim().toUpperCase();
     const query = normalizeQuery(filters.query);
+    const status = String(filters.status || 'ALL').trim().toUpperCase();
 
     return jobs.filter((job) => {
         if (subsystem && subsystem !== 'ALL' && String(job.SUBSYSTEM || '').trim().toUpperCase() !== subsystem) {
+            return false;
+        }
+
+        const jobStatus = String(job.STATUS || '').trim().toUpperCase();
+        if (status === 'WAITING' && !WAITING_STATUSES.has(jobStatus)) {
+            return false;
+        }
+        if (status !== 'ALL' && status !== 'WAITING' && jobStatus !== status) {
             return false;
         }
 
@@ -108,4 +120,3 @@ function levenshteinDistance(left: string, right: string) {
 
     return matrix[rows - 1][cols - 1];
 }
-

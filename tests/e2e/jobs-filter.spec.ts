@@ -63,8 +63,23 @@ test('filters and searches the active jobs table in demo mode', async () => {
         await expect(app.page.locator('#system-stats tbody tr').nth(2)).toContainText('QBATCH/');
         await expect(app.page.getByTestId('jobs-visible-count')).toContainText('Showing 3 of');
 
+        await app.page.getByTestId('jobs-filter-waiting').click();
+        await expect(app.page.locator('#system-stats tbody tr')).toHaveCount(1);
+        await expect(app.page.locator('#system-stats tbody tr')).toContainText('LCKW');
+        await expect(app.page.getByTestId('jobs-visible-count')).toContainText('Showing 1 of');
+
         await app.page.getByTestId('jobs-subsystem-filter').selectOption('ALL');
+        await app.page.getByTestId('jobs-filter-running').click();
+        const runningRows = app.page.locator('#system-stats tbody tr.job-row');
+        await expect(runningRows).not.toHaveCount(0);
+        const runningStatuses = await runningRows.locator('.badge').allTextContents();
+        expect(runningStatuses.every((status) => status.trim() === 'RUN')).toBe(true);
+
         await app.page.getByTestId('jobs-search-input').fill('interct');
+        await expect(app.page.locator('#system-stats tbody tr')).toHaveCount(1);
+        await expect(app.page.locator('#system-stats tbody tr')).toContainText('QINTER/INTERACT');
+
+        await app.page.getByTestId('jobs-filter-all').click();
         await expect(app.page.locator('#system-stats tbody tr')).toHaveCount(1);
         await expect(app.page.locator('#system-stats tbody tr')).toContainText('QINTER/INTERACT');
 

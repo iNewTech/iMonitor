@@ -94,4 +94,18 @@ describe('job-filter', () => {
             query: 'interct'
         }).map((job) => job.JOB_NAME_SHORT)).toEqual(['INTERACT']);
     });
+
+    it('filters jobs by running and waiting quick views', () => {
+        expect(filterJobs(jobs, {
+            subsystem: 'ALL',
+            query: '',
+            status: 'RUN'
+        }).map((job) => job.JOB_NAME_SHORT)).toEqual(['NIGHTRUN']);
+
+        expect(filterJobs(jobs, {
+            subsystem: 'ALL',
+            query: '',
+            status: 'WAITING'
+        }).map((job) => job.JOB_NAME_SHORT)).toEqual(['INTERACT', 'APISRV']);
+    });
 });

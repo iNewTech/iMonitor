@@ -116,6 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const jobsSubsystemFilter = document.getElementById('jobs-subsystem-filter');
     const jobsSearchInput = document.getElementById('jobs-search-input');
     const jobsVisibleCount = document.getElementById('jobs-visible-count');
+    const jobsQuickFilterButtons = Array.from(document.querySelectorAll('[data-job-filter]'));
     const totalJobs = document.getElementById('total-jobs');
     const peakCpu = document.getElementById('peak-cpu');
     const runningJobs = document.getElementById('running-jobs');
@@ -149,7 +150,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let entitlements = { plan: 'premium', features: {} };
     let jobFilters = {
         subsystem: 'ALL',
-        query: ''
+        query: '',
+        status: 'ALL'
     };
     const aiAssistant = initAiAssistant({
         root: document,
@@ -450,6 +452,14 @@ document.addEventListener('DOMContentLoaded', () => {
         jobsVisibleCount.textContent = `Showing ${visibleCount} of ${totalCount} jobs`;
     }
 
+    function syncJobQuickFilters() {
+        jobsQuickFilterButtons.forEach((button) => {
+            const isActive = button.dataset.jobFilter === (jobFilters.status || 'ALL');
+            button.classList.toggle('is-active', isActive);
+            button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        });
+    }
+
     function getStatusBadgeClass(status) {
         switch (status) {
             case 'RUN':
@@ -476,6 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         latestJobs = Array.isArray(result?.data) ? result.data : [];
         renderSubsystemFilterOptions(latestJobs);
+        syncJobQuickFilters();
         updateSummary(latestJobs);
         const pollTimestamp = result?.generatedAt || new Date().toISOString();
         if (jobsLastPoll) {
@@ -1544,6 +1555,16 @@ document.addEventListener('DOMContentLoaded', () => {
             query: event.target.value || ''
         };
         renderJobs({ data: latestJobs });
+    });
+
+    jobsQuickFilterButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            jobFilters = {
+                ...jobFilters,
+                status: button.dataset.jobFilter || 'ALL'
+            };
+            renderJobs({ data: latestJobs });
+        });
     });
 
     alertSearchInput?.addEventListener('input', (event) => {

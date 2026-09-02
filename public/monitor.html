@@ -312,6 +312,16 @@
                             </div>
                         </div>
 
+                        <div class="jobs-quick-filters" role="group" aria-label="Filter jobs by status">
+                            <span class="jobs-toolbar-label">View</span>
+                            <div class="jobs-quick-filter-buttons">
+                                <button type="button" class="jobs-quick-filter is-active" data-job-filter="ALL" aria-pressed="true" data-testid="jobs-filter-all">All</button>
+                                <button type="button" class="jobs-quick-filter" data-job-filter="RUN" aria-pressed="false" data-testid="jobs-filter-running">Running</button>
+                                <button type="button" class="jobs-quick-filter" data-job-filter="WAITING" aria-pressed="false" data-testid="jobs-filter-waiting">Waiting</button>
+                                <button type="button" class="jobs-quick-filter" data-job-filter="MSGW" aria-pressed="false" data-testid="jobs-filter-msgw">MSGW</button>
+                            </div>
+                        </div>
+
                         <div id="system-stats" class="table-responsive refined-table">
                             <table class="table table-hover table-striped align-middle">
                                 <thead>

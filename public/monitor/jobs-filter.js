@@ -40,6 +40,8 @@ function getDistanceThreshold(word) {
     return word.length >= 5 ? 1 : 0;
 }
 
+const WAITING_STATUSES = new Set(['MSGW', 'LCKW', 'DEQW', 'DLYW']);
+
 function matchesSearch(haystack, query) {
     if (haystack.includes(query)) {
         return true;
@@ -74,9 +76,18 @@ export function getSubsystemOptions(jobs) {
 export function filterJobs(jobs, filters) {
     const subsystem = String(filters?.subsystem || '').trim().toUpperCase();
     const query = normalizeQuery(filters?.query);
+    const status = String(filters?.status || 'ALL').trim().toUpperCase();
 
     return jobs.filter((job) => {
         if (subsystem && subsystem !== 'ALL' && String(job?.SUBSYSTEM || '').trim().toUpperCase() !== subsystem) {
+            return false;
+        }
+
+        const jobStatus = String(job?.STATUS || '').trim().toUpperCase();
+        if (status === 'WAITING' && !WAITING_STATUSES.has(jobStatus)) {
+            return false;
+        }
+        if (status !== 'ALL' && status !== 'WAITING' && jobStatus !== status) {
             return false;
         }
 

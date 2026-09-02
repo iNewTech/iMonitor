@@ -1664,6 +1664,11 @@ body.connection-body .support-status {
 .activity-overview[open] .activity-overview-summary > .panel-disclosure-icon i { transform: rotate(180deg); }
 .activity-metrics { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
 .activity-metric { display: grid; align-content: center; gap: 5px; min-width: 0; min-height: 76px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 16px; background: color-mix(in srgb, var(--surface) 78%, var(--accent-soft)); }
+.activity-metric:nth-child(1) { border-top: 3px solid var(--accent); }
+.activity-metric:nth-child(2) { border-top: 3px solid #a85b17; }
+.activity-metric:nth-child(3) { border-top: 3px solid #3e6f9d; }
+.activity-metric:nth-child(4) { border-top: 3px solid var(--danger); }
+.activity-metric:nth-child(5) { border-top: 3px solid var(--muted); }
 .activity-metric span { color: var(--muted); font-size: .7rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .activity-metric strong { color: var(--ink); font-size: 1.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .activity-overview-body { display: grid; gap: 18px; padding: 0 28px 28px; }
@@ -3105,6 +3110,49 @@ body.connection-body .support-status {
     min-width: 0;
 }
 
+.jobs-quick-filters {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 42px;
+    padding: 8px 10px;
+    margin: 0 0 14px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--surface) 84%, var(--bg-soft));
+}
+
+.jobs-quick-filter-buttons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.jobs-quick-filter {
+    min-height: 30px;
+    padding: 4px 12px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted-strong);
+    font-size: 0.8rem;
+    font-weight: 800;
+    transition: color 140ms ease, background 140ms ease, border-color 140ms ease;
+}
+
+.jobs-quick-filter:hover,
+.jobs-quick-filter:focus-visible {
+    border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+    color: var(--accent-deep);
+}
+
+.jobs-quick-filter.is-active {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 5px 12px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
 .table-shell-body {
     padding-top: 0;
 }
@@ -3627,6 +3675,12 @@ body.connection-body .support-status {
     .focus-alert-header {
         align-items: stretch;
         flex-direction: column;
+    }
+
+    .jobs-quick-filters {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 6px;
     }
 
     .brand-grid,
