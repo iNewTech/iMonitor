@@ -1,9 +1,11 @@
 import { applyTheme } from './shared.js';
+import { getConnectionPageModel } from './layout.js';
 import { showAlert, setConnectionAction } from './feedback.js';
 import { clearForm, fillForm, renderSavedConnections } from './saved-connections.js';
 import { initSupportPanel } from '../shared/support.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
+    const pageModel = getConnectionPageModel();
     const elements = {
         connectionForm: document.getElementById('connection-form'),
         connectButton: document.getElementById('connect'),
@@ -94,6 +96,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (elements.savedHint) {
                     elements.savedHint.textContent = `Profile ready: ${preferredConnection.name} (${preferredConnection.host}:${preferredConnection.port || 8076})`;
                 }
+            } else if (elements.savedHint) {
+                elements.savedHint.textContent = pageModel.savedProfilesHint;
             }
         } catch (error) {
             console.error('Error loading saved connections:', error);
@@ -161,7 +165,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         menuElement: document.getElementById('support-menu')
     });
     renderThemeSettings(themeSettings);
-    elements.launchDemoButton?.remove();
+    if (!pageModel.showDemoAction) {
+        elements.launchDemoButton?.remove();
+    }
 
     await loadSavedConnections();
     setConnectionAction(elements.connectionActionBar, elements.connectionActionMessage, elements.connectionActionDetail, '', '', false);

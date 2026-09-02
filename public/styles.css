@@ -391,8 +391,9 @@ body.app-body::before {
 
 .connection-layout {
     display: grid;
-    grid-template-columns: minmax(360px, 0.95fr) minmax(420px, 1.05fr);
-    gap: 16px;
+    grid-template-columns: minmax(0, 980px);
+    justify-content: center;
+    gap: 14px;
     align-items: start;
 }
 
@@ -871,6 +872,113 @@ body.app-body::before {
     background: var(--card-strong);
 }
 
+.connection-header {
+    align-items: flex-start;
+    gap: 20px;
+}
+
+.connection-header .workspace-header-copy {
+    flex: 1 1 520px;
+    max-width: 42rem;
+}
+
+.connection-brand-line {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.connection-brand-line img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+}
+
+.connection-header .panel-title {
+    font-size: clamp(1.8rem, 3vw, 2.45rem);
+}
+
+.workspace-header-meta {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.connection-header .plan-panel {
+    width: auto;
+    margin-top: 0;
+}
+
+.theme-menu {
+    position: relative;
+    z-index: 50;
+}
+
+.theme-menu > summary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface-panel);
+    color: var(--muted-strong);
+    cursor: pointer;
+    list-style: none;
+}
+
+.theme-menu > summary::-webkit-details-marker {
+    display: none;
+}
+
+.theme-menu > summary:hover,
+.theme-menu[open] > summary {
+    color: var(--accent-deep);
+    border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+    background: var(--accent-soft);
+}
+
+.theme-menu-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 200;
+    display: grid;
+    gap: 5px;
+    width: 190px;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--card-strong);
+    box-shadow: var(--shadow);
+}
+
+.theme-menu-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    padding: 9px 10px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--ink);
+    text-align: left;
+    cursor: pointer;
+}
+
+.theme-menu-option:hover,
+.theme-menu-option.is-selected {
+    background: var(--accent-soft);
+    color: var(--accent-deep);
+}
+
 .workspace-header-copy {
     max-width: 34rem;
 }
@@ -1072,7 +1180,7 @@ body.app-body::before {
 
 .primary-actions {
     display: grid;
-    grid-template-columns: minmax(0, 1.1fr) repeat(2, minmax(170px, 0.45fr));
+    grid-template-columns: minmax(0, 1fr) minmax(170px, auto);
     gap: 12px;
     align-items: stretch;
 }
