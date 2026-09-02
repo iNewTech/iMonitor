@@ -23,6 +23,7 @@ export function buildAiAssistantPrompt(input: BuildAiPromptInput): AiAssistantMe
                 'Analyze IBM i jobs, waits, alerts, SQL traces, and operator logs.',
                 'Stay concise, use only the provided context, and explicitly say when evidence is missing.',
                 'Prioritize operator impact, likely cause, and next best action.',
+                'Correlate alerts that affect the same job into one incident, cite the evidence, and distinguish facts from recommendations.',
                 'Do not claim that you executed any IBM i action.',
                 input.replyStyle?.trim() || ''
             ].join(' ')

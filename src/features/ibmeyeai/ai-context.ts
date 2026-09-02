@@ -8,6 +8,7 @@ import {
     toNumber
 } from '../monitoring/monitoring-model';
 import type { AiAssistantSettings } from './ai-model';
+import { buildIncidentCorrelations } from './incident-correlation';
 
 interface ActivityLogLike {
     timestamp: string;
@@ -35,6 +36,7 @@ export interface BuildAiAssistantContextInput {
     monitoringHistory: MonitoringSnapshot[];
     activityLog: ActivityLogLike[];
     selectedJob?: ActiveJobRecord | null;
+    highCpuThreshold?: number;
 }
 
 /**
@@ -54,6 +56,14 @@ export function buildAiAssistantContext(input: BuildAiAssistantContextInput) {
     ));
     const activity = input.activityLog.slice(0, input.settings.activityLimit).map((entry) => (
         `${entry.timestamp} [${entry.level.toUpperCase()}] [${entry.area.toUpperCase()}] ${entry.message}${entry.detail ? ` :: ${entry.detail}` : ''}${entry.sql ? ` :: SQL=${collapseWhitespace(entry.sql).slice(0, 240)}` : ''}`
+    ));
+    const incidents = buildIncidentCorrelations(
+        input.alerts,
+        input.latestJobs,
+        input.highCpuThreshold ?? 80,
+        Math.min(input.settings.alertLimit, 12)
+    ).map((incident, index) => (
+        `Incident ${index + 1} [${incident.severity.toUpperCase()}] ${incident.title} alerts=${incident.alertIds.join(',')} next=${incident.nextAction} evidence=${incident.evidence.join(' | ')}`
     ));
 
     const selectedJobSummary = selectedJob
@@ -76,6 +86,9 @@ export function buildAiAssistantContext(input: BuildAiAssistantContextInput) {
         '',
         'Active alerts:',
         ...(alerts.length ? alerts : ['None']),
+        '',
+        'Correlated incidents and guided recommendations:',
+        ...(incidents.length ? incidents : ['None']),
         '',
         'Top jobs from latest poll:',
         ...(jobs.length ? jobs : ['None']),

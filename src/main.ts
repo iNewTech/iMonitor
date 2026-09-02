@@ -453,6 +453,7 @@ const aiRuntime = createAiRuntime({
     getActiveAlerts: () => alertState.getActiveAlerts(),
     getMonitoringHistory: () => monitoringState.getMonitoringHistory(),
     getActivityLog: () => loggingRuntime.getActivityLog(),
+    getHighCpuThreshold: () => getAlertSettings().highCpuThreshold,
     recordActivity: loggingRuntime.recordActivity
 });
 

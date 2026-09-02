@@ -27,6 +27,7 @@ interface AiRuntimeDependencies {
     getActiveAlerts: () => MonitorAlert[];
     getMonitoringHistory: () => MonitoringSnapshot[];
     getActivityLog: () => ActivityLogEntry[];
+    getHighCpuThreshold?: () => number;
     recordActivity: (entry: Omit<ActivityLogEntry, 'id' | 'timestamp'>) => void;
     fetchImpl?: typeof fetch;
 }
@@ -89,7 +90,8 @@ export function createAiRuntime(dependencies: AiRuntimeDependencies) {
             alerts: dependencies.getActiveAlerts(),
             monitoringHistory: dependencies.getMonitoringHistory(),
             activityLog: dependencies.getActivityLog(),
-            selectedJob
+            selectedJob,
+            highCpuThreshold: dependencies.getHighCpuThreshold?.()
         });
         const messages = buildAiAssistantPrompt({
             question: payload.message,
