@@ -75,7 +75,7 @@
                 </div>
             </header>
 
-            <details class="surface-card activity-overview" open>
+            <details class="surface-card activity-overview" open data-testid="activity-overview">
                 <summary class="activity-overview-summary">
                     <div>
                         <p class="eyebrow mb-2">System activity</p>
@@ -136,8 +136,15 @@
                 </summary>
                 <div class="panel-disclosure-body">
                     <div class="alert-toolbar">
-                        <label class="visually-hidden" for="alert-search-input">Search alerts</label>
-                        <input id="alert-search-input" class="form-control" type="search" placeholder="Search alerts by job, type, or message">
+                        <div class="alert-queue-context">
+                            <span class="eyebrow mb-1">Queue</span>
+                            <p class="mb-0">New incidents stay here until they are reviewed or cleared.</p>
+                        </div>
+                        <label class="alert-search-control" for="alert-search-input">
+                            <span class="visually-hidden">Search alerts</span>
+                            <i class="bi bi-search" aria-hidden="true"></i>
+                            <input id="alert-search-input" class="form-control" type="search" placeholder="Search job, type, or message" autocomplete="off">
+                        </label>
                     </div>
                     <div id="focus-alert-shell" class="focus-alert-shell" hidden>
                         <div class="focus-alert-header">
@@ -167,74 +174,6 @@
                     </details>
                 </div>
             </details>
-
-            <section class="history-grid">
-                <article class="history-card surface-card">
-                    <div class="history-card-header">
-                        <div>
-                            <p class="eyebrow mb-2">History</p>
-                            <h2 class="section-title">Job volume</h2>
-                        </div>
-                        <span id="jobs-history-value" class="table-caption">0 jobs</span>
-                    </div>
-                    <div class="history-meta-strip">
-                        <div class="history-meta-pill">
-                            <span>Range</span>
-                            <strong id="jobs-history-range">0-0</strong>
-                        </div>
-                        <div class="history-meta-pill">
-                            <span>Latest</span>
-                            <strong id="jobs-history-latest">0 jobs</strong>
-                        </div>
-                    </div>
-                    <svg id="jobs-history-chart" class="trend-chart" viewBox="0 0 320 120" preserveAspectRatio="none"></svg>
-                    <p id="jobs-history-note" class="stat-note mb-0">Waiting for snapshot history.</p>
-                </article>
-
-                <article class="history-card surface-card">
-                    <div class="history-card-header">
-                        <div>
-                            <p class="eyebrow mb-2">History</p>
-                            <h2 class="section-title">Peak CPU</h2>
-                        </div>
-                        <span id="cpu-history-value" class="table-caption">0.00%</span>
-                    </div>
-                    <div class="history-meta-strip">
-                        <div class="history-meta-pill">
-                            <span>Range</span>
-                            <strong id="cpu-history-range">0.00-0.00%</strong>
-                        </div>
-                        <div class="history-meta-pill">
-                            <span>Running</span>
-                            <strong id="cpu-history-running">0 jobs</strong>
-                        </div>
-                    </div>
-                    <svg id="cpu-history-chart" class="trend-chart" viewBox="0 0 320 120" preserveAspectRatio="none"></svg>
-                    <p id="cpu-history-note" class="stat-note mb-0">No CPU history collected yet.</p>
-                </article>
-
-                <article class="history-card surface-card">
-                    <div class="history-card-header">
-                        <div>
-                            <p class="eyebrow mb-2">History</p>
-                            <h2 class="section-title">Wait states</h2>
-                        </div>
-                        <span id="wait-history-value" class="table-caption">0 waits</span>
-                    </div>
-                    <div class="history-meta-strip">
-                        <div class="history-meta-pill">
-                            <span>MSGW</span>
-                            <strong id="wait-history-msgw">0</strong>
-                        </div>
-                        <div class="history-meta-pill">
-                            <span>LCKW</span>
-                            <strong id="wait-history-lckw">0</strong>
-                        </div>
-                    </div>
-                    <svg id="wait-history-chart" class="trend-chart" viewBox="0 0 320 120" preserveAspectRatio="none"></svg>
-                    <p id="wait-history-note" class="stat-note mb-0">MSGW and LCKW snapshots will appear here.</p>
-                </article>
-            </section>
 
             <details class="surface-card panel-disclosure panel-tone-ai ai-assistant-panel">
                 <summary class="panel-disclosure-summary">

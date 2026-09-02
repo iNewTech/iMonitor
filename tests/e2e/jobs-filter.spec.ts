@@ -95,3 +95,25 @@ test('shows all compact activity history views with live metrics', async () => {
         await app.cleanup();
     }
 });
+
+test('keeps the inner work surfaces compact and free of duplicate history controls', async () => {
+    const app = await launchTestApp();
+
+    try {
+        await openDemoMonitor(app.page);
+
+        await expect(app.page.getByTestId('activity-overview')).toBeVisible();
+        await expect(app.page.locator('#jobs-history-chart')).toHaveCount(1);
+        await expect(app.page.locator('#cpu-history-chart')).toHaveCount(1);
+        await expect(app.page.locator('#wait-history-chart')).toHaveCount(1);
+
+        const jobsTableHeader = app.page.locator('#system-stats thead th').first();
+        await expect(jobsTableHeader).toHaveCSS('position', 'sticky');
+
+        await app.page.locator('.alerts-panel > summary').click();
+        await expect(app.page.locator('.alert-queue-context')).toContainText('New incidents stay here');
+        await expect(app.page.locator('.alert-search-control')).toBeVisible();
+    } finally {
+        await app.cleanup();
+    }
+});
