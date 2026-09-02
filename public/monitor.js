@@ -6,6 +6,7 @@ import {
     buildSelectedJobHealthPrompt
 } from './monitor/ibmeyeai/action-prompts.js';
 import { filterJobs as filterVisibleJobs, getSubsystemOptions } from './monitor/jobs-filter.js';
+import { renderOperatorLogDetail } from './monitor/operator-log-links.js';
 import { initSupportPanel } from './shared/support.js';
 import {
     renderOperatorActions as renderOperatorActionsView,
@@ -551,7 +552,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         activityLog.innerHTML = activityLogEntries.map((entry) => {
             const detailMarkup = entry.detail
-                ? `<p class="activity-log-detail">${escapeHtml(entry.detail)}</p>`
+                ? `<p class="activity-log-detail">${renderOperatorLogDetail(entry.detail)}</p>`
                 : '';
             const sqlMarkup = entry.sql
                 ? `<pre class="activity-log-sql"><code>${escapeHtml(entry.sql)}</code></pre>`
@@ -1696,6 +1697,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         event.preventDefault();
         void loadJobDetails(row.dataset.jobName);
+    });
+
+    activityLog?.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof Element)) {
+            return;
+        }
+
+        const link = target.closest('.operator-log-link');
+        if (!link?.getAttribute('data-external-url')) {
+            return;
+        }
+
+        event.preventDefault();
+        void window.electronAPI.openExternalUrl(link.getAttribute('data-external-url'));
     });
 
     activeAlerts?.addEventListener('click', handleAlertInteraction);

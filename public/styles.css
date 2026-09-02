@@ -3078,6 +3078,14 @@ body.connection-body .support-status {
     line-height: 1.45;
 }
 
+.operator-log-link {
+    color: var(--accent-deep);
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    overflow-wrap: anywhere;
+}
+
 .activity-log-sql {
     margin: 0;
     padding: 12px 14px;
