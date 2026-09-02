@@ -73,10 +73,16 @@
                                     <label class="toggle-row"><span>Disconnects</span><input type="checkbox" id="settings-alert-disconnect"></label>
                                 </div>
                             </div>
-                            <label class="control-select settings-threshold-field">
-                                <span class="control-label">High CPU threshold</span>
-                                <div class="input-group"><input id="settings-alert-cpu-threshold" type="number" class="form-control" min="1" max="100"><span class="input-group-text">%</span></div>
-                            </label>
+                            <div class="settings-field-grid settings-field-grid-two">
+                                <label class="control-select settings-threshold-field">
+                                    <span class="control-label">High CPU threshold</span>
+                                    <div class="input-group"><input id="settings-alert-cpu-threshold" type="number" class="form-control" min="1" max="100"><span class="input-group-text">%</span></div>
+                                </label>
+                                <label class="control-select settings-threshold-field">
+                                    <span class="control-label">Healthy polls before recovery</span>
+                                    <div class="input-group"><input id="settings-alert-cpu-recovery-polls" type="number" class="form-control" min="1" max="10"><span class="input-group-text">polls</span></div>
+                                </label>
+                            </div>
                             <details class="email-settings-disclosure">
                                 <summary class="email-settings-summary"><span><strong>Email notification setup</strong><small>SMTP settings and test delivery</small></span><i class="bi bi-chevron-down"></i></summary>
                                 <div class="email-settings-body">

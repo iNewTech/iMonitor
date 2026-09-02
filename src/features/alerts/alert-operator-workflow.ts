@@ -248,6 +248,23 @@ export function systemClearAlertWorkflow(
     });
 }
 
+/** Records the result of an operator-requested fresh condition check. */
+export function recordAlertRecheckWorkflow(
+    state: StoredAlertWorkflowState,
+    mutation: AlertWorkflowMutation & { cleared: boolean }
+): StoredAlertWorkflowState {
+    const actor = mutation.owner?.trim() || undefined;
+    const label = mutation.cleared
+        ? 'Manual recheck confirmed clear'
+        : 'Manual recheck confirmed active';
+
+    return appendWorkflowEntry({
+        ...state,
+        updatedAt: mutation.timestamp,
+        lastActionSummary: label
+    }, 'rechecked', mutation.timestamp, label, actor, mutation.detail);
+}
+
 function normalizeWorkflowStatus(status: string | undefined): AlertWorkflowStatus {
     switch (status) {
         case 'acknowledged':
@@ -274,6 +291,7 @@ function normalizeWorkflowAction(action: string | undefined): AlertWorkflowActio
         case 'acknowledged':
         case 'note_added':
         case 'reopened':
+        case 'rechecked':
             return action;
         case 'started':
         case 'claimed':

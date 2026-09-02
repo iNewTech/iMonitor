@@ -4,7 +4,10 @@ import type { EmailNotificationSettings } from '../../features/notifications/ema
 
 interface RegisterAlertsIpcDependencies {
     getActiveAlerts: () => unknown[];
-    recheckAlerts: () => Promise<unknown>;
+    recheckAlert: (alertId: string) => Promise<{
+        status: 'active' | 'cleared' | 'unavailable';
+        alert?: unknown;
+    }>;
     getSystemMessages: () => Promise<unknown[]>;
     getAlertSettings: () => AlertSettings;
     setAlertSettings: (settings: AlertSettings) => void;
@@ -55,14 +58,11 @@ export function registerAlertsIpc(dependencies: RegisterAlertsIpcDependencies) {
 
     ipcMain.handle('recheck-alert', async (_event, alertId: string) => {
         try {
-            await dependencies.recheckAlerts();
-            const alert = dependencies.getActiveAlerts().find((candidate) => (
-                (candidate as { id?: string; isActive?: boolean })?.id === alertId
-            )) as { id?: string; isActive?: boolean } | undefined;
+            const result = await dependencies.recheckAlert(alertId);
             return {
                 success: true,
-                status: alert?.isActive === false ? 'cleared' : alert ? 'active' : 'unavailable',
-                alert
+                status: result.status,
+                alert: result.alert
             };
         } catch (error) {
             return {

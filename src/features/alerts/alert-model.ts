@@ -5,6 +5,9 @@ import type { ClickUpTaskReference } from '../integrations/clickup/clickup-model
  */
 export type AlertSeverity = 'critical' | 'warning';
 
+/** Identifies how a tracked condition was confirmed as resolved. */
+export type AlertResolutionSource = 'automatic' | 'manual_recheck';
+
 /**
  * Supported alert categories in the IBMEye module.
  */
@@ -27,6 +30,7 @@ export type AlertWorkflowAction =
     | 'note_added'
     | 'work_marked_done'
     | 'system_cleared'
+    | 'rechecked'
     | 'reopened';
 
 /**
@@ -36,6 +40,7 @@ export interface AlertSettings {
     desktopNotifications: boolean;
     watchHighCpu: boolean;
     highCpuThreshold: number;
+    highCpuRecoveryPolls: number;
     watchMessageWait: boolean;
     watchLockWait: boolean;
     watchDelayWait: boolean;
@@ -60,6 +65,8 @@ export interface MonitorAlert {
     timestamp: string;
     lastSeenAt?: string;
     resolvedAt?: string;
+    resolutionSource?: AlertResolutionSource;
+    recoveryPollCount?: number;
     isActive?: boolean;
     title: string;
     message: string;
@@ -116,6 +123,7 @@ export const DEFAULT_ALERT_SETTINGS: AlertSettings = {
     desktopNotifications: true,
     watchHighCpu: true,
     highCpuThreshold: 80,
+    highCpuRecoveryPolls: 3,
     watchMessageWait: true,
     watchLockWait: true,
     watchDelayWait: true,
@@ -135,6 +143,7 @@ export const DEFAULT_ALERT_SETTINGS: AlertSettings = {
  */
 export function normalizeAlertSettings(candidate: Partial<AlertSettings> | undefined) {
     const nextThreshold = Number(candidate?.highCpuThreshold);
+    const nextRecoveryPolls = Number(candidate?.highCpuRecoveryPolls);
 
     return {
         desktopNotifications: candidate?.desktopNotifications ?? DEFAULT_ALERT_SETTINGS.desktopNotifications,
@@ -142,6 +151,9 @@ export function normalizeAlertSettings(candidate: Partial<AlertSettings> | undef
         highCpuThreshold: Number.isFinite(nextThreshold)
             ? Math.max(1, Math.min(100, nextThreshold))
             : DEFAULT_ALERT_SETTINGS.highCpuThreshold,
+        highCpuRecoveryPolls: Number.isFinite(nextRecoveryPolls)
+            ? Math.max(1, Math.min(10, Math.round(nextRecoveryPolls)))
+            : DEFAULT_ALERT_SETTINGS.highCpuRecoveryPolls,
         watchMessageWait: candidate?.watchMessageWait ?? DEFAULT_ALERT_SETTINGS.watchMessageWait,
         watchLockWait: candidate?.watchLockWait ?? DEFAULT_ALERT_SETTINGS.watchLockWait,
         watchDelayWait: candidate?.watchDelayWait ?? DEFAULT_ALERT_SETTINGS.watchDelayWait,

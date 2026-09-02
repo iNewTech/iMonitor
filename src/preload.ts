@@ -42,6 +42,7 @@ interface AlertSettings {
     desktopNotifications: boolean;
     watchHighCpu: boolean;
     highCpuThreshold: number;
+    highCpuRecoveryPolls: number;
     watchMessageWait: boolean;
     watchLockWait: boolean;
     watchDelayWait: boolean;
@@ -86,6 +87,8 @@ interface MonitorAlert {
     timestamp: string;
     lastSeenAt?: string;
     resolvedAt?: string;
+    resolutionSource?: 'automatic' | 'manual_recheck';
+    recoveryPollCount?: number;
     isActive?: boolean;
     title: string;
     message: string;

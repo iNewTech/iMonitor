@@ -45,6 +45,12 @@ describe('alert-model', () => {
         });
     });
 
+    it('defaults and clamps the high CPU recovery poll count', () => {
+        expect(normalizeAlertSettings(undefined).highCpuRecoveryPolls).toBe(3);
+        expect(normalizeAlertSettings({ highCpuRecoveryPolls: 0 }).highCpuRecoveryPolls).toBe(1);
+        expect(normalizeAlertSettings({ highCpuRecoveryPolls: 25 }).highCpuRecoveryPolls).toBe(10);
+    });
+
     it('keeps active alerts first and orders each section from oldest to newest', () => {
         const alerts = sortAlerts([
             createAlert({

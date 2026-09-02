@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { ActiveJobRecord } from '../../services/ibmi';
 import type { MonitorAlert } from './alert-model';
 import { recheckAlertCondition } from './alert-recheck';
+import { createAlertStateStore } from '../../main/state/alert-state';
 
 function job(overrides: Partial<ActiveJobRecord> = {}): ActiveJobRecord {
     return {
@@ -40,5 +41,28 @@ describe('recheckAlertCondition', () => {
     it('uses the configured CPU threshold for high CPU alerts', () => {
         expect(recheckAlertCondition(alert({ id: 'cpu:QBATCH/DEMO', kind: 'highCpu' }), [job({ STATUS: 'RUN', CPU: 79 })], 80)).toBe('cleared');
         expect(recheckAlertCondition(alert({ id: 'cpu:QBATCH/DEMO', kind: 'highCpu' }), [job({ STATUS: 'RUN', CPU: 81 })], 80)).toBe('active');
+    });
+
+    it('records manual rechecks and immediately clears a recovered condition', () => {
+        const store = createAlertStateStore({
+            initialWorkflowStateByAlertId: {},
+            persistWorkflowState: () => undefined,
+            onAlertsChanged: () => undefined
+        });
+        store.setActiveAlerts([alert({
+            isActive: true,
+            timeline: [{
+                id: 'created', timestamp: '2026-08-31T09:00:00.000Z', action: 'created', label: 'Alert created'
+            }]
+        })]);
+
+        store.recordAlertRecheck('msgw:QBATCH/DEMO', 'cleared', '2026-08-31T09:05:00.000Z');
+
+        expect(store.getActiveAlerts()[0]).toMatchObject({
+            isActive: false,
+            resolvedAt: '2026-08-31T09:05:00.000Z',
+            resolutionSource: 'manual_recheck'
+        });
+        expect(store.getActiveAlerts()[0]?.timeline[0]?.action).toBe('rechecked');
     });
 });

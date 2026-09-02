@@ -6,6 +6,7 @@ import {
 import type Db from '../../services/ibmi';
 import type { ActiveJobRecord, QueryResult } from '../../services/ibmi';
 import type { AlertSettings } from '../../features/alerts/alert-model';
+import { recheckAlertCondition } from '../../features/alerts/alert-recheck';
 import type { createAlertStateStore } from '../state/alert-state';
 import type { createMonitoringStateStore } from '../state/monitoring-state';
 
@@ -143,6 +144,49 @@ export function createMonitoringRuntime(dependencies: MonitoringRuntimeDependenc
             return service.getActiveJobs();
         },
         publishSystemStatus,
+        async recheckAlert(alertId: string) {
+            const alert = dependencies.alertState.getActiveAlerts()
+                .find((candidate) => candidate.id === alertId);
+            if (!alert) {
+                return { status: 'unavailable' as const, alert: undefined };
+            }
+
+            const result = dependencies.monitoringState.getMonitorMode() === 'dummy'
+                ? await getDummySystemStatus()
+                : await (() => {
+                    const service = dependencies.getCurrentService();
+                    if (!service) {
+                        throw new Error('Not connected to IBM i');
+                    }
+                    return service.getActiveJobs();
+                })();
+            const jobs = Array.isArray(result.data) ? result.data : [];
+            const timestamp = typeof (result as TimestampedQueryResult<ActiveJobRecord>).generatedAt === 'string'
+                ? String((result as TimestampedQueryResult<ActiveJobRecord>).generatedAt)
+                : new Date().toISOString();
+            const status = alert.kind === 'pollFailure'
+                ? 'cleared'
+                : recheckAlertCondition(alert, jobs, dependencies.getAlertSettings().highCpuThreshold);
+
+            applyStatusUpdate(result);
+            const refreshedAlert = dependencies.alertState.recordAlertRecheck(
+                alertId,
+                status,
+                timestamp
+            );
+            dependencies.recordActivity({
+                area: 'monitoring',
+                level: status === 'cleared' ? 'info' : status === 'active' ? 'warning' : 'info',
+                message: status === 'cleared'
+                    ? 'Manual alert recheck confirmed recovery.'
+                    : status === 'active'
+                        ? 'Manual alert recheck confirmed the condition is active.'
+                        : 'Manual alert recheck was unavailable.',
+                detail: alertId
+            });
+
+            return { status, alert: refreshedAlert };
+        },
         startMonitoring(interval: unknown) {
             if (
                 dependencies.monitoringState.getMonitorMode() !== 'dummy'

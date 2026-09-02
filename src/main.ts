@@ -684,7 +684,7 @@ registerSlackIpc({
 
 registerAlertsIpc({
     getActiveAlerts: () => alertState.getActiveAlerts().slice(),
-    recheckAlerts: () => monitoringRuntime.publishSystemStatus(),
+    recheckAlert: (alertId) => monitoringRuntime.recheckAlert(alertId),
     getSystemMessages: async () => {
         const service = sessionRuntime.getCurrentService();
         if (monitoringState.getMonitorMode() === 'live') {

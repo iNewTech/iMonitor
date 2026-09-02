@@ -96,9 +96,11 @@ export function evaluateAlertRules(
                     id: alertId,
                     kind: 'messageWait',
                     severity: 'critical',
-                    timestamp: existingAlert?.timestamp ?? eventTimestamp,
+                    timestamp: existingAlert && existingAlert.isActive !== false ? existingAlert.timestamp : eventTimestamp,
                     lastSeenAt: timestamp,
                     resolvedAt: undefined,
+                    resolutionSource: undefined,
+                    recoveryPollCount: 0,
                     isActive: true,
                     title: 'MSGW detected',
                     message: `${getJobTitle(job)} entered message wait.`,
@@ -134,9 +136,11 @@ export function evaluateAlertRules(
                     id: alertId,
                     kind: 'lockWait',
                     severity: 'critical',
-                    timestamp: existingAlert?.timestamp ?? eventTimestamp,
+                    timestamp: existingAlert && existingAlert.isActive !== false ? existingAlert.timestamp : eventTimestamp,
                     lastSeenAt: timestamp,
                     resolvedAt: undefined,
+                    resolutionSource: undefined,
+                    recoveryPollCount: 0,
                     isActive: true,
                     title: 'LCKW detected',
                     message: `${getJobTitle(job)} is waiting on a lock.`,
@@ -172,9 +176,11 @@ export function evaluateAlertRules(
                     id: alertId,
                     kind: 'delayWait',
                     severity: 'warning',
-                    timestamp: existingAlert?.timestamp ?? eventTimestamp,
+                    timestamp: existingAlert && existingAlert.isActive !== false ? existingAlert.timestamp : eventTimestamp,
                     lastSeenAt: timestamp,
                     resolvedAt: undefined,
+                    resolutionSource: undefined,
+                    recoveryPollCount: 0,
                     isActive: true,
                     title: 'DLYW detected',
                     message: `${getJobTitle(job)} is delayed.`,
@@ -210,9 +216,11 @@ export function evaluateAlertRules(
                     id: alertId,
                     kind: 'dequeueWait',
                     severity: 'warning',
-                    timestamp: existingAlert?.timestamp ?? eventTimestamp,
+                    timestamp: existingAlert && existingAlert.isActive !== false ? existingAlert.timestamp : eventTimestamp,
                     lastSeenAt: timestamp,
                     resolvedAt: undefined,
+                    resolutionSource: undefined,
+                    recoveryPollCount: 0,
                     isActive: true,
                     title: 'DEQW detected',
                     message: `${getJobTitle(job)} is waiting for a dequeue operation.`,
@@ -248,9 +256,11 @@ export function evaluateAlertRules(
                     id: alertId,
                     kind: 'highCpu',
                     severity: cpu >= settings.highCpuThreshold + 10 ? 'critical' : 'warning',
-                    timestamp: existingAlert?.timestamp ?? eventTimestamp,
+                    timestamp: existingAlert && existingAlert.isActive !== false ? existingAlert.timestamp : eventTimestamp,
                     lastSeenAt: timestamp,
                     resolvedAt: undefined,
+                    resolutionSource: undefined,
+                    recoveryPollCount: 0,
                     isActive: true,
                     title: 'High CPU job detected',
                     message: `${getJobTitle(job)} reached ${cpu.toFixed(2)}% CPU.`,
@@ -273,6 +283,24 @@ export function evaluateAlertRules(
             return;
         }
 
+        if (alert.isActive === false) {
+            nextAlerts.set(alertId, alert);
+            return;
+        }
+
+        const recoveryPollCount = (alert.recoveryPollCount ?? 0) + 1;
+        const requiredRecoveryPolls = alert.kind === 'highCpu'
+            ? settings.highCpuRecoveryPolls
+            : 1;
+
+        if (recoveryPollCount < requiredRecoveryPolls) {
+            nextAlerts.set(alertId, {
+                ...alert,
+                recoveryPollCount
+            });
+            return;
+        }
+
         dismissedAlertIds.delete(alertId);
         const resolvedWorkflowState = systemClearAlertWorkflow(
             normalizeAlertWorkflowState(nextWorkflowStateByAlertId[alertId], timestamp),
@@ -287,6 +315,8 @@ export function evaluateAlertRules(
             ...alert,
             isActive: false,
             resolvedAt: alert.resolvedAt ?? timestamp,
+            resolutionSource: 'automatic',
+            recoveryPollCount,
             detail: alert.detail || 'Condition cleared in a later poll.'
         }, resolvedWorkflowState));
     });
@@ -350,7 +380,8 @@ export function resolveAlertById(
     activeAlerts: MonitorAlert[],
     dismissedAlertIds: Set<string>,
     timestamp: string,
-    detail?: string
+    detail?: string,
+    resolutionSource: MonitorAlert['resolutionSource'] = 'automatic'
 ) {
     const existingAlert = activeAlerts.find((alert) => alert.id === alertId);
     if (!existingAlert || existingAlert.isActive === false) {
@@ -365,6 +396,7 @@ export function resolveAlertById(
                 ...alert,
                 isActive: false,
                 resolvedAt: timestamp,
+                resolutionSource,
                 detail: detail ?? alert.detail
             }, systemClearAlertWorkflow(normalizeAlertWorkflowState({
                 status: alert.workflowStatus,

@@ -25,6 +25,7 @@ export function initAlertSettings({ root, slackSettings }) {
     const pollFailure = root.querySelector('#settings-alert-poll-failure');
     const disconnect = root.querySelector('#settings-alert-disconnect');
     const cpuThreshold = root.querySelector('#settings-alert-cpu-threshold');
+    const cpuRecoveryPolls = root.querySelector('#settings-alert-cpu-recovery-polls');
     let alertSettings;
     let emailSettings;
     let slackState;
@@ -48,6 +49,7 @@ export function initAlertSettings({ root, slackSettings }) {
         if (pollFailure) pollFailure.checked = Boolean(alertSettings.watchFailedPolls);
         if (disconnect) disconnect.checked = Boolean(alertSettings.watchDisconnects);
         if (cpuThreshold) cpuThreshold.value = String(alertSettings.highCpuThreshold || 80);
+        if (cpuRecoveryPolls) cpuRecoveryPolls.value = String(alertSettings.highCpuRecoveryPolls || 3);
         if (emailHost) emailHost.value = emailSettings?.smtpHost || '';
         if (emailPort) emailPort.value = String(emailSettings?.smtpPort || 587);
         if (emailSecure) emailSecure.checked = Boolean(emailSettings?.secure);
@@ -86,6 +88,7 @@ export function initAlertSettings({ root, slackSettings }) {
                 desktopNotifications: Boolean(desktop?.checked),
                 watchHighCpu: Boolean(highCpu?.checked),
                 highCpuThreshold: Number.parseInt(cpuThreshold?.value || '80', 10) || 80,
+                highCpuRecoveryPolls: Number.parseInt(cpuRecoveryPolls?.value || '3', 10) || 3,
                 watchMessageWait: Boolean(messageWait?.checked),
                 watchLockWait: Boolean(lockWait?.checked),
                 watchDelayWait: Boolean(delayWait?.checked),

@@ -2518,6 +2518,17 @@ body.connection-body .support-status {
     font-weight: 700;
 }
 
+.alert-recovery-progress {
+    width: fit-content;
+    margin: 0;
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--warn) 12%, var(--card-strong));
+    color: var(--muted-strong);
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
 .alert-notes,
 .alert-timeline {
     display: grid;

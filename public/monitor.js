@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const desktopNotifications = document.getElementById('desktop-notifications');
     const watchHighCpu = document.getElementById('watch-high-cpu');
     const highCpuThreshold = document.getElementById('high-cpu-threshold');
+    const highCpuRecoveryPolls = document.getElementById('high-cpu-recovery-polls');
     const watchMessageWait = document.getElementById('watch-message-wait');
     const watchLockWait = document.getElementById('watch-lock-wait');
     const watchDelayWait = document.getElementById('watch-delay-wait');
@@ -667,9 +668,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const owner = getAlertOwner(alert);
         const ownedByCurrentOperator = isOwnedByCurrentOperator(alert);
         const claimedByAnotherOperator = isClaimedAlert(alert) && Boolean(owner) && !ownedByCurrentOperator;
+        const resolutionLabel = alert.resolutionSource === 'manual_recheck'
+            ? 'RESOLVED · RECHECK'
+            : 'RESOLVED · AUTO';
         const stateMarkup = alert.isActive === false
-            ? `<span class="activity-log-badge">SYSTEM CLEARED ${formatTimestamp(alert.resolvedAt || alert.timestamp)}</span>`
+            ? `<span class="activity-log-badge">${resolutionLabel} ${formatTimestamp(alert.resolvedAt || alert.timestamp)}</span>`
             : '<span class="activity-log-badge">ACTIVE</span>';
+        const recoveryMarkup = alert.kind === 'highCpu' && alert.isActive !== false && Number(alert.recoveryPollCount || 0) > 0
+            ? `<p class="alert-recovery-progress"><i class="bi bi-activity me-1"></i>Recovery check ${Number(alert.recoveryPollCount)} of ${Number(highCpuRecoveryPolls?.value || 3)} healthy polls</p>`
+            : '';
         const ownerMarkup = owner
             ? `<p class="alert-owner">${isClaimedAlert(alert) ? 'Working owner' : 'Assigned to'}: ${escapeHtml(owner)}</p>`
             : '';
@@ -811,6 +818,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="alert-body" data-testid="alert-body">
                         <p class="activity-log-detail">${escapeHtml(alert.message)}</p>
                         ${alert.detail ? `<p class="activity-log-detail">${escapeHtml(alert.detail)}</p>` : ''}
+                        ${recoveryMarkup}
                         ${ownerMarkup}
                         ${timelineMarkup}
                         ${noteComposerMarkup}
@@ -1117,6 +1125,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (highCpuThreshold) {
             highCpuThreshold.value = String(settings.highCpuThreshold ?? 80);
+        }
+        if (highCpuRecoveryPolls) {
+            highCpuRecoveryPolls.value = String(settings.highCpuRecoveryPolls ?? 3);
         }
         if (watchMessageWait) {
             watchMessageWait.checked = Boolean(settings.watchMessageWait);
@@ -1575,6 +1586,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 desktopNotifications: Boolean(desktopNotifications?.checked),
                 watchHighCpu: Boolean(watchHighCpu?.checked),
                 highCpuThreshold: Number.parseInt(highCpuThreshold?.value || '80', 10) || 80,
+                highCpuRecoveryPolls: Number.parseInt(highCpuRecoveryPolls?.value || '3', 10) || 3,
                 watchMessageWait: Boolean(watchMessageWait?.checked),
                 watchLockWait: Boolean(watchLockWait?.checked),
                 watchDelayWait: Boolean(watchDelayWait?.checked),
