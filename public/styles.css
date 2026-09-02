@@ -1155,6 +1155,7 @@ body.app-body::before {
 
 .saved-profile-selector .form-select { min-width: 0; flex: 1 1 auto; }
 .saved-profile-actions { display: flex; gap: 8px; flex: 0 0 auto; }
+.saved-profile-actions .btn { width: auto; }
 .btn-icon-label { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
 
 .section-title {
@@ -1173,11 +1174,18 @@ body.app-body::before {
 
 .connection-form-shell {
     display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px;
     padding: 16px 18px;
     border-radius: var(--radius-lg);
     border: 1px solid var(--border);
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(248, 244, 236, 0.64));
+}
+
+.connection-form-shell > .form-row-split,
+.connection-form-shell > .connection-field-full,
+.connection-form-shell > .connection-form-note {
+    grid-column: 1 / -1;
 }
 
 .form-row-split {
@@ -3971,5 +3979,101 @@ body.connection-body .support-status {
     .settings-card-header {
         display: grid;
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 680px) {
+    body.connection-body .app-shell {
+        padding: 12px 10px 20px;
+    }
+
+    body.connection-body .workspace-panel {
+        padding: 16px;
+        border-radius: 22px;
+    }
+
+    .connection-brand-line {
+        gap: 8px;
+        margin-bottom: 6px;
+    }
+
+    .connection-brand-line img {
+        width: 24px;
+        height: 24px;
+    }
+
+    .connection-header .panel-title {
+        font-size: clamp(1.65rem, 8vw, 2rem);
+    }
+
+    .connection-header .panel-copy {
+        font-size: 0.9rem;
+    }
+
+    .workspace-header-meta {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .connection-header .plan-panel-body {
+        left: 0;
+        right: auto;
+        width: min(360px, calc(100vw - 44px));
+    }
+
+    .saved-connections-panel {
+        padding: 14px;
+    }
+
+    .saved-profile-selector {
+        display: grid;
+        grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+
+    .saved-profile-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .saved-profile-actions .btn {
+        width: 100%;
+    }
+
+    .connection-form-shell {
+        grid-template-columns: 1fr;
+        padding: 14px;
+    }
+
+    .connection-form-shell > .form-row-split,
+    .connection-form-shell > .connection-field-full,
+    .connection-form-shell > .connection-form-note {
+        grid-column: auto;
+    }
+
+    .connection-form-shell .form-footnote {
+        font-size: 0.86rem;
+    }
+
+    body.connection-body .app-footer {
+        align-items: flex-start;
+        margin-top: 1rem;
+        padding: 14px;
+        border-radius: 22px;
+    }
+
+    body.connection-body .support-menu {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    body.connection-body .support-menu-summary {
+        width: 100%;
+    }
+
+    body.connection-body .support-menu-panel {
+        right: 0;
+        left: 0;
+        min-width: 0;
     }
 }
