@@ -1,8 +1,5 @@
-import {
-    getDemoDataFilePath,
-    readDemoSnapshot,
-    writeDemoSnapshot
-} from '../../utils/demo-system';
+import { buildDemoSnapshot } from '../../utils/demo-system';
+import type { DemoDatabase } from '../../services/demo-db';
 import type Db from '../../services/ibmi';
 import type { ActiveJobRecord, QueryResult } from '../../services/ibmi';
 import type { AlertSettings } from '../../features/alerts/alert-model';
@@ -12,8 +9,8 @@ import type { createMonitoringStateStore } from '../state/monitoring-state';
 
 interface MonitoringRuntimeDependencies {
     getCurrentService: () => Db | null;
+    getDemoDatabase: () => DemoDatabase;
     getAlertSettings: () => AlertSettings;
-    getUserDataPath: () => string;
     monitoringState: ReturnType<typeof createMonitoringStateStore>;
     alertState: ReturnType<typeof createAlertStateStore>;
     recordActivity: (entry: {
@@ -63,15 +60,11 @@ export function createMonitoringRuntime(dependencies: MonitoringRuntimeDependenc
     };
 
     const getDummySystemStatus = async (): Promise<QueryResult<ActiveJobRecord>> => {
-        let demoDataFilePath = dependencies.monitoringState.getDemoDataFilePath();
-        if (!demoDataFilePath) {
-            demoDataFilePath = getDemoDataFilePath(dependencies.getUserDataPath());
-            dependencies.monitoringState.setDemoDataFilePath(demoDataFilePath);
-        }
-
         const dummyPollCount = dependencies.monitoringState.incrementDummyPollCount();
-        await writeDemoSnapshot(demoDataFilePath, dummyPollCount);
-        const result = await readDemoSnapshot(demoDataFilePath);
+        const demoSnapshot = buildDemoSnapshot(dummyPollCount);
+        const demoDatabase = dependencies.getDemoDatabase();
+        demoDatabase.refresh(demoSnapshot);
+        const result = demoDatabase.getActiveJobs();
         const jobs = Array.isArray(result.data) ? result.data : [];
         const msgwCount = jobs.filter((job) => job.STATUS === 'MSGW').length;
         const lckwCount = jobs.filter((job) => job.STATUS === 'LCKW').length;
@@ -79,9 +72,9 @@ export function createMonitoringRuntime(dependencies: MonitoringRuntimeDependenc
         dependencies.recordActivity({
             area: 'sql',
             level: 'info',
-            message: 'Generated demo snapshot JSON for iMonitor.',
-            detail: `Demo poll ${dummyPollCount} read ${jobs.length} jobs from ${demoDataFilePath}. MSGW jobs: ${msgwCount}. LCKW jobs: ${lckwCount}.`,
-            sql: `-- demo mode reads generated snapshot JSON\n-- ${demoDataFilePath}`
+            message: 'Refreshed the local demo IBM i tables.',
+            detail: `Demo poll ${dummyPollCount} queried ${jobs.length} active jobs from local SQLite tables. MSGW jobs: ${msgwCount}. LCKW jobs: ${lckwCount}.`,
+            sql: 'SELECT * FROM active_job_info ORDER BY CPU DESC'
         });
 
         return result;

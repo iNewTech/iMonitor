@@ -59,6 +59,10 @@ export function getDemoDataFilePath(baseDir: string) {
     return path.join(baseDir, 'demo', 'ibm-eye-demo-jobs.json');
 }
 
+export function getDemoDatabasePath(baseDir: string) {
+    return path.join(baseDir, 'demo', 'ibm-eye-demo.sqlite');
+}
+
 function buildDemoGeneratedAt(pollCount: number) {
     const now = new Date();
     const startOfDay = new Date(now);

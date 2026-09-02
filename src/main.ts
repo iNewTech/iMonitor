@@ -3,6 +3,7 @@ import { Notification, dialog, nativeImage, safeStorage, shell } from 'electron'
 import os from 'node:os';
 import * as path from 'path';
 import Db, { type ServiceLogEntry } from './services/ibmi';
+import { DemoDatabase } from './services/demo-db';
 import {
     acknowledgeAlertWorkflow,
     addAlertWorkflowNote,
@@ -90,6 +91,7 @@ import {
 } from './main/store';
 import { createWindowRuntime } from './main/window/window-runtime';
 import { protectPassword, revealPassword } from './utils/password-store';
+import { getDemoDatabasePath } from './utils/demo-system';
 
 const DEFAULT_MONITORING_INTERVAL = 5000;
 const MAX_ACTIVITY_LOG_ENTRIES = 200;
@@ -274,6 +276,15 @@ function truncateForNotification(value: string, maxLength = 180) {
 }
 
 let sessionRuntime!: ReturnType<typeof createSessionRuntime>;
+let demoDatabase: DemoDatabase | null = null;
+
+function getDemoDatabase() {
+    if (!demoDatabase) {
+        demoDatabase = new DemoDatabase(getDemoDatabasePath(app.getPath('userData')));
+    }
+
+    return demoDatabase;
+}
 
 const windowRuntime = createWindowRuntime({
     preloadPath: path.join(__dirname, 'preload.js'),
@@ -525,8 +536,8 @@ async function notifyOperators(key: string, title: string, body: string) {
 
 const monitoringRuntime = createMonitoringRuntime({
     getCurrentService: () => sessionRuntime.getCurrentService(),
+    getDemoDatabase,
     getAlertSettings,
-    getUserDataPath: () => app.getPath('userData'),
     monitoringState,
     alertState,
     recordActivity: loggingRuntime.recordActivity,
@@ -701,20 +712,7 @@ registerAlertsIpc({
             return service.getSystemMessages();
         }
 
-        return alertState.getActiveAlerts()
-            .filter((alert) => alert.kind === 'messageWait')
-            .map((alert) => ({
-                MESSAGE_QUEUE_LIBRARY: 'QSYS',
-                MESSAGE_QUEUE_NAME: 'QSYSOPR',
-                MESSAGE_KEY_HEX: null,
-                MESSAGE_ID: 'DEMO0001',
-                MESSAGE_TYPE: 'INQUIRY',
-                FROM_USER: 'QSYSOPR',
-                FROM_JOB: alert.jobName || null,
-                MESSAGE_TIMESTAMP: alert.timestamp,
-                MESSAGE_TEXT: alert.message,
-                MESSAGE_SECOND_LEVEL_TEXT: alert.detail || null
-            }));
+        return getDemoDatabase().getSystemMessages();
     },
     getAlertSettings,
     setAlertSettings: (settings) => {
@@ -772,7 +770,6 @@ registerJobsIpc({
     getJob: (jobName) => monitoringState.getJob(jobName),
     getJobStatusHistory: (jobName) => monitoringState.getJobStatusHistory(jobName),
     getJobContext: async (jobName) => {
-        const job = monitoringState.getJob(jobName);
         if (monitoringState.getMonitorMode() === 'live') {
             const service = sessionRuntime.getCurrentService();
             if (!service) {
@@ -780,25 +777,7 @@ registerJobsIpc({
             }
             return service.getJobContext(jobName);
         }
-
-        return {
-            jobInfo: job ? {
-                ...job,
-                JOB_STATUS: job.STATUS,
-                JOB_SUBSYSTEM: job.SUBSYSTEM,
-                JOB_QUEUE_NAME: null,
-                JOB_QUEUE_LIBRARY: null,
-                JOB_QUEUE_STATUS: null
-            } : null,
-            jobQueue: null,
-            subsystem: job ? {
-                SUBSYSTEM_DESCRIPTION: job.SUBSYSTEM,
-                SUBSYSTEM_DESCRIPTION_LIBRARY: job.SUBSYSTEM_LIBRARY_NAME,
-                STATUS: 'ACTIVE',
-                CURRENT_ACTIVE_JOBS: monitoringState.getLatestJobs().filter((candidate) => candidate.SUBSYSTEM === job.SUBSYSTEM).length,
-                TEXT_DESCRIPTION: 'Demo subsystem context'
-            } : null
-        };
+        return getDemoDatabase().getJobContext(jobName);
     },
     getJobLog: async (jobName) => {
         if (monitoringState.getMonitorMode() === 'live') {
@@ -809,16 +788,7 @@ registerJobsIpc({
             return service.getJobLog(jobName);
         }
 
-        return monitoringState.getJobStatusHistory(jobName).map((entry, index) => ({
-            ORDINAL_POSITION: index + 1,
-            MESSAGE_ID: null,
-            MESSAGE_TYPE: 'STATUS',
-            MESSAGE_TIMESTAMP: entry.timestamp,
-            MESSAGE_TEXT: entry.label,
-            MESSAGE_SECOND_LEVEL_TEXT: null,
-            MESSAGE_KEY_HEX: null,
-            QUALIFIED_JOB_NAME: jobName
-        }));
+        return getDemoDatabase().getJobLog(jobName);
     },
     getJobMessages: async (jobName) => {
         if (monitoringState.getMonitorMode() === 'live') {
@@ -829,19 +799,7 @@ registerJobsIpc({
             return service.getJobMessages(jobName);
         }
 
-        const job = monitoringState.getJob(jobName);
-        return job?.STATUS === 'MSGW' ? [{
-            MESSAGE_QUEUE_LIBRARY: 'QSYS',
-            MESSAGE_QUEUE_NAME: 'QSYSOPR',
-            MESSAGE_KEY_HEX: null,
-            MESSAGE_ID: 'DEMO0001',
-            MESSAGE_TYPE: 'INQUIRY',
-            FROM_USER: job.CURRENT_USER,
-            FROM_JOB: job.JOB_NAME,
-            MESSAGE_TIMESTAMP: new Date().toISOString(),
-            MESSAGE_TEXT: 'Demo MSGW requires an operator reply.',
-            MESSAGE_SECOND_LEVEL_TEXT: 'Demo mode does not contain a live message key.'
-        }] : [];
+        return getDemoDatabase().getJobMessages(jobName);
     },
     buildWaitReason,
     buildJobRootCauseGuidance: (job) => buildJobRootCauseGuidance(job, getAlertSettings().highCpuThreshold),

@@ -28,7 +28,6 @@ import {
     deployMapepire,
     ensureMapepireAvailable
 } from '../../utils/mapepire-deploy';
-import { getDemoDataFilePath, writeDemoSnapshot } from '../../utils/demo-system';
 import { THEME_OPTIONS, normalizeThemeId } from '../../features/theme/theme-model';
 import type { AppStore } from '../store';
 import type { createConnectionStateStore } from '../state/connection-state';
@@ -479,9 +478,6 @@ export function createSessionRuntime(dependencies: SessionRuntimeDependencies) {
                     dependencies.clearDemoWorkflowLinks?.();
                     dependencies.clearRuntimeMonitoringState();
                     dependencies.monitoringState.setMonitorMode('dummy');
-                    const demoDataFilePath = getDemoDataFilePath(app.getPath('userData'));
-                    dependencies.monitoringState.setDemoDataFilePath(demoDataFilePath);
-                    await writeDemoSnapshot(demoDataFilePath, dependencies.monitoringState.getDummyPollCount());
                     dependencies.connectionState.setCurrentConnection({
                         id: `demo-${Date.now()}`,
                         name: config.name?.trim() || 'iMonitor Demo System',
@@ -495,7 +491,7 @@ export function createSessionRuntime(dependencies: SessionRuntimeDependencies) {
                         area: 'connection',
                         level: 'success',
                         message: 'Connected to the iMonitor demo system.',
-                        detail: `Using generated JSON data at ${demoDataFilePath} with rotating RUN, LCKW, DLYW, and MSGW states.`
+                        detail: 'Using the local SQLite demo database with IBM i-shaped job, message, log, queue, and subsystem tables.'
                     });
                     dependencies.emitConnectionAction('Demo system ready.');
                     return { success: true, port: DEFAULT_PORT };
