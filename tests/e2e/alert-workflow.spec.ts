@@ -101,6 +101,22 @@ test('loads job properties and logs only when requested', async () => {
     }
 });
 
+test('requires confirmation before running an IBM i job action', async () => {
+    const app = await launchTestApp();
+
+    try {
+        app.page.on('dialog', (dialog) => void dialog.accept());
+        await openDemoMonitor(app.page);
+        await app.page.locator('.operations-grid > details > summary').click();
+        await expect(app.page.locator('.job-row').first()).toBeVisible();
+        await app.page.locator('.job-row').first().click();
+        await app.page.locator('#job-detail-drawer').getByRole('button', { name: 'Hold Job' }).click();
+        await expect(app.page.locator('#detail-operator-action-note')).toContainText('Action completed: holdJob');
+    } finally {
+        await app.cleanup();
+    }
+});
+
 test('supports acknowledge, claim, note, work done, and return-to-queue in the alert workflow', async () => {
     const app = await launchTestApp();
 

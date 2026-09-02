@@ -57,4 +57,12 @@ describe('ActionBoard operator actions', () => {
         expect(requiresOperatorConfirmation('releaseJob')).toBe(true);
         expect(requiresOperatorConfirmation('inspectLocks')).toBe(false);
     });
+
+    it('does not offer state-changing actions for an ended job', () => {
+        const actions = getAvailableOperatorActions(createJob({ STATUS: 'END' }));
+
+        expect(actions.find((action) => action.kind === 'holdJob')).toMatchObject({ enabled: false });
+        expect(actions.find((action) => action.kind === 'releaseJob')).toMatchObject({ enabled: false });
+        expect(actions.find((action) => action.kind === 'endJob')).toMatchObject({ enabled: false });
+    });
 });

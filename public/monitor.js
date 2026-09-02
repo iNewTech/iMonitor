@@ -1748,14 +1748,24 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const actionKind = actionButton.dataset.actionKind;
+        const confirmationMessage = actionKind === 'endJob'
+            ? `End ${selectedJobName} with a controlled end?`
+            : `${actionButton.textContent.trim()} for ${selectedJobName}?`;
+        if (['holdJob', 'releaseJob', 'endJob', 'replyMessage'].includes(actionKind)
+            && !window.confirm(confirmationMessage)) {
+            return;
+        }
+
         const originalMarkup = actionButton.innerHTML;
         actionButton.disabled = true;
         actionButton.innerHTML = 'Working...';
 
         try {
             const result = await window.electronAPI.runJobAction({
-                kind: actionButton.dataset.actionKind,
-                jobName: selectedJobName
+                kind: actionKind,
+                jobName: selectedJobName,
+                confirmed: true
             });
 
             if (!result?.success) {
@@ -1765,11 +1775,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            await loadJobDetails(selectedJobName);
             if (detailOperatorActionNote) {
                 detailOperatorActionNote.textContent = result.message || 'Action completed successfully.';
             }
-
-            await loadJobDetails(selectedJobName);
         } catch (error) {
             if (detailOperatorActionNote) {
                 detailOperatorActionNote.textContent = error?.message || 'The action failed.';
