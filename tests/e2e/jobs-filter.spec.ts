@@ -128,6 +128,7 @@ test('keeps the inner work surfaces compact and free of duplicate history contro
         await app.page.locator('.alerts-panel > summary').click();
         await expect(app.page.locator('.alert-queue-context')).toContainText('New incidents stay here');
         await expect(app.page.locator('.alert-search-control')).toBeVisible();
+        await expect(app.page.getByText('QSYSOPR messages', { exact: true })).toHaveCount(0);
     } finally {
         await app.cleanup();
     }
