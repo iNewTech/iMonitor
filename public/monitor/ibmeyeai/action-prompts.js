@@ -20,6 +20,20 @@ export function buildSelectedJobHealthPrompt(selectedJobName) {
     return `Give a health summary for ${jobName}. Explain status, wait reason, SQL activity, risk level, and next best action.`;
 }
 
+export function buildWaitAnalysisPrompt(input = {}) {
+    const jobName = normalizeLabel(input.jobName, 'the selected job');
+    const waitReason = normalizeLabel(input.waitReason, 'No wait reason was provided.');
+
+    return [
+        `Analyze the current IBM i wait condition for ${jobName} as a support diagnostic.`,
+        `Current wait reason: ${waitReason}`,
+        'Use the supplied job, message, log, status-history, and monitoring evidence.',
+        'Return a concise report with these headings: What is happening, Evidence, Likely cause, Recommended next checks, Safe resolution.',
+        'Separate observed facts from inferences, include relevant message IDs and timestamps, and say when evidence is missing.',
+        'Do not expose raw SQL or internal implementation details to the operator, and do not claim that an action was executed.'
+    ].join(' ');
+}
+
 export function buildAlertExplanationPrompt(alert) {
     const title = normalizeLabel(alert?.title, 'the selected alert');
     const jobName = normalizeLabel(alert?.jobName, 'no named job');

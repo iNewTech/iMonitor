@@ -49,6 +49,7 @@ export function createAiRuntime(dependencies: AiRuntimeDependencies) {
         message: string;
         selectedJobName?: string;
         conversation?: AiAssistantMessage[];
+        additionalContext?: string;
     }) {
         const settings = dependencies.getSettings();
         const availability = await getAiAvailability();
@@ -93,9 +94,12 @@ export function createAiRuntime(dependencies: AiRuntimeDependencies) {
             selectedJob,
             highCpuThreshold: dependencies.getHighCpuThreshold?.()
         });
+        const enrichedContext = payload.additionalContext?.trim()
+            ? `${context}\n\n${payload.additionalContext.trim()}`
+            : context;
         const messages = buildAiAssistantPrompt({
             question: payload.message,
-            context,
+            context: enrichedContext,
             conversation: payload.conversation,
             replyStyle: settings.replyStyle
         });

@@ -18,7 +18,7 @@ function renderInlineMarkdown(value) {
         .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>');
 }
 
-function renderMarkdown(value) {
+export function renderAiReportMarkdown(value) {
     const escaped = escapeHtml(value).replace(/\r\n/g, '\n');
     const blocks = [];
     const lines = escaped.split('\n');
@@ -85,7 +85,7 @@ export function buildAiTranscriptMarkup(conversation, pendingReply, pendingModel
                 <div class="ai-chat-message-header">
                     <span class="ai-chat-author">${escapeHtml(message.role === 'assistant' ? 'IBMEye AI' : 'You')}</span>
                 </div>
-                <div class="ai-chat-message-copy">${renderMarkdown(message.content)}</div>
+                <div class="ai-chat-message-copy">${renderAiReportMarkdown(message.content)}</div>
             </article>
         </div>
     `).join('');

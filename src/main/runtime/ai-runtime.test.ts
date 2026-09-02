@@ -52,4 +52,44 @@ describe('ai-runtime', () => {
         expect(result.success).toBe(true);
         expect(result.reply).toContain('How to resolve');
     });
+
+    it('adds on-demand evidence to a focused analysis without changing the base question', async () => {
+        const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
+            if (url.endsWith('/api/tags')) {
+                return new Response(JSON.stringify({ models: [{ name: 'gemma3:latest' }] }), { status: 200 });
+            }
+
+            if (url.endsWith('/api/chat')) {
+                const payload = JSON.parse(String(init?.body ?? '{}'));
+                const userMessage = payload.messages.at(-1).content;
+                expect(userMessage).toContain('Analyze the current IBM i wait condition');
+                expect(userMessage).toContain('MESSAGE_ID: DEMO0001');
+                expect(userMessage).toContain('MESSAGE_TEXT: Demo MSGW requires an operator reply.');
+                return new Response(JSON.stringify({ message: { content: 'What is happening\nA reply is pending.' } }));
+            }
+
+            throw new Error(`Unexpected fetch: ${url}`);
+        });
+
+        const runtime = createAiRuntime({
+            appName: 'iMonitor',
+            getSettings: () => DEFAULT_AI_ASSISTANT_SETTINGS,
+            getConnection: () => null,
+            getMonitorMode: () => 'dummy',
+            getLatestJobs: () => [],
+            getJob: () => undefined,
+            getActiveAlerts: () => [],
+            getMonitoringHistory: () => [],
+            getActivityLog: () => [],
+            recordActivity: vi.fn(),
+            fetchImpl: fetchImpl as typeof fetch
+        });
+
+        const result = await runtime.askAssistant({
+            message: 'Analyze the current IBM i wait condition.',
+            additionalContext: 'MESSAGE_ID: DEMO0001\nMESSAGE_TEXT: Demo MSGW requires an operator reply.'
+        });
+
+        expect(result.success).toBe(true);
+    });
 });

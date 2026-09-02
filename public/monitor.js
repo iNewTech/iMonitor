@@ -3,8 +3,10 @@ import { initAiAssistant } from './monitor/ai-assistant.js';
 import {
     buildAlertExplanationPrompt,
     buildAlertNextActionsPrompt,
-    buildSelectedJobHealthPrompt
+    buildSelectedJobHealthPrompt,
+    buildWaitAnalysisPrompt
 } from './monitor/ibmeyeai/action-prompts.js';
+import { renderAiReportMarkdown } from './monitor/ibmeyeai/render.js';
 import { filterJobs as filterVisibleJobs, getSubsystemOptions } from './monitor/jobs-filter.js';
 import { renderOperatorLogDetail } from './monitor/operator-log-links.js';
 import { initSupportPanel } from './shared/support.js';
@@ -88,6 +90,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const detailTempStorage = document.getElementById('detail-temp-storage');
     const detailDiskIo = document.getElementById('detail-disk-io');
     const detailWaitReason = document.getElementById('detail-wait-reason');
+    const detailWaitAiButton = document.getElementById('detail-wait-ai');
+    const detailWaitAiReport = document.getElementById('detail-wait-ai-report');
+    const detailWaitAiStatus = document.getElementById('detail-wait-ai-status');
+    const detailWaitAiContent = document.getElementById('detail-wait-ai-content');
     const detailGuidanceHeadline = document.getElementById('detail-guidance-headline');
     const detailGuidanceSeverity = document.getElementById('detail-guidance-severity');
     const detailGuidanceImpact = document.getElementById('detail-guidance-impact');
@@ -937,6 +943,12 @@ document.addEventListener('DOMContentLoaded', () => {
             control.classList.add('premium-locked');
             control.title = 'IBMEye AI requires Premium';
         });
+        if (detailWaitAiButton) {
+            const aiAvailable = entitlements.features?.['ai-analysis'] !== false;
+            detailWaitAiButton.disabled = !aiAvailable || !selectedJobName;
+            detailWaitAiButton.classList.toggle('premium-locked', !aiAvailable);
+            detailWaitAiButton.title = aiAvailable ? 'Analyze this wait with IBMEye AI' : 'IBMEye AI requires Premium';
+        }
         renderAlerts(latestAlerts);
     }
 
@@ -1239,6 +1251,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (detailAiHealth) {
             detailAiHealth.disabled = true;
         }
+        if (detailWaitAiButton) {
+            detailWaitAiButton.disabled = true;
+        }
+        if (detailWaitAiReport) {
+            detailWaitAiReport.hidden = true;
+        }
+        if (detailWaitAiContent) {
+            detailWaitAiContent.innerHTML = '';
+        }
     }
 
     function populateJobDetails(payload) {
@@ -1287,6 +1308,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (detailAiHealth) {
             detailAiHealth.disabled = false;
         }
+        if (detailWaitAiButton) {
+            const aiAvailable = entitlements.features?.['ai-analysis'] !== false;
+            detailWaitAiButton.disabled = !aiAvailable;
+            detailWaitAiButton.classList.toggle('premium-locked', !aiAvailable);
+        }
         if (detailWaitReason) {
             detailWaitReason.textContent = payload.waitReason || 'No wait reason available.';
         }
@@ -1323,6 +1349,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             selectedJobName = jobName;
             populateJobDetails(payload);
+            if (detailWaitAiReport) {
+                detailWaitAiReport.hidden = true;
+            }
+            if (detailWaitAiContent) {
+                detailWaitAiContent.innerHTML = '';
+            }
             openDrawer();
 
             if (tbody) {
@@ -1812,6 +1844,95 @@ document.addEventListener('DOMContentLoaded', () => {
 
         aiAssistant.openWidget();
         void aiAssistant.submitPrompt(buildSelectedJobHealthPrompt(selectedJobName));
+    });
+
+    function formatWaitAnalysisEvidence(job, payload, messages, logs) {
+        const formatRecord = (record) => Object.entries(record ?? {})
+            .filter(([, value]) => value !== null && value !== undefined && String(value).trim())
+            .map(([key, value]) => `${key}: ${String(value).slice(0, 500)}`)
+            .join(' | ');
+        const formatRecords = (records, emptyMessage) => {
+            const values = Array.isArray(records) ? records.slice(-12).map(formatRecord).filter(Boolean) : [];
+            return values.length ? values.join('\n') : emptyMessage;
+        };
+
+        return [
+            'Wait-analysis evidence for the selected IBM i job. This data is for internal analysis; present conclusions in plain operator language.',
+            `Job: ${job?.JOB_NAME || selectedJobName || 'Unknown'}`,
+            `Status: ${job?.STATUS || 'Unknown'}`,
+            `Wait reason: ${payload?.waitReason || 'Unknown'}`,
+            `Function: ${job?.FUNCTION_NAME || 'Unknown'}`,
+            `CPU: ${job?.CPU ?? 'Unknown'}; elapsed CPU: ${job?.ELAPSED_CPU_TIME ?? 'Unknown'}`,
+            `Message reply capable: ${job?.MESSAGE_REPLY || 'Unknown'}`,
+            `Status history:\n${formatRecords(payload?.statusHistory, 'No status history returned.')}`,
+            `Job messages:\n${formatRecords(messages, 'No job messages returned.')}`,
+            `Recent job log:\n${formatRecords(logs, 'No job log returned.')}`
+        ].join('\n');
+    }
+
+    detailWaitAiButton?.addEventListener('click', async () => {
+        if (!selectedJobName || entitlements.features?.['ai-analysis'] === false) {
+            return;
+        }
+
+        const selectedJob = latestJobs.find((job) => getJobKey(job) === selectedJobName);
+        const waitReason = detailWaitReason?.textContent || '';
+        if (detailWaitAiReport) {
+            detailWaitAiReport.hidden = false;
+        }
+        if (detailWaitAiStatus) {
+            detailWaitAiStatus.textContent = 'Gathering IBM i evidence…';
+        }
+        if (detailWaitAiContent) {
+            detailWaitAiContent.innerHTML = '<p class="ai-report-pending"><i class="bi bi-hourglass-split me-2"></i>Checking the job messages and recent job log…</p>';
+        }
+        detailWaitAiButton.disabled = true;
+
+        try {
+            const [messageResult, logResult, detailsResult] = await Promise.all([
+                window.electronAPI.getJobMessages(selectedJobName),
+                window.electronAPI.getJobLog(selectedJobName),
+                window.electronAPI.getJobDetails(selectedJobName)
+            ]);
+            if (!messageResult?.success) {
+                throw new Error(messageResult?.error || 'The job message context could not be loaded.');
+            }
+            if (!logResult?.success) {
+                throw new Error(logResult?.error || 'The recent job log could not be loaded.');
+            }
+            const payload = detailsResult || { job: selectedJob, waitReason, statusHistory: [] };
+            const result = await window.electronAPI.askAiAssistant({
+                message: buildWaitAnalysisPrompt({
+                    jobName: selectedJobName,
+                    waitReason: payload.waitReason || waitReason
+                }),
+                selectedJobName,
+                additionalContext: formatWaitAnalysisEvidence(
+                    payload.job || selectedJob,
+                    payload,
+                    messageResult.records,
+                    logResult.records
+                )
+            });
+            if (!result?.success) {
+                throw new Error(result?.error || 'IBMEye AI could not complete the wait analysis.');
+            }
+            if (detailWaitAiStatus) {
+                detailWaitAiStatus.textContent = 'Analysis complete';
+            }
+            if (detailWaitAiContent) {
+                detailWaitAiContent.innerHTML = renderAiReportMarkdown(result.reply || 'No analysis was returned.');
+            }
+        } catch (error) {
+            if (detailWaitAiStatus) {
+                detailWaitAiStatus.textContent = 'Analysis unavailable';
+            }
+            if (detailWaitAiContent) {
+                detailWaitAiContent.innerHTML = `<p class="ai-report-error">${escapeHtml(error?.message || 'Unable to complete the wait analysis.')}</p>`;
+            }
+        } finally {
+            detailWaitAiButton.disabled = false;
+        }
     });
 
     async function loadOnDemandJobData(button, output, loader, successMessage) {

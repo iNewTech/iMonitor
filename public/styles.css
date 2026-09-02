@@ -3463,6 +3463,63 @@ body.connection-body .support-status {
     gap: 14px;
 }
 
+.wait-analysis-header {
+    align-items: center;
+}
+
+.wait-ai-report {
+    display: grid;
+    gap: 12px;
+    margin-top: 16px;
+    padding: 16px 18px;
+    border: 1px solid rgba(15, 108, 92, 0.18);
+    border-left: 4px solid var(--accent);
+    border-radius: 16px;
+    background: rgba(238, 248, 244, 0.75);
+}
+
+.wait-ai-report-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.ai-report-content,
+.ai-report-pending,
+.ai-report-error {
+    color: var(--ink);
+    line-height: 1.6;
+}
+
+.ai-report-content p,
+.ai-report-content ul,
+.ai-report-pending,
+.ai-report-error {
+    margin: 0;
+}
+
+.ai-report-content p + p,
+.ai-report-content p + ul,
+.ai-report-content ul + p,
+.ai-report-content ul + ul {
+    margin-top: 10px;
+}
+
+.ai-report-content ul {
+    padding-left: 1.3rem;
+}
+
+.ai-report-content code {
+    padding: 0.1rem 0.3rem;
+    border-radius: 5px;
+    background: rgba(24, 33, 43, 0.08);
+}
+
+.ai-report-error {
+    color: var(--danger);
+}
+
 .job-detail-card,
 .job-detail-section {
     min-width: 0;

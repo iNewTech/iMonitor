@@ -5,6 +5,7 @@ const {
     buildAlertNextActionsPrompt,
     buildIncidentSummaryPrompt,
     buildSelectedJobHealthPrompt,
+    buildWaitAnalysisPrompt,
     buildShiftHandoffPrompt,
     buildSqlActivityPrompt
 } = require('../../../public/monitor/ibmeyeai/action-prompts.js') as {
@@ -12,6 +13,7 @@ const {
     buildAlertNextActionsPrompt: (alert: Record<string, unknown> | null) => string;
     buildIncidentSummaryPrompt: () => string;
     buildSelectedJobHealthPrompt: (selectedJobName?: string | null) => string;
+    buildWaitAnalysisPrompt: (input?: { jobName?: string; waitReason?: string }) => string;
     buildShiftHandoffPrompt: () => string;
     buildSqlActivityPrompt: () => string;
 };
@@ -26,6 +28,18 @@ describe('ibmeyeai action prompts', () => {
     it('builds a selected job health prompt with the selected job name', () => {
         expect(buildSelectedJobHealthPrompt('552901/BATCHNGT/NIGHTBCH')).toContain('552901/BATCHNGT/NIGHTBCH');
         expect(buildSelectedJobHealthPrompt()).toContain('the selected job');
+    });
+
+    it('builds an inline wait analysis prompt for the job drawer', () => {
+        const prompt = buildWaitAnalysisPrompt({
+            jobName: '610040/QUSER/QZDASOINIT',
+            waitReason: 'Waiting for a reply to a specific message.'
+        });
+
+        expect(prompt).toContain('610040/QUSER/QZDASOINIT');
+        expect(prompt).toContain('Waiting for a reply to a specific message.');
+        expect(prompt).toContain('What is happening, Evidence, Likely cause');
+        expect(prompt).toContain('Do not expose raw SQL');
     });
 
     it('builds alert-specific prompts for explanation and next actions', () => {

@@ -91,6 +91,12 @@ test('keeps duplicate properties out and loads job logs only when requested', as
         await expect(app.page.getByRole('heading', { name: 'Current or last SQL statement', exact: true })).toHaveCount(0);
         await expect(app.page.locator('#load-job-context')).toHaveCount(0);
         await expect(app.page.locator('#job-context-output')).toHaveCount(0);
+        await expect(app.page.getByTestId('detail-wait-ai')).toBeEnabled();
+
+        await app.page.getByTestId('detail-wait-ai').click();
+        await expect(app.page.locator('#detail-wait-ai-report')).toBeVisible();
+        await expect(app.page.locator('#detail-wait-ai-content')).not.toBeEmpty();
+        await expect(app.page.locator('#ibmeyeai-widget')).toHaveAttribute('data-open', 'false');
 
         await app.page.locator('#load-job-log').click();
         await expect(app.page.locator('#job-log-output')).toContainText('Recent job log');

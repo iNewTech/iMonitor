@@ -652,13 +652,24 @@
             </section>
 
             <section class="job-detail-section">
-                <div class="history-card-header">
+                <div class="history-card-header wait-analysis-header">
                     <div>
                         <p class="eyebrow mb-2">Wait Analysis</p>
                         <h3 class="section-title">Current wait reason</h3>
                     </div>
+                    <button id="detail-wait-ai" type="button" class="btn btn-outline-ink btn-sm job-ai-button" data-testid="detail-wait-ai" disabled>
+                        <img src="assets/ibmeyeai-eye-open.svg" alt="" aria-hidden="true" class="job-ai-button-icon">
+                        Analyze with IBMEye AI
+                    </button>
                 </div>
                 <p id="detail-wait-reason" class="panel-copy mb-0">-</p>
+                <div id="detail-wait-ai-report" class="wait-ai-report" hidden>
+                    <div class="wait-ai-report-header">
+                        <p class="eyebrow mb-0">IBMEye AI diagnostic</p>
+                        <span id="detail-wait-ai-status" class="table-caption">Ready</span>
+                    </div>
+                    <div id="detail-wait-ai-content" class="ai-report-content"></div>
+                </div>
             </section>
 
             <section class="job-detail-section">
