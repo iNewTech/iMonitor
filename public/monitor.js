@@ -10,7 +10,6 @@ import { renderOperatorLogDetail } from './monitor/operator-log-links.js';
 import { initSupportPanel } from './shared/support.js';
 import {
     renderOperatorActions as renderOperatorActionsView,
-    renderJobContext as renderJobContextView,
     renderJobLog as renderJobLogView,
     renderJobMessages as renderJobMessagesView,
     renderRootCauseGuidance as renderRootCauseGuidanceView,
@@ -99,11 +98,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const detailOperatorActionNote = document.getElementById('detail-operator-action-note');
     const detailAiHealth = document.getElementById('detail-ai-health');
     const detailStatusHistory = document.getElementById('detail-status-history');
-    const loadJobContextButton = document.getElementById('load-job-context');
     const loadJobLogButton = document.getElementById('load-job-log');
     const loadJobMessagesButton = document.getElementById('load-job-messages');
     const jobOnDemandStatus = document.getElementById('job-on-demand-status');
-    const jobContextOutput = document.getElementById('job-context-output');
     const jobLogOutput = document.getElementById('job-log-output');
     const jobMessagesOutput = document.getElementById('job-messages-output');
     const tbody = systemStats?.querySelector('tbody');
@@ -1847,18 +1844,6 @@ document.addEventListener('DOMContentLoaded', () => {
             button.disabled = false;
         }
     }
-
-    loadJobContextButton?.addEventListener('click', async () => {
-        const result = await loadOnDemandJobData(
-            loadJobContextButton,
-            jobContextOutput,
-            (jobName) => window.electronAPI.getJobContext(jobName),
-            'Job, queue, and subsystem properties loaded.'
-        );
-        if (result?.success) {
-            renderJobContextView(jobContextOutput, result);
-        }
-    });
 
     loadJobLogButton?.addEventListener('click', async () => {
         const result = await loadOnDemandJobData(

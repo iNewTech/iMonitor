@@ -79,7 +79,7 @@ test('keeps ClickUp ticket creation with the operator workflow', async () => {
     }
 });
 
-test('loads job properties and logs only when requested', async () => {
+test('keeps duplicate properties out and loads job logs only when requested', async () => {
     const app = await launchTestApp();
 
     try {
@@ -89,10 +89,8 @@ test('loads job properties and logs only when requested', async () => {
         await app.page.locator('.job-row').first().click();
         await expect(app.page.locator('#job-detail-drawer')).toHaveClass(/is-open/);
         await expect(app.page.getByRole('heading', { name: 'Current or last SQL statement', exact: true })).toHaveCount(0);
-
-        await app.page.locator('#load-job-context').click();
-        await expect(app.page.locator('#job-context-output')).toContainText('Job properties');
-        await expect(app.page.locator('#job-context-output')).toContainText('Subsystem properties');
+        await expect(app.page.locator('#load-job-context')).toHaveCount(0);
+        await expect(app.page.locator('#job-context-output')).toHaveCount(0);
 
         await app.page.locator('#load-job-log').click();
         await expect(app.page.locator('#job-log-output')).toContainText('Recent job log');
