@@ -69,8 +69,8 @@
                         <strong>Stay visible until reviewed</strong>
                     </div>
                     <div class="hero-summary-card">
-                        <span class="hero-summary-label">Log files</span>
-                        <strong>Readable daily operator trace</strong>
+                        <span class="hero-summary-label">Support</span>
+                        <strong>Encrypted diagnostics on request</strong>
                     </div>
                 </div>
             </header>
@@ -463,47 +463,13 @@
                 </div>
             </details>
 
-            <details class="activity-log-shell surface-card panel-disclosure panel-tone-logs">
-                <summary class="panel-disclosure-summary">
-                    <div>
-                        <p class="eyebrow mb-2">iMonitor Logs</p>
-                        <h2 class="section-title">Background activity and SQL trace</h2>
-                        <p class="panel-copy mb-0">
-                            Newest first. Connection lifecycle, monitoring changes, and SQL execution results are recorded here. The panel shows the latest 200 events, while iMonitor keeps full daily log files on disk.
-                        </p>
-                    </div>
-                    <div class="panel-disclosure-meta">
-                        <span class="table-caption">Latest 200 events</span>
-                        <span class="panel-disclosure-icon" aria-hidden="true">
-                            <i class="bi bi-chevron-down"></i>
-                        </span>
-                    </div>
-                </summary>
-                <div class="panel-disclosure-body">
-                    <div class="table-shell-header activity-log-header">
-                        <div class="log-export-actions">
-                            <button id="open-logs-folder" type="button" class="btn btn-outline-ink btn-sm">
-                                <i class="bi bi-folder2-open me-2"></i>Logs Folder
-                            </button>
-                            <button id="share-activity-log" type="button" class="btn btn-outline-ink btn-sm">
-                                <i class="bi bi-share me-2"></i>Share
-                            </button>
-                            <button id="download-activity-log" type="button" class="btn btn-outline-ink btn-sm">
-                                <i class="bi bi-download me-2"></i>Download
-                            </button>
-                        </div>
-                    </div>
-
-                    <p id="activity-log-export-status" class="stat-note mb-3" hidden></p>
-
-                    <div id="activity-log" class="activity-log-list">
-                        <div class="activity-log-empty">
-                            <i class="bi bi-journal-text"></i>
-                            <span>No background activity recorded yet.</span>
-                        </div>
-                    </div>
-                </div>
-            </details>
+            <div id="app-status-bar" class="app-status-bar is-info" role="status" aria-live="polite">
+                <span id="app-status-indicator" class="app-status-indicator" aria-hidden="true">
+                    <i class="bi bi-circle-fill"></i>
+                </span>
+                <span id="app-status-message">Starting iMonitor…</span>
+                <span id="app-status-detail" class="app-status-detail">Preparing the monitoring workspace.</span>
+            </div>
 
             <footer class="app-footer surface-card">
                 <div class="app-footer-meta">
@@ -519,7 +485,7 @@
                             <i class="bi bi-envelope me-2"></i>Contact Only
                         </button>
                         <button id="support-send-diagnostics" type="button" class="btn btn-primary-strong btn-sm">
-                            <i class="bi bi-bug me-2"></i>Contact + Send Diagnostics
+                            <i class="bi bi-shield-lock me-2"></i>Contact + Send Encrypted Diagnostics
                         </button>
                     </div>
                 </details>

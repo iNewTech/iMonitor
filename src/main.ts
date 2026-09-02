@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain } from 'electron/main';
-import { Notification, dialog, nativeImage, safeStorage, shell } from 'electron';
+import { Notification, nativeImage, safeStorage, shell } from 'electron';
 import os from 'node:os';
 import * as path from 'path';
 import Db, { type ServiceLogEntry } from './services/ibmi';
@@ -68,6 +68,7 @@ import { createLoggingRuntime } from './main/runtime/logging-runtime';
 import { createSessionRuntime } from './main/runtime/session-runtime';
 import { createSlackRuntime } from './main/runtime/slack-runtime';
 import { createSupportRuntime } from './main/runtime/support-runtime';
+import { encryptDiagnostics } from './features/support/diagnostic-crypto';
 import { registerEntitlementsIpc } from './main/ipc/entitlements-ipc';
 import {
     createEntitlementState,
@@ -99,6 +100,7 @@ const MAX_MONITORING_HISTORY = 90;
 const MAX_JOB_STATUS_HISTORY = 12;
 const NOTIFICATION_COOLDOWN_MS = 120000;
 const SUPPORT_EMAIL = 'gajendertyagi.tyagi@gmail.com';
+const SUPPORT_DIAGNOSTICS_PUBLIC_KEY = process.env.IMONITOR_SUPPORT_PUBLIC_KEY?.trim() || '';
 const LOCAL_OPERATOR_NAME = os.userInfo().username?.trim() || 'local-operator';
 const DEMO_OPERATOR_NAME = 'GajenderT';
 const developmentBuild = !app.isPackaged || process.env.NODE_ENV === 'development';
@@ -331,7 +333,6 @@ const alertState = createAlertStateStore({
 
 const loggingRuntime = createLoggingRuntime({
     userDataPath: app.getPath('userData'),
-    downloadsPath: app.getPath('downloads'),
     getConnectionContext: () => {
         const state = connectionState.getState();
         return {
@@ -344,12 +345,13 @@ const loggingRuntime = createLoggingRuntime({
     getMonitorMode: () => monitoringState.getMonitorMode(),
     getMonitoringHistory: () => monitoringState.getMonitoringHistory(),
     getActiveAlertsCount: () => alertState.getActiveAlerts().length,
-    sendToWindow: windowRuntime.sendToWindow,
-    showSaveDialog: dialog.showSaveDialog,
-    showItemInFolder: shell.showItemInFolder,
-    openPath: shell.openPath,
-    isMac: process.platform === 'darwin',
-    getMainWindow: () => windowRuntime.getWindow(),
+    encryptAtRest: (value) => {
+        if (!safeStorage.isEncryptionAvailable()) {
+            throw new Error('Local log encryption is unavailable.');
+        }
+
+        return safeStorage.encryptString(value).toString('base64');
+    },
     getJobKey,
     toNumber: (value) => toNumber(value as string | number | null | undefined),
     maxActivityEntries: MAX_ACTIVITY_LOG_ENTRIES
@@ -454,8 +456,8 @@ const supportRuntime = createSupportRuntime({
     openExternal: (target) => shell.openExternal(target),
     showItemInFolder: shell.showItemInFolder,
     recordActivity: loggingRuntime.recordActivity,
-    getLatestReadableLogFilePath: () => loggingRuntime.getLatestReadableLogFilePath(),
-    getOperatorLogText: () => loggingRuntime.getOperatorLogText()
+    encryptDiagnostics: (value) => encryptDiagnostics(value, SUPPORT_DIAGNOSTICS_PUBLIC_KEY),
+    getDeveloperLogText: () => loggingRuntime.getDeveloperLogText()
 });
 
 const aiRuntime = createAiRuntime({
@@ -613,11 +615,7 @@ registerNavigationIpc({
 });
 
 registerLogsIpc({
-    getActivityLog: () => loggingRuntime.getActivityLog(),
-    getMonitoringHistory: () => monitoringState.getMonitoringHistory().slice(),
-    downloadActivityLog: () => loggingRuntime.downloadActivityLogFile(),
-    shareActivityLog: () => loggingRuntime.shareActivityLogFile(),
-    openLogsFolder: () => loggingRuntime.openLogsDirectory()
+    getMonitoringHistory: () => monitoringState.getMonitoringHistory().slice()
 });
 
 registerSupportIpc({

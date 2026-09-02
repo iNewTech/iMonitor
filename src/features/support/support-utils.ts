@@ -49,11 +49,11 @@ export function buildSupportDiagnosticsBody(options: SupportDiagnosticsBodyOptio
     return [
         `Hello,`,
         '',
-        `I am sending diagnostics from ${options.appName} v${options.appVersion}.`,
+        `I am sending encrypted diagnostics from ${options.appName} v${options.appVersion}.`,
         '',
         `Diagnostics file: ${options.diagnosticsPath}`,
         '',
-        'If the file is not attached automatically, please attach the diagnostics file from the path above.',
+        'If the file is not attached automatically, please attach the encrypted diagnostics file from the path above.',
         '',
         'Issue summary:',
         ''
@@ -71,5 +71,5 @@ export function buildSupportDiagnosticsFileName(appName: string, timestamp: stri
         .toLowerCase() || 'imonitor';
     const safeTimestamp = timestamp.replace(/[:.]/g, '-');
 
-    return `${safeAppSegment}-support-${safeTimestamp}.txt`;
+    return `${safeAppSegment}-support-${safeTimestamp}.imonitor-diagnostics`;
 }

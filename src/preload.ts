@@ -28,16 +28,6 @@ interface MonitoringState {
     interval: number;
 }
 
-interface ActivityLogEntry {
-    id: string;
-    timestamp: string;
-    area: 'connection' | 'sql' | 'monitoring' | 'navigation' | 'storage' | 'support' | 'ai';
-    level: 'info' | 'success' | 'warning' | 'error';
-    message: string;
-    detail?: string;
-    sql?: string;
-}
-
 interface AlertSettings {
     desktopNotifications: boolean;
     watchHighCpu: boolean;
@@ -301,20 +291,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
         error?: string;
     }>,
     getMonitoringState: () => ipcRenderer.invoke('get-monitoring-state') as Promise<MonitoringState>,
-    getActivityLog: () => ipcRenderer.invoke('get-activity-log') as Promise<ActivityLogEntry[]>,
-    downloadActivityLog: () => ipcRenderer.invoke('download-activity-log') as Promise<{
-        success: boolean;
-        canceled?: boolean;
-        filePath?: string;
-    }>,
-    shareActivityLog: () => ipcRenderer.invoke('share-activity-log') as Promise<{
-        success: boolean;
-        filePath?: string;
-    }>,
-    openLogsFolder: () => ipcRenderer.invoke('open-logs-folder') as Promise<{
-        success: boolean;
-        directoryPath?: string;
-    }>,
     contactSupport: () => ipcRenderer.invoke('contact-support') as Promise<{
         success: boolean;
         mailtoUrl?: string;
@@ -483,9 +459,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     onConnectionsUpdated: (callback: (connections: SavedConnection[]) => void) => {
         ipcRenderer.on('connections-updated', (_event, connections) => callback(connections));
-    },
-    onActivityLog: (callback: (entry: ActivityLogEntry) => void) => {
-        ipcRenderer.on('activity-log', (_event, entry) => callback(entry));
     },
     onMonitoringHistoryUpdated: (callback: (history: MonitoringSnapshot[]) => void) => {
         ipcRenderer.on('monitoring-history-updated', (_event, history) => callback(history));

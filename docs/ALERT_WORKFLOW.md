@@ -28,15 +28,15 @@ When work starts, the backend:
 1. claims the alert for the active operator
 2. creates one linked ClickUp task and assigns it to that operator
 3. posts an AI report with `Issue`, `Why`, and `How to resolve` sections
-4. attaches the current readable iMonitor daily log
+4. attaches only the matching job history when captured history exists
 
-AI and attachment failures are recorded in the local operator log and do not remove the task or alert.
+AI and attachment failures are recorded in encrypted developer diagnostics and do not remove the task or alert.
 
 ## Slack Delivery
 
 Slack delivery uses one Incoming Webhook configured for a shared operations channel. All supported alert types are enabled by default. Each newly created alert is sent once, while repeated polls for the same active condition remain quiet.
 
-Webhook failures are written to `iMonitor Logs` and do not interrupt monitoring.
+Webhook failures are recorded in encrypted developer diagnostics and do not interrupt monitoring.
 
 ## Planned Workflow States
 

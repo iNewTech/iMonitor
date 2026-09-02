@@ -35,9 +35,11 @@
 
 ### Logging state
 
-- in-memory operator log for UI
-- readable daily log file
-- structured daily `.jsonl` log file
+- in-memory developer activity for AI context and support diagnostics
+- encrypted daily developer log records protected by Electron secure storage
+- renderer-safe monitoring history only; detailed logs have no renderer bridge
+
+Operators see monitoring health through the compact status bar. Support diagnostics are redacted and encrypted with the application's support public key before they are written for attachment. The matching private key is kept by the application developer.
 
 ## Module Direction
 

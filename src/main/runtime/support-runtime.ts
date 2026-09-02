@@ -21,8 +21,8 @@ interface SupportRuntimeDependencies {
         message: string;
         detail?: string;
     }) => void;
-    getLatestReadableLogFilePath: () => Promise<string>;
-    getOperatorLogText: () => string;
+    encryptDiagnostics: (value: string) => string;
+    getDeveloperLogText: () => string;
 }
 
 /**
@@ -61,8 +61,6 @@ export function createSupportRuntime(dependencies: SupportRuntimeDependencies) {
             };
         },
         async sendSupportDiagnostics() {
-            const latestReadableLogFilePath = await dependencies.getLatestReadableLogFilePath();
-            const latestReadableLogText = await fs.readFile(latestReadableLogFilePath, 'utf8');
             const diagnosticsPath = path.join(
                 dependencies.downloadsPath,
                 buildSupportDiagnosticsFileName(dependencies.appName, new Date().toISOString())
@@ -77,17 +75,14 @@ export function createSupportRuntime(dependencies: SupportRuntimeDependencies) {
                 `Electron: ${process.versions.electron || 'unknown'}`,
                 `Node: ${process.versions.node}`,
                 '',
-                'Operator Summary',
+                'Developer Diagnostics',
                 '----------------',
-                dependencies.getOperatorLogText(),
-                '',
-                'Current Day Readable Log',
-                '------------------------',
-                latestReadableLogText
+                dependencies.getDeveloperLogText()
             ].join('\n');
+            const encryptedDiagnostics = dependencies.encryptDiagnostics(diagnosticsBody);
 
             await fs.mkdir(path.dirname(diagnosticsPath), { recursive: true });
-            await fs.writeFile(diagnosticsPath, diagnosticsBody, 'utf8');
+            await fs.writeFile(diagnosticsPath, encryptedDiagnostics, 'utf8');
 
             const mailtoUrl = buildSupportMailtoUrl({
                 supportEmail: dependencies.supportEmail,

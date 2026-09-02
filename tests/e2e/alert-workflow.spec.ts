@@ -59,7 +59,9 @@ test('launches the demo monitor and renders live alert cards', async () => {
         await expect(app.page.locator('.hero-logo')).toHaveAttribute('src', 'assets/ibm-eye.svg');
         await expect(app.page.locator('.ai-assistant-panel')).toHaveClass(/panel-tone-ai/);
         await expect(app.page.locator('.alert-rules-panel')).toHaveClass(/panel-tone-alerts/);
-        await expect(app.page.locator('.activity-log-shell')).toHaveClass(/panel-tone-logs/);
+        await expect(app.page.locator('#app-status-bar')).toBeVisible();
+        await expect(app.page.locator('#app-status-message')).toContainText(/Monitoring healthy|Waiting for monitoring/);
+        await expect(app.page.locator('.activity-log-shell')).toHaveCount(0);
         await expect(app.page.getByTestId('alert-count')).toContainText('active alert');
     } finally {
         await app.cleanup();
@@ -163,7 +165,7 @@ test('supports acknowledge, claim, note, work done, and return-to-queue in the a
         await expect(workingAlert.getByTestId('alert-timeline').locator('.alert-timeline-entry')).toHaveCount(5);
 
         await workingAlert.getByTestId('alert-release').click();
-        const returnedAlert = app.page.getByTestId('alert-card').first();
+        const returnedAlert = app.page.locator(`[data-testid="alert-card"][data-alert-id="${alertId}"]`);
         await expect.poll(async () => {
             const alerts = await app.page.evaluate(() => window.electronAPI.getActiveAlerts());
             return alerts.find((entry) => entry.id === alertId)?.owner || '';

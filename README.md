@@ -12,7 +12,7 @@ iMonitor is the desktop app for IBM i teams. Inside it, `IBMEye` is the alert an
 - Includes a dedicated Settings page for AI providers and action integrations
 - Supports drawer-based operator actions for hold, release, and end job
 - Raises operator alerts, desktop notifications, and SMTP email notifications
-- Keeps a local operator log and daily log files
+- Keeps detailed developer diagnostics out of the operator UI
 - Can detect, start, or deploy Mapepire during connect
 - Includes a development-only demo system for UI testing without real credentials
 
@@ -43,18 +43,15 @@ npm start
 
 ## Demo Mode
 
-Use `Launch Demo` to open a local test system with generated jobs, waits, alerts, and logs.
+Use `Launch Demo` to open a local test system with generated jobs, waits, alerts, and monitoring history.
 
 This is only available in development builds. Packaged production builds do not expose demo mode and will ignore demo connection requests.
 
-## Logs
+## Logs And Diagnostics
 
-iMonitor writes:
+The operator sees only a small status bar for monitoring health. Detailed application activity is kept in the main process and written to encrypted daily developer logs using Electron's local secure storage. There is no renderer bridge for reading, downloading, or opening those logs.
 
-- a readable daily log: `ibm-eye-YYYY-MM-DD.log`
-- a structured daily log: `ibm-eye-YYYY-MM-DD.log.jsonl`
-
-These are stored in the app logs directory and can be opened from the monitor screen.
+The Support menu creates a separate encrypted diagnostics file containing app metadata, monitoring summaries, and recent developer activity. Credentials are redacted before the file is encrypted. A support public key must be configured as `IMONITOR_SUPPORT_PUBLIC_KEY`; the corresponding private key remains with the application developer.
 
 ## Email Notifications
 
@@ -73,9 +70,9 @@ Alert-triggering conditions such as `MSGW`, `LCKW`, high CPU, failed polls, and 
 
 `IBMEye Alerts` sends newly detected alerts to the configured Slack channel. ClickUp is an action-tracking destination, not an automatic alert sink: no ClickUp task is created when an alert first appears.
 
-When an operator selects `Start Work`, iMonitor creates one ClickUp task for that incident, assigns it to the active operator, and links it back to the alert. The backend then adds an AI-generated diagnostic with the issue, likely cause, and resolution guidance, and attaches the current readable daily log. If a task already exists, later workflow updates are added as comments instead of creating duplicates.
+When an operator selects `Start Work`, iMonitor creates one ClickUp task for that incident, assigns it to the active operator, and links it back to the alert. The backend then adds an AI-generated diagnostic with the issue, likely cause, and resolution guidance, and attaches only the matching job history when captured history exists. If a task already exists, later workflow updates are added as comments instead of creating duplicates.
 
-If AI or log attachment is unavailable, iMonitor keeps the ClickUp task and records the failure in `iMonitor Logs` instead of losing the incident.
+If AI or job-history attachment is unavailable, iMonitor keeps the ClickUp task and records the failure in encrypted developer diagnostics instead of losing the incident.
 
 ## AI Analysis
 
@@ -85,7 +82,7 @@ It can:
 
 - summarize current alerts
 - explain selected-job waits
-- review recent SQL and operator log activity
+- review recent SQL and diagnostic activity
 - suggest likely cause and next best action
 
 For now this uses local Ollama on `http://127.0.0.1:11434`. The feature is intentionally isolated so it can be licensed or removed later without changing the rest of iMonitor.
@@ -113,7 +110,7 @@ In `Settings`, paste the webhook URL, enable Slack alerts, choose which alert ty
 
 ## Support Tools
 
-The Support menu is available even before login. `Contact Only` opens a normal email draft. `Contact + Send Diagnostics` creates a one-click support bundle containing the app version, platform details, connection context, recent monitor snapshots, operator activity, and the current readable log.
+The Support menu is available even before login. `Contact Only` opens a normal email draft. `Contact + Send Encrypted Diagnostics` creates a support bundle containing the app version, platform details, connection context, recent monitor snapshots, and developer activity. The bundle is encrypted for the application developer before it is written to disk.
 
 The ActionBoard and job detail drawer are read-only for investigation until an operator deliberately chooses an IBM i action. Built-in guidance explains likely causes, impact, and safe checks for waits, high CPU, poll failures, and connection failures.
 
@@ -125,7 +122,7 @@ The job detail drawer currently supports:
 - `Release Job`
 - `End Job`
 
-These actions are logged in iMonitor Logs. In demo mode they are simulated safely for UI and workflow testing.
+These actions are recorded in encrypted developer diagnostics. In demo mode they are simulated safely for UI and workflow testing.
 
 `Reply to MSGW` and deeper lock investigation are the next actions to finish and need additional IBM i message and lock context.
 

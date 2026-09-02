@@ -36,13 +36,13 @@ describe('support-utils', () => {
             diagnosticsPath: '/tmp/iMonitor-support.txt'
         });
 
-        expect(body).toContain('I am sending diagnostics from iMonitor v1.2.3.');
+        expect(body).toContain('I am sending encrypted diagnostics from iMonitor v1.2.3.');
         expect(body).toContain('Diagnostics file: /tmp/iMonitor-support.txt');
     });
 
     it('builds a safe diagnostics file name', () => {
         const fileName = buildSupportDiagnosticsFileName('iMonitor App', '2026-08-24T12:34:56.789Z');
 
-        expect(fileName).toBe('imonitor-app-support-2026-08-24T12-34-56-789Z.txt');
+        expect(fileName).toBe('imonitor-app-support-2026-08-24T12-34-56-789Z.imonitor-diagnostics');
     });
 });

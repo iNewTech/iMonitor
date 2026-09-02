@@ -71,7 +71,7 @@ export function renderOperatorActions(detailOperatorActions, detailOperatorActio
         const blockedActions = availableActions.filter((action) => !action.enabled && action.reason);
         detailOperatorActionNote.textContent = blockedActions.length
             ? blockedActions.map((action) => `${action.label}: ${action.reason}`).join(' | ')
-            : 'These actions run from the current job detail drawer and are recorded in the Operator Log.';
+            : 'These actions run from the current job detail drawer and are included in encrypted support diagnostics.';
     }
 }
 

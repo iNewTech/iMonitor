@@ -8,7 +8,6 @@ import {
 } from './monitor/ibmeyeai/action-prompts.js';
 import { renderAiReportMarkdown } from './monitor/ibmeyeai/render.js';
 import { filterJobs as filterVisibleJobs, getSubsystemOptions } from './monitor/jobs-filter.js';
-import { renderOperatorLogDetail } from './monitor/operator-log-links.js';
 import { initSupportPanel } from './shared/support.js';
 import {
     renderOperatorActions as renderOperatorActionsView,
@@ -26,11 +25,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const openAiSettingsButton = document.getElementById('open-ai-settings');
     const refreshInterval = document.getElementById('refresh-interval');
     const systemStats = document.getElementById('system-stats');
-    const activityLog = document.getElementById('activity-log');
-    const openLogsFolderButton = document.getElementById('open-logs-folder');
-    const shareActivityLogButton = document.getElementById('share-activity-log');
-    const downloadActivityLogButton = document.getElementById('download-activity-log');
-    const activityLogExportStatus = document.getElementById('activity-log-export-status');
+    const appStatusBar = document.getElementById('app-status-bar');
+    const appStatusIndicator = document.getElementById('app-status-indicator');
+    const appStatusMessage = document.getElementById('app-status-message');
+    const appStatusDetail = document.getElementById('app-status-detail');
     const activeAlerts = document.getElementById('active-alerts');
     const alertCount = document.getElementById('alert-count');
     const alertSearchInput = document.getElementById('alert-search-input');
@@ -132,9 +130,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedJobName = null;
     let latestJobs = [];
     let latestAlerts = [];
-    let activityLogEntries = [];
-    const activityLogIds = new Set();
-    let exportStatusTimer = null;
     let noteComposerAlertId = null;
     const noteDraftByAlertId = new Map();
     const expandedAlertIds = new Set();
@@ -387,24 +382,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function setExportStatus(message, isError = false) {
-        if (!activityLogExportStatus) {
-            return;
-        }
-
-        activityLogExportStatus.hidden = false;
-        activityLogExportStatus.textContent = message;
-        activityLogExportStatus.style.color = isError ? 'var(--danger)' : 'var(--accent-deep)';
-
-        if (exportStatusTimer) {
-            window.clearTimeout(exportStatusTimer);
-        }
-
-        exportStatusTimer = window.setTimeout(() => {
-            activityLogExportStatus.hidden = true;
-        }, 6000);
-    }
-
     function showTableMessage(message, iconClass = 'bi-inbox', textClass = 'text-muted') {
         if (!tbody) {
             return;
@@ -543,73 +520,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function renderActivityLog() {
-        if (!activityLog) {
-            return;
+    function setOperatorStatus(message, level = 'info', detail = '') {
+        if (appStatusMessage) {
+            appStatusMessage.textContent = message;
         }
-
-        if (!activityLogEntries.length) {
-            activityLog.innerHTML = `
-                <div class="activity-log-empty">
-                    <i class="bi bi-journal-text"></i>
-                    <span>No background activity recorded yet.</span>
-                </div>
-            `;
-            return;
+        if (appStatusDetail) {
+            appStatusDetail.textContent = detail;
         }
-
-        activityLog.innerHTML = activityLogEntries.map((entry) => {
-            const detailMarkup = entry.detail
-                ? `<p class="activity-log-detail">${renderOperatorLogDetail(entry.detail)}</p>`
-                : '';
-            const sqlMarkup = entry.sql
-                ? `<pre class="activity-log-sql"><code>${escapeHtml(entry.sql)}</code></pre>`
-                : '';
-
-            return `
-                <article class="activity-log-entry is-${escapeHtml(entry.level)}">
-                    <div class="activity-log-meta">
-                        <div class="activity-log-tags">
-                            <span class="activity-log-badge">${escapeHtml(entry.level.toUpperCase())}</span>
-                            <span class="activity-log-badge is-area">${escapeHtml(entry.area.toUpperCase())}</span>
-                        </div>
-                        <time class="activity-log-time">${formatTimestamp(entry.timestamp)}</time>
-                    </div>
-                    <h3 class="activity-log-message">${escapeHtml(entry.message)}</h3>
-                    ${detailMarkup}
-                    ${sqlMarkup}
-                </article>
-            `;
-        }).join('');
-    }
-
-    function mergeActivityEntries(entries) {
-        let didChange = false;
-
-        entries.forEach((entry) => {
-            if (!entry?.id || activityLogIds.has(entry.id)) {
-                return;
-            }
-
-            activityLogIds.add(entry.id);
-            activityLogEntries.push(entry);
-            didChange = true;
-        });
-
-        if (!didChange) {
-            return;
+        if (appStatusBar) {
+            appStatusBar.classList.remove('is-info', 'is-success', 'is-warning', 'is-error');
+            appStatusBar.classList.add(`is-${level}`);
         }
-
-        activityLogEntries.sort((left, right) => (
-            new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime()
-        ));
-
-        if (activityLogEntries.length > 200) {
-            const removedEntries = activityLogEntries.splice(200);
-            removedEntries.forEach((entry) => activityLogIds.delete(entry.id));
+        if (appStatusIndicator) {
+            appStatusIndicator.innerHTML = `<i class="bi ${level === 'success' ? 'bi-check-circle-fill' : level === 'warning' ? 'bi-exclamation-triangle-fill' : level === 'error' ? 'bi-x-circle-fill' : 'bi-circle-fill'}"></i>`;
         }
-
-        renderActivityLog();
     }
 
     function renderHistory(history) {
@@ -1033,24 +957,10 @@ document.addEventListener('DOMContentLoaded', () => {
             renderAlerts(latestAlerts);
             void window.electronAPI.recheckAlert(alertId).then((result) => {
                 if (result?.status === 'cleared') {
-                    mergeActivityEntries([{
-                        id: `recheck-${alertId}-${Date.now()}`,
-                        timestamp: new Date().toISOString(),
-                        area: 'monitoring',
-                        level: 'success',
-                        message: 'Alert rechecked: condition is clear.',
-                        detail: alertId
-                    }]);
+                    setOperatorStatus('Alert rechecked', 'success', 'The condition is clear on IBM i.');
                 }
                 if (result?.status === 'unavailable' && result.error) {
-                    mergeActivityEntries([{
-                        id: `recheck-${alertId}-${Date.now()}`,
-                        timestamp: new Date().toISOString(),
-                        area: 'monitoring',
-                        level: 'warning',
-                        message: 'Alert recheck was unavailable.',
-                        detail: result.error
-                    }]);
+                    setOperatorStatus('Alert recheck unavailable', 'warning', result.error);
                 }
             }).catch((error) => {
                 console.error('Unable to recheck alert:', error);
@@ -1369,8 +1279,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadInitialMonitorData() {
         try {
-            const [entries, history, alerts, settings, emailSettings, themeSettings, appFlags] = await Promise.all([
-                window.electronAPI.getActivityLog(),
+            const [history, alerts, settings, emailSettings, themeSettings, appFlags] = await Promise.all([
                 window.electronAPI.getMonitoringHistory(),
                 window.electronAPI.getActiveAlerts(),
                 window.electronAPI.getAlertSettings(),
@@ -1380,7 +1289,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ]);
 
             currentOperatorName = String(appFlags?.operatorName || '').trim() || 'local-operator';
-            mergeActivityEntries(Array.isArray(entries) ? entries : []);
             renderHistory(history);
             renderAlerts(alerts);
             applyAlertSettings(settings);
@@ -1405,67 +1313,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function stopMonitoring() {
         window.electronAPI.stopMonitoring();
         setMonitoringState(false, 'idle');
-    }
-
-    async function exportActivityLog(mode) {
-        const button = mode === 'share'
-            ? shareActivityLogButton
-            : mode === 'download'
-                ? downloadActivityLogButton
-                : openLogsFolderButton;
-        if (!button) {
-            return;
-        }
-
-        const originalMarkup = button.innerHTML;
-        button.disabled = true;
-        button.innerHTML = mode === 'share'
-            ? '<i class="bi bi-hourglass-split me-2"></i>Preparing...'
-            : mode === 'download'
-                ? '<i class="bi bi-hourglass-split me-2"></i>Saving...'
-                : '<i class="bi bi-hourglass-split me-2"></i>Opening...';
-
-        try {
-            const result = mode === 'share'
-                ? await window.electronAPI.shareActivityLog()
-                : mode === 'download'
-                    ? await window.electronAPI.downloadActivityLog()
-                    : await window.electronAPI.openLogsFolder();
-
-            if (result?.canceled) {
-                setExportStatus('Log download cancelled.');
-                return;
-            }
-
-            const location = result?.filePath || result?.directoryPath;
-            if (!result?.success || !location) {
-                setExportStatus(`Unable to ${mode === 'folder' ? 'open the logs folder' : `${mode} the operator log`}.`, true);
-                return;
-            }
-
-            setExportStatus(
-                mode === 'share'
-                    ? result.method === 'native-share-menu'
-                        ? `Opened the system share menu for: ${result.filePath}`
-                        : `Latest log revealed for sharing: ${result.filePath}`
-                    : mode === 'download'
-                        ? `Log saved: ${result.filePath}`
-                        : `Logs folder opened: ${result.directoryPath}`
-            );
-        } catch (error) {
-            console.error(`Error attempting to ${mode} the operator log:`, error);
-            setExportStatus(
-                error?.message || (
-                    mode === 'folder'
-                        ? 'Unable to open the logs folder.'
-                        : `Unable to ${mode} the operator log.`
-                ),
-                true
-            );
-        } finally {
-            button.disabled = false;
-            button.innerHTML = originalMarkup;
-        }
     }
 
     async function ensureConnectionState() {
@@ -1528,18 +1375,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (monitoring) {
             stopMonitoring();
         }
-    });
-
-    shareActivityLogButton?.addEventListener('click', () => {
-        void exportActivityLog('share');
-    });
-
-    downloadActivityLogButton?.addEventListener('click', () => {
-        void exportActivityLog('download');
-    });
-
-    openLogsFolderButton?.addEventListener('click', () => {
-        void exportActivityLog('folder');
     });
 
     refreshInterval?.addEventListener('change', (event) => {
@@ -1729,21 +1564,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         event.preventDefault();
         void loadJobDetails(row.dataset.jobName);
-    });
-
-    activityLog?.addEventListener('click', (event) => {
-        const target = event.target;
-        if (!(target instanceof Element)) {
-            return;
-        }
-
-        const link = target.closest('.operator-log-link');
-        if (!link?.getAttribute('data-external-url')) {
-            return;
-        }
-
-        event.preventDefault();
-        void window.electronAPI.openExternalUrl(link.getAttribute('data-external-url'));
     });
 
     activeAlerts?.addEventListener('click', handleAlertInteraction);
@@ -2009,24 +1829,29 @@ document.addEventListener('DOMContentLoaded', () => {
     updateLastUpdated('Monitoring starts automatically after connect');
     setMonitoringState(false, 'idle');
     showTableMessage('Waiting for the first active-job snapshot');
-    renderActivityLog();
+    setOperatorStatus('Waiting for monitoring', 'info', 'Preparing the first IBM i snapshot.');
     renderHistory([]);
     renderAlerts([]);
-
-    window.electronAPI.onActivityLog((entry) => {
-        mergeActivityEntries([entry]);
-    });
 
     window.electronAPI.onStatusUpdate((data) => {
         renderJobs(data);
         setMonitoringState(true, 'live');
+        setOperatorStatus('Monitoring healthy', 'success', `Last update ${new Date().toLocaleTimeString()}`);
         void aiAssistant.refresh();
     });
 
     window.electronAPI.onMonitoringError((error) => {
-        showTableMessage(error, 'bi-exclamation-triangle', 'text-danger');
+        showTableMessage('Monitoring is temporarily unavailable. Retrying automatically.', 'bi-exclamation-triangle', 'text-danger');
         updateLastUpdated('Last update failed');
         setMonitoringState(false, 'error');
+        setOperatorStatus('Monitoring needs attention', 'error', 'Retrying the IBM i connection automatically.');
+    });
+
+    window.addEventListener('error', () => {
+        setOperatorStatus('The app needs attention', 'error', 'Please contact support if this continues.');
+    });
+    window.addEventListener('unhandledrejection', () => {
+        setOperatorStatus('The app needs attention', 'error', 'Please contact support if this continues.');
     });
 
     window.electronAPI.onMonitoringHistoryUpdated((history) => {
