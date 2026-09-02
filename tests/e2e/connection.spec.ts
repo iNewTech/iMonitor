@@ -24,6 +24,10 @@ test('shows a focused connection workspace', async () => {
         await expect(page.locator('#save-connection')).toHaveText(/Save Profile/);
         await expect(page.locator('#launch-demo')).toHaveCount(0);
         await expect(page.locator('#theme-menu > summary')).toHaveAttribute('title', 'Change theme');
+
+        await page.locator('#plan-panel > summary').click();
+        await expect(page.locator('.plan-panel-body')).toBeVisible();
+        await expect(page.locator('.plan-panel-body')).toHaveCSS('position', 'absolute');
     } finally {
         await electronApp.close();
         await fs.rm(root, { recursive: true, force: true });

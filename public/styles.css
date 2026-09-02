@@ -877,6 +877,8 @@ body.app-body::before {
 }
 
 .connection-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: flex-start;
     gap: 20px;
 }
@@ -907,14 +909,63 @@ body.app-body::before {
     display: flex;
     align-items: center;
     justify-content: flex-end;
+    align-self: start;
     flex: 0 0 auto;
     flex-wrap: wrap;
     gap: 8px;
 }
 
 .connection-header .plan-panel {
+    position: relative;
     width: auto;
     margin-top: 0;
+    border: 0;
+    border-radius: 14px;
+    background: transparent;
+}
+
+.connection-header .plan-panel > summary {
+    min-height: 42px;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface-panel);
+    white-space: nowrap;
+}
+
+.connection-header .plan-panel[open] > summary {
+    border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
+    background: var(--accent-soft);
+}
+
+.connection-header .plan-panel-body {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 300;
+    width: min(360px, calc(100vw - 44px));
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--card-strong);
+    box-shadow: 0 20px 44px rgba(18, 26, 34, 0.18);
+}
+
+.connection-header .plan-panel-body .form-select {
+    width: 100%;
+    max-width: none;
+    min-height: 42px;
+}
+
+.connection-header .plan-license-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+}
+
+.connection-header .plan-license-row .btn {
+    width: auto;
+    min-height: 42px;
 }
 
 .theme-menu {
@@ -3727,6 +3778,14 @@ body.connection-body .support-status {
     .hero-title-row {
         align-items: flex-start;
         flex-direction: column;
+    }
+
+    .connection-header {
+        grid-template-columns: 1fr;
+    }
+
+    .workspace-header-meta {
+        justify-content: flex-start;
     }
 
     .control-buttons,
