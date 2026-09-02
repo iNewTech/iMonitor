@@ -73,6 +73,7 @@ import {
     DEVELOPMENT_LICENSE_KEY,
     hasEntitlement,
     premiumRequiredMessage,
+    type Plan,
     type FeatureId,
     type EntitlementState
 } from './features/entitlements/entitlements';
@@ -101,7 +102,7 @@ const DEMO_OPERATOR_NAME = 'GajenderT';
 const developmentBuild = !app.isPackaged || process.env.NODE_ENV === 'development';
 const expectedDevelopmentLicenseKey = process.env.IMONITOR_DEV_LICENSE_KEY?.trim() || DEVELOPMENT_LICENSE_KEY;
 let activatedDevelopmentLicenseKey = '';
-let selectedDevelopmentPlan: 'free' | 'premium' = developmentBuild ? 'premium' : 'free';
+let selectedDevelopmentPlan: Plan = developmentBuild ? 'premium' : 'free';
 
 function getEntitlements(): EntitlementState {
     return createEntitlementState({
@@ -139,6 +140,9 @@ function resolveNotificationOptions(title: string, body: string) {
 }
 
 const store = createAppStore();
+if (developmentBuild && store.get('developmentPlan') === 'free') {
+    selectedDevelopmentPlan = 'free';
+}
 const connectionState = createConnectionStateStore();
 const monitoringState = createMonitoringStateStore(
     MAX_MONITORING_HISTORY,
@@ -617,6 +621,7 @@ registerEntitlementsIpc({
         if (developmentBuild && key === expectedDevelopmentLicenseKey) {
             activatedDevelopmentLicenseKey = key;
             selectedDevelopmentPlan = 'premium';
+            store.set('developmentPlan', 'premium');
         } else {
             activatedDevelopmentLicenseKey = '';
         }
@@ -625,6 +630,7 @@ registerEntitlementsIpc({
     setDevelopmentPlan: (plan) => {
         if (developmentBuild) {
             selectedDevelopmentPlan = plan;
+            store.set('developmentPlan', plan);
             if (plan === 'free') {
                 activatedDevelopmentLicenseKey = '';
             }

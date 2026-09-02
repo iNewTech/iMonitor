@@ -568,6 +568,10 @@ body.app-body::before {
 .premium-panel-locked .settings-card-summary { cursor: default; }
 .premium-panel-locked .settings-card-chevron { display: none; }
 
+.premium-panel-overlay {
+    display: none;
+}
+
 .premium-preview-overlay > .settings-disclosure-body > .premium-panel-overlay {
     position: absolute;
     inset: 0;

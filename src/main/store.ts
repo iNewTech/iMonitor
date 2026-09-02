@@ -33,6 +33,7 @@ import {
     type StoredSlackSettingsByUser
 } from '../features/integrations/slack/slack-model';
 import { DEFAULT_THEME_ID, normalizeThemeId, type ThemeId } from '../features/theme/theme-model';
+import type { Plan } from '../features/entitlements/entitlements';
 import type { StoredConnection } from '../utils/connections';
 import type { StoredAlertWorkflowState } from '../features/alerts/alert-model';
 
@@ -47,6 +48,7 @@ export interface StoreSchema {
     slackSettings: StoredSlackSettings;
     alertWorkflowState: Record<string, StoredAlertWorkflowState>;
     themeId: ThemeId;
+    developmentPlan: Plan;
 }
 
 export type AppStore = Store<StoreSchema> & {
@@ -74,7 +76,8 @@ export function createAppStore() {
             slackSettingsByUser: DEFAULT_STORED_SLACK_SETTINGS_BY_USER,
             slackSettings: DEFAULT_STORED_SLACK_SETTINGS,
             alertWorkflowState: {},
-            themeId: DEFAULT_THEME_ID
+            themeId: DEFAULT_THEME_ID,
+            developmentPlan: 'premium'
         }
     }) as AppStore;
 }

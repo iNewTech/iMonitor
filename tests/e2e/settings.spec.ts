@@ -56,6 +56,8 @@ test('opens the dedicated settings page and switches AI provider setup', async (
         const aiPanel = app.page.locator('#settings-ai-panel');
         const clickUpPanel = app.page.locator('#settings-clickup-panel');
         const slackPanel = app.page.locator('#settings-slack-panel');
+        await expect(clickUpPanel).not.toHaveClass(/premium-preview-overlay/);
+        await expect(slackPanel).not.toHaveClass(/premium-preview-overlay/);
         await expect(aiPanel).not.toHaveAttribute('open', '');
         await expect(clickUpPanel).not.toHaveAttribute('open', '');
         await expect(slackPanel).not.toHaveAttribute('open', '');
@@ -91,6 +93,7 @@ test('opens the dedicated settings page and switches AI provider setup', async (
 
         await clickUpPanel.locator(':scope > summary').click();
         await expect(clickUpPanel).toHaveAttribute('open', '');
+        await expect(clickUpPanel.locator('.premium-panel-overlay-card')).not.toBeVisible();
         await expect(slackPanel).not.toHaveAttribute('open', '');
         const emailInput = app.page.locator('#settings-clickup-user-email');
         const memberIdInput = app.page.locator('#settings-clickup-member-id');
