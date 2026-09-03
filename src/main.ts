@@ -43,6 +43,12 @@ import {
     type SlackSettings
 } from './features/integrations/slack/slack-model';
 import {
+    normalizeJiraSettings,
+    toRenderableJiraSettings,
+    toStoredJiraSettings,
+    type JiraSettings
+} from './features/integrations/jira/jira-model';
+import {
     buildOperatorActionPlan,
     getAvailableOperatorActions,
     type OperatorActionKind
@@ -58,6 +64,7 @@ import { registerJobsIpc } from './main/ipc/jobs-ipc';
 import { registerLogsIpc } from './main/ipc/logs-ipc';
 import { registerNavigationIpc } from './main/ipc/navigation-ipc';
 import { registerSlackIpc } from './main/ipc/slack-ipc';
+import { registerJiraIpc } from './main/ipc/jira-ipc';
 import { registerSupportIpc } from './main/ipc/support-ipc';
 import { createAiRuntime } from './main/runtime/ai-runtime';
 import { createEmailNotificationRuntime } from './main/runtime/email-notification-runtime';
@@ -66,6 +73,7 @@ import { createMonitoringRuntime } from './main/runtime/monitoring-runtime';
 import { createLoggingRuntime } from './main/runtime/logging-runtime';
 import { createSessionRuntime } from './main/runtime/session-runtime';
 import { createSlackRuntime } from './main/runtime/slack-runtime';
+import { createJiraRuntime } from './main/runtime/jira-runtime';
 import { createSupportRuntime } from './main/runtime/support-runtime';
 import { encryptDiagnostics } from './features/support/diagnostic-crypto';
 import { registerEntitlementsIpc } from './main/ipc/entitlements-ipc';
@@ -86,8 +94,10 @@ import {
     getNormalizedStoredEmailNotificationSettings,
     getNormalizedStoredSlackSettings,
     getNormalizedThemeId,
+    getNormalizedStoredJiraSettings,
     setStoredClickUpSettingsForUser,
-    setStoredSlackSettingsForUser
+    setStoredSlackSettingsForUser,
+    setStoredJiraSettingsForUser
 } from './main/store';
 import { createWindowRuntime } from './main/window/window-runtime';
 import { protectPassword, revealPassword } from './utils/password-store';
@@ -239,6 +249,28 @@ function saveSlackSettings(candidate: Partial<SlackSettings> | undefined) {
     return merged;
 }
 
+function getJiraSettings() {
+    return toRenderableJiraSettings(
+        getNormalizedStoredJiraSettings(store, getCurrentOperatorName()),
+        revealSecret
+    );
+}
+
+function saveJiraSettings(candidate: Partial<JiraSettings> | undefined) {
+    const merged = normalizeJiraSettings({
+        ...getJiraSettings(),
+        ...(candidate ?? {})
+    });
+
+    setStoredJiraSettingsForUser(
+        store,
+        getCurrentOperatorName(),
+        toStoredJiraSettings(merged, protectSecret)
+    );
+
+    return merged;
+}
+
 function protectSecret(value: string) {
     return protectPassword(value, getCredentialOptions());
 }
@@ -305,27 +337,46 @@ const alertState = createAlertStateStore({
         windowRuntime.sendToWindow('alerts-updated', alerts);
     },
     onAlertCreated: async (alert) => {
+        const shouldDeliverAlert = shouldWatchAlert(getAlertSettings(), alert.kind);
         const shouldSendSlack = Boolean(
             hasEntitlement(getEntitlements(), 'slack-integration')
             &&
             slackRuntime.canSendAlerts()
-            && shouldWatchAlert(getAlertSettings(), alert.kind)
+            && shouldDeliverAlert
         );
 
-        if (!shouldSendSlack) {
-            return;
+        if (shouldSendSlack) {
+            try {
+                await slackRuntime.sendAlert(alert);
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                loggingRuntime.recordActivity({
+                    area: 'monitoring',
+                    level: 'warning',
+                    message: 'Slack alert delivery failed.',
+                    detail: `${alert.id}\n${message}`
+                });
+            }
         }
 
-        try {
-            await slackRuntime.sendAlert(alert);
-        } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            loggingRuntime.recordActivity({
-                area: 'monitoring',
-                level: 'warning',
-                message: 'Slack alert delivery failed.',
-                detail: `${alert.id}\n${message}`
-            });
+        const shouldSendJira = Boolean(
+            hasEntitlement(getEntitlements(), 'jira-integration')
+            && jiraRuntime.canSendAlerts()
+            && shouldDeliverAlert
+        );
+
+        if (shouldSendJira) {
+            try {
+                await jiraRuntime.sendAlert(alert);
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                loggingRuntime.recordActivity({
+                    area: 'monitoring',
+                    level: 'warning',
+                    message: 'Jira alert delivery failed.',
+                    detail: `${alert.id}\n${message}`
+                });
+            }
         }
     }
 });
@@ -428,6 +479,12 @@ async function createClickUpTaskForClaimedAlert(alertId: string) {
 
 const slackRuntime = createSlackRuntime({
     getSettings: getSlackSettings,
+    getOperatorName: getCurrentOperatorName,
+    recordActivity: loggingRuntime.recordActivity
+});
+
+const jiraRuntime = createJiraRuntime({
+    getSettings: getJiraSettings,
     getOperatorName: getCurrentOperatorName,
     recordActivity: loggingRuntime.recordActivity
 });
@@ -695,6 +752,13 @@ registerSlackIpc({
             };
         }
     }
+});
+
+registerJiraIpc({
+    requirePremium: () => requireEntitlement('jira-integration'),
+    getJiraSettings,
+    saveJiraSettings: (settings) => saveJiraSettings(settings),
+    sendTestJiraMessage: async () => jiraRuntime.sendTestMessage()
 });
 
 registerAlertsIpc({

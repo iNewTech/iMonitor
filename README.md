@@ -108,6 +108,10 @@ You can:
 
 In `Settings`, paste the webhook URL and channel label in the Slack card, then enable Slack in the `IBMEye Alerts` notification channels. The alert conditions enabled in that shared panel are the single source of truth for Desktop, Slack, and Email delivery. Use `Send Test` to verify the connection. Repeated polls for the same active condition are not sent repeatedly.
 
+## Jira Incident Tracking
+
+Jira is an optional Premium alert destination. Configure the Jira site URL, account email, API token, project key, and issue type in `Settings`, then enable Jira in the `IBMEye Alerts` notification channels. Each newly created watched alert creates one Jira issue with the incident, severity, job, timestamp, message, and IBM i details. `Create Test Issue` verifies the configured Jira project and credentials.
+
 ## Support Tools
 
 The Support menu is available even before login. `Contact Only` opens a normal email draft. `Contact + Send Encrypted Diagnostics` creates a support bundle containing the app version, platform details, connection context, recent monitor snapshots, and developer activity. The bundle is encrypted for the application developer before it is written to disk.

@@ -15,7 +15,7 @@ iMonitor uses a simple Free/Premium feature boundary. The application keeps Prem
 - IBM i job actions such as hold, release, end, and MSGW reply
 - ClickUp action tracking
 - Slack alert delivery
-- Slack notifications
+- Jira incident tracking
 - SMS notifications
 - Hosted AI providers such as OpenAI, Claude, and Grok
 - Email notifications using the user's SMTP server remain available on Free.

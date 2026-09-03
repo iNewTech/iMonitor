@@ -32,6 +32,15 @@ import {
     type StoredSlackSettings,
     type StoredSlackSettingsByUser
 } from '../features/integrations/slack/slack-model';
+import {
+    DEFAULT_STORED_JIRA_SETTINGS_BY_USER,
+    DEFAULT_STORED_JIRA_SETTINGS,
+    normalizeJiraSettingsUserKey,
+    normalizeStoredJiraSettingsByUser,
+    normalizeStoredJiraSettings,
+    type StoredJiraSettings,
+    type StoredJiraSettingsByUser
+} from '../features/integrations/jira/jira-model';
 import { DEFAULT_THEME_ID, normalizeThemeId, type ThemeId } from '../features/theme/theme-model';
 import type { Plan } from '../features/entitlements/entitlements';
 import type { StoredConnection } from '../utils/connections';
@@ -46,6 +55,8 @@ export interface StoreSchema {
     clickUpSettings: StoredClickUpSettings;
     slackSettingsByUser: StoredSlackSettingsByUser;
     slackSettings: StoredSlackSettings;
+    jiraSettingsByUser: StoredJiraSettingsByUser;
+    jiraSettings: StoredJiraSettings;
     alertWorkflowState: Record<string, StoredAlertWorkflowState>;
     themeId: ThemeId;
     developmentPlan: Plan;
@@ -75,6 +86,8 @@ export function createAppStore() {
             clickUpSettings: DEFAULT_STORED_CLICKUP_SETTINGS,
             slackSettingsByUser: DEFAULT_STORED_SLACK_SETTINGS_BY_USER,
             slackSettings: DEFAULT_STORED_SLACK_SETTINGS,
+            jiraSettingsByUser: DEFAULT_STORED_JIRA_SETTINGS_BY_USER,
+            jiraSettings: DEFAULT_STORED_JIRA_SETTINGS,
             alertWorkflowState: {},
             themeId: DEFAULT_THEME_ID,
             developmentPlan: 'premium'
@@ -242,4 +255,53 @@ export function setStoredSlackSettingsForUser(
     };
 
     store.set('slackSettingsByUser', nextSettingsByUser);
+}
+
+/** Loads encrypted Jira settings for one operator and migrates the legacy value once. */
+export function getNormalizedStoredJiraSettings(store: AppStore, operatorName: string) {
+    const normalizedOperatorName = normalizeJiraSettingsUserKey(operatorName);
+    const storedSettingsByUser = store.get('jiraSettingsByUser');
+    const normalizedSettingsByUser = normalizeStoredJiraSettingsByUser(storedSettingsByUser);
+
+    if (JSON.stringify(storedSettingsByUser) !== JSON.stringify(normalizedSettingsByUser)) {
+        store.set('jiraSettingsByUser', normalizedSettingsByUser);
+    }
+
+    const storedSettings = normalizedSettingsByUser[normalizedOperatorName];
+    if (storedSettings) {
+        return storedSettings;
+    }
+
+    const legacyStoredSettings = store.get('jiraSettings');
+    const normalizedLegacySettings = normalizeStoredJiraSettings(legacyStoredSettings);
+    if (JSON.stringify(legacyStoredSettings) !== JSON.stringify(normalizedLegacySettings)) {
+        store.set('jiraSettings', normalizedLegacySettings);
+    }
+
+    const hasLegacySettings = JSON.stringify(normalizedLegacySettings) !== JSON.stringify(DEFAULT_STORED_JIRA_SETTINGS);
+    if (!hasLegacySettings) {
+        return normalizedLegacySettings;
+    }
+
+    const nextSettingsByUser = {
+        ...normalizedSettingsByUser,
+        [normalizedOperatorName]: normalizedLegacySettings
+    };
+    store.set('jiraSettingsByUser', nextSettingsByUser);
+    return normalizedLegacySettings;
+}
+
+/** Persists one operator's encrypted Jira settings. */
+export function setStoredJiraSettingsForUser(
+    store: AppStore,
+    operatorName: string,
+    settings: StoredJiraSettings
+) {
+    const normalizedOperatorName = normalizeJiraSettingsUserKey(operatorName);
+    const nextSettingsByUser = {
+        ...normalizeStoredJiraSettingsByUser(store.get('jiraSettingsByUser')),
+        [normalizedOperatorName]: normalizeStoredJiraSettings(settings)
+    };
+
+    store.set('jiraSettingsByUser', nextSettingsByUser);
 }

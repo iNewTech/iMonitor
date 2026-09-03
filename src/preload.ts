@@ -64,6 +64,15 @@ interface SlackSettings {
     channelName: string;
 }
 
+interface JiraSettings {
+    enabled: boolean;
+    baseUrl: string;
+    username: string;
+    apiToken: string;
+    projectKey: string;
+    issueType: string;
+}
+
 interface MonitorAlert {
     id: string;
     kind: 'highCpu' | 'messageWait' | 'lockWait' | 'delayWait' | 'dequeueWait' | 'pollFailure';
@@ -382,6 +391,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ),
     sendTestSlackMessage: () => (
         ipcRenderer.invoke('send-test-slack-message') as Promise<{ success: boolean; error?: string; }>
+    ),
+    getJiraSettings: () => ipcRenderer.invoke('get-jira-settings') as Promise<JiraSettings>,
+    saveJiraSettings: (settings: Partial<JiraSettings>) => (
+        ipcRenderer.invoke('save-jira-settings', settings) as Promise<JiraSettings>
+    ),
+    sendTestJiraMessage: () => (
+        ipcRenderer.invoke('send-test-jira-message') as Promise<{
+            success: boolean;
+            issue?: { id: string; key: string; url: string };
+            error?: string;
+        }>
     ),
     deployMapepire: (config: {
         host: string;

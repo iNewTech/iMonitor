@@ -38,6 +38,10 @@ Slack delivery uses one Incoming Webhook configured for a shared operations chan
 
 Webhook failures are recorded in encrypted developer diagnostics and do not interrupt monitoring.
 
+## Jira Delivery
+
+Jira is an optional Premium alert destination. It uses the configured Jira Cloud REST API credentials and project. The shared `IBMEye Alerts` watch rules decide which new alerts create Jira issues. Each issue includes the alert title, severity, job, timestamp, incident ID, message, and available IBM i details. Jira API failures are recorded in encrypted developer diagnostics and do not interrupt monitoring.
+
 ## Planned Workflow States
 
 - New

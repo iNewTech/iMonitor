@@ -52,20 +52,25 @@ test('opens the dedicated settings page and switches AI provider setup', async (
         await expect(app.page.getByRole('heading', { name: 'Configure AI providers and action integrations', exact: true })).toBeVisible();
         await expect(app.page.getByRole('heading', { name: 'ClickUp action tracking', exact: true })).toBeVisible();
         await expect(app.page.getByRole('heading', { name: 'Slack channel alerts', exact: true })).toBeVisible();
+        await expect(app.page.getByRole('heading', { name: 'Jira incident tracking', exact: true })).toBeVisible();
 
         const aiPanel = app.page.locator('#settings-ai-panel');
         const clickUpPanel = app.page.locator('#settings-clickup-panel');
         const slackPanel = app.page.locator('#settings-slack-panel');
+        const jiraPanel = app.page.locator('#settings-jira-panel');
         await expect(clickUpPanel).not.toHaveClass(/premium-preview-overlay/);
         await expect(slackPanel).not.toHaveClass(/premium-preview-overlay/);
+        await expect(jiraPanel).not.toHaveClass(/premium-preview-overlay/);
         await expect(aiPanel).not.toHaveAttribute('open', '');
         await expect(clickUpPanel).not.toHaveAttribute('open', '');
         await expect(slackPanel).not.toHaveAttribute('open', '');
+        await expect(jiraPanel).not.toHaveAttribute('open', '');
 
         await aiPanel.locator(':scope > summary').click();
         await expect(aiPanel).toHaveAttribute('open', '');
         await expect(clickUpPanel).not.toHaveAttribute('open', '');
         await expect(slackPanel).not.toHaveAttribute('open', '');
+        await expect(jiraPanel).not.toHaveAttribute('open', '');
 
         const providerTabs = app.page.locator('#settings-ai-provider-switcher .settings-provider-tab');
         await expect(providerTabs).toHaveCount(4);
@@ -93,6 +98,7 @@ test('opens the dedicated settings page and switches AI provider setup', async (
         await expect(clickUpPanel).toHaveAttribute('open', '');
         await expect(clickUpPanel.locator('.premium-panel-overlay-card')).not.toBeVisible();
         await expect(slackPanel).not.toHaveAttribute('open', '');
+        await expect(jiraPanel).not.toHaveAttribute('open', '');
         const emailInput = app.page.locator('#settings-clickup-user-email');
         const memberIdInput = app.page.locator('#settings-clickup-member-id');
         await expect(emailInput).toBeVisible();
@@ -132,12 +138,19 @@ test('shows the Slack configuration as a Premium preview on the Free plan', asyn
         await expect(app.page.getByRole('heading', { name: 'Configure AI providers and action integrations', exact: true })).toBeVisible();
 
         const slackPanel = app.page.locator('#settings-slack-panel');
+        const jiraPanel = app.page.locator('#settings-jira-panel');
         await expect(app.page.locator('#settings-slack-summary-status')).toContainText('Premium');
         await slackPanel.locator(':scope > summary').click();
         await expect(slackPanel).toHaveAttribute('open', '');
         await expect(slackPanel.locator('.premium-panel-overlay-card')).toBeVisible();
         await expect(app.page.locator('#settings-slack-webhook')).toBeDisabled();
         await expect(slackPanel.locator('.slack-rules-grid')).toHaveCount(0);
+        await expect(app.page.locator('#settings-alert-jira')).toBeDisabled();
+        await expect(app.page.locator('#settings-jira-summary-status')).toContainText('Premium');
+        await jiraPanel.locator(':scope > summary').click();
+        await expect(jiraPanel).toHaveAttribute('open', '');
+        await expect(jiraPanel.locator('.premium-panel-overlay-card')).toBeVisible();
+        await expect(app.page.locator('#settings-jira-base-url')).toBeDisabled();
     } finally {
         await app.cleanup();
     }

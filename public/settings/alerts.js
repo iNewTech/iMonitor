@@ -7,6 +7,7 @@ export function initAlertSettings({ root }) {
     const summary = root.querySelector('#settings-alert-summary-status');
     const desktop = root.querySelector('#settings-alert-desktop');
     const slack = root.querySelector('#settings-alert-slack');
+    const jira = root.querySelector('#settings-alert-jira');
     const email = root.querySelector('#settings-alert-email');
     const emailHost = root.querySelector('#email-smtp-host');
     const emailPort = root.querySelector('#email-smtp-port');
@@ -30,6 +31,8 @@ export function initAlertSettings({ root }) {
     let emailSettings;
     let slackState;
     let slackAvailable = false;
+    let jiraState;
+    let jiraAvailable = false;
 
     function setStatus(message, isError = false) {
         if (!status) return;
@@ -41,6 +44,7 @@ export function initAlertSettings({ root }) {
         if (!alertSettings) return;
         if (desktop) desktop.checked = Boolean(alertSettings.desktopNotifications);
         if (slack) slack.checked = Boolean(slackState?.enabled);
+        if (jira) jira.checked = Boolean(jiraState?.enabled);
         if (email) email.checked = Boolean(emailSettings?.enabled);
         if (highCpu) highCpu.checked = Boolean(alertSettings.watchHighCpu);
         if (messageWait) messageWait.checked = Boolean(alertSettings.watchMessageWait);
@@ -59,7 +63,7 @@ export function initAlertSettings({ root }) {
         if (emailFrom) emailFrom.value = emailSettings?.fromAddress || '';
         if (emailRecipients) emailRecipients.value = emailSettings?.toAddresses || '';
         if (summary) {
-            const channels = [desktop?.checked && 'Desktop', slack?.checked && 'Slack', email?.checked && 'Email'].filter(Boolean);
+            const channels = [desktop?.checked && 'Desktop', slack?.checked && 'Slack', email?.checked && 'Email', jira?.checked && 'Jira'].filter(Boolean);
             summary.textContent = channels.length ? `${channels.join(' · ')} notifications` : 'Notifications off';
         }
     }
@@ -67,10 +71,11 @@ export function initAlertSettings({ root }) {
     async function refresh() {
         setStatus('Loading alert settings...');
         try {
-            [alertSettings, emailSettings, slackState] = await Promise.all([
+            [alertSettings, emailSettings, slackState, jiraState] = await Promise.all([
                 window.electronAPI.getAlertSettings(),
                 window.electronAPI.getEmailNotificationSettings(),
-                window.electronAPI.getSlackSettings()
+                window.electronAPI.getSlackSettings(),
+                window.electronAPI.getJiraSettings()
             ]);
             render();
             setStatus('Alert delivery and watch rules are ready.');
@@ -101,6 +106,12 @@ export function initAlertSettings({ root }) {
                 slackState = await window.electronAPI.saveSlackSettings({
                     ...slackState,
                     enabled: Boolean(slack?.checked)
+                });
+            }
+            if (jiraAvailable) {
+                jiraState = await window.electronAPI.saveJiraSettings({
+                    ...jiraState,
+                    enabled: Boolean(jira?.checked)
                 });
             }
             emailSettings = await window.electronAPI.saveEmailNotificationSettings({
@@ -134,6 +145,9 @@ export function initAlertSettings({ root }) {
         refresh,
         setSlackAvailable(value) {
             slackAvailable = Boolean(value);
+        },
+        setJiraAvailable(value) {
+            jiraAvailable = Boolean(value);
         }
     };
 }

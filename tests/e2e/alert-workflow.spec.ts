@@ -86,7 +86,6 @@ test('keeps duplicate properties out and loads job logs only when requested', as
 
     try {
         await openDemoMonitor(app.page);
-        await app.page.locator('.operations-grid > details > summary').click();
         await expect(app.page.locator('.job-row').first()).toBeVisible();
         await app.page.locator('.job-row').first().click();
         await expect(app.page.locator('#job-detail-drawer')).toHaveClass(/is-open/);
@@ -114,7 +113,6 @@ test('requires confirmation before running an IBM i job action', async () => {
     try {
         app.page.on('dialog', (dialog) => void dialog.accept());
         await openDemoMonitor(app.page);
-        await app.page.locator('.operations-grid > details > summary').click();
         await expect(app.page.locator('.job-row').first()).toBeVisible();
         await app.page.locator('.job-row').first().click();
         await app.page.locator('#job-detail-drawer').getByRole('button', { name: 'Hold Job' }).click();

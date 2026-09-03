@@ -49,12 +49,13 @@
                             <div class="settings-alert-group">
                                 <div>
                                     <p class="control-label mb-1">Notification channels</p>
-                                    <p class="stat-note mb-0">Slack and Email details are configured in their cards below.</p>
+                                    <p class="stat-note mb-0">Slack, Email, and Jira details are configured in their cards below.</p>
                                 </div>
-                                <div class="settings-check-grid">
+                                <div class="settings-check-grid settings-channel-grid">
                                     <label class="toggle-row"><span><i class="bi bi-display me-2"></i>Desktop</span><input type="checkbox" id="settings-alert-desktop"></label>
                                     <label class="toggle-row"><span><i class="bi bi-slack me-2"></i>Slack <small>Premium</small></span><input type="checkbox" id="settings-alert-slack"></label>
                                     <label class="toggle-row"><span><i class="bi bi-envelope me-2"></i>Email</span><input type="checkbox" id="settings-alert-email"></label>
+                                    <label class="toggle-row"><span><i class="bi bi-kanban me-2"></i>Jira <small>Premium</small></span><input type="checkbox" id="settings-alert-jira"></label>
                                     <label class="toggle-row is-disabled premium-locked" title="SMS notifications require Premium"><span><i class="bi bi-chat-square-text me-2"></i>SMS <small>Premium · Coming soon</small></span><input type="checkbox" disabled></label>
                                 </div>
                             </div>
@@ -305,6 +306,72 @@
                             </button>
                         </div>
                         <p id="settings-slack-status" class="stat-note mb-0">Slack settings are loading.</p>
+                        </form>
+                    </div>
+                </details>
+
+                <details id="settings-jira-panel" class="surface-card settings-card settings-disclosure">
+                    <summary class="settings-card-summary">
+                        <div>
+                            <p class="eyebrow mb-2">Integrations</p>
+                            <h2 class="section-title">Jira incident tracking</h2>
+                            <p class="panel-copy mb-0">Create one Jira issue for each new IBMEye alert in a selected project.</p>
+                        </div>
+                        <div class="settings-card-summary-meta">
+                            <span id="settings-jira-summary-status" class="settings-provider-chip"><span class="premium-badge"><i class="bi bi-lock-fill me-1" aria-hidden="true"></i>Premium</span> Not configured</span>
+                            <i class="bi bi-chevron-down settings-card-chevron" aria-hidden="true"></i>
+                        </div>
+                    </summary>
+                    <div class="settings-disclosure-body">
+                        <div class="premium-panel-overlay" aria-label="Jira is a Premium feature">
+                            <div class="premium-panel-overlay-card">
+                                <span class="premium-panel-overlay-icon"><i class="bi bi-lock-fill" aria-hidden="true"></i></span>
+                                <strong>Premium feature</strong>
+                                <span>Upgrade to create and track incidents in Jira.</span>
+                            </div>
+                        </div>
+                        <div class="settings-card-tools">
+                            <span class="settings-provider-chip"><i class="bi bi-kanban me-1"></i>Jira Cloud REST API</span>
+                        </div>
+                        <form id="settings-jira-form" class="settings-form-grid">
+                        <p class="form-footnote mb-0">Use a Jira site URL, your Jira account email, and an API token. The token is stored locally in encrypted app storage.</p>
+                        <label class="control-select">
+                            <span class="control-label">Jira site URL</span>
+                            <input id="settings-jira-base-url" type="url" class="form-control" autocomplete="url" placeholder="https://your-company.atlassian.net">
+                        </label>
+                        <div class="settings-field-grid settings-field-grid-two">
+                            <label class="control-select">
+                                <span class="control-label">Jira account email</span>
+                                <input id="settings-jira-username" type="email" class="form-control" autocomplete="username" placeholder="name@company.com">
+                            </label>
+                            <label class="control-select">
+                                <span class="control-label">API token</span>
+                                <input id="settings-jira-api-token" type="password" class="form-control" autocomplete="off" placeholder="Stored locally in encrypted app storage">
+                            </label>
+                        </div>
+                        <div class="settings-field-grid settings-field-grid-two">
+                            <label class="control-select">
+                                <span class="control-label">Project key</span>
+                                <input id="settings-jira-project-key" type="text" class="form-control" autocomplete="off" placeholder="OPS">
+                            </label>
+                            <label class="control-select">
+                                <span class="control-label">Issue type</span>
+                                <input id="settings-jira-issue-type" type="text" class="form-control" autocomplete="off" placeholder="Task">
+                            </label>
+                        </div>
+                        <div class="settings-alert-group">
+                            <p class="control-label mb-1"><i class="bi bi-info-circle me-2"></i>Alert conditions are managed above</p>
+                            <p class="stat-note mb-0">Jira follows the conditions enabled in <strong>IBMEye Alerts</strong>. Enable Jira in the Notification channels section after saving this connection.</p>
+                        </div>
+                        <div class="settings-actions">
+                            <button type="submit" class="btn btn-primary-strong">
+                                <i class="bi bi-kanban me-2"></i>Save Jira Settings
+                            </button>
+                            <button id="settings-jira-test" type="button" class="btn btn-outline-ink">
+                                <i class="bi bi-send me-2"></i>Create Test Issue
+                            </button>
+                        </div>
+                        <p id="settings-jira-status" class="stat-note mb-0">Jira settings are loading.</p>
                         </form>
                     </div>
                 </details>

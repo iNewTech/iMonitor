@@ -46,7 +46,7 @@ async function openDemoMonitor(page: Page) {
     await expect(page.getByRole('heading', { name: 'iMonitor ActionBoard', exact: true })).toBeVisible();
     const jobsSummary = page.locator('.table-shell > summary');
     await expect(jobsSummary).toBeVisible();
-    await jobsSummary.click({ force: true });
+    await expect(page.locator('.table-shell')).toHaveAttribute('open', '');
 }
 
 test('filters and searches the active jobs table in demo mode', async () => {
@@ -97,6 +97,8 @@ test('shows all compact activity history views with live metrics', async () => {
         await openDemoMonitor(app.page);
         const overview = app.page.locator('.activity-overview');
         await expect(overview).toBeVisible();
+        await expect(overview).toHaveAttribute('open', '');
+        await expect(app.page.locator('.table-shell')).toHaveAttribute('open', '');
         await expect(app.page.locator('#total-jobs')).toBeVisible();
         await expect(app.page.locator('#peak-cpu')).toBeVisible();
         await expect(app.page.locator('#running-jobs')).toBeVisible();

@@ -46,7 +46,7 @@ async function openDemoMonitor(page: Page) {
     await expect(page.getByRole('heading', { name: 'IBMEye Incident Queue', exact: true })).toBeVisible();
     await page.locator('.ai-assistant-panel > summary').click();
     await page.locator('.alerts-panel > summary').click();
-    await page.locator('.table-shell > summary').click({ force: true });
+    await expect(page.locator('.table-shell')).toHaveAttribute('open', '');
 }
 
 test('shows the provider model source hint in the panel and floating widget', async () => {

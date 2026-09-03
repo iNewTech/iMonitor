@@ -3,6 +3,7 @@ import { initSupportPanel } from './shared/support.js';
 import { initAiProvidersSettings } from './settings/ai-providers.js';
 import { initClickUpSettings } from './settings/clickup.js';
 import { initSlackSettings } from './settings/slack.js';
+import { initJiraSettings } from './settings/jira.js';
 import { initAlertSettings } from './settings/alerts.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -35,6 +36,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const slackSettings = initSlackSettings({
         root: document
     });
+    const jiraSettings = initJiraSettings({
+        root: document
+    });
     const alertSettings = initAlertSettings({
         root: document
     });
@@ -47,22 +51,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     const entitlements = await window.electronAPI.getEntitlements();
     aiSettings.setEntitlements?.(entitlements);
     alertSettings.setSlackAvailable?.(Boolean(entitlements?.features?.['slack-integration']));
+    alertSettings.setJiraAvailable?.(Boolean(entitlements?.features?.['jira-integration']));
     const premiumFeatures = new Map([
         ['settings-clickup-panel', 'clickup-integration'],
-        ['settings-slack-panel', 'slack-integration']
+        ['settings-slack-panel', 'slack-integration'],
+        ['settings-jira-panel', 'jira-integration']
     ]);
     premiumFeatures.forEach((feature, panelId) => {
         const panel = document.getElementById(panelId);
         if (entitlements?.features?.[feature]) return;
+        panel?.classList.add('premium-preview-overlay');
         if (panelId === 'settings-slack-panel') {
-            panel?.classList.add('premium-preview-overlay');
             const summaryStatus = panel?.querySelector('#settings-slack-summary-status');
             if (summaryStatus) {
                 summaryStatus.innerHTML = '<span class="premium-badge"><i class="bi bi-lock-fill me-1" aria-hidden="true"></i>Premium</span>';
             }
         }
         if (panelId === 'settings-clickup-panel') {
-            panel?.classList.add('premium-preview-overlay');
             const summaryStatus = panel?.querySelector('#settings-clickup-summary-status');
             if (summaryStatus) {
                 summaryStatus.innerHTML = '<span class="premium-badge"><i class="bi bi-lock-fill me-1" aria-hidden="true"></i>Premium</span>';
@@ -87,6 +92,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             slackChannel.disabled = true;
             slackChannel.classList.add('premium-locked');
             slackChannel.title = 'Slack notifications require Premium';
+        }
+    }
+    if (!entitlements?.features?.['jira-integration']) {
+        const jiraChannel = document.querySelector('#settings-alert-jira');
+        if (jiraChannel) {
+            jiraChannel.disabled = true;
+            jiraChannel.classList.add('premium-locked');
+            jiraChannel.title = 'Jira notifications require Premium';
         }
     }
 
@@ -129,6 +142,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         aiSettings.refresh(),
         clickUpSettings.refresh(),
         slackSettings.refresh(),
+        jiraSettings.refresh(),
         alertSettings.refresh()
     ]);
 
@@ -136,6 +150,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         const slackSummaryStatus = document.getElementById('settings-slack-summary-status');
         if (slackSummaryStatus) {
             slackSummaryStatus.innerHTML = '<span class="premium-badge"><i class="bi bi-lock-fill me-1" aria-hidden="true"></i>Premium</span>';
+        }
+    }
+    if (!entitlements?.features?.['jira-integration']) {
+        const jiraSummaryStatus = document.getElementById('settings-jira-summary-status');
+        if (jiraSummaryStatus) {
+            jiraSummaryStatus.innerHTML = '<span class="premium-badge"><i class="bi bi-lock-fill me-1" aria-hidden="true"></i>Premium</span>';
         }
     }
 });

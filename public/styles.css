@@ -536,6 +536,7 @@ body.app-body::before {
 
 .settings-alert-group { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-soft); }
 .settings-check-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.settings-channel-grid { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
 .settings-alert-rules-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .settings-check-grid .toggle-row { min-height: 48px; padding: 10px 12px; background: var(--surface); }
 .settings-check-grid .toggle-row small { display: block; color: var(--muted); font-size: .72rem; font-weight: 600; }

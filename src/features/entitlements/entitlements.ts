@@ -9,6 +9,7 @@ export type FeatureId =
     | 'job-actions'
     | 'clickup-integration'
     | 'slack-integration'
+    | 'jira-integration'
     | 'email-notifications'
     | 'sms-notifications';
 
@@ -38,6 +39,7 @@ export const FEATURE_ENTITLEMENTS: readonly FeatureEntitlement[] = [
     { id: 'job-actions', label: 'IBM i job actions', plan: 'premium', description: 'Run approved hold, release, end, and message actions.' },
     { id: 'clickup-integration', label: 'ClickUp integration', plan: 'premium', description: 'Create and update external work items.' },
     { id: 'slack-integration', label: 'Slack integration', plan: 'premium', description: 'Deliver alerts to Slack channels.' },
+    { id: 'jira-integration', label: 'Jira integration', plan: 'premium', description: 'Create incident issues in Jira projects.' },
     { id: 'email-notifications', label: 'Email notifications', plan: 'free', description: 'Deliver alerts through your configured SMTP server.' },
     { id: 'sms-notifications', label: 'SMS notifications', plan: 'premium', description: 'Deliver concise alerts through SMS.' }
 ];
