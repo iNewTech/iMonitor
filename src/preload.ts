@@ -64,6 +64,23 @@ interface SlackSettings {
     channelName: string;
 }
 
+interface SmsNotificationSettings {
+    enabled: boolean;
+    providerName: string;
+    endpoint: string;
+    method: 'POST' | 'PUT' | 'PATCH' | 'GET';
+    authType: 'none' | 'bearer' | 'apiKey' | 'basic';
+    apiKey: string;
+    apiKeyHeader: string;
+    username: string;
+    password: string;
+    recipients: string;
+    bodyFormat: 'json' | 'form' | 'text' | 'none';
+    requestBodyTemplate: string;
+    customHeaders: string;
+    responseIdPath: string;
+}
+
 interface JiraSettings {
     enabled: boolean;
     baseUrl: string;
@@ -162,6 +179,48 @@ interface JobLogPayload {
     records: Array<Record<string, unknown>>;
 }
 
+interface JobQueueRecord {
+    JOB_QUEUE_NAME: string;
+    JOB_QUEUE_LIBRARY: string;
+    JOB_QUEUE_STATUS: string;
+    SUBSYSTEM_NAME: string | null;
+    SUBSYSTEM_LIBRARY_NAME: string | null;
+    SEQUENCE_NUMBER: number | null;
+    OPERATOR_CONTROLLED: string | null;
+    WAITING_JOBS: number;
+    ACTIVE_JOBS: number | null;
+    MAX_ACTIVE_JOBS: number | null;
+    HELD_JOBS: number | null;
+    TEXT_DESCRIPTION: string | null;
+    OLDEST_WAIT_TIME: string | null;
+}
+
+interface QueuedJobRecord {
+    JOB_NAME: string;
+    JOB_NAME_SHORT: string | null;
+    JOB_NUMBER: string | null;
+    JOB_USER: string | null;
+    JOB_STATUS: string | null;
+    JOB_TYPE: string | null;
+    JOB_TYPE_ENHANCED: string | null;
+    JOB_QUEUE_NAME: string;
+    JOB_QUEUE_LIBRARY: string;
+    JOB_QUEUE_STATUS: string | null;
+    JOB_QUEUE_PRIORITY: number | string | null;
+    JOB_QUEUE_TIME: string | null;
+    JOB_ENTERED_SYSTEM_TIME: string | null;
+    SUBSYSTEM: string | null;
+    SUBSYSTEM_LIBRARY_NAME: string | null;
+}
+
+interface JobQueuePage<T> {
+    success: boolean;
+    data: T[];
+    hasMore: boolean;
+    nextCursor: string | null;
+    error?: string;
+}
+
 interface ConnectionTestStatus {
     status: 'testing' | 'success' | 'failed';
     message: string;
@@ -188,6 +247,166 @@ interface ThemeOption {
 interface ThemeSettings {
     themeId: ThemeOption['id'];
     themes: ThemeOption[];
+}
+
+type AnalysisFileKind = 'directory' | 'source' | 'database' | 'metadata' | 'other';
+type AnalysisObjectType = '*PGM' | '*SRVPGM' | '*MODULE' | '*FILE' | '*DTAQ' | '*DTAARA' | '*ENVVAR' | '*JOBD' | '*JOBQ' | '*SBS' | '*CMD' | '*COPY' | '*UNKNOWN';
+type AnalysisRelationship = 'calls' | 'uses' | 'reads' | 'writes' | 'includes' | 'submits' | 'binds' | 'runs-in' | 'references' | 'configured-by' | 'unknown';
+
+interface ObjectAnalysisSettings {
+    source: 'local' | 'ibmi';
+    localDirectory: string;
+    libraryList: string[];
+    libraries: string[];
+    sourceLibrary: string | null;
+    dependencyDepth: number;
+    maxNodes: number;
+    cacheSourceLocally: boolean;
+}
+
+interface AnalysisFileNode {
+    id: string;
+    name: string;
+    relativePath: string;
+    kind: AnalysisFileKind;
+    library?: string;
+    language?: string;
+    analyzable?: boolean;
+    children?: AnalysisFileNode[];
+}
+
+interface ObjectAnalysisWorkspace {
+    source: 'demo' | 'live';
+    rootLabel: string;
+    rootPath: string;
+    masterLibrary: string;
+    scannedAt: string;
+    libraries: Array<{
+        name: string;
+        relativePath: string;
+        sourceFiles: number;
+        databaseFiles: number;
+        objectCount: number;
+        selected: boolean;
+    }>;
+    tree: AnalysisFileNode;
+    sourceFileCount: number;
+    databaseFileCount: number;
+}
+
+interface ObjectAnalysisNode {
+    id: string;
+    name: string;
+    library: string;
+    type: AnalysisObjectType;
+    language?: string;
+    sourcePath?: string;
+    description?: string;
+    status: 'known' | 'unresolved' | 'not-observed';
+    attributes: Record<string, string | number | boolean | null>;
+}
+
+interface ObjectAnalysisResult {
+    source: 'demo' | 'live';
+    root: ObjectAnalysisNode;
+    nodes: ObjectAnalysisNode[];
+    edges: Array<{
+        id: string;
+        from: string;
+        to: string;
+        relationship: AnalysisRelationship;
+        evidence: 'catalog' | 'compiled' | 'source' | 'runtime' | 'demo-fixture' | 'inferred';
+        confidence: 'confirmed' | 'likely' | 'possible' | 'unresolved';
+        line?: number;
+        detail?: string;
+    }>;
+    directDependencies: number;
+    impactedObjects: number;
+    unresolvedReferences: string[];
+    sourceSignals: string[];
+    readiness: {
+        status: 'ready' | 'review' | 'blocked' | 'insufficient-evidence';
+        label: string;
+        score: number;
+        blockers: string[];
+        warnings: string[];
+        confirmed: string[];
+    };
+    systemEvidence?: {
+        source: 'ibmi-commands' | 'local-source';
+        collectedAt: string;
+        commands: Array<{
+            name: string;
+            command: string;
+            status: 'collected' | 'not-supported' | 'failed';
+            rowCount: number;
+            detail?: string;
+        }>;
+        notes: string[];
+    };
+    aiReport?: {
+        content: string;
+        providerLabel: string;
+        model: string;
+        generatedAt: string;
+    };
+    businessLogic?: {
+        summary: string;
+        findings: Array<{
+            id: string;
+            category: 'validation' | 'input-output' | 'decision' | 'data-rule' | 'calculation' | 'transaction' | 'integration' | 'screen-behavior' | 'batch-flow' | 'error-handling';
+            title: string;
+            detail: string;
+            confidence: 'confirmed' | 'likely' | 'possible' | 'unresolved';
+            evidence: 'source' | 'compiled' | 'runtime';
+            line?: number;
+            sourceText?: string;
+        }>;
+    };
+    programFlow?: Array<{
+        id: string;
+        sequence: number;
+        kind: 'entry' | 'procedure' | 'condition' | 'loop' | 'data-read' | 'data-write' | 'program-call' | 'service-call' | 'batch-submit' | 'runtime-resource' | 'screen-io' | 'error-path' | 'transaction' | 'exit';
+        title: string;
+        detail: string;
+        line?: number;
+        sourceText?: string;
+        target?: string;
+    }>;
+    conversionPlan?: Array<{
+        id: string;
+        order: number;
+        phase: 'Discover' | 'Design' | 'Build' | 'Verify' | 'Cutover';
+        priority: 'critical' | 'high' | 'medium' | 'low';
+        title: string;
+        action: string;
+        reason: string;
+        status: 'required' | 'review';
+    }>;
+    approval?: {
+        status: 'draft' | 'approved';
+        approvedAt?: string;
+        approvedBy?: string;
+    };
+    reportArtifact?: {
+        key: string;
+        mode: 'source-directory' | 'app-storage' | 'error';
+        relativePath?: string;
+        markdownPath?: string;
+        mapPath?: string;
+        sourceHash?: string;
+        message: string;
+        error?: string;
+    };
+    generatedAt: string;
+    scope: { libraries: string[]; sourceLibrary: string | null; depth: number; maxNodes: number; };
+}
+
+interface AnalyzeObjectRequest {
+    library: string;
+    relativePath: string;
+    objectName?: string;
+    objectType?: AnalysisObjectType;
 }
 
 interface AiAssistantSettings {
@@ -260,6 +479,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     navigateToMonitor: () => ipcRenderer.invoke('navigate-to-monitor'),
     navigateToConnection: () => ipcRenderer.invoke('navigate-to-connection'),
     navigateToSettings: () => ipcRenderer.invoke('navigate-to-settings'),
+    navigateToObjectAnalysis: () => ipcRenderer.invoke('navigate-to-object-analysis'),
     openExternalUrl: (target: string) => ipcRenderer.invoke('open-external-url', target) as Promise<{ success: boolean; }>,
 
     getConnectionState: () => ipcRenderer.invoke('get-connection-state') as Promise<ConnectionState>,
@@ -276,6 +496,81 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }>,
     getThemeSettings: () => ipcRenderer.invoke('get-theme-settings') as Promise<ThemeSettings>,
     saveThemeSettings: (themeId: ThemeOption['id']) => ipcRenderer.invoke('save-theme-settings', themeId) as Promise<ThemeSettings>,
+    getObjectAnalysisSettings: () => ipcRenderer.invoke('get-object-analysis-settings') as Promise<ObjectAnalysisSettings>,
+    saveObjectAnalysisSettings: (settings: Partial<ObjectAnalysisSettings>) => (
+        ipcRenderer.invoke('save-object-analysis-settings', settings) as Promise<ObjectAnalysisSettings>
+    ),
+    saveObjectAnalysisLibraryList: (libraries: string[]) => (
+        ipcRenderer.invoke('save-object-analysis-library-list', libraries) as Promise<{
+            success: boolean;
+            fileName?: string;
+            libraries?: string[];
+            settings?: ObjectAnalysisSettings;
+            error?: string;
+        }>
+    ),
+    selectObjectAnalysisDirectory: () => (
+        ipcRenderer.invoke('select-object-analysis-directory') as Promise<string | null>
+    ),
+    getObjectAnalysisLibraryList: (options?: {
+        source?: ObjectAnalysisSettings['source'];
+        localDirectory?: string;
+    }) => ipcRenderer.invoke('get-object-analysis-library-list', options || {}) as Promise<{
+        success: boolean;
+        libraries?: string[];
+        masterLibrary?: string;
+        source?: 'setup-file' | 'detected' | 'environment';
+        fileName?: string;
+        error?: string;
+    }>,
+    getObjectAnalysisWorkspace: () => ipcRenderer.invoke('get-object-analysis-workspace') as Promise<{
+        success: boolean;
+        error?: string;
+        source?: ObjectAnalysisWorkspace['source'];
+        rootLabel?: string;
+        rootPath?: string;
+        masterLibrary?: string;
+        scannedAt?: string;
+        libraries?: ObjectAnalysisWorkspace['libraries'];
+        tree?: AnalysisFileNode;
+        sourceFileCount?: number;
+        databaseFileCount?: number;
+    }>,
+    loadObjectAnalysisSource: (request: AnalyzeObjectRequest) => ipcRenderer.invoke('load-object-analysis-source', request) as Promise<{
+        success: boolean;
+        content?: string;
+        lineCount?: number;
+        error?: string;
+    }>,
+    analyzeObject: (request: AnalyzeObjectRequest) => ipcRenderer.invoke('analyze-object', request) as Promise<{
+        success: boolean;
+        result?: ObjectAnalysisResult;
+        error?: string;
+    }>,
+    analyzeObjectWithAi: (request: AnalyzeObjectRequest, result?: ObjectAnalysisResult) => (
+        ipcRenderer.invoke('analyze-object-with-ai', request, result) as Promise<{
+            success: boolean;
+            reply?: string;
+            availability?: AiAssistantAvailability;
+            result?: ObjectAnalysisResult;
+            error?: string;
+        }>
+    ),
+    approveObjectAnalysis: (request: AnalyzeObjectRequest, result: ObjectAnalysisResult) => (
+        ipcRenderer.invoke('approve-object-analysis', request, result) as Promise<{
+            success: boolean;
+            result?: ObjectAnalysisResult;
+            artifact?: ObjectAnalysisResult['reportArtifact'];
+            error?: string;
+        }>
+    ),
+    saveObjectAnalysisReport: (result: ObjectAnalysisResult) => (
+        ipcRenderer.invoke('save-object-analysis-report', result) as Promise<{
+            success: boolean;
+            filePath?: string;
+            error?: string;
+        }>
+    ),
     getAiProviderCatalog: () => ipcRenderer.invoke('get-ai-provider-catalog') as Promise<AiProviderCatalogEntry[]>,
     getAiSettings: () => ipcRenderer.invoke('get-ai-settings') as Promise<AiAssistantSettings>,
     saveAiSettings: (settings: Partial<AiAssistantSettings>) => (
@@ -392,6 +687,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     sendTestSlackMessage: () => (
         ipcRenderer.invoke('send-test-slack-message') as Promise<{ success: boolean; error?: string; }>
     ),
+    getSmsSettings: () => ipcRenderer.invoke('get-sms-settings') as Promise<SmsNotificationSettings>,
+    saveSmsSettings: (settings: Partial<SmsNotificationSettings>) => (
+        ipcRenderer.invoke('save-sms-settings', settings) as Promise<SmsNotificationSettings>
+    ),
+    sendTestSms: () => (
+        ipcRenderer.invoke('send-test-sms') as Promise<{ success: boolean; error?: string; message?: string; }>
+    ),
     getJiraSettings: () => ipcRenderer.invoke('get-jira-settings') as Promise<JiraSettings>,
     saveJiraSettings: (settings: Partial<JiraSettings>) => (
         ipcRenderer.invoke('save-jira-settings', settings) as Promise<JiraSettings>
@@ -423,6 +725,40 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getJobContext: (jobName: string) => ipcRenderer.invoke('get-job-context', jobName) as Promise<JobContextPayload>,
     getJobLog: (jobName: string) => ipcRenderer.invoke('get-job-log', jobName) as Promise<JobLogPayload>,
     getJobMessages: (jobName: string) => ipcRenderer.invoke('get-job-messages', jobName) as Promise<JobLogPayload>,
+    getJobQueues: (options?: {
+        search?: string;
+        status?: string;
+        limit?: number;
+        cursor?: string;
+    }) => ipcRenderer.invoke('get-job-queues', options || {}) as Promise<JobQueuePage<JobQueueRecord>>,
+    getJobQueueDetails: (queueName: string, queueLibrary: string) => ipcRenderer.invoke(
+        'get-job-queue-details',
+        { queueName, queueLibrary }
+    ) as Promise<{
+        success: boolean;
+        queue?: Record<string, unknown> | null;
+        subsystem?: Record<string, unknown> | null;
+        error?: string;
+    }>,
+    getQueuedJobs: (options?: {
+        queueName?: string;
+        queueLibrary?: string;
+        search?: string;
+        status?: string;
+        limit?: number;
+        cursor?: string;
+    }) => ipcRenderer.invoke('get-queued-jobs', options || {}) as Promise<JobQueuePage<QueuedJobRecord>>,
+    runJobQueueAction: (payload: {
+        kind: 'holdQueue' | 'releaseQueue' | 'holdQueuedJob' | 'releaseQueuedJob';
+        queueName: string;
+        queueLibrary: string;
+        jobName?: string;
+        confirmed?: boolean;
+    }) => ipcRenderer.invoke('run-job-queue-action', payload) as Promise<{
+        success: boolean;
+        error?: string;
+        message?: string;
+    }>,
     runJobAction: (payload: {
         kind: 'replyMessage' | 'holdJob' | 'releaseJob' | 'endJob' | 'inspectLocks';
         jobName: string;
@@ -476,6 +812,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     onMonitoringHistoryUpdated: (callback: (history: MonitoringSnapshot[]) => void) => {
         ipcRenderer.on('monitoring-history-updated', (_event, history) => callback(history));
+    },
+    onJobQueuesUpdated: (callback: (payload: {
+        queueName: string;
+        queueLibrary: string;
+        jobName?: string;
+        action: string;
+    }) => void) => {
+        ipcRenderer.on('job-queues-updated', (_event, payload) => callback(payload));
     },
     onAlertsUpdated: (callback: (alerts: MonitorAlert[]) => void) => {
         ipcRenderer.on('alerts-updated', (_event, alerts) => callback(alerts));

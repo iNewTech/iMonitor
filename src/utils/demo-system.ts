@@ -63,6 +63,14 @@ export function getDemoDatabasePath(baseDir: string) {
     return path.join(baseDir, 'demo', 'ibm-eye-demo.sqlite');
 }
 
+/**
+ * Returns the checked-in IBM i-shaped object-analysis fixture directory.
+ * It lives under public so it is included in development and packaged builds.
+ */
+export function getDemoObjectAnalysisPath() {
+    return path.join(__dirname, '../../public/demo-data/ibmi/QSYS');
+}
+
 function buildDemoGeneratedAt(pollCount: number) {
     const now = new Date();
     const startOfDay = new Date(now);

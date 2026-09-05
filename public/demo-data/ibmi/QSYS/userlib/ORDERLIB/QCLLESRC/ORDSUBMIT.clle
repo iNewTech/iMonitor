@@ -1,0 +1,4 @@
+             PGM
+             DCL        VAR(&ORDER) TYPE(*CHAR) LEN(9)
+             CALL       PGM(ORDENTR) PARM(&ORDER)
+             ENDPGM

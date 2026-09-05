@@ -41,10 +41,24 @@ import {
     type StoredJiraSettings,
     type StoredJiraSettingsByUser
 } from '../features/integrations/jira/jira-model';
+import {
+    DEFAULT_STORED_SMS_NOTIFICATION_SETTINGS_BY_USER,
+    DEFAULT_STORED_SMS_NOTIFICATION_SETTINGS,
+    normalizeSmsSettingsUserKey,
+    normalizeStoredSmsNotificationSettingsByUser,
+    normalizeStoredSmsNotificationSettings,
+    type StoredSmsNotificationSettings,
+    type StoredSmsNotificationSettingsByUser
+} from '../features/notifications/sms-notification';
 import { DEFAULT_THEME_ID, normalizeThemeId, type ThemeId } from '../features/theme/theme-model';
 import type { Plan } from '../features/entitlements/entitlements';
 import type { StoredConnection } from '../utils/connections';
 import type { StoredAlertWorkflowState } from '../features/alerts/alert-model';
+import {
+    DEFAULT_OBJECT_ANALYSIS_SETTINGS,
+    normalizeObjectAnalysisSettings,
+    type ObjectAnalysisSettings
+} from '../features/object-analysis/model';
 
 export interface StoreSchema {
     connections: StoredConnection[];
@@ -57,7 +71,10 @@ export interface StoreSchema {
     slackSettings: StoredSlackSettings;
     jiraSettingsByUser: StoredJiraSettingsByUser;
     jiraSettings: StoredJiraSettings;
+    smsNotificationSettingsByUser: StoredSmsNotificationSettingsByUser;
+    smsNotificationSettings: StoredSmsNotificationSettings;
     alertWorkflowState: Record<string, StoredAlertWorkflowState>;
+    objectAnalysisSettings: ObjectAnalysisSettings;
     themeId: ThemeId;
     developmentPlan: Plan;
 }
@@ -88,7 +105,10 @@ export function createAppStore() {
             slackSettings: DEFAULT_STORED_SLACK_SETTINGS,
             jiraSettingsByUser: DEFAULT_STORED_JIRA_SETTINGS_BY_USER,
             jiraSettings: DEFAULT_STORED_JIRA_SETTINGS,
+            smsNotificationSettingsByUser: DEFAULT_STORED_SMS_NOTIFICATION_SETTINGS_BY_USER,
+            smsNotificationSettings: DEFAULT_STORED_SMS_NOTIFICATION_SETTINGS,
             alertWorkflowState: {},
+            objectAnalysisSettings: DEFAULT_OBJECT_ANALYSIS_SETTINGS,
             themeId: DEFAULT_THEME_ID,
             developmentPlan: 'premium'
         }
@@ -148,6 +168,31 @@ export function getNormalizedAiAssistantSettings(store: AppStore) {
         store.set('aiAssistantSettings', normalized);
     }
 
+    return normalized;
+}
+
+/** Loads and normalizes the persisted object-analysis scan scope. */
+export function getNormalizedObjectAnalysisSettings(store: AppStore) {
+    const storedSettings = store.get('objectAnalysisSettings');
+    const normalized = normalizeObjectAnalysisSettings(storedSettings);
+
+    if (JSON.stringify(storedSettings) !== JSON.stringify(normalized)) {
+        store.set('objectAnalysisSettings', normalized);
+    }
+
+    return normalized;
+}
+
+/** Persists a normalized object-analysis scan scope. */
+export function setObjectAnalysisSettings(
+    store: AppStore,
+    candidate: Partial<ObjectAnalysisSettings> | undefined
+) {
+    const normalized = normalizeObjectAnalysisSettings({
+        ...getNormalizedObjectAnalysisSettings(store),
+        ...(candidate || {})
+    });
+    store.set('objectAnalysisSettings', normalized);
     return normalized;
 }
 
@@ -304,4 +349,54 @@ export function setStoredJiraSettingsForUser(
     };
 
     store.set('jiraSettingsByUser', nextSettingsByUser);
+}
+
+/** Loads encrypted SMS settings for one operator and migrates the legacy value once. */
+export function getNormalizedStoredSmsNotificationSettings(store: AppStore, operatorName: string) {
+    const normalizedOperatorName = normalizeSmsSettingsUserKey(operatorName);
+    const storedSettingsByUser = store.get('smsNotificationSettingsByUser');
+    const normalizedSettingsByUser = normalizeStoredSmsNotificationSettingsByUser(storedSettingsByUser);
+
+    if (JSON.stringify(storedSettingsByUser) !== JSON.stringify(normalizedSettingsByUser)) {
+        store.set('smsNotificationSettingsByUser', normalizedSettingsByUser);
+    }
+
+    const storedSettings = normalizedSettingsByUser[normalizedOperatorName];
+    if (storedSettings) {
+        return storedSettings;
+    }
+
+    const legacyStoredSettings = store.get('smsNotificationSettings');
+    const normalizedLegacySettings = normalizeStoredSmsNotificationSettings(legacyStoredSettings);
+    if (JSON.stringify(legacyStoredSettings) !== JSON.stringify(normalizedLegacySettings)) {
+        store.set('smsNotificationSettings', normalizedLegacySettings);
+    }
+
+    const hasLegacySettings = JSON.stringify(normalizedLegacySettings)
+        !== JSON.stringify(DEFAULT_STORED_SMS_NOTIFICATION_SETTINGS);
+    if (!hasLegacySettings) {
+        return normalizedLegacySettings;
+    }
+
+    const nextSettingsByUser = {
+        ...normalizedSettingsByUser,
+        [normalizedOperatorName]: normalizedLegacySettings
+    };
+    store.set('smsNotificationSettingsByUser', nextSettingsByUser);
+    return normalizedLegacySettings;
+}
+
+/** Persists one operator's encrypted SMS settings. */
+export function setStoredSmsNotificationSettingsForUser(
+    store: AppStore,
+    operatorName: string,
+    settings: StoredSmsNotificationSettings
+) {
+    const normalizedOperatorName = normalizeSmsSettingsUserKey(operatorName);
+    const nextSettingsByUser = {
+        ...normalizeStoredSmsNotificationSettingsByUser(store.get('smsNotificationSettingsByUser')),
+        [normalizedOperatorName]: normalizeStoredSmsNotificationSettings(settings)
+    };
+
+    store.set('smsNotificationSettingsByUser', nextSettingsByUser);
 }

@@ -1,0 +1,4 @@
+{
+  "masterLibrary": "QSYS",
+  "libraries": ["ORDERLIB", "COMMONLIB", "INVENTORY"]
+}

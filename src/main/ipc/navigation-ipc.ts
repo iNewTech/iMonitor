@@ -6,6 +6,7 @@ interface RegisterNavigationIpcDependencies {
     loadMonitorPage: () => void;
     loadConnectionPage: () => void;
     loadSettingsPage: () => void;
+    loadObjectAnalysisPage: () => void;
     openExternalUrl: (target: string) => Promise<void> | void;
     recordActivity: (entry: {
         area: 'navigation';
@@ -49,6 +50,16 @@ export function registerNavigationIpc(dependencies: RegisterNavigationIpcDepende
             area: 'navigation',
             level: 'info',
             message: 'Opened the settings workspace.'
+        });
+        return { success: true };
+    });
+
+    ipcMain.handle('navigate-to-object-analysis', async () => {
+        dependencies.loadObjectAnalysisPage();
+        dependencies.recordActivity({
+            area: 'navigation',
+            level: 'info',
+            message: 'Opened the object analysis workspace.'
         });
         return { success: true };
     });

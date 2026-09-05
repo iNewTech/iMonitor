@@ -1,0 +1,42 @@
+{
+  "library": "ORDERLIB",
+  "objects": [
+    {
+      "name": "ORDENTR",
+      "type": "*PGM",
+      "language": "RPGLE",
+      "sourcePath": "QRPGLESRC/ORDENTR.rpgle",
+      "sourceFile": "QRPGLESRC",
+      "sourceMember": "ORDENTR",
+      "description": "Order entry and validation program",
+      "attributes": {
+        "created": "2025-02-11T09:15:00Z",
+        "changed": "2026-08-30T15:42:00Z",
+        "owner": "APPUSR",
+        "linesOfCode": 2480,
+        "complexity": "High"
+      }
+    },
+    {
+      "name": "ORDRPGSRV",
+      "type": "*SRVPGM",
+      "language": "RPGLE",
+      "sourcePath": "QRPGLESRC/ORDRPGSRV.rpgle",
+      "sourceFile": "QRPGLESRC",
+      "sourceMember": "ORDRPGSRV",
+      "description": "Order pricing service program",
+      "attributes": { "modules": 3, "exports": 12 }
+    },
+    { "name": "CUSTOMER", "type": "*FILE", "description": "Customer master table" },
+    { "name": "ORDHDR", "type": "*FILE", "description": "Order header table" },
+    { "name": "ORDDTL", "type": "*FILE", "description": "Order detail table" },
+    { "name": "ORDREPORT", "type": "*PGM", "description": "Operational order report" },
+    { "name": "ORDERQ", "type": "*DTAQ", "description": "Order processing data queue" },
+    { "name": "ORDER_SWITCH", "type": "*DTAARA", "description": "Order processing switch" },
+    { "name": "ORDER_MODE", "type": "*ENVVAR", "description": "Order runtime mode" },
+    { "name": "ORDJOBD", "type": "*JOBD", "description": "Order batch job description" },
+    { "name": "QBATCH", "type": "*JOBQ", "description": "Batch job queue" },
+    { "name": "QINTER", "type": "*SBS", "description": "Interactive subsystem" },
+    { "name": "ORDCOPY", "type": "*COPY", "language": "RPGLE", "sourcePath": "QRPGLESRC/ORDCOPY.rpgle", "sourceFile": "QRPGLESRC", "sourceMember": "ORDCOPY", "description": "Order shared definitions" }
+  ]
+}

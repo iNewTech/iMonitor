@@ -129,6 +129,9 @@ export function initIBMEyeAiWidget(dependencies) {
 
     function submitCurrentPrompt() {
         const message = input.value || '';
+        if (aiState.getSnapshot().pendingReply) {
+            return;
+        }
         input.value = '';
         void aiState.submitPrompt(message);
     }

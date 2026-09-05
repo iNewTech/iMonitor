@@ -25,6 +25,9 @@
                     </div>
                     <div class="monitor-hero-actions">
                         <div class="hero-actions-row">
+                            <button id="open-object-analysis" class="btn btn-outline-ink btn-sm">
+                                <i class="bi bi-diagram-3 me-2"></i>Object analysis
+                            </button>
                             <button id="open-settings" class="btn btn-outline-ink btn-sm">
                                 <i class="bi bi-gear me-2"></i>Settings
                             </button>
@@ -54,33 +57,72 @@
                         </div>
                     </div>
                 </div>
-                <div class="hero-meta">
-                    <span id="monitoring-state" class="status-pill is-idle">Idle</span>
-                    <span id="connected-system" class="hero-connection">No system selected</span>
-                    <span id="last-updated" class="hero-connection">Awaiting first poll</span>
+                <div class="hero-context-row">
+                    <div class="hero-meta" aria-label="Monitoring connection status">
+                        <span id="monitoring-state" class="status-pill is-idle">Idle</span>
+                        <span id="connected-system" class="hero-connection"><i class="bi bi-hdd-network" aria-hidden="true"></i>No system selected</span>
+                        <span id="last-updated" class="hero-connection"><i class="bi bi-clock" aria-hidden="true"></i>Awaiting first poll</span>
+                    </div>
+                    <span class="hero-command-label"><i class="bi bi-command" aria-hidden="true"></i>Operator command center</span>
                 </div>
-                <div class="hero-summary-strip">
-                    <div class="hero-summary-card">
-                        <span class="hero-summary-label">Auto monitor</span>
-                        <strong>Starts after connect</strong>
-                    </div>
-                    <div class="hero-summary-card">
-                        <span class="hero-summary-label">Alerts</span>
-                        <strong>Stay visible until reviewed</strong>
-                    </div>
-                    <div class="hero-summary-card">
-                        <span class="hero-summary-label">Support</span>
-                        <strong>Encrypted diagnostics on request</strong>
-                    </div>
+                <div class="hero-command-center" aria-label="Operator action summary">
+                    <section class="hero-action-focus">
+                        <span class="hero-focus-icon" aria-hidden="true"><i class="bi bi-crosshair"></i></span>
+                        <div class="hero-focus-copy">
+                            <span class="hero-summary-label">Next best action</span>
+                            <strong id="actionboard-focus-title">Waiting for first poll</strong>
+                            <span id="actionboard-focus-copy">The board will surface the next incident that needs attention.</span>
+                        </div>
+                        <button id="hero-focus-next" type="button" class="hero-focus-button" disabled>
+                            <span>Review next</span><i class="bi bi-arrow-right" aria-hidden="true"></i>
+                        </button>
+                    </section>
+                    <nav class="hero-quick-nav" aria-label="ActionBoard sections">
+                        <button type="button" class="hero-quick-link is-incidents" data-actionboard-target="incidents">
+                            <span class="hero-quick-icon"><i class="bi bi-shield-exclamation" aria-hidden="true"></i></span>
+                            <span class="hero-quick-copy">
+                                <strong>Incidents</strong>
+                                <small><span id="actionboard-working-count">0</span> being worked</small>
+                            </span>
+                            <span id="actionboard-attention-count" class="hero-quick-value">0</span>
+                        </button>
+                        <button type="button" class="hero-quick-link is-queues" data-actionboard-target="queues">
+                            <span class="hero-quick-icon"><i class="bi bi-hourglass-split" aria-hidden="true"></i></span>
+                            <span class="hero-quick-copy">
+                                <strong>Job queues</strong>
+                                <small><span id="actionboard-queue-count">0</span> available</small>
+                            </span>
+                            <span id="actionboard-queue-waiting-count" class="hero-quick-value">0</span>
+                        </button>
+                        <button type="button" class="hero-quick-link is-jobs" data-actionboard-target="jobs">
+                            <span class="hero-quick-icon"><i class="bi bi-stack" aria-hidden="true"></i></span>
+                            <span class="hero-quick-copy">
+                                <strong>Active jobs</strong>
+                                <small><span id="actionboard-waiting-job-count">0</span> waiting</small>
+                            </span>
+                            <span id="actionboard-active-job-count" class="hero-quick-value">0</span>
+                        </button>
+                        <button type="button" class="hero-quick-link is-ai" data-actionboard-target="ai">
+                            <span class="hero-quick-icon"><i class="bi bi-stars" aria-hidden="true"></i></span>
+                            <span class="hero-quick-copy">
+                                <strong>Ask IBMEye</strong>
+                                <small>Explain and resolve</small>
+                            </span>
+                            <i class="bi bi-arrow-up-right hero-quick-arrow" aria-hidden="true"></i>
+                        </button>
+                    </nav>
                 </div>
             </header>
 
             <details class="surface-card activity-overview" open data-testid="activity-overview">
                 <summary class="activity-overview-summary">
-                    <div>
+                    <div class="panel-heading-lockup">
+                        <span class="panel-heading-icon is-activity" aria-hidden="true"><i class="bi bi-activity"></i></span>
+                        <div>
                         <p class="eyebrow mb-2">System activity</p>
                         <h2 class="section-title">Live activity overview</h2>
                         <p class="panel-copy mb-0">Current workload at a glance, with recent polling history below.</p>
+                        </div>
                     </div>
                     <span class="panel-disclosure-icon" aria-hidden="true"><i class="bi bi-chevron-down"></i></span>
                     <div class="activity-metrics" aria-label="Current system activity">
@@ -118,14 +160,17 @@
                 </div>
             </details>
 
-            <details class="surface-card panel-disclosure panel-tone-incidents alerts-panel">
+            <details class="surface-card panel-disclosure panel-tone-incidents alerts-panel" open>
                 <summary class="panel-disclosure-summary">
-                    <div>
+                    <div class="panel-heading-lockup">
+                        <span class="panel-heading-icon" aria-hidden="true"><i class="bi bi-shield-exclamation"></i></span>
+                        <div>
                         <p class="eyebrow mb-2">IBMEye Alerts</p>
                         <h2 class="section-title">IBMEye Incident Queue</h2>
                         <p class="panel-copy mb-0">
                             MSGW, LCKW, high CPU, and poll failures stay here until you review them.
                         </p>
+                        </div>
                     </div>
                     <div class="panel-disclosure-meta">
                         <span id="alert-count" class="table-caption" data-testid="alert-count">0 active alerts</span>
@@ -136,15 +181,29 @@
                 </summary>
                 <div class="panel-disclosure-body">
                     <div class="alert-toolbar">
-                        <div class="alert-queue-context">
-                            <span class="eyebrow mb-1">Queue</span>
-                            <p class="mb-0">New incidents stay here until they are reviewed or cleared.</p>
+                        <div class="alert-toolbar-main">
+                            <div class="alert-queue-context">
+                                <span class="eyebrow mb-1">Action queue</span>
+                                <p id="alert-attention-summary" class="mb-0">New incidents stay here until they are reviewed or cleared.</p>
+                            </div>
+                            <div class="alert-quick-filters" role="group" aria-label="Filter incidents">
+                                <span class="alert-filter-label">Show</span>
+                                <button type="button" class="alert-quick-filter is-active" data-alert-filter="all" aria-pressed="true" data-testid="alert-filter-all">All <span id="alert-filter-all-count">0</span></button>
+                                <button type="button" class="alert-quick-filter" data-alert-filter="attention" aria-pressed="false" data-testid="alert-filter-attention">Needs attention <span id="alert-filter-attention-count">0</span></button>
+                                <button type="button" class="alert-quick-filter" data-alert-filter="critical" aria-pressed="false" data-testid="alert-filter-critical">Critical <span id="alert-filter-critical-count">0</span></button>
+                                <button type="button" class="alert-quick-filter" data-alert-filter="working" aria-pressed="false" data-testid="alert-filter-working">Working <span id="alert-filter-working-count">0</span></button>
+                            </div>
                         </div>
-                        <label class="alert-search-control" for="alert-search-input">
-                            <span class="visually-hidden">Search alerts</span>
-                            <i class="bi bi-search" aria-hidden="true"></i>
-                            <input id="alert-search-input" class="form-control" type="search" placeholder="Search job, type, or message" autocomplete="off">
-                        </label>
+                        <div class="alert-toolbar-actions">
+                            <button id="focus-next-alert" type="button" class="btn btn-primary-strong btn-sm" data-testid="focus-next-alert" disabled>
+                                <i class="bi bi-crosshair me-1" aria-hidden="true"></i>Focus next
+                            </button>
+                            <label class="alert-search-control" for="alert-search-input">
+                                <span class="visually-hidden">Search alerts</span>
+                                <i class="bi bi-search" aria-hidden="true"></i>
+                                <input id="alert-search-input" class="form-control" type="search" placeholder="Search alerts" autocomplete="off">
+                            </label>
+                        </div>
                     </div>
                     <div id="focus-alert-shell" class="focus-alert-shell" hidden>
                         <div class="focus-alert-header">
@@ -169,12 +228,15 @@
 
             <details class="surface-card panel-disclosure panel-tone-ai ai-assistant-panel">
                 <summary class="panel-disclosure-summary">
-                    <div>
+                    <div class="panel-heading-lockup">
+                        <span class="panel-heading-icon" aria-hidden="true"><i class="bi bi-stars"></i></span>
+                        <div>
                         <p class="eyebrow mb-2">IBMEye AI Analysis</p>
                         <h2 class="section-title">Incident analysis workspace</h2>
                         <p class="panel-copy mb-0">
                             Review alerts, inspect SQL, and ask for likely cause and next best action from the current monitor context.
                         </p>
+                        </div>
                     </div>
                     <div class="panel-disclosure-meta ai-assistant-meta">
                         <span id="ai-availability-badge" class="table-caption">Checking Ollama</span>
@@ -246,10 +308,13 @@
             <section class="operations-grid">
                 <details class="table-shell surface-card panel-disclosure panel-tone-operations" open>
                     <summary class="panel-disclosure-summary">
-                        <div>
+                        <div class="panel-heading-lockup">
+                            <span class="panel-heading-icon" aria-hidden="true"><i class="bi bi-stack"></i></span>
+                            <div>
                             <p class="eyebrow mb-2">WRKACTJOB · Active Jobs</p>
                             <h2 class="section-title">System activity feed</h2>
                             <p class="panel-copy mb-0">Click a row to inspect current SQL, wait details, and status changes.</p>
+                            </div>
                         </div>
                         <div class="panel-disclosure-meta">
                             <span id="current-refresh" class="table-caption">Refresh cadence: 5 seconds</span>
@@ -339,6 +404,85 @@
                     </div>
                 </details>
             </section>
+
+            <details id="job-queues-panel" class="surface-card panel-disclosure panel-tone-operations job-queues-panel">
+                <summary class="panel-disclosure-summary">
+                    <div class="panel-heading-lockup">
+                        <span class="panel-heading-icon" aria-hidden="true"><i class="bi bi-hourglass-split"></i></span>
+                        <div>
+                        <p class="eyebrow mb-2">WRKJOBQ · Job Queues</p>
+                        <h2 class="section-title">Queued work</h2>
+                        <p class="panel-copy mb-0">Find waiting jobs, open a queue, and take a safe action when needed.</p>
+                        </div>
+                    </div>
+                    <div class="panel-disclosure-meta">
+                        <span id="job-queues-count" class="table-caption">0 queues</span>
+                        <span id="job-queues-waiting-count" class="table-caption">0 waiting</span>
+                        <span class="panel-disclosure-icon" aria-hidden="true">
+                            <i class="bi bi-chevron-down"></i>
+                        </span>
+                    </div>
+                </summary>
+                <div class="panel-disclosure-body table-shell-body job-queues-body">
+                    <div class="job-queues-toolbar jobs-toolbar">
+                        <label class="jobs-toolbar-control jobs-toolbar-search" for="job-queues-search">
+                            <span class="jobs-toolbar-label">Search queues or jobs</span>
+                            <input
+                                id="job-queues-search"
+                                type="search"
+                                class="form-control jobs-toolbar-input"
+                                placeholder="Queue, library, job, or user"
+                                autocomplete="off"
+                                data-testid="job-queues-search"
+                            >
+                        </label>
+                        <label class="jobs-toolbar-control" for="job-queues-status-filter">
+                            <span class="jobs-toolbar-label">Status</span>
+                            <select id="job-queues-status-filter" class="form-select jobs-toolbar-select">
+                                <option value="ALL">All queues</option>
+                                <option value="RELEASED">Released</option>
+                                <option value="HELD">Held</option>
+                            </select>
+                        </label>
+                        <div class="jobs-toolbar-actions">
+                            <button id="job-queues-refresh" type="button" class="btn btn-outline-ink">
+                                <i class="bi bi-arrow-clockwise me-2" aria-hidden="true"></i>Refresh
+                            </button>
+                        </div>
+                    </div>
+                    <div class="job-queues-summary" aria-label="Job queue summary">
+                        <span id="job-queues-held-count">0 held</span>
+                        <span id="job-queues-oldest">Oldest wait --</span>
+                        <span id="job-queues-page-note">Showing first 50 queues</span>
+                    </div>
+                    <div id="job-queues-table" class="table-responsive refined-table job-queues-table">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Queue</th>
+                                    <th scope="col">Subsystem</th>
+                                    <th scope="col">Status</th>
+                                    <th scope="col">Waiting</th>
+                                    <th scope="col">Description</th>
+                                    <th scope="col" class="text-end">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="job-queues-body">
+                                <tr class="table-placeholder">
+                                    <td colspan="6" class="text-center py-4 text-muted">
+                                        <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                                        Waiting for queue data
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p id="job-queues-status" class="stat-note mb-0" role="status" aria-live="polite">Queue data will load after the first connection.</p>
+                    <button id="job-queues-load-more" type="button" class="btn btn-outline-ink btn-sm mt-3" hidden>
+                        Load 50 more queues
+                    </button>
+                </div>
+            </details>
 
             <details class="surface-card panel-disclosure panel-tone-alerts alert-rules-panel monitor-legacy-alert-settings">
                 <summary class="panel-disclosure-summary">

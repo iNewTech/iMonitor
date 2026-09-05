@@ -1,0 +1,4 @@
+A          R ORDHDR
+A            ORDER_ID      9P 0
+A            CUSTOMER_ID   9P 0
+A            ORDER_STATUS  10A

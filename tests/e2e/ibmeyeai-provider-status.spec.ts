@@ -44,8 +44,14 @@ async function openDemoMonitor(page: Page) {
     await expect(page.locator('#saved-connections')).toHaveValue('demo-connection');
     await page.locator('#connect').click();
     await expect(page.getByRole('heading', { name: 'IBMEye Incident Queue', exact: true })).toBeVisible();
-    await page.locator('.ai-assistant-panel > summary').click();
-    await page.locator('.alerts-panel > summary').click();
+    const aiPanel = page.locator('.ai-assistant-panel');
+    if (!(await aiPanel.evaluate((panel: HTMLDetailsElement) => panel.open))) {
+        await aiPanel.locator(':scope > summary').click();
+    }
+    const alertsPanel = page.locator('.alerts-panel');
+    if (!(await alertsPanel.evaluate((panel: HTMLDetailsElement) => panel.open))) {
+        await alertsPanel.locator(':scope > summary').click();
+    }
     await expect(page.locator('.table-shell')).toHaveAttribute('open', '');
 }
 

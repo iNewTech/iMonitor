@@ -168,12 +168,25 @@ export function initIBMEyeAiPanel(dependencies) {
 
     function setBusy(busy) {
         input.disabled = busy;
+        promptButtons.forEach((button) => {
+            button.disabled = busy;
+        });
+        if (providerQuickInput) {
+            providerQuickInput.disabled = busy;
+        }
+        if (modelQuickInput) {
+            modelQuickInput.disabled = busy;
+        }
     }
 
     function submitAssistantPrompt(message) {
         const normalizedMessage = String(message || '').trim();
         if (!normalizedMessage) {
             input.focus();
+            return;
+        }
+
+        if (aiState.getSnapshot().pendingReply) {
             return;
         }
 

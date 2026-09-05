@@ -56,16 +56,19 @@ export function renderOperatorActions(detailOperatorActions, detailOperatorActio
     }
 
     const availableActions = Array.isArray(actions) ? actions : [];
-    detailOperatorActions.innerHTML = availableActions.map((action) => `
+    detailOperatorActions.innerHTML = availableActions.map((action) => {
+        const premiumLocked = !action.enabled && /requires Premium/i.test(String(action.reason || ''));
+        return `
         <button
             class="btn ${action.dangerous ? 'btn-soft-danger' : 'btn-outline-ink'} btn-sm job-action-button"
             data-action-kind="${escapeHtml(action.kind)}"
             ${action.enabled ? '' : 'disabled'}
             title="${escapeHtml(action.reason || action.label)}"
         >
-            ${action.enabled ? '' : '<i class="bi bi-lock-fill premium-action-icon" aria-hidden="true"></i>'} ${escapeHtml(action.label)}
+            ${action.enabled ? '' : '<i class="bi bi-lock-fill premium-action-icon" aria-hidden="true"></i>'} ${escapeHtml(action.label)}${premiumLocked ? ' <small class="premium-inline-label"><i class="bi bi-lock-fill" aria-hidden="true"></i>Premium</small>' : ''}
         </button>
-    `).join('');
+        `;
+    }).join('');
 
     if (detailOperatorActionNote) {
         const blockedActions = availableActions.filter((action) => !action.enabled && action.reason);

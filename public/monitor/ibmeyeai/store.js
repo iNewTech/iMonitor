@@ -8,6 +8,7 @@ export function createIBMEyeAiState(dependencies) {
     let providerCatalog = [];
     let conversation = [];
     let pendingReply = false;
+    let activeRequestId = 0;
     let statusMessage = 'Local Ollama analysis is preparing.';
     let statusIsError = false;
 
@@ -93,11 +94,21 @@ export function createIBMEyeAiState(dependencies) {
             return false;
         }
 
+        // Keep the assistant single-flight. A second prompt used to mutate the
+        // shared conversation while the first provider request was still open,
+        // which made the first answer appear to be missing or attached to the
+        // wrong question.
+        if (pendingReply) {
+            setStatus('Please wait for the current IBMEye AI answer to finish.');
+            return false;
+        }
+
         conversation = conversation.concat({
             role: 'user',
             content: trimmedMessage
         }).slice(-12);
         emit();
+        const requestId = ++activeRequestId;
         setBusy(true);
         setStatus('IBMEye AI is analyzing the current iMonitor context...');
 
@@ -110,8 +121,9 @@ export function createIBMEyeAiState(dependencies) {
 
             if (!result?.success || !result.reply) {
                 availability = result?.availability || availability;
-                pendingReply = false;
-                emit();
+                if (requestId === activeRequestId) {
+                    pendingReply = false;
+                }
                 setStatus(result?.error || 'AI analysis failed.', true);
                 return false;
             }
@@ -121,15 +133,18 @@ export function createIBMEyeAiState(dependencies) {
                 role: 'assistant',
                 content: result.reply
             }).slice(-12);
-            pendingReply = false;
+            if (requestId === activeRequestId) {
+                pendingReply = false;
+            }
             statusMessage = 'IBMEye AI updated the analysis from the latest monitor data.';
             statusIsError = false;
             emit();
             return true;
         } catch (error) {
             const messageText = error instanceof Error ? error.message : String(error);
-            pendingReply = false;
-            emit();
+            if (requestId === activeRequestId) {
+                pendingReply = false;
+            }
             setStatus(`AI analysis failed: ${messageText}`, true);
             return false;
         }

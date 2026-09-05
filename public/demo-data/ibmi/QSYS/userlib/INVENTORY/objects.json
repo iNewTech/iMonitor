@@ -1,0 +1,9 @@
+{
+  "library": "INVENTORY",
+  "objects": [
+    { "name": "BILLPOST", "type": "*PGM", "language": "RPGLE", "sourcePath": "QRPGLESRC/BILLPOST.rpgle", "sourceFile": "QRPGLESRC", "sourceMember": "BILLPOST", "description": "Posts order and invoice updates", "attributes": { "linesOfCode": 1740, "complexity": "High" } },
+    { "name": "INVOICE", "type": "*FILE", "description": "Invoice ledger table" },
+    { "name": "INVOICEQ", "type": "*DTAQ", "description": "Invoice posting data queue" },
+    { "name": "BILLJOBD", "type": "*JOBD", "description": "Billing batch job description" }
+  ]
+}

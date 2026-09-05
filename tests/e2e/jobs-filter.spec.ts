@@ -29,7 +29,6 @@ async function launchTestApp(): Promise<{
             IBM_EYE_USER_DATA_DIR: userDataDirectory
         }
     });
-
     return {
         electronApp,
         page: await electronApp.firstWindow(),
@@ -88,8 +87,7 @@ test('filters and searches the active jobs table in demo mode', async () => {
     } finally {
         await app.cleanup();
     }
-});
-
+    });
 test('shows all compact activity history views with live metrics', async () => {
     const app = await launchTestApp();
 
@@ -127,10 +125,64 @@ test('keeps the inner work surfaces compact and free of duplicate history contro
         const jobsTableHeader = app.page.locator('#system-stats thead th').first();
         await expect(jobsTableHeader).toHaveCSS('position', 'sticky');
 
-        await app.page.locator('.alerts-panel > summary').click();
-        await expect(app.page.locator('.alert-queue-context')).toContainText('New incidents stay here');
+        const alertsPanel = app.page.locator('.alerts-panel');
+        if (!(await alertsPanel.evaluate((panel: HTMLDetailsElement) => panel.open))) {
+            await alertsPanel.locator(':scope > summary').click();
+        }
+        await expect(app.page.locator('.alert-queue-context')).toContainText('Action queue');
         await expect(app.page.locator('.alert-search-control')).toBeVisible();
         await expect(app.page.getByText('QSYSOPR messages', { exact: true })).toHaveCount(0);
+    } finally {
+        await app.cleanup();
+    }
+});
+
+test('shows expandable job queues and waiting jobs in demo mode', async () => {
+    const app = await launchTestApp();
+
+    try {
+        await openDemoMonitor(app.page);
+        const queuePanel = app.page.locator('#job-queues-panel');
+        await expect(queuePanel).toBeVisible();
+        await queuePanel.locator('> summary').click();
+        await expect(queuePanel.locator('#job-queues-count')).toContainText('queues', { timeout: 10000 });
+
+        const queueRow = app.page.locator('#job-queues-body .job-queue-row').filter({ hasText: 'QBATCH' }).first();
+        await expect(queueRow).toBeVisible();
+        await expect(queueRow.locator('.job-queue-subsystem-cell')).toContainText('QBATCH');
+        await expect(queueRow.locator('.job-queue-subsystem-cell')).toContainText('QSYS');
+        await expect(queueRow).toContainText('2');
+        await queueRow.locator('[data-queue-toggle]').click();
+
+        const expanded = app.page.locator('#job-queues-body .job-queue-expanded-row').first();
+        await expect(expanded).toBeVisible();
+        await expect(expanded.locator('[data-testid="job-queue-details"]')).toContainText('Attached subsystem');
+        await expect(expanded.locator('[data-testid="job-queue-details"]')).toContainText('QSYS/QBATCH');
+        await expect(expanded).toContainText('NIGHTPOST');
+        await expect(expanded.locator('.job-queue-action')).toHaveCount(2);
+    } finally {
+        await app.cleanup();
+    }
+});
+
+test('finds a queued job outside the visible queue list and supports a safe demo action', async () => {
+    const app = await launchTestApp();
+
+    try {
+        await openDemoMonitor(app.page);
+        await app.page.locator('#job-queues-panel > summary').click();
+        const search = app.page.getByTestId('job-queues-search');
+        await search.fill('REPORT01');
+        await expect(app.page.locator('#job-queues-page-note')).toContainText('REPORT01');
+        const queueRow = app.page.locator('#job-queues-body .job-queue-row').filter({ hasText: 'QARCHIVE' }).first();
+        await expect(queueRow).toBeVisible();
+        await expect(queueRow).toContainText('1');
+        await queueRow.locator('[data-queue-toggle]').click();
+        const expanded = app.page.locator('#job-queues-body .job-queue-expanded-row').first();
+        await expect(expanded).toContainText('REPORT01');
+        app.page.once('dialog', (dialog) => dialog.accept());
+        await expanded.locator('.job-queue-action').click();
+        await expect(app.page.locator('#job-queues-body .job-queue-expanded-row').first()).toContainText('Held');
     } finally {
         await app.cleanup();
     }

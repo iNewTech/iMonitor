@@ -31,6 +31,25 @@ describe('demo database', () => {
             STATUS: 'RELEASED'
         });
 
+        const queues = database.getJobQueues({ limit: 50 });
+        expect(queues.data.length).toBeGreaterThanOrEqual(4);
+        expect(queues.data.find((queue) => queue.JOB_QUEUE_NAME === 'QBATCH')).toMatchObject({
+            WAITING_JOBS: 2,
+            JOB_QUEUE_STATUS: 'RELEASED',
+            SUBSYSTEM_NAME: 'QBATCH',
+            SUBSYSTEM_LIBRARY_NAME: 'QSYS'
+        });
+        expect(database.getJobQueueDetails('QBATCH', 'QGPL')).toMatchObject({
+            JOB_QUEUE_NAME: 'QBATCH',
+            SUBSYSTEM_NAME: 'QBATCH',
+            SUBSYSTEM_LIBRARY_NAME: 'QSYS'
+        });
+        expect(database.getSubsystemDetails('QBATCH', 'QSYS')).toMatchObject({
+            STATUS: 'ACTIVE'
+        });
+        expect(Number(database.getSubsystemDetails('QBATCH', 'QSYS')?.CURRENT_ACTIVE_JOBS)).toBeGreaterThan(0);
+        expect(database.getQueuedJobs({ queueName: 'QBATCH', queueLibrary: 'QGPL' }).data).toHaveLength(2);
+
         database.close();
     });
 
@@ -51,6 +70,13 @@ describe('demo database', () => {
             MESSAGE_TYPE: 'INQUIRY'
         }));
         expect(database.getSystemMessages().length).toBeGreaterThan(0);
+
+        const heldQueue = database.getJobQueues({ search: 'QARCHIVE' }).data[0];
+        expect(heldQueue).toMatchObject({ JOB_QUEUE_STATUS: 'HELD', WAITING_JOBS: 1 });
+        database.setJobQueueStatus('QARCHIVE', 'QGPL', 'RELEASED');
+        expect(database.getJobQueues({ search: 'QARCHIVE' }).data[0]?.JOB_QUEUE_STATUS).toBe('RELEASED');
+        database.setQueuedJobStatus('731004/QSYSOPR/REPORT01', 'HELD');
+        expect(database.getQueuedJobs({ search: 'REPORT01' }).data[0]?.JOB_STATUS).toBe('HELD');
 
         database.close();
     });

@@ -46,7 +46,10 @@ async function openDemoMonitor(page: Page) {
     await expect(page.locator('#saved-connections')).toHaveValue('demo-connection');
     await page.locator('#connect').click();
     await expect(page.getByRole('heading', { name: 'IBMEye Incident Queue', exact: true })).toBeVisible();
-    await page.locator('.alerts-panel > summary').click();
+    const alertsPanel = page.locator('.alerts-panel');
+    if (!(await alertsPanel.evaluate((panel: HTMLDetailsElement) => panel.open))) {
+        await alertsPanel.locator(':scope > summary').click();
+    }
     await expect(page.getByTestId('alert-card').first()).toBeVisible();
 }
 
@@ -68,6 +71,25 @@ test('launches the demo monitor and renders live alert cards', async () => {
     }
 });
 
+test('turns the incident queue into a prioritized action board', async () => {
+    const app = await launchTestApp();
+
+    try {
+        await openDemoMonitor(app.page);
+        await expect(app.page.locator('#actionboard-focus-title')).toBeVisible();
+        await expect(app.page.locator('#actionboard-attention-count')).toContainText(/\d+/);
+        await expect(app.page.getByTestId('alert-filter-attention')).toBeVisible();
+
+        await app.page.getByTestId('alert-filter-attention').click();
+        await expect(app.page.getByTestId('alert-filter-attention')).toHaveAttribute('aria-pressed', 'true');
+        await app.page.getByTestId('focus-next-alert').click();
+        await expect(app.page.locator('#focus-alert-shell')).not.toHaveAttribute('hidden', '');
+        await expect(app.page.getByTestId('focus-alert-card')).toBeVisible();
+    } finally {
+        await app.cleanup();
+    }
+});
+
 test('keeps ClickUp ticket creation with the operator workflow', async () => {
     const app = await launchTestApp();
 
@@ -75,6 +97,7 @@ test('keeps ClickUp ticket creation with the operator workflow', async () => {
         await openDemoMonitor(app.page);
 
         await app.page.locator('#open-settings').click();
+        await app.page.getByTestId('settings-page-alerts').click();
         await expect(app.page.locator('#settings-alert-panel')).toBeVisible();
     } finally {
         await app.cleanup();

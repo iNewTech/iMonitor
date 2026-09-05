@@ -9,6 +9,7 @@ import {
 import { renderAiReportMarkdown } from './monitor/ibmeyeai/render.js';
 import { filterJobs as filterVisibleJobs, getSubsystemOptions } from './monitor/jobs-filter.js';
 import { initSupportPanel } from './shared/support.js';
+import { initJobQueues } from './monitor/job-queues.js';
 import {
     renderOperatorActions as renderOperatorActionsView,
     renderJobLog as renderJobLogView,
@@ -21,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const startButton = document.getElementById('start-monitoring');
     const stopButton = document.getElementById('stop-monitoring');
     const disconnectButton = document.getElementById('disconnect');
+    const openObjectAnalysisButton = document.getElementById('open-object-analysis');
     const openSettingsButton = document.getElementById('open-settings');
     const openAiSettingsButton = document.getElementById('open-ai-settings');
     const refreshInterval = document.getElementById('refresh-interval');
@@ -32,6 +34,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeAlerts = document.getElementById('active-alerts');
     const alertCount = document.getElementById('alert-count');
     const alertSearchInput = document.getElementById('alert-search-input');
+    const alertAttentionSummary = document.getElementById('alert-attention-summary');
+    const alertQuickFilterButtons = Array.from(document.querySelectorAll('[data-alert-filter]'));
+    const focusNextAlertButton = document.getElementById('focus-next-alert');
+    const actionboardFocusTitle = document.getElementById('actionboard-focus-title');
+    const actionboardFocusCopy = document.getElementById('actionboard-focus-copy');
+    const actionboardAttentionCount = document.getElementById('actionboard-attention-count');
+    const actionboardWorkingCount = document.getElementById('actionboard-working-count');
+    const actionboardQueueCount = document.getElementById('actionboard-queue-count');
+    const actionboardQueueWaitingCount = document.getElementById('actionboard-queue-waiting-count');
+    const actionboardActiveJobCount = document.getElementById('actionboard-active-job-count');
+    const actionboardWaitingJobCount = document.getElementById('actionboard-waiting-job-count');
+    const heroFocusNextButton = document.getElementById('hero-focus-next');
+    const actionboardQuickLinks = Array.from(document.querySelectorAll('[data-actionboard-target]'));
+    const alertsPanel = document.querySelector('.alerts-panel');
+    const jobQueuesPanel = document.getElementById('job-queues-panel');
+    const aiPanel = document.querySelector('.ai-assistant-panel');
+    const activeJobsPanel = document.querySelector('.operations-grid > details');
     const focusAlertShell = document.getElementById('focus-alert-shell');
     const focusAlertCard = document.getElementById('focus-alert-card');
     const releaseFocusAlertButton = document.getElementById('release-focus-alert');
@@ -126,6 +145,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const themeMenuOptions = document.getElementById('theme-menu-options');
     const themeDescription = document.getElementById('theme-description');
 
+    // Keep the operator flow in priority order: incidents, queued work, then AI.
+    // Anchor the queue immediately before AI so its position is deterministic
+    // even though the source markup keeps the operations sections together.
+    if (jobQueuesPanel) {
+        if (aiPanel) {
+            aiPanel.before(jobQueuesPanel);
+        } else {
+            alertsPanel?.after(jobQueuesPanel);
+        }
+    }
+
     let monitoring = false;
     let selectedJobName = null;
     let latestJobs = [];
@@ -136,6 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const expandedTimelineAlertIds = new Set();
     let focusedAlertId = null;
     let alertSearchQuery = '';
+    let alertFilter = 'all';
     const pendingRecheckAlertIds = new Set();
     let availableThemes = [];
     let currentOperatorName = 'local-operator';
@@ -148,6 +179,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const aiAssistant = initAiAssistant({
         root: document,
         getSelectedJobName: () => selectedJobName
+    });
+    const jobQueues = initJobQueues({ root: document, electronAPI: window.electronAPI });
+
+    document.addEventListener('jobqueues:summary', (event) => {
+        const detail = event.detail || {};
+        if (actionboardQueueCount) {
+            actionboardQueueCount.textContent = String(detail.queues || 0);
+        }
+        if (actionboardQueueWaitingCount) {
+            actionboardQueueWaitingCount.textContent = String(detail.waiting || 0);
+        }
     });
 
     void initSupportPanel({
@@ -257,6 +299,120 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function matchesAlertFilter(alert, filter = alertFilter) {
+        const active = alert?.isActive !== false;
+        switch (filter) {
+            case 'attention':
+                return active && (
+                    alert.workflowStatus === 'new'
+                    || (alert.severity === 'critical' && !isClaimedAlert(alert))
+                );
+            case 'critical':
+                return active && alert.severity === 'critical';
+            case 'working':
+                return active && isClaimedAlert(alert);
+            default:
+                return true;
+        }
+    }
+
+    function getAlertPriorityScore(alert) {
+        if (alert?.isActive === false) {
+            return 0;
+        }
+
+        const severityScore = alert?.severity === 'critical'
+            ? 40
+            : alert?.severity === 'warning'
+                ? 25
+                : 10;
+        const workflowScore = alert?.workflowStatus === 'new'
+            ? 20
+            : isClaimedAlert(alert)
+                ? 14
+                : alert?.workflowStatus === 'acknowledged'
+                    ? 8
+                    : 0;
+        const kindScore = alert?.kind === 'messageWait' || alert?.kind === 'lockWait' ? 5 : 0;
+        return severityScore + workflowScore + kindScore;
+    }
+
+    function syncAlertQuickFilters() {
+        alertQuickFilterButtons.forEach((button) => {
+            const isActive = button.dataset.alertFilter === alertFilter;
+            button.classList.toggle('is-active', isActive);
+            button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        });
+    }
+
+    function updateAlertActionSummary(alerts, focusedAlert = null) {
+        const nextAlerts = Array.isArray(alerts) ? alerts : [];
+        const activeAlertsOnly = nextAlerts.filter((alert) => alert?.isActive !== false);
+        const attentionCount = activeAlertsOnly.filter((alert) => matchesAlertFilter(alert, 'attention')).length;
+        const workingCount = activeAlertsOnly.filter((alert) => matchesAlertFilter(alert, 'working')).length;
+        const criticalCount = activeAlertsOnly.filter((alert) => matchesAlertFilter(alert, 'critical')).length;
+
+        if (actionboardAttentionCount) {
+            actionboardAttentionCount.textContent = String(attentionCount);
+        }
+        if (actionboardWorkingCount) {
+            actionboardWorkingCount.textContent = String(workingCount);
+        }
+        if (alertAttentionSummary) {
+            alertAttentionSummary.textContent = attentionCount
+                ? `${attentionCount} incident${attentionCount === 1 ? '' : 's'} need operator attention.`
+                : activeAlertsOnly.length
+                    ? `${activeAlertsOnly.length} active incident${activeAlertsOnly.length === 1 ? '' : 's'} in the queue.`
+                    : 'No active incidents. The queue is clear.';
+        }
+        if (actionboardFocusTitle) {
+            actionboardFocusTitle.textContent = focusedAlert
+                ? `Working: ${focusedAlert.jobName || focusedAlert.title || 'selected incident'}`
+                : attentionCount
+                    ? `${attentionCount} incident${attentionCount === 1 ? '' : 's'} need review`
+                    : activeAlertsOnly.length
+                        ? 'No incident is pinned'
+                        : 'All clear';
+        }
+        if (actionboardFocusCopy) {
+            actionboardFocusCopy.textContent = focusedAlert
+                ? 'This incident stays pinned while you investigate and record the next step.'
+                : activeAlertsOnly.length
+                    ? 'Use Focus next to bring the highest-priority unassigned incident into your work area.'
+                    : 'The board will surface the next incident when monitoring detects one.';
+        }
+        if (focusNextAlertButton) {
+            focusNextAlertButton.disabled = activeAlertsOnly.length === 0;
+            focusNextAlertButton.innerHTML = activeAlertsOnly.length
+                ? `<i class="bi bi-crosshair me-1" aria-hidden="true"></i>${focusedAlert ? 'Focus another' : 'Focus next'}`
+                : '<i class="bi bi-check2-circle me-1" aria-hidden="true"></i>All clear';
+        }
+        if (heroFocusNextButton) {
+            heroFocusNextButton.disabled = activeAlertsOnly.length === 0;
+            heroFocusNextButton.querySelector('span').textContent = focusedAlert
+                ? 'Open incident'
+                : attentionCount
+                    ? 'Review next'
+                    : activeAlertsOnly.length
+                        ? 'Open queue'
+                        : 'All clear';
+        }
+
+        const countByFilter = {
+            all: nextAlerts.length,
+            attention: attentionCount,
+            critical: criticalCount,
+            working: workingCount
+        };
+        Object.entries(countByFilter).forEach(([filter, count]) => {
+            const countElement = document.getElementById(`alert-filter-${filter}-count`);
+            if (countElement) {
+                countElement.textContent = String(count);
+            }
+        });
+        syncAlertQuickFilters();
+    }
+
     function getAlertOwner(alert) {
         return String(alert?.owner || '').trim();
     }
@@ -277,6 +433,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function premiumControl(label, feature, className, attributes = '') {
         const available = entitlements.features?.[feature] !== false;
         return `<button class="btn btn-outline-ink btn-sm ${className}${available ? '' : ' premium-locked'}" ${available ? '' : 'disabled'} ${attributes}>${available ? '' : '<i class="bi bi-lock-fill premium-action-icon" aria-hidden="true"></i>'}${label}</button>`;
+    }
+
+    function premiumIntegrationControl(label, feature, className, attributes = '') {
+        const available = entitlements.features?.[feature] !== false;
+        return `<button class="btn btn-outline-ink btn-sm ${className}${available ? '' : ' premium-locked'}" ${available ? '' : 'disabled'} ${attributes}>${available ? '' : '<i class="bi bi-lock-fill premium-action-icon" aria-hidden="true"></i>'}${label} <small class="premium-inline-label"><i class="bi bi-lock-fill" aria-hidden="true"></i>Premium</small></button>`;
     }
 
     function formatMegabytes(value) {
@@ -355,6 +516,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (waitingJobs) {
             waitingJobs.textContent = String(waitingCount);
+        }
+        if (actionboardActiveJobCount) {
+            actionboardActiveJobCount.textContent = String(jobs.length);
+        }
+        if (actionboardWaitingJobCount) {
+            actionboardWaitingJobCount.textContent = String(waitingCount);
         }
     }
 
@@ -698,11 +865,12 @@ document.addEventListener('DOMContentLoaded', () => {
             `data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-ai-next-actions" title="${aiAvailable ? 'Get the next best action with IBMEye AI' : 'IBMEye AI requires Premium'}"`
         );
         const clickUpButton = alert.clickUpTask?.id
-            ? `
-                <button class="btn btn-outline-ink btn-sm alert-clickup-open" data-task-url="${escapeHtml(alert.clickUpTask.url || '')}" data-testid="alert-clickup-open">
-                    Open ClickUp Task
-                </button>
-            `
+            ? premiumIntegrationControl(
+                'Open ClickUp Task',
+                'clickup-integration',
+                'alert-clickup-open',
+                `data-task-url="${escapeHtml(alert.clickUpTask.url || '')}" data-testid="alert-clickup-open" title="${entitlements.features?.['clickup-integration'] !== false ? 'Open linked ClickUp task' : 'ClickUp integration requires Premium'}"`
+            )
             : '';
         const recheckButton = alert.isActive !== false
             ? `
@@ -792,10 +960,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const scrollState = captureAlertScrollState();
         const nextAlerts = Array.isArray(alerts) ? alerts : [];
         latestAlerts = nextAlerts;
-        const ownedAlertIds = new Set(
-            nextAlerts.filter((alert) => isOwnedWorkAlert(alert)).map((alert) => alert.id)
-        );
-        if (focusedAlertId && !ownedAlertIds.has(focusedAlertId)) {
+        const pinnedAlert = focusedAlertId
+            ? nextAlerts.find((alert) => alert.id === focusedAlertId) || null
+            : null;
+        if (focusedAlertId && (!pinnedAlert || pinnedAlert.isActive === false)) {
             focusedAlertId = null;
         }
         if (noteComposerAlertId && !nextAlerts.some((alert) => alert?.id === noteComposerAlertId)) {
@@ -808,14 +976,14 @@ document.addEventListener('DOMContentLoaded', () => {
             alertCount.textContent = `${activeAlertTotal} active ${label} | ${nextAlerts.length} tracked`;
         }
 
-        const fallbackFocusedAlert = focusedAlertId
+        const focusedAlert = focusedAlertId
             ? nextAlerts.find((alert) => alert.id === focusedAlertId) || null
             : null;
-        const focusedAlert = fallbackFocusedAlert || nextAlerts.find((alert) => isOwnedWorkAlert(alert)) || null;
         if (focusedAlert && focusedAlertId !== focusedAlert.id) {
             focusedAlertId = focusedAlert.id;
         }
-        const visibleAlerts = alertSearchQuery
+        updateAlertActionSummary(nextAlerts, focusedAlert);
+        const searchedAlerts = alertSearchQuery
             ? nextAlerts.filter((alert) => {
                 const haystack = [
                     alert.id, alert.title, alert.message, alert.detail, alert.jobName, alert.owner,
@@ -824,6 +992,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return haystack.includes(alertSearchQuery);
             })
             : nextAlerts;
+        const visibleAlerts = searchedAlerts.filter((alert) => matchesAlertFilter(alert));
         const visibleFocusedAlert = focusedAlert && visibleAlerts.some((alert) => alert.id === focusedAlert.id)
             ? focusedAlert
             : null;
@@ -843,10 +1012,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (!queuedAlerts.length) {
+            const emptyMessage = alertSearchQuery
+                ? 'No alerts match this search.'
+                : alertFilter !== 'all'
+                    ? `No ${alertFilter === 'attention' ? 'incidents needing attention' : `${alertFilter} incidents`} right now.`
+                    : visibleFocusedAlert
+                        ? 'No other alerts in the queue.'
+                        : 'No active alerts.';
             activeAlerts.innerHTML = `
                 <div class="activity-log-empty">
                     <i class="bi bi-shield-check"></i>
-                    <span>${alertSearchQuery ? 'No alerts match this search.' : visibleFocusedAlert ? 'No other alerts in the queue.' : 'No active alerts.'}</span>
+                    <span>${emptyMessage}</span>
                 </div>
             `;
             return;
@@ -906,6 +1082,57 @@ document.addEventListener('DOMContentLoaded', () => {
             focusedAlertId = null;
         }
         renderAlerts(latestAlerts);
+    }
+
+    function focusNextAlert() {
+        const candidates = latestAlerts
+            .filter((alert) => (
+                alert?.isActive !== false
+                && matchesAlertFilter(alert, 'attention')
+                && (!isClaimedAlert(alert) || isOwnedByCurrentOperator(alert))
+            ))
+            .sort((left, right) => getAlertPriorityScore(right) - getAlertPriorityScore(left));
+        const fallbackCandidates = latestAlerts
+            .filter((alert) => (
+                alert?.isActive !== false
+                && (!isClaimedAlert(alert) || isOwnedByCurrentOperator(alert))
+            ))
+            .sort((left, right) => getAlertPriorityScore(right) - getAlertPriorityScore(left));
+        const orderedCandidates = candidates.length ? candidates : fallbackCandidates;
+        const nextAlert = orderedCandidates.find((alert) => alert.id !== focusedAlertId) || orderedCandidates[0];
+        if (!nextAlert) {
+            return;
+        }
+
+        if (alertsPanel instanceof HTMLDetailsElement) {
+            alertsPanel.open = true;
+        }
+        setFocusedAlert(nextAlert.id);
+        window.requestAnimationFrame(() => {
+            focusAlertShell?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+    }
+
+    function openActionboardSection(section) {
+        const target = {
+            incidents: alertsPanel,
+            queues: jobQueuesPanel,
+            ai: aiPanel,
+            jobs: activeJobsPanel
+        }[section];
+        if (!target) {
+            return;
+        }
+
+        if (target instanceof HTMLDetailsElement) {
+            target.open = true;
+        }
+        target.classList.remove('is-command-target');
+        window.requestAnimationFrame(() => {
+            target.classList.add('is-command-target');
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            window.setTimeout(() => target.classList.remove('is-command-target'), 900);
+        });
     }
 
     function toggleAlertExpanded(alertId) {
@@ -1418,6 +1645,26 @@ document.addEventListener('DOMContentLoaded', () => {
         renderAlerts(latestAlerts);
     });
 
+    alertQuickFilterButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            alertFilter = button.dataset.alertFilter || 'all';
+            renderAlerts(latestAlerts);
+        });
+    });
+
+    focusNextAlertButton?.addEventListener('click', focusNextAlert);
+    heroFocusNextButton?.addEventListener('click', () => {
+        if (focusedAlertId) {
+            openActionboardSection('incidents');
+            window.requestAnimationFrame(() => focusAlertShell?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+            return;
+        }
+        focusNextAlert();
+    });
+    actionboardQuickLinks.forEach((button) => {
+        button.addEventListener('click', () => openActionboardSection(button.dataset.actionboardTarget));
+    });
+
     themeSelector?.addEventListener('change', async (event) => {
         const nextThemeId = event.target.value;
 
@@ -1604,6 +1851,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     openSettingsButton?.addEventListener('click', () => {
         void window.electronAPI.navigateToSettings();
+    });
+
+    openObjectAnalysisButton?.addEventListener('click', () => {
+        void window.electronAPI.navigateToObjectAnalysis();
     });
 
     openAiSettingsButton?.addEventListener('click', () => {
@@ -1835,6 +2086,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.electronAPI.onStatusUpdate((data) => {
         renderJobs(data);
+        void jobQueues.refresh({ silent: true, onlyIfEmpty: true });
         setMonitoringState(true, 'live');
         setOperatorStatus('Monitoring healthy', 'success', `Last update ${new Date().toLocaleTimeString()}`);
         void aiAssistant.refresh();

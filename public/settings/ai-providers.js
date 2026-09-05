@@ -40,6 +40,7 @@ function buildProviderCopy(provider) {
 function buildProviderSwitcher(catalog, activeProviderId, canUseProvider) {
     return catalog.map((provider) => {
         const isActive = provider.id === activeProviderId;
+        const isPremium = provider.id !== 'ollama';
         const available = canUseProvider(provider.id);
         return `
             <button
@@ -51,7 +52,7 @@ function buildProviderSwitcher(catalog, activeProviderId, canUseProvider) {
                 ${available ? '' : 'disabled title="Hosted AI providers require Premium"'}
             >
                 <span class="settings-provider-tab-symbol" aria-hidden="true">${escapeHtml(provider.symbol || '•')}</span>
-                <span>${escapeHtml(provider.label)}${available ? '' : ' <small>Premium</small>'}</span>
+                <span>${escapeHtml(provider.label)}${isPremium ? ' <small class="premium-inline-label"><i class="bi bi-lock-fill" aria-hidden="true"></i>Premium</small>' : ''}</span>
             </button>
         `;
     }).join('');

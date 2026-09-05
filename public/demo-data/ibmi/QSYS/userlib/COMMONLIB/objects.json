@@ -1,0 +1,9 @@
+{
+  "library": "COMMONLIB",
+  "objects": [
+    { "name": "PRICING", "type": "*SRVPGM", "language": "RPGLE", "sourcePath": "QRPGLESRC/PRICING.rpgle", "sourceFile": "QRPGLESRC", "sourceMember": "PRICING", "description": "Shared pricing and tax procedures", "attributes": { "exports": 18, "complexity": "Medium" } },
+    { "name": "PRICING_CALC", "type": "*SRVPGM", "description": "Exported pricing procedure contract" },
+    { "name": "ORDCOPY", "type": "*COPY", "language": "RPGLE", "sourcePath": "QRPGLESRC/ORDCOPY.rpgle", "sourceFile": "QRPGLESRC", "sourceMember": "ORDCOPY", "description": "Shared pricing definitions" },
+    { "name": "QSYS2", "type": "*FILE", "description": "IBM i SQL services" }
+  ]
+}

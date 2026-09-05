@@ -13,12 +13,15 @@
         <section class="screen-frame settings-frame">
             <header class="surface-card settings-hero">
                 <div class="settings-hero-main">
-                    <div>
-                        <p class="eyebrow mb-2">iMonitor Settings</p>
-                        <h1 class="hero-title settings-hero-title">Configure AI providers and action integrations</h1>
-                        <p class="hero-subtitle mb-0">
-                            Keep the dashboard focused on operations. Set up IBMEye AI and ClickUp once here, then use them from alerts and analysis views.
-                        </p>
+                    <div class="settings-brand-lockup">
+                        <img src="assets/ibm-eye.svg" alt="" class="settings-hero-logo" aria-hidden="true">
+                        <div>
+                            <p class="eyebrow mb-2">iMonitor Settings</p>
+                            <h1 class="hero-title settings-hero-title">Set up your operator workspace</h1>
+                            <p class="hero-subtitle mb-0">
+                                Monitoring rules, AI assistance, and connected tools in one focused workspace.
+                            </p>
+                        </div>
                     </div>
                     <div class="settings-hero-actions">
                         <button id="settings-back" type="button" class="btn btn-outline-ink">
@@ -26,18 +29,46 @@
                         </button>
                     </div>
                 </div>
-                <div class="hero-meta">
-                    <span id="settings-theme-description" class="hero-connection">Theme loads from your current app preference.</span>
+                <div class="settings-context-row">
+                    <div class="hero-meta" aria-label="Workspace status">
+                        <span id="settings-connection-state" class="status-pill is-idle">Checking connection</span>
+                        <span id="settings-plan-status" class="hero-connection"><i class="bi bi-stars" aria-hidden="true"></i>Loading plan</span>
+                    </div>
+                    <span id="settings-theme-description" class="settings-theme-context">Theme loads from your current app preference.</span>
                 </div>
+                <nav id="settings-page-nav" class="settings-page-nav" aria-label="Settings sections">
+                    <button type="button" class="settings-page-tab" data-settings-page="alerts" data-testid="settings-page-alerts">
+                        <span class="settings-page-tab-icon"><i class="bi bi-bell" aria-hidden="true"></i></span>
+                        <span class="settings-page-tab-copy"><strong>Alerts</strong><small id="settings-nav-alert-status">Rules &amp; delivery</small></span>
+                        <i class="bi bi-arrow-right settings-page-tab-arrow" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="settings-page-tab" data-settings-page="ai" data-testid="settings-page-ai">
+                        <span class="settings-page-tab-icon"><i class="bi bi-stars" aria-hidden="true"></i></span>
+                        <span class="settings-page-tab-copy"><strong>IBMEye AI</strong><small id="settings-nav-ai-status">Provider &amp; model</small></span>
+                        <i class="bi bi-arrow-right settings-page-tab-arrow" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="settings-page-tab is-active" data-settings-page="integrations" aria-current="page" data-testid="settings-page-integrations">
+                        <span class="settings-page-tab-icon"><i class="bi bi-grid" aria-hidden="true"></i></span>
+                        <span class="settings-page-tab-copy"><strong>Integrations</strong><small id="settings-nav-integration-status">Apps &amp; channels</small></span>
+                        <i class="bi bi-arrow-right settings-page-tab-arrow" aria-hidden="true"></i>
+                    </button>
+                </nav>
             </header>
 
             <section class="settings-grid">
-                <details id="settings-alert-panel" class="surface-card settings-card settings-disclosure">
+                <div class="settings-section-divider" role="presentation" data-settings-view="alerts">
+                    <span class="settings-section-divider-title">Monitoring &amp; notifications</span>
+                    <span class="settings-section-divider-note">Core operator controls</span>
+                </div>
+                <details id="settings-alert-panel" data-settings-view="alerts" class="surface-card settings-card settings-disclosure">
                     <summary class="settings-card-summary">
-                        <div>
-                            <p class="eyebrow mb-2">IBMEye Alerts</p>
-                            <h2 class="section-title">Alert delivery &amp; watch rules</h2>
-                            <p class="panel-copy mb-0">Choose where alerts go and which IBM i conditions stay visible to operators.</p>
+                        <div class="settings-heading-lockup">
+                            <span class="settings-heading-icon"><i class="bi bi-bell" aria-hidden="true"></i></span>
+                            <div>
+                                <p class="eyebrow mb-2">IBMEye Alerts</p>
+                                <h2 class="section-title">Alert delivery &amp; watch rules</h2>
+                                <p class="panel-copy mb-0">Choose where alerts go and which IBM i conditions stay visible to operators.</p>
+                            </div>
                         </div>
                         <div class="settings-card-summary-meta">
                             <span id="settings-alert-summary-status" class="settings-provider-chip">Loading</span>
@@ -49,14 +80,14 @@
                             <div class="settings-alert-group">
                                 <div>
                                     <p class="control-label mb-1">Notification channels</p>
-                                    <p class="stat-note mb-0">Slack, Email, and Jira details are configured in their cards below.</p>
+                                    <p class="stat-note mb-0">Choose delivery channels here. Email is configured in this section; Slack, Jira, and SMS are configured below.</p>
                                 </div>
                                 <div class="settings-check-grid settings-channel-grid">
                                     <label class="toggle-row"><span><i class="bi bi-display me-2"></i>Desktop</span><input type="checkbox" id="settings-alert-desktop"></label>
-                                    <label class="toggle-row"><span><i class="bi bi-slack me-2"></i>Slack <small>Premium</small></span><input type="checkbox" id="settings-alert-slack"></label>
+                                    <label class="toggle-row"><span><img class="integration-brand-icon integration-brand-icon-sm" src="./assets/integrations/slack.png" alt="" aria-hidden="true">Slack <small class="premium-inline-label" data-premium-feature="slack-integration"><i class="bi bi-lock-fill" aria-hidden="true"></i>Premium</small></span><input type="checkbox" id="settings-alert-slack"></label>
                                     <label class="toggle-row"><span><i class="bi bi-envelope me-2"></i>Email</span><input type="checkbox" id="settings-alert-email"></label>
-                                    <label class="toggle-row"><span><i class="bi bi-kanban me-2"></i>Jira <small>Premium</small></span><input type="checkbox" id="settings-alert-jira"></label>
-                                    <label class="toggle-row is-disabled premium-locked" title="SMS notifications require Premium"><span><i class="bi bi-chat-square-text me-2"></i>SMS <small>Premium · Coming soon</small></span><input type="checkbox" disabled></label>
+                                    <label class="toggle-row"><span><img class="integration-brand-icon integration-brand-icon-sm" src="./assets/integrations/jira.png" alt="" aria-hidden="true">Jira <small class="premium-inline-label" data-premium-feature="jira-integration"><i class="bi bi-lock-fill" aria-hidden="true"></i>Premium</small></span><input type="checkbox" id="settings-alert-jira"></label>
+                                    <label class="toggle-row" title="SMS notifications require Premium"><span><img class="integration-brand-icon integration-brand-icon-sm" src="./assets/integrations/sms.png" alt="" aria-hidden="true">SMS <small class="premium-inline-label" data-premium-feature="sms-notifications"><i class="bi bi-lock-fill" aria-hidden="true"></i>Premium</small></span><input type="checkbox" id="settings-alert-sms"></label>
                                 </div>
                             </div>
                             <div class="settings-alert-group">
@@ -85,7 +116,7 @@
                                 </label>
                             </div>
                             <details class="email-settings-disclosure">
-                                <summary class="email-settings-summary"><span><strong>Email notification setup</strong><small>SMTP settings and test delivery</small></span><i class="bi bi-chevron-down"></i></summary>
+                                <summary class="email-settings-summary"><span><strong>Email notification setup</strong><small>SMTP settings and test delivery</small></span><span class="email-settings-summary-meta"><span id="email-settings-summary-status" class="settings-inline-status">Not configured</span><i class="bi bi-chevron-down"></i></span></summary>
                                 <div class="email-settings-body">
                                     <div class="settings-field-grid settings-field-grid-two">
                                         <label class="control-select"><span class="control-label">SMTP host</span><input id="email-smtp-host" type="text" class="form-control" placeholder="smtp.example.com"></label>
@@ -110,12 +141,19 @@
                     </div>
                 </details>
 
-                <details id="settings-ai-panel" class="surface-card settings-card settings-disclosure">
+                <div class="settings-section-divider" role="presentation" data-settings-view="ai">
+                    <span class="settings-section-divider-title">AI &amp; integrations</span>
+                    <span class="settings-section-divider-note">Premium options are marked clearly</span>
+                </div>
+                <details id="settings-ai-panel" data-settings-view="ai" class="surface-card settings-card settings-disclosure">
                     <summary class="settings-card-summary">
-                        <div>
-                            <p class="eyebrow mb-2">IBMEye AI</p>
-                            <h2 class="section-title">Provider setup</h2>
-                            <p class="panel-copy mb-0">Choose the active provider, set its required fields, and control the default reply style.</p>
+                        <div class="settings-heading-lockup">
+                            <span class="settings-heading-icon"><i class="bi bi-stars" aria-hidden="true"></i></span>
+                            <div>
+                                <p class="eyebrow mb-2">IBMEye AI</p>
+                                <h2 class="section-title">Provider setup</h2>
+                                <p class="panel-copy mb-0">Choose the active provider, set its required fields, and control the default reply style.</p>
+                            </div>
                         </div>
                         <div class="settings-card-summary-meta">
                             <span id="settings-ai-summary-status" class="settings-provider-chip">Not configured</span>
@@ -184,16 +222,49 @@
                     </div>
                 </details>
 
-                <details id="settings-clickup-panel" class="surface-card settings-card settings-disclosure">
+                <section id="settings-integration-catalog" data-settings-view="integrations" class="surface-card settings-integration-catalog settings-view-surface" data-ready="false" aria-labelledby="settings-integrations-title">
+                    <header class="settings-catalog-header">
+                        <div class="settings-heading-lockup">
+                            <span class="settings-heading-icon settings-catalog-icon"><i class="bi bi-grid" aria-hidden="true"></i></span>
+                            <div>
+                                <p class="eyebrow mb-2">Workspace setup</p>
+                                <h2 id="settings-integrations-title" class="settings-catalog-title">Integrations</h2>
+                                <p class="panel-copy mb-0">Connect the tools your operations team already uses. Install once, configure securely, and manage every connection from one place.</p>
+                            </div>
+                        </div>
+                        <span id="settings-integration-count" class="settings-catalog-count">Loading</span>
+                    </header>
+                    <p class="settings-catalog-loading" data-catalog-loading>Loading your integrations...</p>
+                    <section id="settings-installed-group" class="settings-integration-group" hidden>
+                        <header class="settings-integration-group-header">
+                            <div>
+                                <h3>Installed integrations</h3>
+                                <p>Ready to use in ActionBoard workflows.</p>
+                            </div>
+                            <strong id="settings-installed-count">0 installed</strong>
+                        </header>
+                        <div id="settings-installed-integrations" class="settings-integration-cards"></div>
+                    </section>
+                    <section id="settings-available-group" class="settings-integration-group" hidden>
+                        <header class="settings-integration-group-header">
+                            <div>
+                                <h3>Available integrations</h3>
+                                <p>Add more tools when your workflow needs them.</p>
+                            </div>
+                            <strong id="settings-available-count">0 available</strong>
+                        </header>
+                        <div id="settings-available-integrations" class="settings-integration-cards">
+                <details id="settings-clickup-panel" data-integration-card="clickup" class="surface-card settings-card settings-disclosure settings-integration-card">
                     <summary class="settings-card-summary">
                         <div>
-                            <p class="eyebrow mb-2">Integrations</p>
-                            <h2 class="section-title">ClickUp action tracking</h2>
-                            <p class="panel-copy mb-0">Link alerts to one ClickUp list so operators can create a task once and keep adding updates to the same task.</p>
+                            <h2 class="section-title settings-card-title-with-icon"><img class="integration-brand-icon" src="./assets/integrations/clickup.png" alt="" aria-hidden="true"><span>ClickUp action tracking</span></h2>
+                            <p class="panel-copy mb-0">Create and update operator work items.</p>
                             <p id="settings-clickup-user" class="stat-note mb-0">Saved for the current operator.</p>
                         </div>
                         <div class="settings-card-summary-meta">
-                            <span id="settings-clickup-summary-status" class="settings-provider-chip"><span class="premium-badge">Premium</span> Not configured</span>
+                            <span class="premium-badge settings-card-premium-badge"><i class="bi bi-lock-fill me-1" aria-hidden="true"></i>Premium</span>
+                            <span id="settings-clickup-summary-status" class="settings-provider-chip">Not configured</span>
+                            <button type="button" class="btn btn-outline-ink btn-sm settings-card-configure" data-open-settings-panel="settings-clickup-panel"><i class="bi bi-sliders2 me-1" aria-hidden="true"></i><span data-integration-action-label>Configure</span></button>
                             <i class="bi bi-chevron-down settings-card-chevron" aria-hidden="true"></i>
                         </div>
                     </summary>
@@ -260,15 +331,17 @@
                     </div>
                 </details>
 
-                <details id="settings-slack-panel" class="surface-card settings-card settings-disclosure">
+                <details id="settings-slack-panel" data-integration-card="slack" class="surface-card settings-card settings-disclosure settings-integration-card">
                     <summary class="settings-card-summary">
                         <div>
-                            <p class="eyebrow mb-2">Integrations</p>
-                            <h2 class="section-title">Slack channel alerts</h2>
-                            <p class="panel-copy mb-0">Send concise new-alert notifications to one shared Slack operations channel.</p>
+                            <h2 class="section-title settings-card-title-with-icon"><img class="integration-brand-icon" src="./assets/integrations/slack.png" alt="" aria-hidden="true"><span>Slack channel alerts</span></h2>
+                            <p class="panel-copy mb-0">Send new incident alerts to your team channel.</p>
+                            <p class="stat-note mb-0 settings-integration-meta-line">Channel alerts · Incoming webhook</p>
                         </div>
                         <div class="settings-card-summary-meta">
-                            <span id="settings-slack-summary-status" class="settings-provider-chip"><span class="premium-badge"><i class="bi bi-lock-fill me-1" aria-hidden="true"></i>Premium</span> Not configured</span>
+                            <span class="premium-badge settings-card-premium-badge"><i class="bi bi-lock-fill me-1" aria-hidden="true"></i>Premium</span>
+                            <span id="settings-slack-summary-status" class="settings-provider-chip">Not configured</span>
+                            <button type="button" class="btn btn-outline-ink btn-sm settings-card-configure" data-open-settings-panel="settings-slack-panel"><i class="bi bi-sliders2 me-1" aria-hidden="true"></i><span data-integration-action-label>Configure</span></button>
                             <i class="bi bi-chevron-down settings-card-chevron" aria-hidden="true"></i>
                         </div>
                     </summary>
@@ -310,15 +383,138 @@
                     </div>
                 </details>
 
-                <details id="settings-jira-panel" class="surface-card settings-card settings-disclosure">
+                <details id="settings-sms-panel" data-integration-card="sms" class="surface-card settings-card settings-disclosure settings-integration-card">
                     <summary class="settings-card-summary">
                         <div>
-                            <p class="eyebrow mb-2">Integrations</p>
-                            <h2 class="section-title">Jira incident tracking</h2>
-                            <p class="panel-copy mb-0">Create one Jira issue for each new IBMEye alert in a selected project.</p>
+                            <h2 class="section-title settings-card-title-with-icon"><img class="integration-brand-icon" src="./assets/integrations/sms.png" alt="" aria-hidden="true"><span>SMS alerts</span></h2>
+                            <p class="panel-copy mb-0">Use your own compatible SMS provider.</p>
+                            <p class="stat-note mb-0 settings-integration-meta-line">Provider-neutral HTTP API</p>
                         </div>
                         <div class="settings-card-summary-meta">
-                            <span id="settings-jira-summary-status" class="settings-provider-chip"><span class="premium-badge"><i class="bi bi-lock-fill me-1" aria-hidden="true"></i>Premium</span> Not configured</span>
+                            <span class="premium-badge settings-card-premium-badge"><i class="bi bi-lock-fill me-1" aria-hidden="true"></i>Premium</span>
+                            <span id="settings-sms-summary-status" class="settings-provider-chip">Not configured</span>
+                            <button type="button" class="btn btn-outline-ink btn-sm settings-card-configure" data-open-settings-panel="settings-sms-panel"><i class="bi bi-sliders2 me-1" aria-hidden="true"></i><span data-integration-action-label>Configure</span></button>
+                            <i class="bi bi-chevron-down settings-card-chevron" aria-hidden="true"></i>
+                        </div>
+                    </summary>
+                    <div class="settings-disclosure-body">
+                        <div class="premium-panel-overlay" aria-label="SMS notifications are a Premium feature">
+                            <div class="premium-panel-overlay-card">
+                                <span class="premium-panel-overlay-icon"><i class="bi bi-lock-fill" aria-hidden="true"></i></span>
+                                <strong>Premium feature</strong>
+                                <span>Upgrade to send concise IBMEye alerts by SMS.</span>
+                            </div>
+                        </div>
+                        <div class="settings-card-tools">
+                            <span class="settings-provider-chip"><i class="bi bi-phone me-1"></i>Custom HTTP API</span>
+                        </div>
+                        <form id="settings-sms-form" class="settings-form-grid">
+                        <p class="form-footnote mb-0">Use your SMS provider’s REST endpoint. iMonitor sends one request per recipient and stores credentials in encrypted local app storage.</p>
+                        <div class="settings-field-grid settings-field-grid-two">
+                            <label class="control-select">
+                                <span class="control-label">Provider label</span>
+                                <input id="settings-sms-provider-name" type="text" class="form-control" autocomplete="off" placeholder="My SMS gateway">
+                            </label>
+                            <label class="control-select">
+                                <span class="control-label">HTTP method</span>
+                                <select id="settings-sms-method" class="form-select">
+                                    <option value="POST">POST</option>
+                                    <option value="PUT">PUT</option>
+                                    <option value="PATCH">PATCH</option>
+                                    <option value="GET">GET</option>
+                                </select>
+                            </label>
+                        </div>
+                        <label class="control-select">
+                            <span class="control-label">API endpoint</span>
+                            <input id="settings-sms-endpoint" type="url" class="form-control" autocomplete="url" placeholder="https://api.example.com/v1/messages">
+                        </label>
+                        <label class="control-select">
+                            <span class="control-label">Recipients</span>
+                            <input id="settings-sms-recipients" type="text" class="form-control" autocomplete="tel" placeholder="+15551234567, +15557654321">
+                            <span class="form-footnote">Separate phone numbers with commas, semicolons, or new lines.</span>
+                        </label>
+                        <div class="settings-field-grid settings-field-grid-two">
+                            <label class="control-select">
+                                <span class="control-label">Authentication</span>
+                                <select id="settings-sms-auth-type" class="form-select">
+                                    <option value="none">None</option>
+                                    <option value="bearer">Bearer token</option>
+                                    <option value="apiKey">API key header</option>
+                                    <option value="basic">Basic authentication</option>
+                                </select>
+                            </label>
+                            <label class="control-select">
+                                <span class="control-label">API key header</span>
+                                <input id="settings-sms-api-key-header" type="text" class="form-control" autocomplete="off" placeholder="X-API-Key">
+                            </label>
+                        </div>
+                        <label class="control-select">
+                            <span class="control-label">API key or bearer token</span>
+                            <input id="settings-sms-api-key" type="password" class="form-control" autocomplete="off" placeholder="Stored locally in encrypted app storage">
+                        </label>
+                        <div class="settings-field-grid settings-field-grid-two">
+                            <label class="control-select">
+                                <span class="control-label">Basic auth username</span>
+                                <input id="settings-sms-username" type="text" class="form-control" autocomplete="username">
+                            </label>
+                            <label class="control-select">
+                                <span class="control-label">Basic auth password</span>
+                                <input id="settings-sms-password" type="password" class="form-control" autocomplete="current-password">
+                            </label>
+                        </div>
+                        <div class="settings-field-grid settings-field-grid-two">
+                            <label class="control-select">
+                                <span class="control-label">Request body format</span>
+                                <select id="settings-sms-body-format" class="form-select">
+                                    <option value="json">JSON</option>
+                                    <option value="form">Form URL encoded</option>
+                                    <option value="text">Plain text</option>
+                                    <option value="none">No request body</option>
+                                </select>
+                            </label>
+                            <label class="control-select">
+                                <span class="control-label">Response ID path <small>(optional)</small></span>
+                                <input id="settings-sms-response-id-path" type="text" class="form-control" autocomplete="off" placeholder="message.id">
+                            </label>
+                        </div>
+                        <label class="control-select">
+                            <span class="control-label">Request body template</span>
+                            <textarea id="settings-sms-body-template" class="form-control" rows="5" spellcheck="false"></textarea>
+                            <span class="form-footnote">Tokens: <code>{{recipient}}</code>, <code>{{message}}</code>, <code>{{title}}</code>, <code>{{timestamp}}</code>, <code>{{connection}}</code>, <code>{{alertId}}</code>, and configured credentials when required.</span>
+                        </label>
+                        <label class="control-select">
+                            <span class="control-label">Custom headers <small>(JSON object, optional)</small></span>
+                            <textarea id="settings-sms-custom-headers" class="form-control" rows="3" spellcheck="false" placeholder='{"X-Tenant": "operations"}'></textarea>
+                        </label>
+                        <div class="settings-alert-group settings-channel-note">
+                            <p class="control-label mb-1"><i class="bi bi-info-circle me-2"></i>Alert conditions are managed in IBMEye Alerts</p>
+                            <p class="stat-note mb-0">Enable SMS in Notification channels after saving this provider. Test sends use the first recipient.</p>
+                        </div>
+                        <div class="settings-actions">
+                            <button type="submit" class="btn btn-primary-strong">
+                                <i class="bi bi-phone me-2"></i>Save SMS Settings
+                            </button>
+                            <button id="settings-sms-test" type="button" class="btn btn-outline-ink">
+                                <i class="bi bi-send me-2"></i>Send Test
+                            </button>
+                        </div>
+                        <p id="settings-sms-status" class="stat-note mb-0">SMS settings are loading.</p>
+                        </form>
+                    </div>
+                </details>
+
+                <details id="settings-jira-panel" data-integration-card="jira" class="surface-card settings-card settings-disclosure settings-integration-card">
+                    <summary class="settings-card-summary">
+                        <div>
+                            <h2 class="section-title settings-card-title-with-icon"><img class="integration-brand-icon" src="./assets/integrations/jira.png" alt="" aria-hidden="true"><span>Jira incident tracking</span></h2>
+                            <p class="panel-copy mb-0">Track incidents in your operations project.</p>
+                            <p class="stat-note mb-0 settings-integration-meta-line">Incident tracking · Jira Cloud REST API</p>
+                        </div>
+                        <div class="settings-card-summary-meta">
+                            <span class="premium-badge settings-card-premium-badge"><i class="bi bi-lock-fill me-1" aria-hidden="true"></i>Premium</span>
+                            <span id="settings-jira-summary-status" class="settings-provider-chip">Not configured</span>
+                            <button type="button" class="btn btn-outline-ink btn-sm settings-card-configure" data-open-settings-panel="settings-jira-panel"><i class="bi bi-sliders2 me-1" aria-hidden="true"></i><span data-integration-action-label>Configure</span></button>
                             <i class="bi bi-chevron-down settings-card-chevron" aria-hidden="true"></i>
                         </div>
                     </summary>
@@ -375,12 +571,30 @@
                         </form>
                     </div>
                 </details>
+                            <article id="settings-email-integration-card" class="surface-card settings-catalog-card" data-integration-card="email">
+                                <div class="settings-catalog-card-main">
+                                    <span class="settings-catalog-card-icon"><i class="bi bi-envelope" aria-hidden="true"></i></span>
+                                    <div>
+                                        <h3>Email</h3>
+                                        <p>Send alerts through your SMTP server.</p>
+                                        <small>Included with iMonitor</small>
+                                    </div>
+                                </div>
+                                <div class="settings-catalog-card-meta">
+                                    <span class="settings-free-badge"><i class="bi bi-unlock me-1" aria-hidden="true"></i>Free</span>
+                                    <span id="settings-email-integration-status" class="settings-catalog-status">Not configured</span>
+                                    <button type="button" class="btn btn-outline-ink btn-sm" data-open-email-settings><i class="bi bi-sliders2 me-1" aria-hidden="true"></i><span data-integration-action-label>Configure</span></button>
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+                </section>
             </section>
 
             <footer class="app-footer surface-card">
                 <div class="app-footer-meta">
                     <span id="app-version-label" class="app-version-label">iMonitor</span>
-                    <p class="app-footer-copy mb-0">Need help with setup? Contact support or prepare diagnostics from here too.</p>
+                    <p class="app-footer-copy mb-0">Need help? Contact support or send encrypted diagnostics.</p>
                 </div>
                 <details id="support-menu" class="support-menu">
                     <summary class="support-menu-summary">

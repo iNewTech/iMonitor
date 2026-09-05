@@ -20,6 +20,8 @@ interface OllamaChatResponse {
     };
 }
 
+const OLLAMA_CHAT_TIMEOUT_MS = 60_000;
+
 /**
  * Handles local Ollama model discovery and chat requests.
  */
@@ -83,7 +85,7 @@ export function createOllamaProviderClient(requestJson: RequestJsonFn): AiProvid
                         temperature: settings.temperature
                     }
                 })
-            });
+            }, OLLAMA_CHAT_TIMEOUT_MS);
 
             return response.message?.content?.trim() || '';
         }

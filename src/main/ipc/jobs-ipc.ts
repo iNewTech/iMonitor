@@ -1,8 +1,14 @@
 import { ipcMain } from 'electron/main';
-import type { ActiveJobRecord } from '../../services/ibmi';
+import type { ActiveJobRecord, JobQueueRecord, PagedResult, QueuedJobRecord } from '../../services/ibmi';
 import type { JobStatusHistoryEntry } from '../../features/monitoring/monitoring-model';
 import type { OperatorActionKind } from '../../features/action-board/operator-actions';
 import { createActionAuditEntry } from '../../features/action-board/action-audit';
+import {
+    buildJobQueueActionPlan,
+    requiresJobQueueConfirmation,
+    type JobQueueActionKind
+} from '../../features/action-board/job-queue-actions';
+import type { JobQueueQuery, QueuedJobQuery } from '../../features/action-board/job-queue-model';
 
 interface RegisterJobsIpcDependencies {
     requirePremium: () => void;
@@ -11,6 +17,18 @@ interface RegisterJobsIpcDependencies {
     getJobContext: (jobName: string) => Promise<Record<string, unknown>>;
     getJobLog: (jobName: string) => Promise<unknown[]>;
     getJobMessages: (jobName: string) => Promise<unknown[]>;
+    getJobQueues: (options: JobQueueQuery) => Promise<PagedResult<JobQueueRecord>>;
+    getJobQueueDetails: (queueName: string, queueLibrary: string) => Promise<{
+        queue: Record<string, unknown> | null;
+        subsystem: Record<string, unknown> | null;
+    }>;
+    getQueuedJobs: (options: QueuedJobQuery) => Promise<PagedResult<QueuedJobRecord>>;
+    isQueuedJob: (jobName: string) => Promise<boolean>;
+    runJobQueueCommand: (
+        command: string,
+        payload: { kind: JobQueueActionKind; queueName: string; queueLibrary: string; jobName?: string },
+        live: boolean
+    ) => Promise<void>;
     buildWaitReason: (job: ActiveJobRecord) => string;
     buildJobRootCauseGuidance: (job: ActiveJobRecord) => unknown;
     getAvailableOperatorActions: (job: ActiveJobRecord) => unknown[];
@@ -33,6 +51,7 @@ interface RegisterJobsIpcDependencies {
         detail?: string;
     }) => void;
     recordActionAudit: (entry: ReturnType<typeof createActionAuditEntry>) => void;
+    sendToWindow: (channel: string, payload: unknown) => void;
 }
 
 /**
@@ -101,6 +120,56 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
         }
     });
 
+    ipcMain.handle('get-job-queues', async (_event, options: JobQueueQuery = {}) => {
+        try {
+            return { success: true, ...(await dependencies.getJobQueues(options)) };
+        } catch (error) {
+            return {
+                success: false,
+                data: [],
+                hasMore: false,
+                nextCursor: null,
+                error: error instanceof Error ? error.message : 'Unable to load IBM i job queues.'
+            };
+        }
+    });
+
+    ipcMain.handle('get-job-queue-details', async (_event, payload: {
+        queueName?: string;
+        queueLibrary?: string;
+    } = {}) => {
+        const queueName = typeof payload.queueName === 'string' ? payload.queueName.trim() : '';
+        const queueLibrary = typeof payload.queueLibrary === 'string' ? payload.queueLibrary.trim() : 'QGPL';
+        if (!queueName || !queueLibrary || queueName.includes('..') || queueLibrary.includes('..')) {
+            return { success: false, queue: null, subsystem: null, error: 'Choose a valid job queue.' };
+        }
+
+        try {
+            return { success: true, ...(await dependencies.getJobQueueDetails(queueName, queueLibrary)) };
+        } catch (error) {
+            return {
+                success: false,
+                queue: null,
+                subsystem: null,
+                error: error instanceof Error ? error.message : 'Unable to load job queue details.'
+            };
+        }
+    });
+
+    ipcMain.handle('get-queued-jobs', async (_event, options: QueuedJobQuery = {}) => {
+        try {
+            return { success: true, ...(await dependencies.getQueuedJobs(options)) };
+        } catch (error) {
+            return {
+                success: false,
+                data: [],
+                hasMore: false,
+                nextCursor: null,
+                error: error instanceof Error ? error.message : 'Unable to load queued IBM i jobs.'
+            };
+        }
+    });
+
     ipcMain.handle('run-job-action', async (_event, payload: {
         kind: OperatorActionKind;
         jobName: string;
@@ -149,6 +218,76 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
                 level: 'error',
                 message: `Operator action failed: ${payload.kind}.`,
                 detail: `${payload.jobName} | ${errorMessage}`
+            });
+            return { success: false, error: errorMessage };
+        }
+    });
+
+    ipcMain.handle('run-job-queue-action', async (_event, payload: {
+        kind: JobQueueActionKind;
+        queueName: string;
+        queueLibrary: string;
+        jobName?: string;
+        confirmed?: boolean;
+    }) => {
+        try {
+            dependencies.requirePremium();
+        } catch (error) {
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Job queue actions require Premium.'
+            };
+        }
+        const plan = buildJobQueueActionPlan(payload);
+        if (plan.executionType === 'blocked' || !plan.command) {
+            return { success: false, error: plan.reason || 'This queue action is not available.' };
+        }
+
+        if (
+            (payload.kind === 'holdQueuedJob' || payload.kind === 'releaseQueuedJob')
+            && (!payload.jobName || !(await dependencies.isQueuedJob(payload.jobName)))
+        ) {
+            return { success: false, error: 'The selected queued job is no longer available.' };
+        }
+
+        if (requiresJobQueueConfirmation(payload.kind) && payload.confirmed !== true) {
+            return { success: false, error: 'This queue action requires operator confirmation.' };
+        }
+
+        try {
+            await dependencies.runJobQueueCommand(
+                plan.command,
+                payload,
+                dependencies.isLiveMonitorMode()
+            );
+            dependencies.recordActionAudit(createActionAuditEntry({
+                operator: dependencies.getOperatorName(),
+                jobName: payload.jobName || `${payload.queueLibrary}/${payload.queueName}`,
+                action: payload.kind,
+                result: 'success',
+                detail: plan.command
+            }));
+            dependencies.sendToWindow('job-queues-updated', {
+                queueName: payload.queueName,
+                queueLibrary: payload.queueLibrary,
+                jobName: payload.jobName,
+                action: payload.kind
+            });
+            return { success: true, message: `Action completed: ${payload.kind}` };
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown queue action failure';
+            dependencies.recordActionAudit(createActionAuditEntry({
+                operator: dependencies.getOperatorName(),
+                jobName: payload.jobName || `${payload.queueLibrary}/${payload.queueName}`,
+                action: payload.kind,
+                result: 'failure',
+                detail: errorMessage
+            }));
+            dependencies.recordActivity({
+                area: 'monitoring',
+                level: 'error',
+                message: `Job queue action failed: ${payload.kind}.`,
+                detail: `${payload.queueLibrary}/${payload.queueName} | ${errorMessage}`
             });
             return { success: false, error: errorMessage };
         }

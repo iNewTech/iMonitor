@@ -1,0 +1,3 @@
+A          R ORDERCTL
+A            ORDER_ID      9Y 0B 5 2EDTCDE(Z)
+A            ACTION        1A  B 7 2VALUES('A' 'C')

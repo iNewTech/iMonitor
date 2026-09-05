@@ -26,6 +26,10 @@ export function createWindowRuntime(dependencies: WindowRuntimeDependencies) {
         mainWindow?.loadFile(path.join(__dirname, '../../../public/settings.html'));
     };
 
+    const loadObjectAnalysisPage = () => {
+        mainWindow?.loadFile(path.join(__dirname, '../../../public/object-analysis.html'));
+    };
+
     return {
         getWindow() {
             return mainWindow;
@@ -40,6 +44,7 @@ export function createWindowRuntime(dependencies: WindowRuntimeDependencies) {
         loadConnectionPage,
         loadMonitorPage,
         loadSettingsPage,
+        loadObjectAnalysisPage,
         createWindow() {
             mainWindow = new BrowserWindow({
                 width: 1280,

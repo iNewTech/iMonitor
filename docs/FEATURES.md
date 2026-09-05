@@ -33,3 +33,9 @@ The Connect screen includes a development plan selector so Free and Premium beha
 The key is validated in the Electron main process and is intentionally rejected by packaged production builds. Development builds also include a development override so Premium workflows can be tested without changing production licensing behavior.
 
 Production licensing should replace this path with signed license validation before release.
+
+## Provider-neutral SMS
+
+Premium users can connect any REST-based SMS gateway from Settings → SMS alerts. The adapter supports HTTPS endpoints, POST/PUT/PATCH/GET requests, JSON/form/text bodies, bearer/API-key/Basic authentication, custom headers, multiple recipients, and optional response ID extraction. Request templates can use alert tokens such as `{{recipient}}`, `{{message}}`, `{{title}}`, `{{timestamp}}`, `{{connection}}`, and `{{alertId}}`; configured credentials are also available when a provider requires them in a body or custom header.
+
+Credentials are encrypted in local app storage. The development build can use a localhost endpoint for testing; production endpoints must use HTTPS. The shared IBMEye Alerts channel rules decide when SMS delivery is enabled, and repeated alerts are protected by the normal notification cooldown.

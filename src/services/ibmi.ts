@@ -1,5 +1,14 @@
 import * as mapepire from "@ibm/mapepire-js";
 import type { DaemonServer } from "@ibm/mapepire-js";
+import {
+  decodeCursor,
+  encodeCursor,
+  normalizeJobQueueRecord,
+  normalizePageSize,
+  normalizeQueuedJobRecord,
+  type JobQueueQuery,
+  type QueuedJobQuery
+} from "../features/action-board/job-queue-model";
 
 export type ServiceLogLevel = "info" | "success" | "warning" | "error";
 export type ServiceLogArea = "connection" | "sql";
@@ -14,6 +23,46 @@ export interface ServiceLogEntry {
 
 export interface QueryResult<T> {
   data: T[];
+}
+
+export interface JobQueueRecord {
+  JOB_QUEUE_NAME: string;
+  JOB_QUEUE_LIBRARY: string;
+  JOB_QUEUE_STATUS: string;
+  SUBSYSTEM_NAME: string | null;
+  SUBSYSTEM_LIBRARY_NAME: string | null;
+  SEQUENCE_NUMBER: number | null;
+  OPERATOR_CONTROLLED: string | null;
+  WAITING_JOBS: number;
+  ACTIVE_JOBS: number | null;
+  MAX_ACTIVE_JOBS: number | null;
+  HELD_JOBS: number | null;
+  TEXT_DESCRIPTION: string | null;
+  OLDEST_WAIT_TIME: string | null;
+}
+
+export interface QueuedJobRecord {
+  JOB_NAME: string;
+  JOB_NAME_SHORT: string | null;
+  JOB_NUMBER: string | null;
+  JOB_USER: string | null;
+  JOB_STATUS: string | null;
+  JOB_TYPE: string | null;
+  JOB_TYPE_ENHANCED: string | null;
+  JOB_QUEUE_NAME: string;
+  JOB_QUEUE_LIBRARY: string;
+  JOB_QUEUE_STATUS: string | null;
+  JOB_QUEUE_PRIORITY: number | string | null;
+  JOB_QUEUE_TIME: string | null;
+  JOB_ENTERED_SYSTEM_TIME: string | null;
+  SUBSYSTEM: string | null;
+  SUBSYSTEM_LIBRARY_NAME: string | null;
+}
+
+export interface PagedResult<T> {
+  data: T[];
+  nextCursor: string | null;
+  hasMore: boolean;
 }
 
 export interface ActiveJobRecord {
@@ -264,6 +313,122 @@ export default class Db {
             ORDER BY ELAPSED_CPU_PERCENTAGE DESC
         `;
     return this.query<QueryResult<ActiveJobRecord>>(statement);
+  }
+
+  /**
+   * Loads a bounded page of IBM i job queues. The queue view is intentionally
+   * paged so a large partition cannot make the ActionBoard wait on startup.
+   */
+  async getJobQueues(options: JobQueueQuery = {}): Promise<PagedResult<Record<string, unknown>>> {
+    const limit = normalizePageSize(options.limit);
+    const parameters: (number | string)[] = [];
+    const predicates: string[] = [];
+    const search = options.search?.trim();
+    const status = options.status?.trim().toUpperCase();
+    const cursor = decodeCursor<{ library?: string; name?: string }>(options.cursor);
+
+    if (search) {
+      const pattern = `%${search.toUpperCase()}%`;
+      predicates.push('(UPPER(JOB_QUEUE_NAME) LIKE ? OR UPPER(JOB_QUEUE_LIBRARY) LIKE ?)');
+      parameters.push(pattern, pattern);
+    }
+    if (status && status !== 'ALL') {
+      predicates.push('UPPER(JOB_QUEUE_STATUS) = ?');
+      parameters.push(status);
+    }
+    if (cursor?.library && cursor.name) {
+      predicates.push('(JOB_QUEUE_LIBRARY > ? OR (JOB_QUEUE_LIBRARY = ? AND JOB_QUEUE_NAME > ?))');
+      parameters.push(cursor.library, cursor.library, cursor.name);
+    }
+
+    const result = await this.query<QueryResult<Record<string, unknown>>>(`
+      SELECT *
+      FROM QSYS2.JOB_QUEUE_INFO
+      ${predicates.length ? `WHERE ${predicates.join(' AND ')}` : ''}
+      ORDER BY JOB_QUEUE_LIBRARY, JOB_QUEUE_NAME
+      FETCH FIRST ${limit + 1} ROWS ONLY
+    `, parameters);
+    const records = Array.isArray(result.data) ? result.data : [];
+    const hasMore = records.length > limit;
+    const page = hasMore ? records.slice(0, limit) : records;
+    const last = page[page.length - 1];
+
+    return {
+      data: page,
+      hasMore,
+      nextCursor: hasMore && last
+        ? encodeCursor({
+          library: normalizeJobQueueRecord(last).JOB_QUEUE_LIBRARY,
+          name: normalizeJobQueueRecord(last).JOB_QUEUE_NAME
+        })
+        : null
+    };
+  }
+
+  /**
+   * Loads queued jobs from QSYS2.JOB_INFO (*JOBQ), optionally scoped to one
+   * queue. A queue-less search is used when an operator searches for a job
+   * that is not in the first visible queue page.
+   */
+  async getQueuedJobs(options: QueuedJobQuery = {}): Promise<PagedResult<Record<string, unknown>>> {
+    const limit = normalizePageSize(options.limit);
+    const parameters: (number | string)[] = [];
+    const predicates: string[] = [];
+    const search = options.search?.trim();
+    const status = options.status?.trim().toUpperCase();
+    const cursor = decodeCursor<{ queueTime?: string; jobName?: string }>(options.cursor);
+
+    if (options.queueName?.trim()) {
+      predicates.push('JOB_QUEUE_NAME = ?');
+      parameters.push(options.queueName.trim());
+    }
+    if (options.queueLibrary?.trim()) {
+      predicates.push('JOB_QUEUE_LIBRARY = ?');
+      parameters.push(options.queueLibrary.trim());
+    }
+    if (search) {
+      const pattern = `%${search.toUpperCase()}%`;
+      predicates.push('(UPPER(JOB_NAME) LIKE ? OR UPPER(JOB_NAME_SHORT) LIKE ? OR UPPER(JOB_USER) LIKE ?)');
+      parameters.push(pattern, pattern, pattern);
+    }
+    if (status && status !== 'ALL') {
+      predicates.push('UPPER(JOB_QUEUE_STATUS) = ?');
+      parameters.push(status);
+    }
+    if (cursor?.queueTime && cursor.jobName) {
+      predicates.push('(JOB_QUEUE_TIME > ? OR (JOB_QUEUE_TIME = ? AND JOB_NAME > ?))');
+      parameters.push(cursor.queueTime, cursor.queueTime, cursor.jobName);
+    }
+
+    const result = await this.query<QueryResult<Record<string, unknown>>>(`
+      SELECT JOB_NAME, JOB_NAME_SHORT, JOB_NUMBER, JOB_USER, JOB_STATUS,
+             JOB_TYPE, JOB_TYPE_ENHANCED, JOB_QUEUE_NAME, JOB_QUEUE_LIBRARY,
+             JOB_QUEUE_STATUS, JOB_QUEUE_PRIORITY, JOB_QUEUE_TIME,
+             JOB_ENTERED_SYSTEM_TIME, SUBSYSTEM, SUBSYSTEM_LIBRARY_NAME
+      FROM TABLE(QSYS2.JOB_INFO(
+        JOB_STATUS_FILTER => '*JOBQ',
+        JOB_USER_FILTER => '*ALL'
+      )) X
+      ${predicates.length ? `WHERE ${predicates.join(' AND ')}` : ''}
+      ORDER BY JOB_QUEUE_TIME, JOB_NAME
+      FETCH FIRST ${limit + 1} ROWS ONLY
+    `, parameters);
+    const records = Array.isArray(result.data) ? result.data : [];
+    const hasMore = records.length > limit;
+    const page = hasMore ? records.slice(0, limit) : records;
+    const last = page[page.length - 1];
+    const normalizedLast = last ? normalizeQueuedJobRecord(last) : null;
+
+    return {
+      data: page,
+      hasMore,
+      nextCursor: hasMore && normalizedLast?.JOB_QUEUE_TIME
+        ? encodeCursor({
+          queueTime: normalizedLast.JOB_QUEUE_TIME,
+          jobName: normalizedLast.JOB_NAME
+        })
+        : null
+    };
   }
 
   /**

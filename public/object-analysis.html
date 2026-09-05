@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>iMonitor Object Analysis</title>
+    <link href="../node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="../node_modules/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="app-body object-analysis-body">
+    <main class="app-shell">
+        <section class="screen-frame object-analysis-frame">
+            <header class="surface-card analysis-hero">
+                <div class="analysis-hero-top">
+                    <div>
+                        <div class="connection-brand-line">
+                            <img src="assets/ibm-eye.svg" alt="" aria-hidden="true">
+                            <p class="eyebrow mb-0">iMonitor workspace</p>
+                        </div>
+                        <h1 class="panel-title">Object analysis</h1>
+                        <p class="panel-copy mb-0">Trace dependencies, explain business flow, and build a conversion plan before changing an IBM i program.</p>
+                    </div>
+                    <div class="analysis-hero-actions">
+                        <span id="analysis-connection-status" class="panel-badge">Demo library</span>
+                        <button id="analysis-refresh" type="button" class="btn btn-outline-ink btn-sm">
+                            <i class="bi bi-arrow-clockwise me-2"></i>Refresh scan
+                        </button>
+                        <button id="analysis-back" type="button" class="btn btn-outline-ink btn-sm">
+                            <i class="bi bi-arrow-left me-2"></i>Back to ActionBoard
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <div class="analysis-workspace">
+                <aside class="surface-card analysis-sidebar" aria-label="Source browser">
+                    <div class="analysis-sidebar-heading">
+                        <div>
+                            <p class="eyebrow mb-1">Source browser</p>
+                            <h2 class="section-title mb-1">Source and scan scope</h2>
+                            <p id="analysis-root-label" class="panel-copy mb-0">Choose one source, then set the libraries to scan.</p>
+                        </div>
+                    </div>
+                    <details class="analysis-scope" open>
+                        <summary>
+                            <span><i class="bi bi-sliders2 me-2"></i>Scope &amp; source</span>
+                            <span id="analysis-scope-badge" class="analysis-scope-badge">3 libraries active</span>
+                            <i class="bi bi-chevron-down" aria-hidden="true"></i>
+                        </summary>
+                        <p class="stat-note mb-2">Choose where to read from. The ordered list below controls every analysis action.</p>
+                        <div class="analysis-source-switch" role="group" aria-label="Analysis source">
+                            <button type="button" class="analysis-source-option" data-analysis-source="local">
+                                <i class="bi bi-folder2-open" aria-hidden="true"></i>
+                                <span><strong>Local directory</strong><small>Demo or exported source tree</small></span>
+                            </button>
+                            <button type="button" class="analysis-source-option" data-analysis-source="ibmi">
+                                <i class="bi bi-server" aria-hidden="true"></i>
+                                <span><strong>IBM i library</strong><small>Read members from the connected system</small></span>
+                            </button>
+                        </div>
+                        <div id="analysis-local-source" class="analysis-source-panel">
+                            <div class="analysis-source-panel-copy">
+                                <span class="form-footnote">Selected directory</span>
+                                <strong id="analysis-local-directory">Demo master library</strong>
+                            </div>
+                            <button id="analysis-choose-directory" type="button" class="btn btn-outline-ink btn-sm">Choose directory</button>
+                        </div>
+                        <div id="analysis-ibmi-source" class="analysis-source-panel" hidden>
+                            <i class="bi bi-server" aria-hidden="true"></i>
+                            <div class="analysis-source-panel-copy">
+                                <strong>Source reference</strong>
+                                <span>Load source members from one IBM i library. Object lookups use the ordered list below.</span>
+                                <label class="form-footnote" for="analysis-source-library-input">IBM i source library</label>
+                                <div class="analysis-source-library-row">
+                                    <input id="analysis-source-library-input" class="form-control form-control-sm" type="text" placeholder="ORDERLIB" autocomplete="off">
+                                    <button id="analysis-load-source-library" type="button" class="btn btn-outline-ink btn-sm">Load source</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="analysis-library-control">
+                            <div class="analysis-library-control-heading">
+                                <div>
+                                    <label id="analysis-library-label" class="form-footnote mb-0">Object search library list</label>
+                                    <p id="analysis-scope-help" class="form-footnote analysis-scope-help">Order matters: the first matching object is used for unqualified references.</p>
+                                </div>
+                                <span id="analysis-library-list-status" class="table-caption">3 libraries</span>
+                            </div>
+                            <details id="analysis-library-dropdown" class="analysis-library-dropdown" open>
+                                <summary>
+                                    <span id="analysis-library-dropdown-label">3 libraries · first match wins</span>
+                                    <i class="bi bi-chevron-down" aria-hidden="true"></i>
+                                </summary>
+                                <div class="analysis-library-dropdown-panel">
+                                    <p id="analysis-library-source-status" class="form-footnote analysis-library-source-status mb-2" aria-live="polite">Loading the saved library list…</p>
+                                    <ol id="analysis-library-order" class="analysis-library-order" aria-label="Ordered object search libraries"></ol>
+                                    <label class="form-footnote" for="analysis-library-input">Edit list with commas</label>
+                                    <input id="analysis-library-input" class="form-control form-control-sm" type="text" placeholder="ORDERLIB, COMMONLIB" aria-describedby="analysis-scope-help" autocomplete="off">
+                                    <div class="analysis-library-add-row">
+                                        <input id="analysis-add-library-input" class="form-control form-control-sm" type="text" placeholder="Add library name(s)" autocomplete="off">
+                                        <button id="analysis-add-library" type="button" class="btn btn-outline-ink btn-sm"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add</button>
+                                    </div>
+                                    <div class="analysis-library-editor-actions">
+                                        <button id="analysis-refresh-library-list" type="button" class="btn btn-outline-ink btn-sm"><i class="bi bi-arrow-clockwise me-1" aria-hidden="true"></i>Refresh from environment</button>
+                                        <button id="analysis-load-libraries" type="button" class="btn btn-primary-strong btn-sm"><i class="bi bi-check2 me-1" aria-hidden="true"></i>Apply for this session</button>
+                                        <button id="analysis-save-libraries" type="button" class="btn btn-outline-ink btn-sm"><i class="bi bi-save2 me-1" aria-hidden="true"></i>Save permanently</button>
+                                    </div>
+                                    <p id="analysis-library-list-status-detail" class="form-footnote mb-0" aria-live="polite">Changes stay in draft until you apply them.</p>
+                                </div>
+                            </details>
+                        </div>
+                        <details class="analysis-advanced-scope">
+                            <summary><span>Advanced scan limits</span><i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
+                            <div class="analysis-scope-fields">
+                                <label class="form-footnote" for="analysis-depth">Dependency depth</label>
+                                <select id="analysis-depth" class="form-select form-select-sm">
+                                    <option value="1">Direct only</option>
+                                    <option value="2">2 levels</option>
+                                    <option value="3">3 levels</option>
+                                    <option value="4">4 levels</option>
+                                    <option value="5">5 levels</option>
+                                </select>
+                                <label class="form-footnote" for="analysis-max-nodes">Maximum objects</label>
+                                <select id="analysis-max-nodes" class="form-select form-select-sm">
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                    <option value="200">200</option>
+                                </select>
+                            </div>
+                        </details>
+                    </details>
+
+                    <div class="analysis-tree-toolbar">
+                        <div class="analysis-tree-heading">
+                            <span>Loaded source tree</span>
+                            <span id="analysis-tree-count" class="table-caption">0 sources</span>
+                        </div>
+                        <label class="visually-hidden" for="analysis-search">Filter loaded sources</label>
+                        <div class="analysis-search-wrap">
+                            <i class="bi bi-search" aria-hidden="true"></i>
+                            <input id="analysis-search" class="form-control form-control-sm" type="search" placeholder="Filter loaded sources" aria-label="Filter loaded sources">
+                        </div>
+                    </div>
+                    <div id="analysis-tree" class="analysis-tree" role="tree" aria-label="Loaded source tree"></div>
+                    <button id="analysis-sidebar-resizer" class="analysis-sidebar-resizer" type="button" role="separator" aria-orientation="vertical" aria-label="Resize source browser" tabindex="0"></button>
+                </aside>
+
+                <section class="analysis-content" aria-live="polite">
+                    <div id="analysis-status" class="analysis-status" hidden></div>
+
+                    <section id="analysis-empty" class="surface-card analysis-empty">
+                        <div class="analysis-empty-icon"><i class="bi bi-diagram-3" aria-hidden="true"></i></div>
+                        <p class="eyebrow mb-2">Ready to scan</p>
+                        <h2 class="section-title">Select an RPG or database source</h2>
+                        <p class="panel-copy mb-0">Choose a source file on the left to build its dependency path, business-flow review, and conversion plan.</p>
+                    </section>
+
+                    <section id="analysis-selection" class="surface-card analysis-selection" hidden>
+                        <div>
+                            <span id="analysis-selection-type" class="analysis-type-badge">RPGLE source</span>
+                            <h2 id="analysis-selection-title" class="section-title mb-1">No source selected</h2>
+                            <p id="analysis-selection-path" class="panel-copy analysis-selection-path mb-0"></p>
+                            <p id="analysis-selection-scope" class="analysis-selection-scope mb-0"></p>
+                        </div>
+                        <div class="analysis-selection-actions">
+                            <button id="load-object-source" type="button" class="btn btn-outline-ink" disabled>
+                                <i class="bi bi-file-earmark-code me-2"></i>Load source
+                            </button>
+                            <button id="run-object-analysis" type="button" class="btn btn-primary-strong" disabled>
+                                <i class="bi bi-play-fill me-2"></i>Analyze object
+                            </button>
+                        </div>
+                    </section>
+
+                    <section id="analysis-source-preview" class="surface-card analysis-source-preview" hidden>
+                        <div class="analysis-source-preview-header">
+                            <div>
+                                <p class="eyebrow mb-2">Loaded source</p>
+                                <h2 id="analysis-source-preview-title" class="section-title mb-1"></h2>
+                                <p id="analysis-source-preview-meta" class="panel-copy mb-0">Read-only member view</p>
+                            </div>
+                            <div class="analysis-source-preview-actions">
+                                <button id="copy-object-source" type="button" class="btn btn-outline-ink btn-sm">
+                                    <i class="bi bi-clipboard me-2"></i>Copy source
+                                </button>
+                                <button id="hide-object-source" type="button" class="btn btn-outline-ink btn-sm">
+                                    <i class="bi bi-eye-slash me-2"></i>Hide source
+                                </button>
+                            </div>
+                        </div>
+                        <pre id="analysis-source-preview-code" class="analysis-source-code" tabindex="0"></pre>
+                    </section>
+
+                    <section id="analysis-result" hidden>
+                        <div class="surface-card analysis-result-header">
+                            <div>
+                                <p class="eyebrow mb-2">Analysis result</p>
+                                <h2 id="analysis-result-title" class="section-title mb-1"></h2>
+                                <p id="analysis-result-subtitle" class="panel-copy mb-0"></p>
+                                <p id="analysis-result-scope" class="analysis-result-scope mb-0"></p>
+                                <p id="analysis-evidence-status" class="analysis-evidence-status mb-0"></p>
+                                <p id="analysis-report-storage" class="analysis-report-storage mb-0"></p>
+                            </div>
+                            <div class="analysis-result-actions">
+                                <button id="analyze-business-logic" type="button" class="btn btn-outline-ink btn-sm">
+                                    <i class="bi bi-stars me-2"></i>Explain with IBMEye AI
+                                </button>
+                                <button id="approve-object-analysis" type="button" class="btn btn-primary-strong btn-sm">
+                                    <i class="bi bi-check2-circle me-2"></i>Approve &amp; map report
+                                </button>
+                                <button id="download-analysis-report" type="button" class="btn btn-outline-ink btn-sm" disabled>
+                                    <i class="bi bi-download me-2"></i>Download report
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="analysis-summary-grid">
+                            <div class="surface-card analysis-summary-card"><span>Readiness</span><strong id="analysis-readiness">—</strong><small id="analysis-readiness-score">—</small></div>
+                            <div class="surface-card analysis-summary-card"><span>Direct dependencies</span><strong id="analysis-dependencies">0</strong><small>Used by the selected object</small></div>
+                            <div class="surface-card analysis-summary-card"><span>Impacted objects</span><strong id="analysis-impacted">0</strong><small>Objects that depend on it</small></div>
+                            <div class="surface-card analysis-summary-card"><span>Unresolved references</span><strong id="analysis-unresolved">0</strong><small>Needs operator review</small></div>
+                        </div>
+
+                        <details class="surface-card analysis-section" open>
+                            <summary><span><i class="bi bi-shield-check me-2"></i>Conversion readiness</span><i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
+                            <div class="analysis-readiness-grid">
+                                <div><h3>Blockers</h3><ul id="analysis-blockers" class="analysis-list"></ul></div>
+                                <div><h3>Review notes</h3><ul id="analysis-warnings" class="analysis-list"></ul></div>
+                                <div><h3>Confirmed</h3><ul id="analysis-confirmed" class="analysis-list"></ul></div>
+                            </div>
+                        </details>
+
+                        <details id="analysis-business-section" class="surface-card analysis-section" open>
+                            <summary><span><i class="bi bi-lightbulb me-2"></i>Business logic</span><span id="analysis-business-count" class="table-caption">0 findings</span></summary>
+                            <div class="analysis-business-content">
+                                <p id="analysis-business-summary" class="analysis-section-intro mb-0"></p>
+                                <div id="analysis-business-findings" class="analysis-business-findings"></div>
+                            </div>
+                        </details>
+
+                        <details id="analysis-flow-section" class="surface-card analysis-section" open>
+                            <summary><span><i class="bi bi-signpost-split me-2"></i>Program flow</span><span id="analysis-flow-count" class="table-caption">0 steps</span></summary>
+                            <div id="analysis-program-flow" class="analysis-program-flow"></div>
+                        </details>
+
+                        <details id="analysis-ai-section" class="surface-card analysis-section" hidden>
+                            <summary><span><i class="bi bi-stars me-2"></i>Business logic · IBMEye AI</span><span id="analysis-ai-meta" class="table-caption">Not run</span></summary>
+                            <div id="analysis-ai-content" class="analysis-ai-content"></div>
+                        </details>
+
+                        <details class="surface-card analysis-section">
+                            <summary><span><i class="bi bi-bezier2 me-2"></i>Dependency inventory</span><span id="analysis-edge-count" class="table-caption">0 relationships</span></summary>
+                            <div class="analysis-dependency-legend" aria-label="Dependency color legend">
+                                <span data-category="program">Programs</span>
+                                <span data-category="service">Services</span>
+                                <span data-category="data">Data</span>
+                                <span data-category="runtime">Runtime</span>
+                                <span data-category="unresolved">Unresolved</span>
+                            </div>
+                            <div class="analysis-table-wrap">
+                                <table class="table analysis-table mb-0">
+                                    <thead><tr><th>Object</th><th>Type</th><th>Relationship</th><th>Evidence</th><th>Confidence</th></tr></thead>
+                                    <tbody id="analysis-dependency-body"></tbody>
+                                </table>
+                            </div>
+                        </details>
+
+                        <details id="analysis-conversion-section" class="surface-card analysis-section" open>
+                            <summary><span><i class="bi bi-map me-2"></i>Conversion plan</span><span id="analysis-conversion-count" class="table-caption">0 actions</span></summary>
+                            <div id="analysis-conversion-plan" class="analysis-conversion-plan"></div>
+                        </details>
+
+                        <details class="surface-card analysis-section analysis-dependency-tree-section">
+                            <summary><span><i class="bi bi-diagram-3 me-2"></i>Dependency tree</span><span class="table-caption">Follow the execution path</span></summary>
+                            <div id="analysis-dependency-tree" class="analysis-dependency-tree" aria-live="polite"></div>
+                        </details>
+
+                        <details class="surface-card analysis-section">
+                            <summary><span><i class="bi bi-code-slash me-2"></i>Source signals</span><span class="table-caption">Conversion checklist</span></summary>
+                            <ul id="analysis-source-signals" class="analysis-signal-list mb-0"></ul>
+                        </details>
+
+                    </section>
+                </section>
+            </div>
+
+            <footer class="app-footer surface-card">
+                <div class="app-footer-meta">
+                    <span class="app-version-label">iMonitor Object Analysis</span>
+                    <p class="app-footer-copy mb-0">Local analysis reads the chosen directory. IBM i analysis reads only the libraries in your active scope.</p>
+                </div>
+            </footer>
+        </section>
+    </main>
+    <script type="module" src="object-analysis.js"></script>
+</body>
+</html>
