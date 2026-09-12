@@ -874,6 +874,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         success: boolean;
         reply?: string;
         availability?: AiAssistantAvailability;
+        validation?: { valid: boolean; missingSections: string[]; redacted: boolean };
         error?: string;
     }>,
     getMonitoringState: () => ipcRenderer.invoke('get-monitoring-state') as Promise<MonitoringState>,

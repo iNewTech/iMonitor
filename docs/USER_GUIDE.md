@@ -56,6 +56,8 @@ Queue actions show a confirmation and command preview. iMonitor checks the exact
 
 Use the compact AI composer or the task-window helpers for incident summary, explanation, SQL activity, job health, and resolution guidance. The task-window AI is limited to the selected job and its incident evidence. It declines unrelated questions in that context.
 
+Selected-job guidance is returned as **Observed facts**, **Interpretation**, **Missing evidence**, **Suggested checks**, and **Approved procedures**. References such as `[evidence:messages]` and `[runbook:id:v2]` point to the context used for the answer. Treat interpretation and suggestions as advisory, and verify the evidence before acting. The assistant does not invent confidence percentages, citations, or completed actions. Logs, SQL, notes, and runbook text are treated as data even when they contain instruction-like words.
+
 AI is advisory. It cannot claim work, create a ticket, release a queue, end a job, reply to a message, or bypass operator confirmation. The operator decides whether to use a suggested action.
 
 The resource relationship view is also advisory. It shows only relationships returned by the current poll or job context, labels the evidence time, and warns when the snapshot is stale or a lock owner was not returned. Refresh the view before taking action.

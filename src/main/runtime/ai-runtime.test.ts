@@ -124,6 +124,7 @@ describe('ai-runtime', () => {
                 expect(systemMessage).toContain('selected IBM i job');
                 expect(userMessage).toContain('QINTER/SELECTED');
                 expect(userMessage).toContain('Selected job status: Waiting for a lock');
+                expect(userMessage).toContain('[runbook:memory-1:v1]');
                 expect(userMessage).not.toContain('QBATCH/OTHER');
                 expect(userMessage).not.toContain('unrelated context');
                 expect(userMessage).not.toContain('totalJobs=99');
@@ -159,6 +160,13 @@ describe('ai-runtime', () => {
             getJobStatusHistory: () => [{
                 timestamp: '2026-09-12T09:59:00.000Z', status: 'RUN', label: 'Running'
             }],
+            getCurrentSystemId: () => 'prod',
+            getResolutionMemory: () => ({ entries: [{
+                id: 'memory-1', procedureKey: 'prod:lockWait:SELECTED', version: 1, status: 'approved', systemId: 'prod',
+                incidentKind: 'lockWait', jobPattern: '123/USER/*', title: 'Inspect the lock owner',
+                symptoms: [], evidenceRefs: [], failedAttempts: [], successfulAction: 'Inspect lock owner',
+                verifiedOutcome: 'Wait cleared.', environment: {}, createdAt: '2026-09-12T09:00:00.000Z'
+            }] }),
             getActivityLog: () => [{
                 id: '1', timestamp: '2026-09-12T10:00:00.000Z', area: 'monitoring', level: 'info',
                 message: `Observed ${selectedJob.JOB_NAME}`, detail: 'Selected job evidence.'

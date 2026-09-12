@@ -4,6 +4,8 @@ import type { MonitoringSnapshot } from '../../features/monitoring/monitoring-mo
 import { buildAiAssistantContext } from '../../features/ibmeyeai/ai-context';
 import { buildAiAssistantPrompt } from '../../features/ibmeyeai/ai-prompt';
 import { buildAlertDiagnosticPrompt } from '../../features/ibmeyeai/alert-diagnostic';
+import { findApplicableResolutions, type ResolutionMemoryStore } from '../../features/action-board/resolution-memory';
+import { validateGroundedReply, type GroundedReplyValidation } from '../../features/ibmeyeai/grounded-guidance';
 import type {
     AiAssistantAvailability,
     AiAssistantMessage,
@@ -30,6 +32,8 @@ interface AiRuntimeDependencies {
     getJobStatusHistory?: (jobName: string) => JobStatusHistoryEntry[];
     getActivityLog: () => ActivityLogEntry[];
     getHighCpuThreshold?: () => number;
+    getCurrentSystemId?: () => string | undefined;
+    getResolutionMemory?: () => ResolutionMemoryStore;
     recordActivity: (entry: Omit<ActivityLogEntry, 'id' | 'timestamp'>) => void;
     fetchImpl?: typeof fetch;
 }
@@ -113,6 +117,14 @@ export function createAiRuntime(dependencies: AiRuntimeDependencies) {
         const scopedActivity = isJobScoped && requestedJobName
             ? allActivity.filter((entry) => isJobRelatedActivity(entry, requestedJobName))
             : allActivity;
+        const linkedAlert = scopedAlerts.find((alert) => alert.jobName === requestedJobName) ?? scopedAlerts[0] ?? null;
+        const approvedResolutions = isJobScoped && selectedJob && dependencies.getCurrentSystemId && dependencies.getResolutionMemory
+            ? findApplicableResolutions({
+                systemId: dependencies.getCurrentSystemId() || '',
+                job: selectedJob,
+                alert: linkedAlert
+            }, dependencies.getResolutionMemory())
+            : [];
         const context = buildAiAssistantContext({
             appName: dependencies.appName,
             connection: dependencies.getConnection(),
@@ -127,7 +139,8 @@ export function createAiRuntime(dependencies: AiRuntimeDependencies) {
                 ? dependencies.getJobStatusHistory?.(requestedJobName)
                 : undefined,
             scope: payload.scope,
-            highCpuThreshold: dependencies.getHighCpuThreshold?.()
+            highCpuThreshold: dependencies.getHighCpuThreshold?.(),
+            approvedResolutions
         });
         const enrichedContext = !isJobScoped && payload.additionalContext?.trim()
             ? `${context}\n\n${payload.additionalContext.trim()}`
@@ -148,17 +161,19 @@ export function createAiRuntime(dependencies: AiRuntimeDependencies) {
                 throw new Error(`${availability.providerLabel} returned an empty response.`);
             }
 
+            const validation: GroundedReplyValidation = validateGroundedReply(reply, isJobScoped);
             dependencies.recordActivity({
                 area: 'ai',
                 level: 'info',
                 message: 'IBMEye AI analysis completed.',
-                detail: `${availability.providerLabel} / ${model} analyzed the current monitor context.`
+                detail: `${availability.providerLabel} / ${model} analyzed the current monitor context.${validation.valid ? '' : ` Missing sections: ${validation.missingSections.join(', ')}.`}`
             });
 
             return {
                 success: true,
-                reply,
-                availability
+                reply: validation.reply,
+                availability,
+                validation
             };
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);

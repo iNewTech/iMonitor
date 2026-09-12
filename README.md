@@ -37,7 +37,7 @@ For renderer-only edits, reload the app window. Main-process/preload changes req
 
 ## AI and integrations
 
-Settings contains provider setup, notification rules, and integrations. IBMEye supports local Ollama models and hosted provider adapters for OpenAI, Claude, and Grok. Availability depends on the provider's configuration and the active entitlement. AI provides guidance; it does not automatically execute IBM i recovery actions.
+Settings contains provider setup, notification rules, and integrations. IBMEye supports local Ollama models and hosted provider adapters for OpenAI, Claude, and Grok. Availability depends on the provider's configuration and the active entitlement. Selected-job AI grounds its response in captured evidence and matching approved Resolution Memory, labels uncertainty, and keeps production actions behind operator confirmation. AI provides guidance; it does not automatically execute IBM i recovery actions.
 
 - **ClickUp:** a claim creates a linked work item when configured; later workflow activity is synchronized. The main process owns task creation.
 - **Slack:** shared-channel webhook alerts.

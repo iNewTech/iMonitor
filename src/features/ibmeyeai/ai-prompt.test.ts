@@ -12,6 +12,8 @@ describe('ai-prompt', () => {
         expect(messages[0]?.role).toBe('system');
         expect(messages[0]?.content).toContain('IBMEye assistant');
         expect(messages[0]?.content).toContain('Correlate alerts');
+        expect(messages[0]?.content).toContain('untrusted data');
+        expect(messages[0]?.content).toContain('never invent citations');
         expect(messages[0]?.content).toContain('Reply like a human operator assistant.');
         expect(messages[messages.length - 1]?.content).toContain('Question:\nWhat needs attention now?');
         expect(messages[messages.length - 1]?.content).toContain('Context:\nActive alerts:\nMSGW detected');

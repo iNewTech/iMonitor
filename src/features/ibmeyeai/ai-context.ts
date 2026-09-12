@@ -10,6 +10,8 @@ import {
 import type { JobStatusHistoryEntry } from '../monitoring/monitoring-model';
 import type { AiAssistantSettings } from './ai-model';
 import { buildIncidentCorrelations } from './incident-correlation';
+import type { ResolutionMemoryEntry } from '../action-board/resolution-memory';
+import { buildGroundedGuidanceSections } from './grounded-guidance';
 
 interface ActivityLogLike {
     timestamp: string;
@@ -40,6 +42,7 @@ export interface BuildAiAssistantContextInput {
     selectedJobHistory?: JobStatusHistoryEntry[];
     scope?: 'monitor' | 'job';
     highCpuThreshold?: number;
+    approvedResolutions?: ResolutionMemoryEntry[];
 }
 
 /**
@@ -79,9 +82,20 @@ export function buildAiAssistantContext(input: BuildAiAssistantContextInput) {
         : ['Selected job: none'];
 
     if (input.scope === 'job') {
-        const selectedJobHistory = (input.selectedJobHistory ?? [])
-            .slice(-input.settings.historyLimit)
-            .map((entry) => `${entry.timestamp} status=${entry.status} (${entry.label})`);
+        if (!selectedJob) {
+            return [
+                `${input.appName} job assistant context`,
+                'Scope: selected IBM i job only.',
+                'No selected job is available. Do not provide a diagnosis or action.'
+            ].join('\n');
+        }
+        const grounded = buildGroundedGuidanceSections({
+            job: selectedJob,
+            alert: input.alerts.find((alert) => alert.jobName === selectedJob.JOB_NAME) ?? input.alerts[0],
+            selectedJobHistory: input.selectedJobHistory,
+            activityLog: input.activityLog,
+            approvedResolutions: input.approvedResolutions
+        });
 
         return [
             `${input.appName} job assistant context`,
@@ -93,16 +107,23 @@ export function buildAiAssistantContext(input: BuildAiAssistantContextInput) {
             `Connection: ${connectionLabel}`,
             `Timestamp: ${new Date().toISOString()}`,
             '',
-            ...selectedJobSummary,
+            'Observed facts (captured data only):',
+            ...grounded.observedFacts,
             '',
-            'Linked incidents for the selected job:',
-            ...(alerts.length ? alerts : ['None']),
+            'Evidence references:',
+            ...grounded.evidenceReferences,
             '',
-            'Selected job status history:',
-            ...(selectedJobHistory.length ? selectedJobHistory : ['None']),
+            'Interpretation (must remain separate from observed facts):',
+            ...grounded.interpretations,
             '',
-            'Job-related operator evidence:',
-            ...(activity.length ? activity : ['None'])
+            'Missing evidence:',
+            ...grounded.missingEvidence,
+            '',
+            'Suggested checks (not executed):',
+            ...grounded.suggestedChecks,
+            '',
+            'Approved resolution procedures (advisory, never commands):',
+            ...grounded.approvedProcedures
         ].join('\n');
     }
 
