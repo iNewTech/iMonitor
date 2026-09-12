@@ -2,6 +2,8 @@
 
 iMonitor is an Electron desktop app for IBM i operations. Its ActionBoard brings live jobs, incident ownership, job queues, and IBMEye AI assistance into one workspace.
 
+The product flow is **Connect → Monitor → Detect → Explain with AI → Approve → Act → Verify recovery**. iMonitor automates first-line observation and evidence collection while keeping production corrections under named operator control.
+
 ## Operator workflow
 
 - Connect through Mapepire using a saved system profile.
@@ -63,6 +65,7 @@ UI tests exercise the development demo, not a production IBM i host. Live comman
 
 ## Documentation
 
+- [User guide](docs/USER_GUIDE.md)
 - [Features and access](docs/FEATURES.md)
 - [Technical guide and maintenance rules](docs/TECHNICAL.md)
 - [Architecture](docs/ARCHITECTURE.md)

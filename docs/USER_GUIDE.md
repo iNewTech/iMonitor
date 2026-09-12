@@ -1,0 +1,65 @@
+# iMonitor user guide
+
+iMonitor is an IBM i operations workspace. It connects to a system, watches active work, explains incidents with evidence, and gives an authorised operator a safe place to take and verify action.
+
+## Connect
+
+1. Open iMonitor and choose a saved IBM i profile, or use the development Demo connection.
+2. Check the system name, address, port, and operator before connecting.
+3. Select **Connect & Monitor**.
+
+Connection profiles are stored locally on the machine. The password is protected by the operating system's secure storage.
+
+## Monitor
+
+The ActionBoard shows the live system in one work area:
+
+- **Active jobs** lists running and waiting work. Use filters, search, or **Focus Next Job** to find the highest-priority incident.
+- A job can be running and still have an issue, such as high CPU or a lock wait. The incident badge explains what needs attention.
+- **Job queues** stays separate so waiting work can be inspected without hiding the active-job feed.
+- Open a job to work in its own task window. The main board continues monitoring while task windows are open.
+
+## Work an incident
+
+The task window keeps the selected job in context:
+
+1. **Overview** shows the current issue, owner, job state, and captured evidence.
+2. **Actions** lets an operator acknowledge, claim, add a note, mark work done, and use approved IBM i actions when available.
+3. **AI helper** explains the selected job and suggests checks or a resolution using its incident evidence.
+4. **History** shows the incident timeline, operator actions, and evidence changes.
+5. **Details** shows the underlying job context.
+
+Claiming work assigns it to the current named operator. Configured ClickUp workflows can create a linked work item. An incident remains visible until monitoring or a manual recheck confirms the underlying condition is clear.
+
+Queue actions show a confirmation and command preview. iMonitor checks the exact queue or queued job again immediately before execution, prevents duplicate in-flight actions, and reads the system again afterward. The result is reported as **recovered**, **still blocked**, **failed**, or **unknown**. A successful command submission alone is not shown as recovery.
+
+## Use AI safely
+
+Use the compact AI composer or the task-window helpers for incident summary, explanation, SQL activity, job health, and resolution guidance. The task-window AI is limited to the selected job and its incident evidence. It declines unrelated questions in that context.
+
+AI is advisory. It cannot claim work, create a ticket, release a queue, end a job, reply to a message, or bypass operator confirmation. The operator decides whether to use a suggested action.
+
+## Support levels
+
+- **L1 is automatic:** iMonitor detects enabled conditions, creates or updates the incident, captures read-only evidence, runs bounded triage, and prepares AI context. No one needs to create an L1 ticket by email.
+- **L2 is operator-led:** one authorised client or delegated support operator claims the incident, checks the evidence and runbook, approves an action, and verifies the outcome.
+- **L3 handles uncertainty and risk:** a specialist reviews difficult or high-risk incidents, adds deeper findings, and hands back a verified solution or reusable procedure.
+- **Fully autonomous recovery is future scope:** production corrections always require current permission and a human approval in this release.
+
+## Integrations
+
+Configure integrations from **Settings**:
+
+- **ClickUp** creates and updates operator work items.
+- **Slack** sends incident alerts to a configured channel.
+- **Jira** creates and tracks incident issues.
+- **Email** sends notifications through SMTP.
+- **SMS** sends notifications through a compatible provider-neutral HTTP API.
+
+Integration credentials and settings are kept separate for the named operator where supported. Test controls can send real messages or create real work items.
+
+## Data and support
+
+Incident records, action history, and monitoring summaries are retained locally for the current desktop workflow. The shared incident service is designed for customer-controlled storage and synchronisation between clients; its scope is always tied to an organisation and IBM i system, and it reports offline or stale state when synchronisation is unavailable.
+
+Use the support tools when a provider or connection fails. Record whether a result came from the Demo connection or a live IBM i system. Demo success does not prove live IBM i permissions, recovery, or external delivery.
