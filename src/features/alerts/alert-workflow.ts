@@ -419,7 +419,8 @@ export function resolveAlertById(
                 timeline: alert.timeline,
                 updatedAt: alert.workflowUpdatedAt,
                 lastActionSummary: alert.lastActionSummary,
-                clickUpTask: alert.clickUpTask
+                clickUpTask: alert.clickUpTask,
+                handoff: alert.handoff
             }, timestamp), { timestamp, detail }))
             : alert
     ));

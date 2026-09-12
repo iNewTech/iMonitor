@@ -250,6 +250,37 @@ describe('clickup-runtime', () => {
         }));
     });
 
+    it('assigns an accepted handoff recipient to the linked task', async () => {
+        const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
+            if (url.endsWith('/team/team-1/user')) {
+                return new Response(JSON.stringify({ users: [{ id: 303, username: 'l3-specialist' }] }), { status: 200 });
+            }
+            if (url.endsWith('/task/task-904')) {
+                expect(init?.method).toBe('PUT');
+                expect(JSON.parse(String(init?.body ?? '{}'))).toEqual({ assignees: { add: ['303'] } });
+                return new Response('{}', { status: 200 });
+            }
+            throw new Error(`Unexpected fetch: ${url}`);
+        });
+        const recordActivity = vi.fn();
+        const runtime = createClickUpRuntime({
+            getSettings: () => ({
+                ...DEFAULT_CLICKUP_SETTINGS,
+                enabled: true,
+                apiToken: 'pk_demo',
+                workspaceId: 'team-1'
+            }),
+            recordActivity,
+            fetchImpl: fetchImpl as typeof fetch
+        });
+
+        await runtime.assignClickUpTaskToOperator('task-904', 'l3-specialist');
+
+        expect(recordActivity).toHaveBeenCalledWith(expect.objectContaining({
+            message: 'Assigned the accepted handoff in ClickUp.'
+        }));
+    });
+
     it('resolves a configured email once and reuses the cached member ID', async () => {
         let currentSettings = {
             ...DEFAULT_CLICKUP_SETTINGS,

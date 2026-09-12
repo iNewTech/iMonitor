@@ -6,6 +6,7 @@ import type {
     MonitorAlert,
     StoredAlertWorkflowState
 } from './alert-model';
+import { normalizeIncidentHandoff, type IncidentHandoff } from './incident-handoff';
 
 /**
  * Shared action payload used when mutating operator alert workflow.
@@ -64,7 +65,8 @@ export function normalizeAlertWorkflowState(
             : createAlertWorkflowState(timestamp).timeline,
         updatedAt: state.updatedAt ?? timestamp,
         lastActionSummary: state.lastActionSummary,
-        clickUpTask: state.clickUpTask
+        clickUpTask: state.clickUpTask,
+        handoff: normalizeIncidentHandoff(state.handoff)
     };
 }
 
@@ -84,11 +86,15 @@ export function applyWorkflowStateToAlert(
         timeline: workflowState.timeline,
         workflowUpdatedAt: workflowState.updatedAt,
         lastActionSummary: workflowState.lastActionSummary,
-        clickUpTask: workflowState.clickUpTask
+        clickUpTask: workflowState.clickUpTask,
+        handoff: workflowState.handoff
     };
 }
 
 export function getIncidentLifecyclePhase(state: StoredAlertWorkflowState): MonitorAlert['lifecyclePhase'] {
+    if (state.status !== 'system_cleared' && state.handoff?.status === 'pending') {
+        return 'awaiting_escalation';
+    }
     switch (state.status) {
         case 'acknowledged':
             return 'acknowledged';
@@ -311,6 +317,8 @@ function normalizeWorkflowAction(action: string | undefined): AlertWorkflowActio
         case 'note_added':
         case 'reopened':
         case 'rechecked':
+        case 'handoff_requested':
+        case 'handoff_accepted':
             return action;
         case 'started':
         case 'claimed':
@@ -325,6 +333,38 @@ function normalizeWorkflowAction(action: string | undefined): AlertWorkflowActio
         default:
             return 'condition_seen';
     }
+}
+
+/** Records a pending transfer while the current operator remains accountable until acceptance. */
+export function recordHandoffRequested(
+    state: StoredAlertWorkflowState,
+    handoff: IncidentHandoff,
+    timestamp: string
+): StoredAlertWorkflowState {
+    return appendWorkflowEntry({
+        ...state,
+        handoff,
+        updatedAt: timestamp,
+        lastActionSummary: `Handoff sent to ${handoff.toOperator}`
+    }, 'handoff_requested', timestamp, 'Handoff requested', handoff.fromOperator,
+        `to: ${handoff.toOperator} | reason: ${handoff.reason}`);
+}
+
+/** Records acceptance and transfers incident ownership to the named recipient. */
+export function recordHandoffAccepted(
+    state: StoredAlertWorkflowState,
+    handoff: IncidentHandoff,
+    timestamp: string
+): StoredAlertWorkflowState {
+    return appendWorkflowEntry({
+        ...state,
+        status: 'claimed',
+        owner: handoff.acceptedBy || handoff.toOperator,
+        handoff,
+        updatedAt: timestamp,
+        lastActionSummary: `Handoff accepted by ${handoff.acceptedBy || handoff.toOperator}`
+    }, 'handoff_accepted', timestamp, 'Handoff accepted', handoff.acceptedBy || handoff.toOperator,
+        `from: ${handoff.fromOperator}`);
 }
 
 function mutateWorkflowState(

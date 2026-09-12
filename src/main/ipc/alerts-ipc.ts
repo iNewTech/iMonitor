@@ -1,5 +1,11 @@
 import { ipcMain } from 'electron/main';
-import type { AlertSettings, StoredAlertWorkflowState } from '../../features/alerts/alert-model';
+import type { AlertSettings, MonitorAlert, StoredAlertWorkflowState } from '../../features/alerts/alert-model';
+import {
+    acceptIncidentHandoff,
+    buildShiftHandoffSummary,
+    createIncidentHandoff
+} from '../../features/alerts/incident-handoff';
+import { recordHandoffAccepted, recordHandoffRequested } from '../../features/alerts/alert-operator-workflow';
 import type { EmailNotificationSettings } from '../../features/notifications/email-notification';
 import { createActionLeaseStore } from '../../features/action-board/action-leases';
 import type { AuthorizationResult, ProtectedAction } from '../../features/action-board/operator-access';
@@ -40,11 +46,12 @@ interface RegisterAlertsIpcDependencies {
     getCurrentSystemId: () => string | undefined;
     syncLinkedExternalWorkItem?: (payload: {
         alertId: string;
-        action: 'acknowledge' | 'claim' | 'release' | 'workDone' | 'note';
+        action: 'acknowledge' | 'claim' | 'release' | 'workDone' | 'note' | 'handoff';
         note?: string;
         nextState: StoredAlertWorkflowState;
     }) => Promise<void> | void;
     createClickUpTaskForClaimedAlert?: (alertId: string) => Promise<void>;
+    assignClickUpTaskToOperator?: (taskId: string, operatorName: string) => Promise<void> | void;
     recordActivity: (entry: {
         area: 'monitoring';
         level: 'info';
@@ -60,6 +67,10 @@ interface RegisterAlertsIpcDependencies {
 export function registerAlertsIpc(dependencies: RegisterAlertsIpcDependencies) {
     const actionLeases = createActionLeaseStore();
     ipcMain.handle('get-active-alerts', () => dependencies.getActiveAlerts());
+    ipcMain.handle('get-shift-handoff-summary', () => ({
+        success: true,
+        summary: buildShiftHandoffSummary(dependencies.getActiveAlerts() as MonitorAlert[])
+    }));
 
     ipcMain.handle('recheck-alert', async (_event, alertId: string) => {
         try {
@@ -182,6 +193,154 @@ export function registerAlertsIpc(dependencies: RegisterAlertsIpcDependencies) {
             }
 
             return { success: true };
+        } finally {
+            actionLeases.complete(leaseResult.lease);
+        }
+    });
+
+    ipcMain.handle('create-incident-handoff', async (_event, payload: {
+        alertId: string;
+        toOperator: string;
+        reason?: string;
+        pendingChecks?: string[];
+        responseTargetAt?: string;
+        executionId?: string;
+        systemId?: string;
+        expectedUpdatedAt?: string;
+    }) => {
+        const systemId = dependencies.getCurrentSystemId();
+        if (payload.systemId && payload.systemId !== systemId) {
+            return { success: false, error: 'This incident targets a different IBM i system.' };
+        }
+        const authorization = dependencies.authorizeAction('incident-handoff', systemId);
+        if (!authorization.allowed) {
+            return { success: false, error: authorization.reason || 'The operator is not allowed to hand off incidents.' };
+        }
+
+        const currentAlert = dependencies.getActiveAlerts().find((candidate) => (
+            Boolean(candidate)
+            && typeof candidate === 'object'
+            && (candidate as { id?: unknown }).id === payload.alertId
+        )) as MonitorAlert | undefined;
+        if (!currentAlert) return { success: false, error: 'The selected incident is no longer available.' };
+        if (payload.expectedUpdatedAt && payload.expectedUpdatedAt !== currentAlert.workflowUpdatedAt) {
+            return { success: false, error: 'This incident changed while you were working. Refresh before handing it off.' };
+        }
+
+        const owner = dependencies.getOperatorName();
+        if (currentAlert.owner && currentAlert.owner !== owner) {
+            return { success: false, error: `Only ${currentAlert.owner} can hand off this incident.` };
+        }
+        if (currentAlert.handoff?.status === 'pending') {
+            return { success: false, error: `A handoff to ${currentAlert.handoff.toOperator} is already pending.` };
+        }
+
+        const actionKey = `handoff:${systemId}:${payload.alertId}`;
+        const executionId = payload.executionId?.trim() || `${actionKey}:${Date.now()}`;
+        const leaseResult = actionLeases.acquire(actionKey, executionId, owner);
+        if (!leaseResult.granted) {
+            return {
+                success: false,
+                error: leaseResult.reason === 'replay'
+                    ? 'This handoff was already submitted.'
+                    : 'A handoff for this incident is already in progress.'
+            };
+        }
+        const timestamp = new Date().toISOString();
+
+        try {
+            const handoffResult = createIncidentHandoff({
+                incidentId: currentAlert.incidentId || currentAlert.id,
+                fromOperator: owner,
+                toOperator: payload.toOperator,
+                reason: payload.reason,
+                pendingChecks: payload.pendingChecks,
+                responseTargetAt: payload.responseTargetAt,
+                createdAt: timestamp
+            });
+            if (!handoffResult.success) return handoffResult;
+
+            const nextState = dependencies.mutateAlertWorkflow(payload.alertId, (state) => (
+                recordHandoffRequested(state, handoffResult.handoff, timestamp)
+            ));
+            dependencies.recordActivity({
+                area: 'monitoring',
+                level: 'info',
+                message: 'Incident handoff requested.',
+                detail: `${payload.alertId} | from=${owner} | to=${handoffResult.handoff.toOperator}`
+            });
+            await dependencies.syncLinkedExternalWorkItem?.({
+                alertId: payload.alertId,
+                action: 'handoff',
+                nextState
+            });
+            return { success: true, handoff: handoffResult.handoff, updatedAt: nextState.updatedAt };
+        } finally {
+            actionLeases.complete(leaseResult.lease);
+        }
+    });
+
+    ipcMain.handle('accept-incident-handoff', async (_event, payload: {
+        alertId: string;
+        executionId?: string;
+        systemId?: string;
+        expectedUpdatedAt?: string;
+    }) => {
+        const systemId = dependencies.getCurrentSystemId();
+        if (payload.systemId && payload.systemId !== systemId) {
+            return { success: false, error: 'This incident targets a different IBM i system.' };
+        }
+        const authorization = dependencies.authorizeAction('incident-handoff', systemId);
+        if (!authorization.allowed) {
+            return { success: false, error: authorization.reason || 'The operator is not allowed to accept incidents.' };
+        }
+
+        const currentAlert = dependencies.getActiveAlerts().find((candidate) => (
+            Boolean(candidate)
+            && typeof candidate === 'object'
+            && (candidate as { id?: unknown }).id === payload.alertId
+        )) as MonitorAlert | undefined;
+        if (!currentAlert) return { success: false, error: 'The selected incident is no longer available.' };
+        if (payload.expectedUpdatedAt && payload.expectedUpdatedAt !== currentAlert.workflowUpdatedAt) {
+            return { success: false, error: 'This incident changed while you were working. Refresh before accepting it.' };
+        }
+
+        const owner = dependencies.getOperatorName();
+        const actionKey = `handoff:${systemId}:${payload.alertId}`;
+        const executionId = payload.executionId?.trim() || `${actionKey}:accept:${Date.now()}`;
+        const leaseResult = actionLeases.acquire(actionKey, executionId, owner);
+        if (!leaseResult.granted) {
+            return {
+                success: false,
+                error: leaseResult.reason === 'replay'
+                    ? 'This handoff acceptance was already submitted.'
+                    : 'This handoff is already being updated.'
+            };
+        }
+        const timestamp = new Date().toISOString();
+
+        try {
+            const acceptance = acceptIncidentHandoff(currentAlert.handoff, owner, timestamp);
+            if (!acceptance.success) return acceptance;
+            const nextState = dependencies.mutateAlertWorkflow(payload.alertId, (state) => (
+                recordHandoffAccepted(state, acceptance.handoff, timestamp)
+            ));
+            dependencies.recordActivity({
+                area: 'monitoring',
+                level: 'info',
+                message: 'Incident handoff accepted.',
+                detail: `${payload.alertId} | operator=${owner}`
+            });
+            await dependencies.syncLinkedExternalWorkItem?.({
+                alertId: payload.alertId,
+                action: 'handoff',
+                nextState
+            });
+            await dependencies.assignClickUpTaskToOperator?.(
+                nextState.clickUpTask?.id || '',
+                acceptance.handoff.toOperator
+            );
+            return { success: true, handoff: acceptance.handoff, updatedAt: nextState.updatedAt };
         } finally {
             actionLeases.complete(leaseResult.lease);
         }

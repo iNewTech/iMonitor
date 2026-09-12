@@ -1255,6 +1255,9 @@ registerAlertsIpc({
     syncLinkedExternalWorkItem: async (payload) => {
         await clickUpRuntime.syncAlertWorkflowComment(payload);
     },
+    assignClickUpTaskToOperator: (taskId, operatorName) => (
+        clickUpRuntime.assignClickUpTaskToOperator(taskId, operatorName)
+    ),
     createClickUpTaskForClaimedAlert,
     recordActivity: loggingRuntime.recordActivity,
     onSettingsSaved: () => {

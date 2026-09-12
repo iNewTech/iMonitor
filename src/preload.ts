@@ -90,6 +90,22 @@ interface JiraSettings {
     issueType: string;
 }
 
+interface IncidentHandoff {
+    schema: 'imonitor-incident-handoff';
+    version: 1;
+    id: string;
+    incidentId: string;
+    fromOperator: string;
+    toOperator: string;
+    reason: string;
+    pendingChecks: string[];
+    responseTargetAt?: string;
+    createdAt: string;
+    status: 'pending' | 'accepted' | 'declined' | 'cancelled';
+    acceptedAt?: string;
+    acceptedBy?: string;
+}
+
 interface MonitorAlert {
     id: string;
     incidentId?: string;
@@ -148,6 +164,7 @@ interface MonitorAlert {
         url?: string;
         name?: string;
     };
+    handoff?: IncidentHandoff;
 }
 
 interface IncidentEvidenceSnapshot {
@@ -196,6 +213,7 @@ interface JobDetailsPayload {
         unsuccessfulAttempts: string[];
         unresolvedQuestions: string[];
         escalationReason: string;
+        handoff?: IncidentHandoff;
     } | null;
     guidance: {
         severity: 'info' | 'warning' | 'critical';
@@ -775,6 +793,37 @@ contextBridge.exposeInMainWorld('electronAPI', {
         expectedUpdatedAt?: string;
     }) => ipcRenderer.invoke('update-alert-workflow', payload) as Promise<{
         success: boolean;
+        error?: string;
+    }>,
+    createIncidentHandoff: (payload: {
+        alertId: string;
+        toOperator: string;
+        reason?: string;
+        pendingChecks?: string[];
+        responseTargetAt?: string;
+        executionId?: string;
+        systemId?: string;
+        expectedUpdatedAt?: string;
+    }) => ipcRenderer.invoke('create-incident-handoff', payload) as Promise<{
+        success: boolean;
+        handoff?: IncidentHandoff;
+        updatedAt?: string;
+        error?: string;
+    }>,
+    acceptIncidentHandoff: (payload: {
+        alertId: string;
+        executionId?: string;
+        systemId?: string;
+        expectedUpdatedAt?: string;
+    }) => ipcRenderer.invoke('accept-incident-handoff', payload) as Promise<{
+        success: boolean;
+        handoff?: IncidentHandoff;
+        updatedAt?: string;
+        error?: string;
+    }>,
+    getShiftHandoffSummary: () => ipcRenderer.invoke('get-shift-handoff-summary') as Promise<{
+        success: boolean;
+        summary?: string;
         error?: string;
     }>,
     getAlertSettings: () => ipcRenderer.invoke('get-alert-settings') as Promise<AlertSettings>,

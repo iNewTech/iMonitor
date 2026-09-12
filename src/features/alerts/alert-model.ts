@@ -1,5 +1,6 @@
 import type { ClickUpTaskReference } from '../integrations/clickup/clickup-model';
 import type { IncidentEvidence } from './incident-evidence';
+import type { IncidentHandoff } from './incident-handoff';
 
 /**
  * Alert severities shown in the operator queue.
@@ -42,7 +43,9 @@ export type AlertWorkflowAction =
     | 'work_marked_done'
     | 'system_cleared'
     | 'rechecked'
-    | 'reopened';
+    | 'reopened'
+    | 'handoff_requested'
+    | 'handoff_accepted';
 
 /**
  * User-configurable alert toggles and thresholds.
@@ -104,6 +107,7 @@ export interface MonitorAlert {
     workflowUpdatedAt: string;
     lastActionSummary?: string;
     clickUpTask?: ClickUpTaskReference;
+    handoff?: IncidentHandoff;
 }
 
 /**
@@ -142,6 +146,7 @@ export interface StoredAlertWorkflowState {
     updatedAt: string;
     lastActionSummary?: string;
     clickUpTask?: ClickUpTaskReference;
+    handoff?: IncidentHandoff;
 }
 
 /**

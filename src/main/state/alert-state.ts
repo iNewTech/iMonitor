@@ -139,7 +139,8 @@ export function createAlertStateStore(dependencies: AlertStateDependencies) {
                         timeline: resolvedAlert.timeline,
                         updatedAt: resolvedAlert.workflowUpdatedAt,
                         lastActionSummary: resolvedAlert.lastActionSummary,
-                        clickUpTask: resolvedAlert.clickUpTask
+                        clickUpTask: resolvedAlert.clickUpTask,
+                        handoff: resolvedAlert.handoff
                     }
                 };
                 persistWorkflowState();
@@ -165,7 +166,8 @@ export function createAlertStateStore(dependencies: AlertStateDependencies) {
                 timeline: alert.timeline,
                 updatedAt: alert.workflowUpdatedAt,
                 lastActionSummary: alert.lastActionSummary,
-                clickUpTask: alert.clickUpTask
+                clickUpTask: alert.clickUpTask,
+                handoff: alert.handoff
             }, timestamp);
             const cleared = result === 'cleared';
             const resolutionDetail = cleared
@@ -206,7 +208,8 @@ export function createAlertStateStore(dependencies: AlertStateDependencies) {
                     timeline: nextState.timeline,
                     workflowUpdatedAt: nextState.updatedAt,
                     lastActionSummary: nextState.lastActionSummary,
-                    clickUpTask: nextState.clickUpTask
+                    clickUpTask: nextState.clickUpTask,
+                    handoff: nextState.handoff
                 }
                 : candidate));
             persistCurrentIncidents();
@@ -240,7 +243,8 @@ export function createAlertStateStore(dependencies: AlertStateDependencies) {
                         timeline: nextState.timeline,
                         workflowUpdatedAt: nextState.updatedAt,
                         lastActionSummary: nextState.lastActionSummary,
-                        clickUpTask: nextState.clickUpTask
+                        clickUpTask: nextState.clickUpTask,
+                        handoff: nextState.handoff
                     }
                     : alert
             )));

@@ -22,6 +22,8 @@ Task refreshes are serialized, stale snapshots are ignored, and action feedback 
 
 Claims, work completion, and system recovery are distinct states. The main process identifies the current operator and owns ClickUp creation. Renderer code must not create a second task after submitting a claim.
 
+Escalation is a durable two-step workflow. `incident-handoff.ts` validates a recipient, reason, pending checks, and response target; a pending handoff leaves the original owner accountable and moves the incident lifecycle to `awaiting_escalation`. The addressed operator must accept through the main process before ownership changes. Request and acceptance are separate timeline events, so a shift summary and external work-item comment can preserve who transferred the incident, who accepted it, and what remained to be checked.
+
 Protected incident, job, and queue mutations pass through a main-process operator authorization check and a per-target execution lease. The current local session is derived from the named OS operator and active IBM i connection; delegated sessions will supply scoped, expiring grants through the shared access work. Execution identifiers are replay-protected, concurrent requests are rejected, and audit entries retain operator and execution attribution. IBM i authority remains the final permission check at command execution.
 
 ## Object analysis

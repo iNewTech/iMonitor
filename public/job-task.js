@@ -56,11 +56,16 @@ const aiStatus = $('task-ai-status');
 const aiContent = $('task-ai-content');
 const detailsOutput = $('task-details-output');
 const handoffFields = {
+    recipient: $('task-handoff-recipient'),
+    responseTarget: $('task-handoff-response-target'),
+    reason: $('task-handoff-reason'),
+    pendingChecks: $('task-handoff-pending-checks'),
     nextCheck: $('task-handoff-next-check'),
     escalation: $('task-handoff-escalation'),
     checks: $('task-handoff-checks'),
     attempts: $('task-handoff-attempts'),
-    questions: $('task-handoff-questions')
+    questions: $('task-handoff-questions'),
+    shiftSummary: $('task-shift-summary')
 };
 let handoffDraftKey = '';
 
@@ -108,6 +113,20 @@ function findLinkedAlert() {
     return latestAlerts.find((alert) => alert?.jobName === selectedJobName && alert?.isActive !== false)
         || latestAlerts.find((alert) => alert?.jobName === selectedJobName)
         || null;
+}
+
+function toLocalDateTimeValue(timestamp) {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    if (Number.isNaN(date.getTime())) return '';
+    const offset = date.getTimezoneOffset();
+    return new Date(date.getTime() - offset * 60 * 1000).toISOString().slice(0, 16);
+}
+
+function toIsoDateTimeValue(value) {
+    if (!value) return undefined;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
 }
 
 function renderIncidentEvidence(alert) {
@@ -235,6 +254,8 @@ function fallbackResponseSnapshot(job, alert) {
 
 function renderResponseWorkspace(response) {
     const snapshot = response || fallbackResponseSnapshot(latestPayload?.job, findLinkedAlert());
+    const alert = findLinkedAlert();
+    const handoff = snapshot.handoff || alert?.handoff;
     const activeStep = snapshot.step || 'respond';
     ['respond', 'investigate', 'resolve'].forEach((step) => {
         const element = $(`task-response-step-${step}`);
@@ -255,20 +276,31 @@ function renderResponseWorkspace(response) {
         `<span class="response-evidence-item is-${escapeHtml(item.status || 'unavailable')}"><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(String(item.status || 'unavailable').replace(/-/g, ' '))} · ${Number(item.recordCount || 0)}</small></span>`
     )).join('');
 
-    const nextKey = `${snapshot.incidentKey}:${snapshot.status}`;
+    const nextKey = `${snapshot.incidentKey}:${snapshot.status}:${handoff?.id || 'none'}:${handoff?.status || 'none'}`;
     if (nextKey !== handoffDraftKey) {
         handoffDraftKey = nextKey;
+        handoffFields.recipient.value = handoff?.toOperator || '';
+        handoffFields.responseTarget.value = toLocalDateTimeValue(handoff?.responseTargetAt);
+        handoffFields.reason.value = handoff?.reason || '';
+        handoffFields.pendingChecks.value = (handoff?.pendingChecks || snapshot.unresolvedQuestions || []).join('\n');
         handoffFields.nextCheck.value = snapshot.nextCheck || '';
         handoffFields.escalation.value = snapshot.escalationReason || '';
         handoffFields.checks.value = (snapshot.completedChecks || []).join('\n');
         handoffFields.attempts.value = (snapshot.unsuccessfulAttempts || []).join('\n');
         handoffFields.questions.value = (snapshot.unresolvedQuestions || []).join('\n');
     }
+    $('task-handoff-state').textContent = handoff
+        ? handoff.status === 'pending' ? `Pending · ${handoff.toOperator}` : `${formatWorkflowLabel(handoff.status)} · ${handoff.toOperator}`
+        : 'No handoff';
 }
 
 function getHandoffDraft() {
     const value = (field) => field?.value.trim() || 'None recorded.';
     return {
+        recipient: value(handoffFields.recipient),
+        responseTargetAt: toIsoDateTimeValue(handoffFields.responseTarget.value),
+        reason: value(handoffFields.reason),
+        pendingChecks: handoffFields.pendingChecks.value.split('\n').map((line) => line.trim()).filter(Boolean),
         nextCheck: value(handoffFields.nextCheck),
         escalation: value(handoffFields.escalation),
         checks: value(handoffFields.checks),
@@ -289,6 +321,8 @@ function buildHandoffText() {
         `Impact: ${response.impactLabel || 'Normal'} — ${response.impactSummary || 'No summary.'}`,
         `Owner: ${response.owner || 'Unassigned'}`,
         `Status: ${formatWorkflowLabel(response.status || 'clear')}`,
+        draft.recipient !== 'None recorded.' ? `Handoff recipient: ${draft.recipient}` : '',
+        draft.responseTargetAt ? `Response target: ${draft.responseTargetAt}` : '',
         '',
         '## Next check', draft.nextCheck,
         '',
@@ -303,6 +337,10 @@ function buildHandoffText() {
         '## Unresolved questions', draft.questions,
         '',
         '## Escalation reason', draft.escalation,
+        '',
+        '## Handoff reason', draft.reason,
+        '',
+        '## Pending checks', draft.pendingChecks.length ? draft.pendingChecks.map((check) => `- ${check}`).join('\n') : 'None recorded.',
         ''
     ].join('\n');
 }
@@ -395,6 +433,8 @@ function requireSuccess(result, fallback) {
 
 function updateControls() {
     const mutationBlocked = pending.has('mutation') || !stateFresh || !latestPayload?.job;
+    const alert = findLinkedAlert();
+    const handoff = alert?.handoff;
     incidentActions.querySelectorAll('.task-alert-action').forEach((button) => {
         button.disabled = mutationBlocked;
     });
@@ -407,6 +447,17 @@ function updateControls() {
     });
     document.querySelectorAll('#task-copy-handoff, #task-download-handoff').forEach((button) => {
         button.disabled = !stateFresh || !latestPayload?.job || !selectedJobName;
+    });
+    $('task-request-handoff').disabled = mutationBlocked
+        || !alert
+        || Boolean(alert.owner && !isOwnedByCurrentOperator(alert))
+        || handoff?.status === 'pending';
+    $('task-accept-handoff').disabled = mutationBlocked
+        || handoff?.status !== 'pending'
+        || handoff.toOperator?.toLowerCase() !== currentOperatorName.toLowerCase();
+    $('task-refresh-shift-summary').disabled = pending.has('handoff') || !stateFresh;
+    document.querySelectorAll('#task-copy-shift-summary, #task-download-shift-summary').forEach((button) => {
+        button.disabled = !stateFresh || !handoffFields.shiftSummary.value.trim();
     });
     document.querySelectorAll('#task-load-log, #task-load-messages').forEach((button) => {
         button.disabled = pending.has('details') || !selectedJobName;
@@ -506,6 +557,59 @@ function runWorkflow(action) {
     });
 }
 
+function requestHandoff() {
+    const alert = findLinkedAlert();
+    if (!alert || !stateFresh) return;
+    const draft = getHandoffDraft();
+    if (!draft.recipient || draft.recipient === 'None recorded.') {
+        $('task-handoff-routing-status').textContent = 'Choose a recipient first.';
+        handoffFields.recipient.focus();
+        return;
+    }
+    return runRequest('mutation', () => mutateTask(async () => {
+        $('task-handoff-routing-status').textContent = 'Sending handoff…';
+        const result = requireSuccess(await window.electronAPI.createIncidentHandoff({
+            alertId: alert.id,
+            toOperator: draft.recipient,
+            reason: draft.reason === 'None recorded.' ? undefined : draft.reason,
+            pendingChecks: draft.pendingChecks,
+            responseTargetAt: draft.responseTargetAt,
+            executionId: createActionRequestId('handoff'),
+            expectedUpdatedAt: alert.workflowUpdatedAt
+        }), 'Unable to send handoff. Refresh and try again.');
+        $('task-handoff-routing-status').textContent = `Handoff sent to ${result.handoff?.toOperator || draft.recipient}.`;
+    }), (error) => {
+        $('task-handoff-routing-status').textContent = errorMessage(error, 'Unable to send handoff.');
+    });
+}
+
+function acceptHandoff() {
+    const alert = findLinkedAlert();
+    if (!alert?.handoff || !stateFresh) return;
+    return runRequest('mutation', () => mutateTask(async () => {
+        $('task-handoff-routing-status').textContent = 'Accepting handoff…';
+        requireSuccess(await window.electronAPI.acceptIncidentHandoff({
+            alertId: alert.id,
+            executionId: createActionRequestId('handoff-accept'),
+            expectedUpdatedAt: alert.workflowUpdatedAt
+        }), 'Unable to accept handoff. Refresh and try again.');
+        $('task-handoff-routing-status').textContent = 'Handoff accepted. You are now the owner.';
+    }), (error) => {
+        $('task-handoff-routing-status').textContent = errorMessage(error, 'Unable to accept handoff.');
+    });
+}
+
+function refreshShiftSummary() {
+    return runRequest('handoff', async () => {
+        $('task-handoff-routing-status').textContent = 'Preparing shift summary…';
+        const result = requireSuccess(await window.electronAPI.getShiftHandoffSummary(), 'Unable to prepare shift summary.');
+        handoffFields.shiftSummary.value = result.summary || '';
+        $('task-handoff-routing-status').textContent = 'Shift summary refreshed. You can edit it before export.';
+    }, (error) => {
+        $('task-handoff-routing-status').textContent = errorMessage(error, 'Unable to prepare shift summary.');
+    });
+}
+
 function askAi(kind) {
     if (!stateFresh || !latestPayload?.job || !selectedJobName) return;
     setTab('ai');
@@ -595,6 +699,27 @@ jobActions.addEventListener('click', (event) => {
 
 $('task-ai-summary').addEventListener('click', () => void askAi('summary'));
 $('task-ai-resolve').addEventListener('click', () => void askAi('resolve'));
+$('task-request-handoff').addEventListener('click', () => void requestHandoff());
+$('task-accept-handoff').addEventListener('click', () => void acceptHandoff());
+$('task-refresh-shift-summary').addEventListener('click', () => void refreshShiftSummary());
+$('task-copy-shift-summary').addEventListener('click', async () => {
+    try {
+        await navigator.clipboard.writeText(handoffFields.shiftSummary.value);
+        $('task-handoff-routing-status').textContent = 'Shift summary copied.';
+    } catch {
+        $('task-handoff-routing-status').textContent = 'Copy is unavailable; use Export shift summary.';
+    }
+});
+$('task-download-shift-summary').addEventListener('click', () => {
+    const blob = new Blob([handoffFields.shiftSummary.value], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'imonitor-shift-handover.md';
+    link.click();
+    URL.revokeObjectURL(url);
+    $('task-handoff-routing-status').textContent = 'Shift summary exported locally.';
+});
 $('task-copy-handoff').addEventListener('click', async () => {
     try {
         await navigator.clipboard.writeText(buildHandoffText());

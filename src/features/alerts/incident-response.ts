@@ -2,6 +2,7 @@ import type { ActiveJobRecord } from '../../services/ibmi';
 import { describeStatus, getJobTitle, toNumber } from '../monitoring/monitoring-model';
 import type { JobStatusHistoryEntry } from '../monitoring/monitoring-model';
 import type { MonitorAlert } from './alert-model';
+import type { IncidentHandoff } from './incident-handoff';
 
 export type IncidentResponseStep = 'respond' | 'investigate' | 'resolve';
 
@@ -29,6 +30,7 @@ export interface IncidentResponseSnapshot {
     unsuccessfulAttempts: string[];
     unresolvedQuestions: string[];
     escalationReason: string;
+    handoff?: IncidentHandoff;
 }
 
 interface IncidentResponseInput {
@@ -77,7 +79,8 @@ export function buildIncidentResponseSnapshot(input: IncidentResponseInput): Inc
         completedChecks: getCompletedChecks(activeAlert, input.statusHistory),
         unsuccessfulAttempts: getUnsuccessfulAttempts(activeAlert),
         unresolvedQuestions: getUnresolvedQuestions(activeAlert, job),
-        escalationReason: getEscalationReason(activeAlert, job, input.operatorName)
+        escalationReason: getEscalationReason(activeAlert, job, input.operatorName),
+        handoff: activeAlert?.handoff
     };
 }
 

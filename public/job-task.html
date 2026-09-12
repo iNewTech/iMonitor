@@ -113,6 +113,17 @@
                         <span id="task-handoff-state" class="table-caption">Local draft</span>
                     </div>
                     <p class="stat-note mb-3">Edit the context before sharing it with another specialist. Export stays local to this device.</p>
+                    <div class="handoff-grid handoff-routing-grid">
+                        <label class="handoff-field">Send to<input id="task-handoff-recipient" type="text" autocomplete="off" placeholder="Operator name"></label>
+                        <label class="handoff-field">Response target<input id="task-handoff-response-target" type="datetime-local"></label>
+                        <label class="handoff-field handoff-field-wide">Handoff reason<textarea id="task-handoff-reason" rows="2" placeholder="Why does this need another operator?"></textarea></label>
+                        <label class="handoff-field handoff-field-wide">Pending checks<textarea id="task-handoff-pending-checks" rows="2" placeholder="One check per line"></textarea></label>
+                    </div>
+                    <div class="handoff-actions">
+                        <button id="task-request-handoff" type="button" class="btn btn-primary-strong btn-sm">Send handoff</button>
+                        <button id="task-accept-handoff" type="button" class="btn btn-outline-ink btn-sm">Accept handoff</button>
+                        <span id="task-handoff-routing-status" class="stat-note" role="status"></span>
+                    </div>
                     <div class="handoff-grid">
                         <label class="handoff-field">Next check<textarea id="task-handoff-next-check" rows="2"></textarea></label>
                         <label class="handoff-field">Escalation reason<textarea id="task-handoff-escalation" rows="2"></textarea></label>
@@ -124,6 +135,12 @@
                         <button id="task-copy-handoff" type="button" class="btn btn-outline-ink btn-sm">Copy handoff</button>
                         <button id="task-download-handoff" type="button" class="btn btn-outline-ink btn-sm">Export handoff</button>
                         <span id="task-handoff-status" class="stat-note" role="status"></span>
+                    </div>
+                    <label class="handoff-field handoff-shift-summary">Shift summary<textarea id="task-shift-summary" rows="4" placeholder="Refresh to prepare a brief for all open incidents."></textarea></label>
+                    <div class="handoff-actions">
+                        <button id="task-refresh-shift-summary" type="button" class="btn btn-outline-ink btn-sm">Refresh shift summary</button>
+                        <button id="task-copy-shift-summary" type="button" class="btn btn-outline-ink btn-sm">Copy shift summary</button>
+                        <button id="task-download-shift-summary" type="button" class="btn btn-outline-ink btn-sm">Export shift summary</button>
                     </div>
                 </section>
                 <section class="job-detail-section">

@@ -123,9 +123,31 @@
     line-height: 1.4;
 }
 
+.handoff-field input {
+    width: 100%;
+    min-height: 36px;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--surface-elevated);
+    color: var(--text-strong);
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 500;
+}
+
 .handoff-field textarea:focus {
     outline: 2px solid color-mix(in srgb, var(--accent) 42%, transparent);
     outline-offset: 1px;
+}
+
+.handoff-field input:focus {
+    outline: 2px solid color-mix(in srgb, var(--accent) 42%, transparent);
+    outline-offset: 1px;
+}
+
+.handoff-shift-summary {
+    margin-top: 10px;
 }
 
 .handoff-field-wide {

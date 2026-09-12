@@ -443,6 +443,51 @@ export function createClickUpRuntime(dependencies: ClickUpRuntimeDependencies) {
         );
     }
 
+    /** Adds the accepted recipient to the linked task without making ClickUp the workflow authority. */
+    async function assignClickUpTaskToOperator(taskId: string, operatorName: string) {
+        const settings = dependencies.getSettings();
+        if (!settings.enabled || !settings.apiToken || !settings.workspaceId || !taskId.trim()) return;
+
+        try {
+            const membersResponse = await request<{ users?: ClickUpApiUser[] }>(
+                settings,
+                `/team/${encodeURIComponent(settings.workspaceId)}/user`
+            );
+            const matchedId = matchClickUpUserForOperator(operatorName, membersResponse.users);
+            if (!matchedId) {
+                dependencies.recordActivity({
+                    area: 'monitoring',
+                    level: 'warning',
+                    message: 'Accepted handoff could not be matched to a ClickUp member.',
+                    detail: operatorName
+                });
+                return;
+            }
+
+            await request(
+                settings,
+                `/task/${encodeURIComponent(taskId)}`,
+                {
+                    method: 'PUT',
+                    body: JSON.stringify({ assignees: { add: [matchedId] } })
+                }
+            );
+            dependencies.recordActivity({
+                area: 'monitoring',
+                level: 'info',
+                message: 'Assigned the accepted handoff in ClickUp.',
+                detail: `${taskId} | ${operatorName}`
+            });
+        } catch (error) {
+            dependencies.recordActivity({
+                area: 'monitoring',
+                level: 'warning',
+                message: 'Accepted handoff was saved, but ClickUp assignment failed.',
+                detail: error instanceof Error ? error.message : String(error)
+            });
+        }
+    }
+
     async function attachLogFileToTask(taskId: string, filePath: string) {
         const settings = getConfiguredSettings();
         const fileContents = await fs.readFile(filePath);
@@ -556,6 +601,9 @@ export function createClickUpRuntime(dependencies: ClickUpRuntimeDependencies) {
             `Workflow status: ${params.nextState.status}`,
             `Assigned owner: ${owner}`,
             params.nextState.lastActionSummary ? `Summary: ${params.nextState.lastActionSummary}` : '',
+            params.nextState.handoff ? `Handoff: ${params.nextState.handoff.status} from ${params.nextState.handoff.fromOperator} to ${params.nextState.handoff.toOperator}` : '',
+            params.nextState.handoff?.responseTargetAt ? `Response target: ${params.nextState.handoff.responseTargetAt}` : '',
+            params.nextState.handoff?.reason ? `Handoff reason: ${params.nextState.handoff.reason}` : '',
             params.note ? `Note: ${params.note}` : ''
         ].filter(Boolean).join('\n');
 
@@ -584,6 +632,7 @@ export function createClickUpRuntime(dependencies: ClickUpRuntimeDependencies) {
         resolveConfiguredAssignee,
         createTaskForAlert,
         publishAlertDiagnostic,
-        syncAlertWorkflowComment
+        syncAlertWorkflowComment,
+        assignClickUpTaskToOperator
     };
 }
