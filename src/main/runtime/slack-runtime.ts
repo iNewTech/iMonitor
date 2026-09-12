@@ -1,6 +1,8 @@
 import {
     buildSlackAlertPayload,
+    buildSlackHandoffPayload,
     normalizeSlackSettings,
+    type SlackHandoffNotification,
     type SlackWebhookPayload,
     type SlackSettings
 } from '../../features/integrations/slack/slack-model';
@@ -55,7 +57,7 @@ export function createSlackRuntime(dependencies: SlackRuntimeDependencies) {
         return Boolean(settings.enabled && settings.webhookUrl);
     }
 
-    async function sendMessage(payload: SlackWebhookPayload) {
+    async function sendMessage(payload: SlackWebhookPayload, activityMessage = 'Sent alert to Slack.') {
         const settings = getConfiguredSettings();
         const response = await fetcher(settings.webhookUrl, {
             method: 'POST',
@@ -73,7 +75,7 @@ export function createSlackRuntime(dependencies: SlackRuntimeDependencies) {
         dependencies.recordActivity({
             area: 'monitoring',
             level: 'success',
-            message: 'Sent alert to Slack.',
+            message: activityMessage,
             detail: settings.channelName ? `Channel: ${settings.channelName}` : 'Configured Slack channel'
         });
 
@@ -84,6 +86,12 @@ export function createSlackRuntime(dependencies: SlackRuntimeDependencies) {
         canSendAlerts,
         async sendAlert(alert: MonitorAlert) {
             return sendMessage(buildSlackAlertPayload(alert));
+        },
+        async sendHandoffNotification(notification: SlackHandoffNotification) {
+            return sendMessage(
+                buildSlackHandoffPayload(notification),
+                'Sent handoff notification to Slack.'
+            );
         },
         async sendTestMessage() {
             const operator = dependencies.getOperatorName?.() || 'local operator';

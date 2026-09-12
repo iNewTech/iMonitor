@@ -759,6 +759,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         listId: string;
         listName: string;
         syncComments: boolean;
+        handoffStatus: string;
+        activeStatus: string;
         userEmail: string;
         memberId: string;
         assigneeUserId: string;
@@ -773,6 +775,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         listId?: string;
         listName?: string;
         syncComments?: boolean;
+        handoffStatus?: string;
+        activeStatus?: string;
         userEmail?: string;
         memberId?: string;
         assigneeUserId?: string;
@@ -786,6 +790,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         listId: string;
         listName: string;
         syncComments: boolean;
+        handoffStatus: string;
+        activeStatus: string;
         userEmail: string;
         memberId: string;
         assigneeUserId: string;
@@ -842,11 +848,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
         success: boolean;
         handoff?: IncidentHandoff;
         updatedAt?: string;
-        error?: string;
-    }>,
-    getShiftHandoffSummary: () => ipcRenderer.invoke('get-shift-handoff-summary') as Promise<{
-        success: boolean;
-        summary?: string;
         error?: string;
     }>,
     getAlertSettings: () => ipcRenderer.invoke('get-alert-settings') as Promise<AlertSettings>,

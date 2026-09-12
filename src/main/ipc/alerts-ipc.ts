@@ -2,8 +2,8 @@ import { ipcMain } from 'electron/main';
 import type { AlertSettings, MonitorAlert, StoredAlertWorkflowState } from '../../features/alerts/alert-model';
 import {
     acceptIncidentHandoff,
-    buildShiftHandoffSummary,
-    createIncidentHandoff
+    createIncidentHandoff,
+    type IncidentHandoff
 } from '../../features/alerts/incident-handoff';
 import { recordHandoffAccepted, recordHandoffRequested } from '../../features/alerts/alert-operator-workflow';
 import type { EmailNotificationSettings } from '../../features/notifications/email-notification';
@@ -12,6 +12,7 @@ import type { AuthorizationResult, ProtectedAction } from '../../features/action
 
 interface RegisterAlertsIpcDependencies {
     getActiveAlerts: () => unknown[];
+    getAlertById?: (alertId: string) => MonitorAlert | undefined;
     recheckAlert: (alertId: string) => Promise<{
         status: 'active' | 'cleared' | 'unavailable';
         alert?: unknown;
@@ -51,8 +52,18 @@ interface RegisterAlertsIpcDependencies {
         note?: string;
         nextState: StoredAlertWorkflowState;
     }) => Promise<void> | void;
-    createClickUpTaskForClaimedAlert?: (alertId: string) => Promise<void>;
-    assignClickUpTaskToOperator?: (taskId: string, operatorName: string) => Promise<void> | void;
+    ensureClickUpTaskForAlert?: (alertId: string) => Promise<void>;
+    ensureJiraIssueForAlert?: (alertId: string) => Promise<void>;
+    assignClickUpTaskToOperator?: (
+        taskId: string,
+        operatorName: string,
+        previousOperatorName?: string
+    ) => Promise<void> | void;
+    notifyIncidentHandoff?: (params: {
+        alert: MonitorAlert;
+        handoff: IncidentHandoff;
+        event: 'requested' | 'accepted';
+    }) => Promise<void> | void;
     recordActivity: (entry: {
         area: 'monitoring';
         level: 'info';
@@ -62,6 +73,20 @@ interface RegisterAlertsIpcDependencies {
     onSettingsSaved: () => void;
 }
 
+function workflowStateFromAlert(alert: MonitorAlert): StoredAlertWorkflowState {
+    return {
+        status: alert.workflowStatus,
+        owner: alert.owner,
+        notes: alert.notes,
+        timeline: alert.timeline,
+        updatedAt: alert.workflowUpdatedAt,
+        lastActionSummary: alert.lastActionSummary,
+        clickUpTask: alert.clickUpTask,
+        jiraIssue: alert.jiraIssue,
+        handoff: alert.handoff
+    };
+}
+
 /**
  * Registers alert and alert-settings IPC handlers for the main process.
  */
@@ -69,12 +94,6 @@ export function registerAlertsIpc(dependencies: RegisterAlertsIpcDependencies) {
     const actionLeases = createActionLeaseStore();
     const authorizeRead = () => dependencies.authorizeAction('read', dependencies.getCurrentSystemId());
     ipcMain.handle('get-active-alerts', () => authorizeRead().allowed ? dependencies.getActiveAlerts() : []);
-    ipcMain.handle('get-shift-handoff-summary', () => ({
-        success: true,
-        summary: authorizeRead().allowed
-            ? buildShiftHandoffSummary(dependencies.getActiveAlerts() as MonitorAlert[])
-            : ''
-    }));
 
     ipcMain.handle('recheck-alert', async (_event, alertId: string) => {
         const authorization = authorizeRead();
@@ -202,7 +221,7 @@ export function registerAlertsIpc(dependencies: RegisterAlertsIpcDependencies) {
             });
 
             if (payload.action === 'claim') {
-                await dependencies.createClickUpTaskForClaimedAlert?.(payload.alertId);
+                await dependencies.ensureClickUpTaskForAlert?.(payload.alertId);
             }
 
             return { success: true };
@@ -288,6 +307,11 @@ export function registerAlertsIpc(dependencies: RegisterAlertsIpcDependencies) {
                 eventKey: `handoff:${nextState.updatedAt}`,
                 nextState
             });
+            await dependencies.notifyIncidentHandoff?.({
+                alert: currentAlert,
+                handoff: handoffResult.handoff,
+                event: 'requested'
+            });
             return { success: true, handoff: handoffResult.handoff, updatedAt: nextState.updatedAt };
         } finally {
             actionLeases.complete(leaseResult.lease);
@@ -339,6 +363,10 @@ export function registerAlertsIpc(dependencies: RegisterAlertsIpcDependencies) {
             const nextState = dependencies.mutateAlertWorkflow(payload.alertId, (state) => (
                 recordHandoffAccepted(state, acceptance.handoff, timestamp)
             ));
+            await dependencies.ensureClickUpTaskForAlert?.(payload.alertId);
+            await dependencies.ensureJiraIssueForAlert?.(payload.alertId);
+            const linkedAlert = dependencies.getAlertById?.(payload.alertId);
+            const linkedState = linkedAlert ? workflowStateFromAlert(linkedAlert) : nextState;
             dependencies.recordActivity({
                 area: 'monitoring',
                 level: 'info',
@@ -349,12 +377,18 @@ export function registerAlertsIpc(dependencies: RegisterAlertsIpcDependencies) {
                 alertId: payload.alertId,
                 action: 'handoff',
                 eventKey: `handoff-accepted:${nextState.updatedAt}`,
-                nextState
+                nextState: linkedState
             });
             await dependencies.assignClickUpTaskToOperator?.(
-                nextState.clickUpTask?.id || '',
-                acceptance.handoff.toOperator
+                linkedState.clickUpTask?.id || '',
+                acceptance.handoff.toOperator,
+                acceptance.handoff.fromOperator
             );
+            await dependencies.notifyIncidentHandoff?.({
+                alert: linkedAlert || currentAlert,
+                handoff: acceptance.handoff,
+                event: 'accepted'
+            });
             return { success: true, handoff: acceptance.handoff, updatedAt: nextState.updatedAt };
         } finally {
             actionLeases.complete(leaseResult.lease);

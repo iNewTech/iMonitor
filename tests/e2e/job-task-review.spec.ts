@@ -107,7 +107,6 @@ const test = base.extend<{ task: TestHandle }>({
                     pendingChecks: ['Find the blocker'], createdAt: '2026-09-11T10:03:00Z',
                     acceptedAt: '2026-09-11T10:04:00Z', acceptedBy: 'reviewer', status: 'accepted'
                 } } },
-                'get-shift-handoff-summary': { value: { success: true, summary: '# iMonitor shift handover\nOpen incidents: 1' } }
             });
             const opened = app.waitForEvent('window');
             await connection.evaluate(async (name) => {
@@ -155,23 +154,24 @@ test('tabs support keyboard navigation and History shows escaped incident eviden
     await expect(page.locator('#task-status-history')).toContainText('Running');
 });
 
-test('Actions shows the response brief and preserves an editable local handoff', async ({ task: { page } }) => {
+test('Actions shows the response brief and keeps handoff routing compact', async ({ task: { page } }) => {
     await page.getByRole('tab', { name: 'Actions', exact: true }).click();
     await expect(page.locator('#task-response-step-respond')).toHaveClass(/is-active/);
     await expect(page.locator('#task-response-impact')).toHaveText('High');
     await expect(page.locator('#task-response-owner')).toHaveText('Unassigned');
     await expect(page.locator('#task-response-evidence')).toContainText('Trigger');
 
-    const questions = page.locator('#task-handoff-questions');
-    await questions.fill('Confirm the expected workload with the business owner.');
-    await page.clock.runFor(15000);
-    await expect(questions).toHaveValue('Confirm the expected workload with the business owner.');
-
-    await page.locator('#task-download-handoff').click();
-    await expect(page.locator('#task-handoff-status')).toHaveText('Handoff exported locally.');
+    await expect(page.locator('#task-handoff-recipient')).toBeVisible();
+    await expect(page.locator('#task-handoff-response-target')).toBeVisible();
+    await expect(page.locator('#task-handoff-reason')).toBeVisible();
+    await expect(page.locator('#task-handoff-pending-checks')).toBeVisible();
+    await expect(page.locator('#task-handoff-pending-checks')).toHaveValue('');
+    await expect(page.locator('#task-handoff-questions')).toHaveCount(0);
+    await expect(page.locator('#task-copy-handoff, #task-download-handoff')).toHaveCount(0);
+    await expect(page.locator('#task-refresh-shift-summary, #task-shift-summary')).toHaveCount(0);
 });
 
-test('sends, accepts, and summarizes a persisted incident handoff', async ({ task: { app, page } }) => {
+test('sends and accepts a persisted incident handoff', async ({ task: { app, page } }) => {
     await page.getByRole('tab', { name: 'Actions', exact: true }).click();
     await page.locator('#task-handoff-recipient').fill('l3-specialist');
     await page.locator('#task-handoff-reason').fill('Specialist review needed.');
@@ -179,9 +179,6 @@ test('sends, accepts, and summarizes a persisted incident handoff', async ({ tas
     await page.locator('#task-request-handoff').click();
     await expect(page.locator('#task-handoff-routing-status')).toHaveText('Handoff sent to l3-specialist.');
     expect(JSON.stringify(await calls(app, 'create-incident-handoff'))).toContain('Find the blocking job.');
-
-    await page.locator('#task-refresh-shift-summary').click();
-    await expect(page.locator('#task-shift-summary')).toHaveValue('# iMonitor shift handover\nOpen incidents: 1');
 
     await pushAlerts(app, [{ ...alert, owner: 'reviewer', workflowUpdatedAt: '2026-09-11T10:03:00Z', handoff: {
         schema: 'imonitor-incident-handoff', version: 1, id: 'handoff-2', incidentId: 'review-alert',

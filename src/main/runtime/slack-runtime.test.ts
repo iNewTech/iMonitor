@@ -75,4 +75,41 @@ describe('slack-runtime', () => {
 
         await expect(runtime.sendTestMessage()).rejects.toThrow('Use an HTTPS Slack incoming webhook URL');
     });
+
+    it('sends a focused notification for a requested handoff', async () => {
+        const recordActivity = vi.fn();
+        const fetchImpl = vi.fn(async (_url: string, init?: RequestInit) => {
+            const payload = JSON.parse(String(init?.body || '{}'));
+            expect(payload.text).toContain('handoff requested');
+            expect(payload.attachments[0].blocks).toEqual(expect.arrayContaining([
+                expect.objectContaining({ type: 'header' }),
+                expect.objectContaining({ type: 'section' })
+            ]));
+            return new Response('ok', { status: 200 });
+        });
+        const runtime = createSlackRuntime({
+            getSettings: () => ({
+                ...DEFAULT_SLACK_SETTINGS,
+                enabled: true,
+                webhookUrl: 'https://hooks.slack.com/services/demo'
+            }),
+            recordActivity,
+            fetchImpl: fetchImpl as typeof fetch
+        });
+
+        await runtime.sendHandoffNotification({
+            alertId: 'lckw:demo/job',
+            title: 'LCKW detected',
+            jobName: '123/DEMO/LOCKJOB',
+            fromOperator: 'l2-operator',
+            toOperator: 'l3-specialist',
+            reason: 'Needs specialist review.',
+            pendingChecks: ['Find the blocker'],
+            event: 'requested'
+        });
+
+        expect(recordActivity).toHaveBeenCalledWith(expect.objectContaining({
+            message: 'Sent handoff notification to Slack.'
+        }));
+    });
 });

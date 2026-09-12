@@ -33,6 +33,8 @@ export function initClickUpSettings(dependencies) {
     const spaceInput = root.querySelector('#settings-clickup-space');
     const listInput = root.querySelector('#settings-clickup-list');
     const syncCommentsInput = root.querySelector('#settings-clickup-sync-comments');
+    const handoffStatusInput = root.querySelector('#settings-clickup-handoff-status');
+    const activeStatusInput = root.querySelector('#settings-clickup-active-status');
     const loadTargetsButton = root.querySelector('#clickup-load-targets');
     const status = root.querySelector('#settings-clickup-status');
     const summaryStatus = root.querySelector('#settings-clickup-summary-status');
@@ -86,6 +88,12 @@ export function initClickUpSettings(dependencies) {
         if (syncCommentsInput) {
             syncCommentsInput.checked = Boolean(settings.syncComments);
         }
+        if (handoffStatusInput) {
+            handoffStatusInput.value = settings.handoffStatus || '';
+        }
+        if (activeStatusInput) {
+            activeStatusInput.value = settings.activeStatus || '';
+        }
 
         renderOptions(workspaceInput, options.workspaces, settings.workspaceId, 'Select workspace', (option) => option.name, settings.workspaceName);
         renderOptions(spaceInput, options.spaces, settings.spaceId, 'Select space', (option) => option.name, settings.spaceName);
@@ -124,7 +132,9 @@ export function initClickUpSettings(dependencies) {
             spaceName: settings?.spaceName || '',
             listId: listInput?.value || settings?.listId || '',
             listName: settings?.listName || '',
-            syncComments: Boolean(syncCommentsInput?.checked)
+            syncComments: Boolean(syncCommentsInput?.checked),
+            handoffStatus: handoffStatusInput?.value || settings?.handoffStatus || '',
+            activeStatus: activeStatusInput?.value || settings?.activeStatus || ''
         };
 
         setStatus('Loading ClickUp workspaces, spaces, and lists...');
@@ -214,7 +224,9 @@ export function initClickUpSettings(dependencies) {
                 spaceName: space?.name || settings?.spaceName || '',
                 listId: listInput?.value || settings?.listId || '',
                 listName: list?.name || settings?.listName || '',
-                syncComments: Boolean(syncCommentsInput?.checked)
+                syncComments: Boolean(syncCommentsInput?.checked),
+                handoffStatus: handoffStatusInput?.value || settings?.handoffStatus || '',
+                activeStatus: activeStatusInput?.value || settings?.activeStatus || ''
             });
             settingsSaved = true;
 

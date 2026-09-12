@@ -28,6 +28,18 @@ export interface SlackWebhookPayload {
     }>;
 }
 
+export interface SlackHandoffNotification {
+    alertId: string;
+    title: string;
+    jobName?: string;
+    fromOperator: string;
+    toOperator: string;
+    reason: string;
+    pendingChecks: string[];
+    responseTargetAt?: string;
+    event: 'requested' | 'accepted';
+}
+
 export const DEFAULT_SLACK_SETTINGS: SlackSettings = {
     enabled: false,
     webhookUrl: '',
@@ -223,6 +235,66 @@ export function buildSlackAlertPayload(alert: MonitorAlert): SlackWebhookPayload
         text: `IBMEye alert: ${alert.title} | ${alert.severity.toUpperCase()} | ${alert.jobName || 'N/A'}`,
         attachments: [{
             color: getSlackAlertColor(alert),
+            blocks
+        }]
+    };
+}
+
+/** Builds a focused channel notification for a requested or accepted handoff. */
+export function buildSlackHandoffPayload(notification: SlackHandoffNotification): SlackWebhookPayload {
+    const accepted = notification.event === 'accepted';
+    const jobName = truncateSlackText(notification.jobName || 'N/A', 250);
+    const checks = notification.pendingChecks.slice(0, 6).map((check) => `• ${truncateSlackText(check, 300)}`);
+    const blocks: Array<Record<string, unknown>> = [
+        {
+            type: 'header',
+            text: {
+                type: 'plain_text',
+                text: accepted ? 'IBMEye · Handoff accepted' : 'IBMEye · Handoff requested',
+                emoji: true
+            }
+        },
+        {
+            type: 'section',
+            fields: [
+                { type: 'mrkdwn', text: `*Job*\n${jobName}` },
+                { type: 'mrkdwn', text: `*Recipient*\n${truncateSlackText(notification.toOperator, 120)}` },
+                { type: 'mrkdwn', text: `*From*\n${truncateSlackText(notification.fromOperator, 120)}` },
+                { type: 'mrkdwn', text: `*Incident*\n\`${truncateSlackText(notification.alertId, 180)}\`` }
+            ]
+        },
+        {
+            type: 'section',
+            text: {
+                type: 'mrkdwn',
+                text: `*Reason*\n${truncateSlackText(notification.reason, 900)}`
+            }
+        }
+    ];
+
+    if (checks.length) {
+        blocks.push({
+            type: 'section',
+            text: {
+                type: 'mrkdwn',
+                text: `*Pending checks*\n${checks.join('\n')}`
+            }
+        });
+    }
+    if (notification.responseTargetAt) {
+        blocks.push({
+            type: 'context',
+            elements: [{
+                type: 'mrkdwn',
+                text: `Response target: ${escapeSlackText(notification.responseTargetAt)}`
+            }]
+        });
+    }
+
+    return {
+        text: `iMonitor handoff ${accepted ? 'accepted' : 'requested'}: ${notification.title} | ${notification.toOperator}`,
+        attachments: [{
+            color: accepted ? '#2C8176' : '#D58A22',
             blocks
         }]
     };

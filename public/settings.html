@@ -386,6 +386,18 @@
                                 <select id="settings-clickup-list" class="form-select"></select>
                             </label>
                         </div>
+                        <div class="settings-field-grid">
+                            <label class="control-select">
+                                <span class="control-label">Handoff status</span>
+                                <input id="settings-clickup-handoff-status" type="text" class="form-control" placeholder="awaiting escalation">
+                                <span class="form-footnote">The ClickUp status used while another operator is being asked to accept.</span>
+                            </label>
+                            <label class="control-select">
+                                <span class="control-label">Accepted status</span>
+                                <input id="settings-clickup-active-status" type="text" class="form-control" placeholder="in progress">
+                                <span class="form-footnote">The ClickUp status used after the recipient accepts.</span>
+                            </label>
+                        </div>
                         <label class="toggle-row">
                             <span>Sync future notes and workflow updates as ClickUp comments <small class="form-footnote d-block">When off, changes remain in the local audit log only.</small></span>
                             <input type="checkbox" id="settings-clickup-sync-comments">

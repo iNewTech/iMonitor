@@ -97,7 +97,7 @@
 .handoff-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    gap: 8px;
 }
 
 .handoff-field {
@@ -110,7 +110,7 @@
 
 .handoff-field textarea {
     width: 100%;
-    min-height: 64px;
+    min-height: 56px;
     resize: vertical;
     padding: 8px 10px;
     border: 1px solid var(--border);
@@ -146,10 +146,6 @@
     outline-offset: 1px;
 }
 
-.handoff-shift-summary {
-    margin-top: 10px;
-}
-
 .handoff-field-wide {
     grid-column: 1 / -1;
 }
@@ -159,7 +155,7 @@
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
-    margin-top: 10px;
+    margin-top: 8px;
 }
 
 @media (max-width: 680px) {

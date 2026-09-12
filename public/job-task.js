@@ -59,13 +59,7 @@ const handoffFields = {
     recipient: $('task-handoff-recipient'),
     responseTarget: $('task-handoff-response-target'),
     reason: $('task-handoff-reason'),
-    pendingChecks: $('task-handoff-pending-checks'),
-    nextCheck: $('task-handoff-next-check'),
-    escalation: $('task-handoff-escalation'),
-    checks: $('task-handoff-checks'),
-    attempts: $('task-handoff-attempts'),
-    questions: $('task-handoff-questions'),
-    shiftSummary: $('task-shift-summary')
+    pendingChecks: $('task-handoff-pending-checks')
 };
 let handoffDraftKey = '';
 
@@ -282,12 +276,7 @@ function renderResponseWorkspace(response) {
         handoffFields.recipient.value = handoff?.toOperator || '';
         handoffFields.responseTarget.value = toLocalDateTimeValue(handoff?.responseTargetAt);
         handoffFields.reason.value = handoff?.reason || '';
-        handoffFields.pendingChecks.value = (handoff?.pendingChecks || snapshot.unresolvedQuestions || []).join('\n');
-        handoffFields.nextCheck.value = snapshot.nextCheck || '';
-        handoffFields.escalation.value = snapshot.escalationReason || '';
-        handoffFields.checks.value = (snapshot.completedChecks || []).join('\n');
-        handoffFields.attempts.value = (snapshot.unsuccessfulAttempts || []).join('\n');
-        handoffFields.questions.value = (snapshot.unresolvedQuestions || []).join('\n');
+        handoffFields.pendingChecks.value = (handoff?.pendingChecks || []).join('\n');
     }
     $('task-handoff-state').textContent = handoff
         ? handoff.status === 'pending' ? `Pending · ${handoff.toOperator}` : `${formatWorkflowLabel(handoff.status)} · ${handoff.toOperator}`
@@ -300,53 +289,8 @@ function getHandoffDraft() {
         recipient: value(handoffFields.recipient),
         responseTargetAt: toIsoDateTimeValue(handoffFields.responseTarget.value),
         reason: value(handoffFields.reason),
-        pendingChecks: handoffFields.pendingChecks.value.split('\n').map((line) => line.trim()).filter(Boolean),
-        nextCheck: value(handoffFields.nextCheck),
-        escalation: value(handoffFields.escalation),
-        checks: value(handoffFields.checks),
-        attempts: value(handoffFields.attempts),
-        questions: value(handoffFields.questions)
+        pendingChecks: handoffFields.pendingChecks.value.split('\n').map((line) => line.trim()).filter(Boolean)
     };
-}
-
-function buildHandoffText() {
-    const response = latestPayload?.response || fallbackResponseSnapshot(latestPayload?.job, findLinkedAlert());
-    const draft = getHandoffDraft();
-    return [
-        '# iMonitor incident handoff',
-        `Generated: ${new Date().toISOString()}`,
-        `Job: ${response.jobName || selectedJobName}`,
-        `Incident: ${response.incidentTitle || 'No linked incident'}`,
-        `Stage: ${formatWorkflowLabel(response.step || 'respond')}`,
-        `Impact: ${response.impactLabel || 'Normal'} — ${response.impactSummary || 'No summary.'}`,
-        `Owner: ${response.owner || 'Unassigned'}`,
-        `Status: ${formatWorkflowLabel(response.status || 'clear')}`,
-        draft.recipient !== 'None recorded.' ? `Handoff recipient: ${draft.recipient}` : '',
-        draft.responseTargetAt ? `Response target: ${draft.responseTargetAt}` : '',
-        '',
-        '## Next check', draft.nextCheck,
-        '',
-        '## Evidence',
-        ...(response.evidence || []).map((item) => `- ${item.label}: ${item.status} (${Number(item.recordCount || 0)} records)`),
-        ...(response.evidence?.length ? [] : ['- No evidence snapshot available.']),
-        '',
-        '## Completed checks', draft.checks,
-        '',
-        '## Unsuccessful attempts', draft.attempts,
-        '',
-        '## Unresolved questions', draft.questions,
-        '',
-        '## Escalation reason', draft.escalation,
-        '',
-        '## Handoff reason', draft.reason,
-        '',
-        '## Pending checks', draft.pendingChecks.length ? draft.pendingChecks.map((check) => `- ${check}`).join('\n') : 'None recorded.',
-        ''
-    ].join('\n');
-}
-
-function setHandoffStatus(message) {
-    $('task-handoff-status').textContent = message;
 }
 
 // The alert store supplies newest events first, including cleared incidents.
@@ -445,9 +389,6 @@ function updateControls() {
     document.querySelectorAll('.task-alert-ai, #task-ai-summary, #task-ai-resolve').forEach((button) => {
         button.disabled = pending.has('ai') || !stateFresh || !latestPayload?.job || !selectedJobName;
     });
-    document.querySelectorAll('#task-copy-handoff, #task-download-handoff').forEach((button) => {
-        button.disabled = !stateFresh || !latestPayload?.job || !selectedJobName;
-    });
     $('task-request-handoff').disabled = mutationBlocked
         || !alert
         || Boolean(alert.owner && !isOwnedByCurrentOperator(alert))
@@ -455,10 +396,6 @@ function updateControls() {
     $('task-accept-handoff').disabled = mutationBlocked
         || handoff?.status !== 'pending'
         || handoff.toOperator?.toLowerCase() !== currentOperatorName.toLowerCase();
-    $('task-refresh-shift-summary').disabled = pending.has('handoff') || !stateFresh;
-    document.querySelectorAll('#task-copy-shift-summary, #task-download-shift-summary').forEach((button) => {
-        button.disabled = !stateFresh || !handoffFields.shiftSummary.value.trim();
-    });
     document.querySelectorAll('#task-load-log, #task-load-messages').forEach((button) => {
         button.disabled = pending.has('details') || !selectedJobName;
     });
@@ -599,17 +536,6 @@ function acceptHandoff() {
     });
 }
 
-function refreshShiftSummary() {
-    return runRequest('handoff', async () => {
-        $('task-handoff-routing-status').textContent = 'Preparing shift summary…';
-        const result = requireSuccess(await window.electronAPI.getShiftHandoffSummary(), 'Unable to prepare shift summary.');
-        handoffFields.shiftSummary.value = result.summary || '';
-        $('task-handoff-routing-status').textContent = 'Shift summary refreshed. You can edit it before export.';
-    }, (error) => {
-        $('task-handoff-routing-status').textContent = errorMessage(error, 'Unable to prepare shift summary.');
-    });
-}
-
 function askAi(kind) {
     if (!stateFresh || !latestPayload?.job || !selectedJobName) return;
     setTab('ai');
@@ -701,43 +627,6 @@ $('task-ai-summary').addEventListener('click', () => void askAi('summary'));
 $('task-ai-resolve').addEventListener('click', () => void askAi('resolve'));
 $('task-request-handoff').addEventListener('click', () => void requestHandoff());
 $('task-accept-handoff').addEventListener('click', () => void acceptHandoff());
-$('task-refresh-shift-summary').addEventListener('click', () => void refreshShiftSummary());
-$('task-copy-shift-summary').addEventListener('click', async () => {
-    try {
-        await navigator.clipboard.writeText(handoffFields.shiftSummary.value);
-        $('task-handoff-routing-status').textContent = 'Shift summary copied.';
-    } catch {
-        $('task-handoff-routing-status').textContent = 'Copy is unavailable; use Export shift summary.';
-    }
-});
-$('task-download-shift-summary').addEventListener('click', () => {
-    const blob = new Blob([handoffFields.shiftSummary.value], { type: 'text/markdown;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'imonitor-shift-handover.md';
-    link.click();
-    URL.revokeObjectURL(url);
-    $('task-handoff-routing-status').textContent = 'Shift summary exported locally.';
-});
-$('task-copy-handoff').addEventListener('click', async () => {
-    try {
-        await navigator.clipboard.writeText(buildHandoffText());
-        setHandoffStatus('Handoff copied.');
-    } catch {
-        setHandoffStatus('Copy is unavailable; use Export handoff.');
-    }
-});
-$('task-download-handoff').addEventListener('click', () => {
-    const blob = new Blob([buildHandoffText()], { type: 'text/markdown;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${String(selectedJobName || 'job').replace(/[^a-z0-9_-]+/gi, '-')}-handoff.md`;
-    link.click();
-    URL.revokeObjectURL(url);
-    setHandoffStatus('Handoff exported locally.');
-});
 $('task-load-log').addEventListener('click', () => void loadDetails('log'));
 $('task-load-messages').addEventListener('click', () => void loadDetails('messages'));
 $('task-refresh').addEventListener('click', () => void loadTask());

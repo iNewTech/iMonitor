@@ -443,8 +443,33 @@ export function createClickUpRuntime(dependencies: ClickUpRuntimeDependencies) {
         );
     }
 
-    /** Adds the accepted recipient to the linked task without making ClickUp the workflow authority. */
-    async function assignClickUpTaskToOperator(taskId: string, operatorName: string) {
+    async function updateClickUpTaskStatus(taskId: string, status: string) {
+        const settings = getConfiguredSettings();
+        const normalizedStatus = status.trim();
+        if (!taskId.trim() || !normalizedStatus) return;
+
+        await request(
+            settings,
+            `/task/${encodeURIComponent(taskId)}`,
+            {
+                method: 'PUT',
+                body: JSON.stringify({ status: normalizedStatus })
+            }
+        );
+        dependencies.recordActivity({
+            area: 'monitoring',
+            level: 'info',
+            message: 'Moved the linked ClickUp task.',
+            detail: `${taskId} | status=${normalizedStatus}`
+        });
+    }
+
+    /** Adds the accepted recipient and removes the previous operator from the linked task. */
+    async function assignClickUpTaskToOperator(
+        taskId: string,
+        operatorName: string,
+        previousOperatorName?: string
+    ) {
         const settings = dependencies.getSettings();
         if (!settings.enabled || !settings.apiToken || !settings.workspaceId || !taskId.trim()) return;
 
@@ -464,12 +489,20 @@ export function createClickUpRuntime(dependencies: ClickUpRuntimeDependencies) {
                 return;
             }
 
+            const previousId = previousOperatorName
+                ? matchClickUpUserForOperator(previousOperatorName, membersResponse.users)
+                : undefined;
+            const assignees = {
+                add: [matchedId],
+                ...(previousId && previousId !== matchedId ? { rem: [previousId] } : {})
+            };
+
             await request(
                 settings,
                 `/task/${encodeURIComponent(taskId)}`,
                 {
                     method: 'PUT',
-                    body: JSON.stringify({ assignees: { add: [matchedId] } })
+                    body: JSON.stringify({ assignees })
                 }
             );
             dependencies.recordActivity({
@@ -590,7 +623,15 @@ export function createClickUpRuntime(dependencies: ClickUpRuntimeDependencies) {
         note?: string;
     }): Promise<{ success: boolean; skipped?: boolean; error?: string; }> {
         const settings = dependencies.getSettings();
-        if (!settings.enabled || !settings.syncComments || !params.nextState.clickUpTask?.id) {
+        const taskId = params.nextState.clickUpTask?.id || '';
+        const taskStatus = params.action === 'handoff'
+            ? params.nextState.handoff?.status === 'pending'
+                ? settings.handoffStatus
+                : params.nextState.handoff?.status === 'accepted'
+                    ? settings.activeStatus
+                    : ''
+            : '';
+        if (!settings.enabled || !taskId || (!settings.syncComments && !taskStatus)) {
             return { success: false, skipped: true };
         }
 
@@ -607,17 +648,31 @@ export function createClickUpRuntime(dependencies: ClickUpRuntimeDependencies) {
             params.note ? `Note: ${params.note}` : ''
         ].filter(Boolean).join('\n');
 
-        try {
-            await addCommentToTask(params.nextState.clickUpTask.id, commentText);
-            dependencies.recordActivity({
-                area: 'monitoring',
-                level: 'info',
-                message: 'Posted the latest alert update to ClickUp.',
-                detail: `${params.alertId} | ${params.nextState.clickUpTask.id}`
-            });
-            return { success: true };
-        } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
+        const errors: string[] = [];
+        if (settings.syncComments) {
+            try {
+                await addCommentToTask(taskId, commentText);
+                dependencies.recordActivity({
+                    area: 'monitoring',
+                    level: 'info',
+                    message: 'Posted the latest alert update to ClickUp.',
+                    detail: `${params.alertId} | ${taskId}`
+                });
+            } catch (error) {
+                errors.push(error instanceof Error ? error.message : String(error));
+            }
+        }
+
+        if (taskStatus) {
+            try {
+                await updateClickUpTaskStatus(taskId, taskStatus);
+            } catch (error) {
+                errors.push(error instanceof Error ? error.message : String(error));
+            }
+        }
+
+        if (errors.length) {
+            const message = errors.join(' | ');
             dependencies.recordActivity({
                 area: 'monitoring',
                 level: 'error',
@@ -626,6 +681,8 @@ export function createClickUpRuntime(dependencies: ClickUpRuntimeDependencies) {
             });
             return { success: false, error: message };
         }
+
+        return { success: true };
     }
 
     return {
@@ -635,6 +692,7 @@ export function createClickUpRuntime(dependencies: ClickUpRuntimeDependencies) {
         createTaskForAlert,
         publishAlertDiagnostic,
         syncAlertWorkflowComment,
-        assignClickUpTaskToOperator
+        assignClickUpTaskToOperator,
+        updateClickUpTaskStatus
     };
 }

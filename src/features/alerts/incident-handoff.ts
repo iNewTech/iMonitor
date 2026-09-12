@@ -1,5 +1,3 @@
-import type { MonitorAlert } from './alert-model';
-
 export type IncidentHandoffStatus = 'pending' | 'accepted' | 'declined' | 'cancelled';
 
 export interface IncidentHandoff {
@@ -130,37 +128,6 @@ export function acceptIncidentHandoff(
         success: true,
         handoff: { ...handoff, status: 'accepted', acceptedAt: timestamp, acceptedBy }
     };
-}
-
-/** Creates a plain-text shift brief from every open incident for editing or export. */
-export function buildShiftHandoffSummary(alerts: MonitorAlert[], generatedAt = new Date().toISOString()) {
-    const openAlerts = alerts.filter((alert) => alert.isActive !== false);
-    const lines = [
-        '# iMonitor shift handover',
-        `Generated: ${generatedAt}`,
-        `Open incidents: ${openAlerts.length}`,
-        ''
-    ];
-    if (!openAlerts.length) return [...lines, 'No open incidents require handover.', ''].join('\n');
-
-    openAlerts.forEach((alert, index) => {
-        const handoff = alert.handoff;
-        lines.push(
-            `## ${index + 1}. ${alert.title}`,
-            `Job: ${alert.jobName || 'Unknown job'}`,
-            `Incident: ${alert.incidentId || alert.id}`,
-            `Status: ${alert.workflowStatus}`,
-            `Owner: ${alert.owner || 'Unassigned'}`,
-            `Impact: ${alert.severity}`,
-            `Summary: ${alert.message}`,
-            handoff ? `Handoff: ${handoff.status} from ${handoff.fromOperator} to ${handoff.toOperator}` : 'Handoff: None',
-            handoff?.responseTargetAt ? `Response target: ${handoff.responseTargetAt}` : '',
-            handoff?.pendingChecks.length ? `Pending checks: ${handoff.pendingChecks.join('; ')}` : '',
-            handoff?.reason ? `Handoff reason: ${handoff.reason}` : '',
-            ''
-        );
-    });
-    return lines.filter((line, index) => line || lines[index - 1]).join('\n');
 }
 
 function normalizeLines(lines: unknown) {

@@ -31,7 +31,7 @@ The task window keeps the selected job in context:
 
 Claiming work assigns it to the current named operator. Configured ClickUp workflows can create a linked work item. An incident remains visible until monitoring or a manual recheck confirms the underlying condition is clear.
 
-When the current operator needs another person, use **Send handoff** in the task window. Choose the recipient, add the reason and pending checks, and optionally set a response target. The current owner remains accountable while the handoff is pending. The recipient opens the same incident and selects **Accept handoff**; only then does ownership move to that operator. The timeline records both the request and acceptance. **Refresh shift summary** prepares an editable brief for all open incidents, which can be copied or exported. If a linked ClickUp task has comment sync enabled, the handoff state and reason are added to that task, and the accepted recipient is added as a ClickUp assignee when the member can be matched.
+When the current operator needs another person, use **Send handoff** in the task window. Choose the recipient, add the reason and pending checks, and optionally set a response target. The current owner remains accountable while the handoff is pending. The recipient opens the same incident and selects **Accept handoff**; only then does ownership move to that operator. The timeline records both the request and acceptance. Handoff context stays inside the incident workflow and is synchronized through configured integrations.
 
 Only the client owner or a named support operator with an active grant for the connected IBM i system can change workflow or run a job/queue action. iMonitor rejects a stale incident update, a request for another system, a duplicate request that is still running, and a replay of a completed request. IBM i permissions are checked again when a command is executed.
 
@@ -60,8 +60,8 @@ AI is advisory. It cannot claim work, create a ticket, release a queue, end a jo
 
 Configure integrations from **Settings**:
 
-- **ClickUp** creates and updates operator work items.
-- **Slack** sends incident alerts to a configured channel.
+- **ClickUp** creates and updates operator work items. Set the handoff and accepted statuses in the ClickUp settings so they match your list.
+- **Slack** sends incident and handoff alerts to a configured channel.
 - **Jira** creates and tracks incident issues.
 - **Email** sends notifications through SMTP.
 - **SMS** sends notifications through a compatible provider-neutral HTTP API.

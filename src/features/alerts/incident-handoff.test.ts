@@ -1,32 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import type { MonitorAlert } from './alert-model';
 import {
     acceptIncidentHandoff,
-    buildShiftHandoffSummary,
     createIncidentHandoff
 } from './incident-handoff';
 
 const createdAt = '2026-09-12T10:00:00.000Z';
-
-function makeAlert(overrides: Partial<MonitorAlert> = {}) {
-    return {
-        id: 'alert-1',
-        incidentId: 'incident-1',
-        kind: 'lockWait',
-        severity: 'critical',
-        timestamp: createdAt,
-        title: 'LCKW detected',
-        message: 'The job is waiting on a lock.',
-        jobName: '123/APP/LOCKJOB',
-        workflowStatus: 'claimed',
-        owner: 'l1-operator',
-        notes: [],
-        timeline: [],
-        workflowUpdatedAt: createdAt,
-        isActive: true,
-        ...overrides
-    } as MonitorAlert;
-}
 
 describe('incident-handoff', () => {
     it('requires a real recipient and keeps response targets timezone safe', () => {
@@ -68,25 +46,4 @@ describe('incident-handoff', () => {
         expect(accepted).toMatchObject({ success: true, handoff: { status: 'accepted', acceptedBy: 'l3-specialist' } });
     });
 
-    it('summarizes open incidents and pending handoffs for a shift change', () => {
-        const pending = createIncidentHandoff({
-            incidentId: 'incident-1',
-            fromOperator: 'l2-operator',
-            toOperator: 'l3-specialist',
-            reason: 'Needs lock analysis.',
-            pendingChecks: ['Find the blocker'],
-            createdAt
-        });
-        if (!pending.success) throw new Error(pending.error);
-
-        const summary = buildShiftHandoffSummary([
-            makeAlert({ handoff: pending.handoff }),
-            makeAlert({ id: 'alert-2', incidentId: 'incident-2', isActive: false, title: 'Cleared', message: 'Done.' })
-        ], createdAt);
-
-        expect(summary).toContain('Open incidents: 1');
-        expect(summary).toContain('pending from l2-operator to l3-specialist');
-        expect(summary).toContain('Find the blocker');
-        expect(summary).not.toContain('Cleared');
-    });
 });

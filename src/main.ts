@@ -23,6 +23,7 @@ import {
 } from './features/alerts/alert-model';
 import { captureIncidentEvidence } from './features/alerts/incident-evidence';
 import { buildIncidentResponseSnapshot } from './features/alerts/incident-response';
+import type { IncidentHandoff } from './features/alerts/incident-handoff';
 import { getDemoAvailability } from './features/demo/demo-runtime';
 import { buildJobRootCauseGuidance } from './features/guidance/root-cause-guidance';
 import { buildFallbackAlertDiagnostic } from './features/ibmeyeai/alert-diagnostic';
@@ -736,7 +737,7 @@ const clickUpRuntime = createClickUpRuntime({
     recordActivity: loggingRuntime.recordActivity
 });
 
-async function createClickUpTaskForClaimedAlert(alertId: string) {
+async function ensureClickUpTaskForAlert(alertId: string) {
     if (!hasEntitlement(getEntitlements(), 'clickup-integration')) {
         loggingRuntime.recordActivity({
             area: 'monitoring',
@@ -755,8 +756,8 @@ async function createClickUpTaskForClaimedAlert(alertId: string) {
         loggingRuntime.recordActivity({
             area: 'monitoring',
             level: 'info',
-            message: 'Alert work started without a ClickUp task.',
-            detail: 'Configure ClickUp and select a target list to create tickets when operators start work.'
+            message: 'Alert work has no linked ClickUp task.',
+            detail: 'Configure ClickUp and select a target list to create a linked task when work starts or a handoff is accepted.'
         });
         return;
     }
@@ -832,6 +833,34 @@ const jiraRuntime = createJiraRuntime({
     recordActivity: loggingRuntime.recordActivity
 });
 
+async function ensureJiraIssueForAlert(alertId: string) {
+    if (!hasEntitlement(getEntitlements(), 'jira-integration')) return;
+    const alert = alertState.getActiveAlerts().find((entry) => entry.id === alertId);
+    if (!alert || alert.jiraIssue?.key || !jiraRuntime.canSendAlerts()) return;
+
+    const eventKey = buildDeliveryEventKey(
+        'jira',
+        'incident-created',
+        alert.id,
+        alert.occurrence ?? 1
+    );
+    const result = await deliveryRegistry.deliver('jira', eventKey, async () => {
+        const issue = await jiraRuntime.sendAlert(alert);
+        alertState.mutateAlertWorkflow(alertId, (state) => (
+            attachJiraIssueToWorkflow(state, issue, new Date().toISOString())
+        ));
+        return issue;
+    });
+    if (result.state === 'failed') {
+        loggingRuntime.recordActivity({
+            area: 'monitoring',
+            level: 'warning',
+            message: 'Jira handoff issue creation failed after bounded retries.',
+            detail: `${alertId}\n${result.error || 'Unknown delivery error'}`
+        });
+    }
+}
+
 type ExternalWorkflowSyncPayload = {
     alertId: string;
     action: 'acknowledge' | 'claim' | 'release' | 'workDone' | 'note' | 'handoff' | 'recovered';
@@ -858,7 +887,10 @@ function workflowStateFromAlert(alert: MonitorAlert): StoredAlertWorkflowState {
 async function syncLinkedExternalWorkItem(payload: ExternalWorkflowSyncPayload) {
     const eventSuffix = payload.eventKey || `${payload.action}:${payload.nextState.updatedAt}`;
     const clickUpSettings = getClickUpSettings();
-    if (clickUpSettings.enabled && clickUpSettings.syncComments && payload.nextState.clickUpTask?.id) {
+    const isHandoffUpdate = payload.action === 'handoff';
+    if (clickUpSettings.enabled
+        && payload.nextState.clickUpTask?.id
+        && (clickUpSettings.syncComments || isHandoffUpdate)) {
         const clickUpEventKey = buildDeliveryEventKey('clickup', 'workflow-update', payload.alertId, eventSuffix);
         const result = await deliveryRegistry.deliver('clickup', clickUpEventKey, async () => {
             const delivery = await clickUpRuntime.syncAlertWorkflowComment(payload);
@@ -897,6 +929,42 @@ async function syncLinkedExternalWorkItem(payload: ExternalWorkflowSyncPayload) 
                 detail: `${payload.alertId}\n${result.error || 'Unknown delivery error'}`
             });
         }
+    }
+}
+
+async function notifyIncidentHandoff(params: {
+    alert: MonitorAlert;
+    handoff: IncidentHandoff;
+    event: 'requested' | 'accepted';
+}) {
+    if (!hasEntitlement(getEntitlements(), 'slack-integration') || !slackRuntime.canSendAlerts()) return;
+
+    const eventKey = buildDeliveryEventKey(
+        'slack',
+        'incident-handoff',
+        params.alert.id,
+        `${params.handoff.id}:${params.event}`
+    );
+    const result = await deliveryRegistry.deliver('slack', eventKey, () => (
+        slackRuntime.sendHandoffNotification({
+            alertId: params.alert.id,
+            title: params.alert.title,
+            jobName: params.alert.jobName,
+            fromOperator: params.handoff.fromOperator,
+            toOperator: params.handoff.toOperator,
+            reason: params.handoff.reason,
+            pendingChecks: params.handoff.pendingChecks,
+            responseTargetAt: params.handoff.responseTargetAt,
+            event: params.event
+        })
+    ));
+    if (result.state === 'failed') {
+        loggingRuntime.recordActivity({
+            area: 'monitoring',
+            level: 'warning',
+            message: 'Slack handoff notification failed after bounded retries.',
+            detail: `${params.alert.id}\n${result.error || 'Unknown delivery error'}`
+        });
     }
 }
 
@@ -1367,6 +1435,7 @@ registerSmsIpc({
 
 registerAlertsIpc({
     getActiveAlerts: () => alertState.getActiveAlerts().slice(),
+    getAlertById: (alertId) => alertState.getActiveAlerts().find((alert) => alert.id === alertId),
     recheckAlert: (alertId) => monitoringRuntime.recheckAlert(alertId),
     getSystemMessages: async () => {
         const service = sessionRuntime.getCurrentService();
@@ -1415,10 +1484,12 @@ registerAlertsIpc({
     authorizeAction: authorizeCurrentOperatorAction,
     getCurrentSystemId,
     syncLinkedExternalWorkItem,
-    assignClickUpTaskToOperator: (taskId, operatorName) => (
-        clickUpRuntime.assignClickUpTaskToOperator(taskId, operatorName)
+    assignClickUpTaskToOperator: (taskId, operatorName, previousOperatorName) => (
+        clickUpRuntime.assignClickUpTaskToOperator(taskId, operatorName, previousOperatorName)
     ),
-    createClickUpTaskForClaimedAlert,
+    ensureClickUpTaskForAlert,
+    ensureJiraIssueForAlert,
+    notifyIncidentHandoff,
     recordActivity: loggingRuntime.recordActivity,
     onSettingsSaved: () => {
         const latestJobs = monitoringState.getLatestJobs();

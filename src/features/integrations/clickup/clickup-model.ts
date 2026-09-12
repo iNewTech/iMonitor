@@ -8,6 +8,8 @@ export interface ClickUpSettings {
     listId: string;
     listName: string;
     syncComments: boolean;
+    handoffStatus: string;
+    activeStatus: string;
     userEmail: string;
     memberId: string;
     assigneeUserId: string;
@@ -23,6 +25,8 @@ export interface StoredClickUpSettings {
     listId: string;
     listName: string;
     syncComments: boolean;
+    handoffStatus: string;
+    activeStatus: string;
     userEmail: string;
     memberId: string;
     assigneeUserId: string;
@@ -69,6 +73,8 @@ export const DEFAULT_CLICKUP_SETTINGS: ClickUpSettings = {
     listId: '',
     listName: '',
     syncComments: true,
+    handoffStatus: 'awaiting escalation',
+    activeStatus: 'in progress',
     userEmail: '',
     memberId: '',
     assigneeUserId: ''
@@ -84,6 +90,8 @@ export const DEFAULT_STORED_CLICKUP_SETTINGS: StoredClickUpSettings = {
     listId: '',
     listName: '',
     syncComments: true,
+    handoffStatus: 'awaiting escalation',
+    activeStatus: 'in progress',
     userEmail: '',
     memberId: '',
     assigneeUserId: ''
@@ -107,6 +115,8 @@ function normalizeSharedSettings(candidate: Partial<ClickUpSettings> | Partial<S
         listId: String(candidate?.listId ?? '').trim(),
         listName: String(candidate?.listName ?? '').trim(),
         syncComments: candidate?.syncComments ?? DEFAULT_CLICKUP_SETTINGS.syncComments,
+        handoffStatus: String(candidate?.handoffStatus ?? DEFAULT_CLICKUP_SETTINGS.handoffStatus).trim() || DEFAULT_CLICKUP_SETTINGS.handoffStatus,
+        activeStatus: String(candidate?.activeStatus ?? DEFAULT_CLICKUP_SETTINGS.activeStatus).trim() || DEFAULT_CLICKUP_SETTINGS.activeStatus,
         userEmail: configuredEmail || legacyEmail,
         memberId,
         assigneeUserId: memberId

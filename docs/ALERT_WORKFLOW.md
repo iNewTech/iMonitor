@@ -10,7 +10,7 @@ Queue actions are a separate authorised path. Before a queue mutation, iMonitor 
 
 Open a job to work in its separate task window. Multiple jobs can stay open while the main board continues polling. Overview, Actions, AI helper, History, and Details keep each task compact. Refresh failures offer retry; in-flight actions cannot be submitted twice, and background refresh preserves the current tab and feedback.
 
-The Actions tab includes a compact Respond, Investigate, and Resolve brief for the selected job. It keeps impact, owner, current status, next check, and evidence visible beside the workflow buttons. Operators can edit the completed checks, failed attempts, open questions, and escalation reason in a local L2/L3 handoff package, then copy or export it without changing the incident ledger or assigning shared ownership.
+The Actions tab includes a compact Respond, Investigate, and Resolve brief for the selected job. It keeps impact, owner, current status, next check, and evidence visible beside the workflow buttons. A handoff sends only the recipient, reason, pending checks, and optional response target; the existing incident timeline and evidence remain the source for the rest of the context.
 
 - **Acknowledge** records that an operator has seen the issue.
 - **Claim Work** assigns it to the current operator. When configured and entitled, the main process creates or reuses its linked ClickUp task.
@@ -23,6 +23,12 @@ Workflow state and history are stored locally. This is a desktop workflow; it do
 Each saved IBM i connection has its own durable incident ledger. A record uses the connection ID plus the monitored resource and condition as its stable identity. Repeated polls update that record, verified recovery resolves it, and a later recurrence increments the occurrence count while preserving the earlier timeline. The canonical lifecycle is detected, acknowledged, investigating, awaiting escalation, verifying, resolved, and reopened. The current operator actions cover every phase except awaiting escalation, which is reserved for the support-routing workflow.
 
 When an incident is first observed, iMonitor asynchronously captures a bounded evidence snapshot for the trigger job, job context, job log, messages, job queue, and subsystem. Each snapshot carries its collection time, source, record count, and status. Missing, stale, permission-denied, unavailable, and partial results remain visible; capture does not block the monitoring poll. A reconnect also backfills older ledger records that have no evidence, while later polls preserve the original snapshot.
+
+## Handoffs
+
+The current operator chooses a recipient and sends the same incident to that person. The original owner remains accountable while the handoff is pending. The recipient must accept it in iMonitor before ownership changes; acceptance records both operators and the acceptance time in the incident timeline. No handoff document is copied or exported from the task window.
+
+If an external integration is configured, the handoff is synchronized through the existing incident link. ClickUp can move the task to the configured handoff status, remove the previous assignee, add the accepting operator, and move the task to the configured accepted status. Jira receives the workflow comment, and Slack can receive a focused requested or accepted handoff notification. External delivery is retried and recorded separately, so a provider failure does not roll back the local ownership decision.
 
 ## Storage, retention, and export
 
@@ -38,7 +44,7 @@ Task actions report failures without dropping the selected job. The backend owns
 
 ## Integrations
 
-ClickUp starts tracking on claim rather than on every monitoring poll. The backend links the task, attempts operator assignment, and can add AI context and matching captured job history. Subsequent workflow updates synchronize through that link. External integration failures are recorded for diagnostics; they do not remove the local incident.
+ClickUp starts tracking on claim rather than on every monitoring poll. If a handoff is accepted before a task exists, the backend creates the task at acceptance, links it, assigns the accepting operator, and synchronizes the handoff. ClickUp handoff and accepted statuses are configurable because list status names differ between workspaces. Subsequent workflow updates synchronize through the link. External integration failures are recorded for diagnostics; they do not remove the local incident.
 
 Slack uses a configured Incoming Webhook. Jira creates issues through its configured project. Email and SMS use their configured transports. Shared alert watch rules control delivery conditions, with notification suppression to avoid sending the same active condition on every poll.
 

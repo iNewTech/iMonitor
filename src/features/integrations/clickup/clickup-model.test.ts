@@ -86,6 +86,20 @@ describe('clickup-model', () => {
         expect(settings.assigneeUserId).toBe('');
     });
 
+    it('keeps configurable workflow statuses and supplies defaults for older settings', () => {
+        expect(normalizeClickUpSettings({
+            handoffStatus: '  Escalated  ',
+            activeStatus: '  Working  '
+        })).toMatchObject({
+            handoffStatus: 'Escalated',
+            activeStatus: 'Working'
+        });
+        expect(normalizeStoredClickUpSettings({})).toMatchObject({
+            handoffStatus: 'awaiting escalation',
+            activeStatus: 'in progress'
+        });
+    });
+
     it('converts between renderable and stored token formats', () => {
         const stored = toStoredClickUpSettings({
             ...DEFAULT_CLICKUP_SETTINGS,

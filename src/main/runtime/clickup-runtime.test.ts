@@ -281,6 +281,92 @@ describe('clickup-runtime', () => {
         }));
     });
 
+    it('moves a linked task through configured handoff statuses', async () => {
+        const calls: Array<{ url: string; body?: string }> = [];
+        const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
+            calls.push({ url, body: String(init?.body || '') });
+            if (url.endsWith('/task/task-905/comment')) {
+                return new Response('{}', { status: 200 });
+            }
+            if (url.endsWith('/task/task-905')) {
+                expect(JSON.parse(String(init?.body || '{}'))).toEqual({ status: 'awaiting escalation' });
+                return new Response('{}', { status: 200 });
+            }
+            throw new Error(`Unexpected fetch: ${url}`);
+        });
+        const runtime = createClickUpRuntime({
+            getSettings: () => ({
+                ...DEFAULT_CLICKUP_SETTINGS,
+                enabled: true,
+                apiToken: 'pk_demo',
+                syncComments: true,
+                handoffStatus: 'awaiting escalation',
+                activeStatus: 'in progress'
+            }),
+            recordActivity: vi.fn(),
+            fetchImpl: fetchImpl as typeof fetch
+        });
+
+        await expect(runtime.syncAlertWorkflowComment({
+            alertId: 'alert-905',
+            action: 'handoff',
+            nextState: {
+                status: 'claimed',
+                owner: 'l2-operator',
+                notes: [],
+                timeline: [],
+                updatedAt: '2026-09-12T10:00:00.000Z',
+                clickUpTask: { id: 'task-905' },
+                handoff: {
+                    schema: 'imonitor-incident-handoff',
+                    version: 1,
+                    id: 'handoff-905',
+                    incidentId: 'alert-905',
+                    fromOperator: 'l2-operator',
+                    toOperator: 'l3-specialist',
+                    reason: 'Needs specialist review.',
+                    pendingChecks: ['Find the blocker'],
+                    createdAt: '2026-09-12T10:00:00.000Z',
+                    status: 'pending'
+                }
+            }
+        })).resolves.toEqual({ success: true });
+        expect(calls.map((call) => call.url)).toEqual([
+            'https://api.clickup.com/api/v2/task/task-905/comment',
+            'https://api.clickup.com/api/v2/task/task-905'
+        ]);
+    });
+
+    it('replaces the previous ClickUp assignee after a handoff is accepted', async () => {
+        const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
+            if (url.endsWith('/team/team-1/user')) {
+                return new Response(JSON.stringify({ users: [
+                    { id: 11, username: 'l2-operator' },
+                    { id: 22, username: 'l3-specialist' }
+                ] }), { status: 200 });
+            }
+            if (url.endsWith('/task/task-906')) {
+                expect(JSON.parse(String(init?.body || '{}'))).toEqual({
+                    assignees: { add: ['22'], rem: ['11'] }
+                });
+                return new Response('{}', { status: 200 });
+            }
+            throw new Error(`Unexpected fetch: ${url}`);
+        });
+        const runtime = createClickUpRuntime({
+            getSettings: () => ({
+                ...DEFAULT_CLICKUP_SETTINGS,
+                enabled: true,
+                apiToken: 'pk_demo',
+                workspaceId: 'team-1'
+            }),
+            recordActivity: vi.fn(),
+            fetchImpl: fetchImpl as typeof fetch
+        });
+
+        await runtime.assignClickUpTaskToOperator('task-906', 'l3-specialist', 'l2-operator');
+    });
+
     it('resolves a configured email once and reuses the cached member ID', async () => {
         let currentSettings = {
             ...DEFAULT_CLICKUP_SETTINGS,
