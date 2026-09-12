@@ -9,6 +9,7 @@ The product flow is **Connect → Monitor → Detect → Explain with AI → App
 - Connect through Mapepire using a saved system profile.
 - Scan active jobs, filter by subsystem/status, or use **Focus Next Job** to inspect a priority job.
 - Open a job in its own task window. Multiple job windows can stay open together.
+- In **Details**, load an observed resource call graph for the selected job, including linked incidents, queues, subsystems, message waits, and lock owners when IBM i evidence provides them.
 - Read the issue, claim work, inspect history, ask AI for an explanation or resolution guidance, and deliberately choose an available job action.
 - **Mark Work Done** records the operator's progress. Monitoring must confirm recovery before the incident is cleared.
 - Inspect queued work in the separate **Job queues** panel before Support.
@@ -18,6 +19,8 @@ Task Actions recommend an eligible support operator by incident skill, IBM i sco
 Polling supports preset intervals and a custom interval in seconds. Job rows show incident context and the assigned operator when available; a running job can still have a high-CPU incident.
 
 Each incident row can show a compact technical priority badge. Related signals for the same job are correlated within a five-minute window, and the task window explains the grouping and score factors before an operator acts.
+
+Resource relationships are evidence-backed and timestamped. The graph is bounded, marks stale snapshots, and includes an accessible relationship table; it never invents missing links.
 
 ## Run locally
 

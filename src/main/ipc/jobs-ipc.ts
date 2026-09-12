@@ -14,12 +14,14 @@ import type { QueueTriageResult } from '../../features/action-board/queue-triage
 import type { RecoveryVerificationResult } from '../../features/action-board/recovery-verification';
 import { createActionLeaseStore } from '../../features/action-board/action-leases';
 import type { AuthorizationResult, ProtectedAction } from '../../features/action-board/operator-access';
+import type { ResourceGraph } from '../../features/alerts/resource-graph';
 
 interface RegisterJobsIpcDependencies {
     requirePremium: () => void;
     getJob: (jobName: string) => ActiveJobRecord | undefined;
     getJobStatusHistory: (jobName: string) => JobStatusHistoryEntry[];
     getIncidentResponse: (jobName: string) => IncidentResponseSnapshot | null;
+    getJobResourceGraph: (jobName: string) => Promise<ResourceGraph>;
     getJobContext: (jobName: string) => Promise<Record<string, unknown>>;
     getJobLog: (jobName: string) => Promise<unknown[]>;
     getJobMessages: (jobName: string) => Promise<unknown[]>;
@@ -105,6 +107,24 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
             return {
                 success: false,
                 error: error instanceof Error ? error.message : 'Unable to load IBM i job properties.'
+            };
+        }
+    });
+
+    ipcMain.handle('get-job-resource-graph', async (_event, jobName: string) => {
+        const authorization = authorizeRead();
+        if (!authorization.allowed) return { success: false, graph: null, error: authorization.reason || 'The operator cannot inspect job relationships.' };
+        if (!dependencies.getJob(jobName)) {
+            return { success: false, graph: null, error: 'The selected job is no longer available.' };
+        }
+
+        try {
+            return { success: true, graph: await dependencies.getJobResourceGraph(jobName) };
+        } catch (error) {
+            return {
+                success: false,
+                graph: null,
+                error: error instanceof Error ? error.message : 'Unable to build the job relationship graph.'
             };
         }
     });

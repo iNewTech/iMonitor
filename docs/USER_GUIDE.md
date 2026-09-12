@@ -30,7 +30,7 @@ The task window keeps the selected job in context:
 2. **Actions** lets an operator acknowledge, claim, add a note, mark work done, and use approved IBM i actions when available.
 3. **AI helper** explains the selected job and suggests checks or a resolution using its incident evidence.
 4. **History** shows the incident timeline, operator actions, and evidence changes.
-5. **Details** shows the underlying job context.
+5. **Details** shows the underlying job context. Use **Resource relationships** to load the observed relationship flow for the job and its linked incident, queue, subsystem, message wait, or lock owner when that evidence is available. Expand **Accessible relationship details** for a table view.
 
 Claiming work assigns it to the current named operator. Configured ClickUp workflows can create a linked work item. An incident remains visible until monitoring or a manual recheck confirms the underlying condition is clear.
 
@@ -53,6 +53,8 @@ Queue actions show a confirmation and command preview. iMonitor checks the exact
 Use the compact AI composer or the task-window helpers for incident summary, explanation, SQL activity, job health, and resolution guidance. The task-window AI is limited to the selected job and its incident evidence. It declines unrelated questions in that context.
 
 AI is advisory. It cannot claim work, create a ticket, release a queue, end a job, reply to a message, or bypass operator confirmation. The operator decides whether to use a suggested action.
+
+The resource relationship view is also advisory. It shows only relationships returned by the current poll or job context, labels the evidence time, and warns when the snapshot is stale or a lock owner was not returned. Refresh the view before taking action.
 
 ## Support levels
 

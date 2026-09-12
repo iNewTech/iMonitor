@@ -436,7 +436,7 @@ function updateControls() {
     $('task-accept-handoff').disabled = mutationBlocked
         || handoff?.status !== 'pending'
         || handoff.toOperator?.toLowerCase() !== currentOperatorName.toLowerCase();
-    document.querySelectorAll('#task-load-log, #task-load-messages').forEach((button) => {
+    document.querySelectorAll('#task-load-log, #task-load-messages, #task-load-graph').forEach((button) => {
         button.disabled = pending.has('details') || !selectedJobName;
     });
     incidentActions.querySelectorAll('.task-clickup-open').forEach((button) => {
@@ -605,7 +605,14 @@ function askAi(kind) {
 
 function loadDetails(kind) {
     return runRequest('details', async () => {
-        detailsOutput.textContent = kind === 'log' ? 'Loading job log…' : 'Loading message context…';
+        detailsOutput.textContent = kind === 'log'
+            ? 'Loading job log…'
+            : kind === 'messages' ? 'Loading message context…' : 'Building observed relationships…';
+        if (kind === 'graph') {
+            const result = requireSuccess(await window.electronAPI.getJobResourceGraph(selectedJobName), 'Unable to build job relationships.');
+            renderResourceGraph(detailsOutput, result.graph);
+            return;
+        }
         const result = requireSuccess(await (kind === 'log'
             ? window.electronAPI.getJobLog(selectedJobName)
             : window.electronAPI.getJobMessages(selectedJobName)), 'Unable to load job evidence.');
@@ -614,6 +621,30 @@ function loadDetails(kind) {
     }, (error) => {
         detailsOutput.textContent = errorMessage(error, 'Unable to load job evidence.');
     });
+}
+
+function renderResourceGraph(output, graph) {
+    if (!graph) {
+        output.textContent = 'No relationship graph returned.';
+        return;
+    }
+    const nodeLabels = new Map((graph.nodes || []).map((node) => [node.id, node.label]));
+    const edgeRows = (graph.edges || []).map((edge) => `
+        <li class="resource-graph-edge">
+            <strong>${escapeHtml(nodeLabels.get(edge.from) || edge.from)}</strong>
+            <span aria-hidden="true">→</span>
+            <strong>${escapeHtml(nodeLabels.get(edge.to) || edge.to)}</strong>
+            <small>${escapeHtml(edge.relationship.replace(/-/g, ' '))} · ${escapeHtml(edge.confidence)}</small>
+        </li>`).join('');
+    const notes = (graph.notes || []).map((note) => `<li>${escapeHtml(note)}</li>`).join('');
+    output.innerHTML = `<section class="resource-graph" data-testid="task-resource-graph">
+        <div class="resource-graph-header"><strong>Observed resource relationships</strong><span>${graph.stale ? 'Stale · refresh before acting' : 'Current snapshot'}</span></div>
+        ${edgeRows ? `<ol class="resource-graph-flow" aria-label="Observed relationship flow">${edgeRows}</ol>` : '<p class="stat-note mb-0">No observed links were returned.</p>'}
+        ${notes ? `<ul class="resource-graph-notes">${notes}</ul>` : ''}
+        <details class="resource-graph-table"><summary>Accessible relationship details</summary><table class="table table-sm mb-0"><thead><tr><th>From</th><th>Relationship</th><th>To</th><th>Evidence</th></tr></thead><tbody>
+            ${(graph.edges || []).map((edge) => `<tr><td>${escapeHtml(nodeLabels.get(edge.from) || edge.from)}</td><td>${escapeHtml(edge.relationship.replace(/-/g, ' '))}</td><td>${escapeHtml(nodeLabels.get(edge.to) || edge.to)}</td><td>${escapeHtml(edge.evidence?.[0]?.label || 'Observed')}</td></tr>`).join('') || '<tr><td colspan="4">No relationships found.</td></tr>'}
+        </tbody></table></details>
+    </section>`;
 }
 
 const tabs = Array.from(document.querySelectorAll('[data-task-tab]'));
@@ -669,6 +700,7 @@ $('task-request-handoff').addEventListener('click', () => void requestHandoff())
 $('task-accept-handoff').addEventListener('click', () => void acceptHandoff());
 $('task-load-log').addEventListener('click', () => void loadDetails('log'));
 $('task-load-messages').addEventListener('click', () => void loadDetails('messages'));
+$('task-load-graph').addEventListener('click', () => void loadDetails('graph'));
 $('task-refresh').addEventListener('click', () => void loadTask());
 
 window.electronAPI.onAlertsUpdated((alerts) => {

@@ -22,6 +22,8 @@ The background collector is composed from `background-collector-runtime.ts`, `co
 
 `src/features/action-board/incident-routing.ts` is the deterministic routing path for the task response brief. It matches an alert to an incident rule and active support operators by exact system scope, incident-workflow permission, required skill, availability, expiry, and localised support window. It calculates a bounded response SLA and returns reasons for both matches and exclusions. Routing recommends a person but never changes ownership or claims work.
 
+`src/features/alerts/resource-graph.ts` builds the selected job's bounded resource relationship graph from the current alert, job poll, and job-context evidence. It records only observed incident/job, queue, subsystem, message-wait, and lock-owner edges, carries observation timestamps, marks stale snapshots, and reports missing lock-owner evidence. The task Details tab renders the flow and an accessible table through `get-job-resource-graph` IPC; it never infers or executes a relationship.
+
 ## Shared incident boundary
 
 `src/features/alerts/shared-incident-service.ts` defines the customer-controlled collaboration contract used by future unattended collection and delegated support clients. It carries versioned incident events scoped by organisation and IBM i system, merges duplicate or out-of-order events deterministically, keeps a local read cache, tracks pending writes, and exposes online, offline, and stale states. The service accepts an adapter rather than choosing a transport, so a customer-owned service or shared store can be added without making the desktop process the long-term authority. Retention and export operate on the same versioned cache.

@@ -117,6 +117,12 @@ test('launches the demo monitor and renders live incidents in active jobs', asyn
         await task.getByRole('tab', { name: 'Actions', exact: true }).click();
         await expect(task.getByTestId('incident-correlation-summary')).toContainText(/Priority \d+\/100/);
         await expect(task.locator('#task-routing-summary')).toContainText('Suggested owner:');
+        await task.getByRole('tab', { name: 'Details', exact: true }).click();
+        await task.locator('#task-load-graph').click();
+        await expect(task.getByTestId('task-resource-graph')).toContainText('Observed resource relationships');
+        await expect(task.getByTestId('task-resource-graph')).toContainText('uses queue');
+        await task.locator('.resource-graph-table summary').click();
+        await expect(task.locator('.resource-graph-table table')).toContainText('Job queue');
         await task.getByRole('tab', { name: 'Overview', exact: true }).click();
         await expect(task.locator('[data-testid="task-evidence-captured"]')).toBeVisible();
         await expect(task.locator('[data-testid="task-evidence-captured"]')).toContainText('Job log');

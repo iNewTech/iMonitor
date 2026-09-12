@@ -23,6 +23,7 @@ import {
 } from './features/alerts/alert-model';
 import { captureIncidentEvidence } from './features/alerts/incident-evidence';
 import { buildIncidentResponseSnapshot } from './features/alerts/incident-response';
+import { buildResourceGraph } from './features/alerts/resource-graph';
 import type { IncidentHandoff } from './features/alerts/incident-handoff';
 import { getDemoAvailability } from './features/demo/demo-runtime';
 import { buildJobRootCauseGuidance } from './features/guidance/root-cause-guidance';
@@ -1623,6 +1624,20 @@ registerJobsIpc({
             operatorName: getCurrentOperatorName(),
             routing
         });
+    },
+    getJobResourceGraph: async (jobName) => {
+        const job = monitoringState.getJob(jobName);
+        if (!job) throw new Error('The selected job is no longer available.');
+        const context = monitoringState.getMonitorMode() === 'live'
+            ? await (() => {
+                const service = sessionRuntime.getCurrentService();
+                if (!service) throw new Error('Not connected to IBM i');
+                return service.getJobContext(jobName);
+            })()
+            : getDemoDatabase().getJobContext(jobName);
+        const alert = alertState.getActiveAlerts().find((candidate) => candidate.jobName === jobName);
+        const observedAt = new Date().toISOString();
+        return buildResourceGraph({ job, alert, context, observedAt, now: observedAt });
     },
     getJobContext: async (jobName) => {
         if (monitoringState.getMonitorMode() === 'live') {

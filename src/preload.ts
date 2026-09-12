@@ -337,6 +337,20 @@ interface JobContextPayload {
     subsystem?: Record<string, unknown> | null;
 }
 
+interface ResourceGraphPayload {
+    success: boolean;
+    error?: string;
+    graph?: {
+        schema: 'imonitor-resource-graph';
+        version: 1;
+        observedAt: string;
+        stale: boolean;
+        nodes: Array<{ id: string; label: string; kind: string; detail?: string; evidence: Array<{ kind: string; label: string; observedAt: string }> }>;
+        edges: Array<{ id: string; from: string; to: string; relationship: string; confidence: 'observed'; evidence: Array<{ kind: string; label: string; observedAt: string }> }>;
+        notes: string[];
+    } | null;
+}
+
 interface JobLogPayload {
     success: boolean;
     error?: string;
@@ -1019,6 +1033,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }>,
     getJobDetails: (jobName: string) => ipcRenderer.invoke('get-job-details', jobName) as Promise<JobDetailsPayload | null>,
     getJobContext: (jobName: string) => ipcRenderer.invoke('get-job-context', jobName) as Promise<JobContextPayload>,
+    getJobResourceGraph: (jobName: string) => ipcRenderer.invoke('get-job-resource-graph', jobName) as Promise<ResourceGraphPayload>,
     getJobLog: (jobName: string) => ipcRenderer.invoke('get-job-log', jobName) as Promise<JobLogPayload>,
     getJobMessages: (jobName: string) => ipcRenderer.invoke('get-job-messages', jobName) as Promise<JobLogPayload>,
     getJobQueues: (options?: {
