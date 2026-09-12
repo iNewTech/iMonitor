@@ -351,6 +351,63 @@ interface JobDetailsPayload {
     }>;
 }
 
+interface RunbookDefinitionPayload {
+    schema: 'imonitor-runbook';
+    version: 1;
+    id: string;
+    policyId: string;
+    scenario: 'messageWait' | 'lockWait' | 'highCpu' | 'disconnect';
+    title: string;
+    systemId: string;
+    jobName: string;
+    incidentKey: string;
+    evidenceVersion: number;
+    requiredPermission: 'job-action';
+    rollback: string;
+    steps: Array<{
+        id: string;
+        title: string;
+        kind: 'check' | 'action' | 'verify';
+        requiredEvidence: string[];
+        action?: string;
+        confirmationRequired: boolean;
+        expectedOutcome: string;
+        stopCondition: string;
+    }>;
+}
+
+interface RunbookExecutionPayload {
+    schema: 'imonitor-runbook-execution';
+    version: 1;
+    id: string;
+    runbookId: string;
+    systemId: string;
+    jobName: string;
+    incidentKey: string;
+    evidenceVersion: number;
+    operator: string;
+    status: 'ready' | 'running' | 'paused' | 'succeeded' | 'failed' | 'escalated';
+    currentStepIndex: number;
+    steps: Array<{
+        stepId: string;
+        status: 'pending' | 'running' | 'succeeded' | 'failed' | 'skipped';
+        operator?: string;
+        startedAt?: string;
+        completedAt?: string;
+        input?: Record<string, string>;
+        output?: string;
+        outcome?: 'recovered' | 'still-blocked' | 'failed' | 'unknown' | 'succeeded';
+    }>;
+    createdAt: string;
+    updatedAt: string;
+    outcome?: {
+        status: 'recovered' | 'still-blocked' | 'failed' | 'unknown';
+        summary: string;
+        observedAt: string;
+        evidence: string[];
+    };
+}
+
 interface JobContextPayload {
     success: boolean;
     error?: string;
@@ -1166,6 +1223,32 @@ contextBridge.exposeInMainWorld('electronAPI', {
         success: boolean;
         error?: string;
         message?: string;
+    }>,
+    getVerifiedRunbook: (jobName: string) => ipcRenderer.invoke('get-verified-runbook', jobName) as Promise<{
+        success: boolean;
+        definition: RunbookDefinitionPayload | null;
+        execution: RunbookExecutionPayload | null;
+        error?: string;
+    }>,
+    startVerifiedRunbook: (payload: { jobName: string }) => ipcRenderer.invoke('start-verified-runbook', payload) as Promise<{
+        success: boolean;
+        definition?: RunbookDefinitionPayload;
+        execution?: RunbookExecutionPayload;
+        error?: string;
+    }>,
+    runVerifiedRunbookStep: (payload: {
+        jobName: string;
+        executionId?: string;
+        replyText?: string;
+        messageKey?: string;
+        messageQueue?: string;
+        confirmed?: boolean;
+    }) => ipcRenderer.invoke('run-verified-runbook-step', payload) as Promise<{
+        success: boolean;
+        definition?: RunbookDefinitionPayload;
+        execution?: RunbookExecutionPayload;
+        message?: string;
+        error?: string;
     }>,
     recheckAlert: (alertId: string) => ipcRenderer.invoke('recheck-alert', alertId) as Promise<{
         success: boolean;

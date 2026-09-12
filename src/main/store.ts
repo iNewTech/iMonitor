@@ -72,6 +72,7 @@ import { normalizeSupportAccessGrants, type SupportAccessGrants } from '../featu
 import { DEFAULT_COLLECTOR_SETTINGS, normalizeCollectorSettings, type CollectorSettings } from '../features/collector/collector-model';
 import { DEFAULT_BUSINESS_SERVICE_SETTINGS, normalizeBusinessServiceSettings, type BusinessServiceSettings } from '../features/action-board/business-service-mapping';
 import { DEFAULT_RESOLUTION_MEMORY, normalizeResolutionMemory, type ResolutionMemoryStore } from '../features/action-board/resolution-memory';
+import { DEFAULT_RUNBOOK_EXECUTIONS, normalizeRunbookExecutions, type RunbookExecutionStore } from '../features/action-board/runbook-execution';
 
 export interface StoreSchema {
     connections: StoredConnection[];
@@ -95,6 +96,7 @@ export interface StoreSchema {
     collectorSettings: CollectorSettings;
     businessServiceSettings: BusinessServiceSettings;
     resolutionMemory: ResolutionMemoryStore;
+    runbookExecutions: RunbookExecutionStore;
     themeId: ThemeId;
     developmentPlan: Plan;
 }
@@ -136,6 +138,7 @@ export function createAppStore() {
             collectorSettings: DEFAULT_COLLECTOR_SETTINGS,
             businessServiceSettings: DEFAULT_BUSINESS_SERVICE_SETTINGS,
             resolutionMemory: DEFAULT_RESOLUTION_MEMORY,
+            runbookExecutions: DEFAULT_RUNBOOK_EXECUTIONS,
             themeId: DEFAULT_THEME_ID,
             developmentPlan: 'premium'
         }
@@ -173,6 +176,23 @@ export function getNormalizedResolutionMemory(store: AppStore) {
 export function saveResolutionMemory(store: AppStore, candidate?: Partial<ResolutionMemoryStore>) {
     const normalized = normalizeResolutionMemory(candidate);
     store.set('resolutionMemory', normalized);
+    return normalized;
+}
+
+/** Loads and normalizes persisted runbook execution checkpoints. */
+export function getNormalizedRunbookExecutions(store: AppStore) {
+    const storedExecutions = store.get('runbookExecutions');
+    const normalized = normalizeRunbookExecutions(storedExecutions);
+    if (JSON.stringify(storedExecutions) !== JSON.stringify(normalized)) {
+        store.set('runbookExecutions', normalized);
+    }
+    return normalized;
+}
+
+/** Persists bounded customer-scoped runbook execution history. */
+export function saveRunbookExecutions(store: AppStore, candidate?: Partial<RunbookExecutionStore>) {
+    const normalized = normalizeRunbookExecutions(candidate);
+    store.set('runbookExecutions', normalized);
     return normalized;
 }
 

@@ -123,6 +123,12 @@ test('launches the demo monitor and renders live incidents in active jobs', asyn
         await expect(task.getByTestId('incident-correlation-summary')).toContainText(/Priority \d+\/100/);
         await expect(task.locator('#task-routing-summary')).toContainText('Suggested owner:');
         await expect(task.locator('#task-runbook-policy')).toContainText('Message wait response · v1');
+        await expect(task.locator('#task-runbook-section')).toBeVisible();
+        await expect(task.locator('#task-runbook-steps li')).toHaveCount(3);
+        await task.locator('#task-runbook-start').click();
+        await expect(task.locator('#task-runbook-status')).toHaveText('Running');
+        await task.locator('#task-runbook-step').click();
+        await expect(task.locator('#task-runbook-summary')).toContainText('1/3 checkpoints complete');
         await task.locator('#task-memory-save').click();
         await expect(task.locator('.resolution-memory-item')).toContainText(incident.title);
         await expect(task.locator('.resolution-memory-item')).toContainText('Draft');

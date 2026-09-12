@@ -30,6 +30,8 @@ The background collector is composed from `background-collector-runtime.ts`, `co
 
 `src/features/action-board/runbook-policy.ts` contains the small versioned policy set for common scenarios. It supplies evidence, verification, safe-action, and escalation criteria to the task response, and validates a message reply against the current MSGW state, message key, queue, and inquiry type immediately before the action planner can run.
 
+`src/features/action-board/runbook-execution.ts` turns those policies into immutable ordered procedures and a bounded persisted execution record. `src/main/ipc/runbook-ipc.ts` owns the read, start, checkpoint, and verification boundary. A checkpoint must be current before it runs; mutating steps reuse the existing action planner and authorization checks, while the final step reads the job again and records recovered, still blocked, failed, or unknown. Paused and escalated executions never retry a production mutation automatically.
+
 `src/features/action-board/resolution-memory.ts` is the customer-scoped knowledge boundary. It captures an incident's observed symptoms and evidence references as a draft, requires explicit approval before retrieval can use it, retains reviewer and environment metadata, supports retirement and scoped export, and matches approved entries only by system, incident kind, and job pattern. The store is local to the customer and is never a direct command source for IBM i actions.
 
 ## Shared incident boundary

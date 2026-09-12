@@ -50,6 +50,14 @@ const diskIo = $('task-disk-io');
 const incidentActions = $('task-incident-actions');
 const jobActions = $('task-job-actions');
 const actionNote = $('task-action-note');
+const runbookSection = $('task-runbook-section');
+const runbookStatus = $('task-runbook-status');
+const runbookSummary = $('task-runbook-summary');
+const runbookSteps = $('task-runbook-steps');
+const runbookStart = $('task-runbook-start');
+const runbookStepButton = $('task-runbook-step');
+const runbookNote = $('task-runbook-note');
+const runbookReply = $('task-runbook-reply');
 const statusHistory = $('task-status-history');
 const aiOutput = $('task-ai-output');
 const aiStatus = $('task-ai-status');
@@ -66,6 +74,7 @@ const handoffFields = {
 };
 let handoffDraftKey = '';
 let resolutionMemoryEntries = [];
+let runbookData = { definition: null, execution: null };
 
 function getJobKey(job) {
     return String(job?.JOB_NAME || job?.SUBSYSTEM_JOB || '').trim();
@@ -340,6 +349,54 @@ function renderResponseWorkspace(response) {
         : 'No handoff';
 }
 
+function renderRunbook() {
+    if (!runbookSection || !runbookSteps) return;
+    const definition = runbookData.definition;
+    const execution = runbookData.execution;
+    runbookSection.hidden = !definition;
+    if (!definition) return;
+    const statusLabel = String(execution?.status || 'not started').replace(/[-_]/g, ' ');
+    runbookStatus.textContent = statusLabel.replace(/\b\w/g, (letter) => letter.toUpperCase());
+    runbookSummary.textContent = execution
+        ? `${definition.title} · ${execution.operator} · ${execution.steps.filter((step) => step.status === 'succeeded').length}/${definition.steps.length} checkpoints complete.`
+        : `${definition.title}. Start the runbook to record each checkpoint before the protected action is offered.`;
+    runbookSteps.innerHTML = definition.steps.map((step, index) => {
+        const record = execution?.steps?.[index];
+        const current = Boolean(execution && execution.currentStepIndex === index && ['running', 'paused'].includes(execution.status));
+        const state = record?.status || 'pending';
+        return `<li class="runbook-step is-${escapeHtml(state)}${current ? ' is-current' : ''}">
+            <div><strong>${escapeHtml(step.title)}</strong><small>${escapeHtml(step.kind)} · ${escapeHtml(state)}</small></div>
+            <p>${escapeHtml(step.expectedOutcome)}</p>
+            ${record?.output ? `<small class="runbook-step-output">${escapeHtml(record.output)}</small>` : ''}
+        </li>`;
+    }).join('');
+    const currentStep = execution ? definition.steps[execution.currentStepIndex] : null;
+    runbookReply.hidden = currentStep?.action !== 'replyMessage';
+    runbookStart.disabled = pending.has('runbook') || Boolean(execution && ['ready', 'running', 'paused'].includes(execution.status));
+    runbookStepButton.disabled = pending.has('runbook') || !execution || !['running', 'paused'].includes(execution.status) || !currentStep;
+    runbookStepButton.textContent = execution?.status === 'paused' ? 'Retry checkpoint' : 'Run current checkpoint';
+    if (execution?.outcome) {
+        runbookNote.textContent = `${execution.outcome.summary} ${execution.outcome.evidence.join(' ')}`;
+    } else if (execution?.status === 'succeeded') {
+        runbookNote.textContent = 'Runbook completed and recovery was verified.';
+    } else {
+        runbookNote.textContent = currentStep?.stopCondition || '';
+    }
+}
+
+async function loadRunbookData() {
+    if (!latestPayload?.runbook || typeof window.electronAPI.getVerifiedRunbook !== 'function') {
+        runbookData = { definition: null, execution: null };
+        return;
+    }
+    try {
+        const result = await window.electronAPI.getVerifiedRunbook(selectedJobName);
+        runbookData = result?.success ? { definition: result.definition, execution: result.execution } : { definition: null, execution: null };
+    } catch {
+        runbookData = { definition: null, execution: null };
+    }
+}
+
 function renderResolutionMemory() {
     if (!memoryList) return;
     const alert = findLinkedAlert();
@@ -441,6 +498,7 @@ function renderTask() {
     renderIncidentEvidence(alert);
 
     renderResponseWorkspace(latestPayload.response);
+    renderRunbook();
     renderResolutionMemory();
     renderIncidentActions(alert);
     renderOperatorActions(jobActions, null, latestPayload.actions);
@@ -486,6 +544,11 @@ function updateControls() {
         || handoff?.status !== 'pending'
         || handoff.toOperator?.toLowerCase() !== currentOperatorName.toLowerCase();
     if (memorySave) memorySave.disabled = pending.has('memory') || mutationBlocked || !findLinkedAlert();
+    if (runbookStart) runbookStart.disabled = pending.has('runbook') || Boolean(runbookData.execution && ['ready', 'running', 'paused'].includes(runbookData.execution.status));
+    if (runbookStepButton) {
+        const execution = runbookData.execution;
+        runbookStepButton.disabled = pending.has('runbook') || !execution || !['running', 'paused'].includes(execution.status);
+    }
     document.querySelectorAll('#task-load-log, #task-load-messages, #task-load-graph').forEach((button) => {
         button.disabled = pending.has('details') || !selectedJobName;
     });
@@ -535,6 +598,7 @@ function loadTask() {
         if (failure) throw failure.reason;
         const [payload, alerts, flags] = results.map((result) => result.value);
         latestPayload = payload;
+        await loadRunbookData();
         // A pushed alert update is newer than the refresh's alert snapshot.
         if (alertVersion === alertsRevision) latestAlerts = Array.isArray(alerts) ? alerts : [];
         currentOperatorName = String(flags?.operatorName || '').trim() || 'local-operator';
@@ -624,6 +688,41 @@ function acceptHandoff() {
         $('task-handoff-routing-status').textContent = 'Handoff accepted. You are now the owner.';
     }), (error) => {
         $('task-handoff-routing-status').textContent = errorMessage(error, 'Unable to accept handoff.');
+    });
+}
+
+function startRunbook() {
+    if (!stateFresh || !runbookData.definition) return;
+    return runRequest('runbook', async () => {
+        runbookNote.textContent = 'Starting runbook…';
+        const result = requireSuccess(await window.electronAPI.startVerifiedRunbook({ jobName: selectedJobName }), 'Unable to start runbook.');
+        runbookData = { definition: result.definition || runbookData.definition, execution: result.execution || null };
+        renderRunbook();
+    }, (error) => {
+        runbookNote.textContent = errorMessage(error, 'Unable to start runbook.');
+    });
+}
+
+function runCurrentRunbookStep() {
+    const definition = runbookData.definition;
+    const execution = runbookData.execution;
+    const step = definition && execution ? definition.steps[execution.currentStepIndex] : null;
+    if (!step || !stateFresh) return;
+    if (step.confirmationRequired && !window.confirm(`${step.title} for ${selectedJobName}?`)) return;
+    return runRequest('runbook', () => mutateTask(async () => {
+        runbookNote.textContent = 'Running checkpoint…';
+        const result = requireSuccess(await window.electronAPI.runVerifiedRunbookStep({
+            jobName: selectedJobName,
+            executionId: execution.id,
+            replyText: $('task-runbook-reply-text')?.value,
+            messageKey: $('task-runbook-message-key')?.value,
+            messageQueue: $('task-runbook-message-queue')?.value,
+            confirmed: step.confirmationRequired
+        }), 'Unable to run checkpoint.');
+        runbookData = { definition: result.definition || definition, execution: result.execution || execution };
+        runbookNote.textContent = result.message || 'Checkpoint completed.';
+    }), (error) => {
+        runbookNote.textContent = errorMessage(error, 'Unable to run checkpoint.');
     });
 }
 
@@ -749,6 +848,8 @@ $('task-ai-summary').addEventListener('click', () => void askAi('summary'));
 $('task-ai-resolve').addEventListener('click', () => void askAi('resolve'));
 $('task-request-handoff').addEventListener('click', () => void requestHandoff());
 $('task-accept-handoff').addEventListener('click', () => void acceptHandoff());
+$('task-runbook-start')?.addEventListener('click', () => void startRunbook());
+$('task-runbook-step')?.addEventListener('click', () => void runCurrentRunbookStep());
 $('task-load-log').addEventListener('click', () => void loadDetails('log'));
 $('task-load-messages').addEventListener('click', () => void loadDetails('messages'));
 $('task-load-graph').addEventListener('click', () => void loadDetails('graph'));

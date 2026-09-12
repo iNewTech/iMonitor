@@ -108,6 +108,7 @@ import { registerSmsIpc } from './main/ipc/sms-ipc';
 import { registerSupportIpc } from './main/ipc/support-ipc';
 import { registerSupportAccessIpc } from './main/ipc/support-access-ipc';
 import { registerResolutionMemoryIpc } from './main/ipc/resolution-memory-ipc';
+import { registerRunbookIpc } from './main/ipc/runbook-ipc';
 import { createAiRuntime } from './main/runtime/ai-runtime';
 import { createEmailNotificationRuntime } from './main/runtime/email-notification-runtime';
 import { createClickUpRuntime } from './main/runtime/clickup-runtime';
@@ -161,7 +162,9 @@ import {
     getNormalizedBusinessServiceSettings,
     saveBusinessServiceSettings,
     getNormalizedResolutionMemory,
-    saveResolutionMemory
+    saveResolutionMemory,
+    getNormalizedRunbookExecutions,
+    saveRunbookExecutions
 } from './main/store';
 import type { CollectorSettings } from './features/collector/collector-model';
 import { registerCollectorIpc } from './main/ipc/collector-ipc';
@@ -611,6 +614,20 @@ const {
     askAssistant: (payload) => aiRuntime.askAssistant(payload),
     recordActivity: (entry) => loggingRuntime.recordActivity(entry)
 });
+
+function getRunbookPolicyForJob(jobName: string) {
+    const job = monitoringState.getJob(jobName);
+    if (!job) return undefined;
+    const alert = alertState.getActiveAlerts().find((candidate) => candidate.jobName === jobName);
+    return buildIncidentResponseSnapshot({
+        job,
+        alert,
+        statusHistory: monitoringState.getJobStatusHistory(jobName),
+        operatorName: getCurrentOperatorName(),
+        systemId: getCurrentSystemId(),
+        businessServiceSettings: getNormalizedBusinessServiceSettings(store)
+    }).runbook;
+}
 
 const windowRuntime = createWindowRuntime({
     preloadPath: path.join(__dirname, 'preload.js'),
@@ -1682,6 +1699,7 @@ registerJobsIpc({
 
         return getDemoDatabase().getJobMessages(jobName);
     },
+    getRunbook: getRunbookPolicyForJob,
     getJobQueues: readJobQueues,
     getJobQueueDetails: readJobQueueDetails,
     getQueuedJobs: readQueuedJobs,
@@ -1819,6 +1837,82 @@ registerResolutionMemoryIpc({
     getOperatorName: getCurrentOperatorName,
     authorizeAction: authorizeCurrentOperatorAction,
     recordActivity: loggingRuntime.recordActivity
+});
+
+registerRunbookIpc({
+    requirePremium: () => requireEntitlement('job-actions'),
+    getSystemId: getCurrentSystemId,
+    getOperatorName: getCurrentOperatorName,
+    authorizeAction: authorizeCurrentOperatorAction,
+    getJob: (jobName) => monitoringState.getJob(jobName),
+    getJobLog: async (jobName) => {
+        if (monitoringState.getMonitorMode() === 'live') {
+            const service = sessionRuntime.getCurrentService();
+            if (!service) throw new Error('Not connected to IBM i');
+            return service.getJobLog(jobName);
+        }
+        return getDemoDatabase().getJobLog(jobName);
+    },
+    getJobMessages: async (jobName) => {
+        if (monitoringState.getMonitorMode() === 'live') {
+            const service = sessionRuntime.getCurrentService();
+            if (!service) throw new Error('Not connected to IBM i');
+            return service.getJobMessages(jobName);
+        }
+        return getDemoDatabase().getJobMessages(jobName);
+    },
+    getIncidentResponse: (jobName) => {
+        const job = monitoringState.getJob(jobName);
+        if (!job) return null;
+        const alert = alertState.getActiveAlerts().find((candidate) => candidate.jobName === jobName);
+        return buildIncidentResponseSnapshot({
+            job,
+            alert,
+            statusHistory: monitoringState.getJobStatusHistory(jobName),
+            operatorName: getCurrentOperatorName(),
+            systemId: getCurrentSystemId(),
+            businessServiceSettings: getNormalizedBusinessServiceSettings(store)
+        });
+    },
+    getHighCpuThreshold: () => getAlertSettings().highCpuThreshold,
+    getExecutions: () => getNormalizedRunbookExecutions(store),
+    saveExecutions: (executions) => saveRunbookExecutions(store, executions),
+    buildOperatorActionPlan,
+    runOperatorCommand: async (command, payload, live) => {
+        if (!live) {
+            loggingRuntime.recordActivity({
+                area: 'monitoring',
+                level: 'success',
+                message: `Simulated runbook action: ${payload.kind}.`,
+                detail: `${getCurrentOperatorName()} | ${payload.jobName} | ${command}`
+            });
+            return;
+        }
+        const service = sessionRuntime.getCurrentService();
+        if (!service) throw new Error('Not connected to IBM i');
+        await service.executeClCommand(command);
+        loggingRuntime.recordActivity({
+            area: 'monitoring',
+            level: 'success',
+            message: `Runbook action completed: ${payload.kind}.`,
+            detail: `${getCurrentOperatorName()} | ${payload.jobName} | ${command}`
+        });
+        await monitoringRuntime.publishSystemStatus();
+    },
+    isLiveMonitorMode: () => monitoringState.getMonitorMode() === 'live',
+    recordActionAudit: (entry) => {
+        loggingRuntime.recordActivity({
+            area: 'monitoring',
+            level: entry.result === 'success' ? 'success' : 'error',
+            message: `ActionBoard action ${entry.result}: ${entry.action}.`,
+            detail: [
+                `operator=${entry.operator}`,
+                `job=${entry.jobName}`,
+                entry.incidentId ? `incident=${entry.incidentId}` : undefined,
+                entry.detail
+            ].filter(Boolean).join(' | ')
+        });
+    }
 });
 
 app.whenReady().then(() => {

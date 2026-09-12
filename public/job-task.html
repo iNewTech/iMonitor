@@ -108,6 +108,27 @@
                         <p id="task-routing-summary" class="stat-note mt-2 mb-0" role="status">Routing recommendation unavailable.</p>
                         <p id="task-runbook-policy" class="stat-note mt-2 mb-0" role="status"></p>
                     </section>
+                    <section id="task-runbook-section" class="job-detail-section task-runbook-section" aria-labelledby="task-runbook-title" hidden>
+                        <div class="history-card-header">
+                            <div>
+                                <p class="eyebrow mb-1">Verified runbook</p>
+                                <h2 id="task-runbook-title" class="section-title">Guided recovery checkpoints</h2>
+                            </div>
+                            <span id="task-runbook-status" class="table-caption">Not started</span>
+                        </div>
+                        <p id="task-runbook-summary" class="stat-note mb-2">Each step records its evidence, operator, outcome, and verification state.</p>
+                        <ol id="task-runbook-steps" class="runbook-step-list"></ol>
+                        <div id="task-runbook-reply" class="runbook-reply-fields" hidden>
+                            <label>Message key<input id="task-runbook-message-key" type="text" inputmode="text" placeholder="8 hex characters"></label>
+                            <label>Message queue<input id="task-runbook-message-queue" type="text" placeholder="QSYS/QSYSOPR"></label>
+                            <label>Reply<input id="task-runbook-reply-text" type="text" placeholder="Approved reply"></label>
+                        </div>
+                        <div class="runbook-actions">
+                            <button id="task-runbook-start" type="button" class="btn btn-outline-ink btn-sm">Start runbook</button>
+                            <button id="task-runbook-step" type="button" class="btn btn-primary-strong btn-sm" disabled>Run current checkpoint</button>
+                        </div>
+                        <p id="task-runbook-note" class="stat-note mt-2 mb-0" role="status"></p>
+                    </section>
                     <div id="task-incident-actions" class="task-workflow-actions"></div>
                     <p id="task-workflow-note" class="stat-note mt-2 mb-0 text-break" role="status"></p>
                 </section>

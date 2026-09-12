@@ -247,6 +247,81 @@
     margin-top: 8px;
 }
 
+.task-runbook-section {
+    border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+}
+
+.runbook-step-list {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.runbook-step {
+    display: grid;
+    gap: 2px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--surface-elevated) 82%, var(--accent-soft));
+}
+
+.runbook-step.is-current {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.runbook-step > div,
+.runbook-actions,
+.runbook-reply-fields {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.runbook-step small,
+.runbook-step p,
+.runbook-step-output {
+    color: var(--ink-muted, #657a83);
+    font-size: .78rem;
+}
+
+.runbook-step p {
+    margin: 0;
+}
+
+.runbook-reply-fields {
+    align-items: end;
+    margin-top: 8px;
+}
+
+.runbook-reply-fields label {
+    display: grid;
+    flex: 1 1 160px;
+    gap: 4px;
+    color: var(--muted-strong);
+    font-size: .74rem;
+    font-weight: 800;
+}
+
+.runbook-reply-fields input {
+    min-height: 34px;
+    padding: 6px 9px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-elevated);
+    color: var(--text-strong);
+    font: inherit;
+    font-size: .8rem;
+}
+
+.runbook-actions {
+    margin-top: 8px;
+}
+
 @media (max-width: 680px) {
     .response-brief-grid,
     .handoff-grid {

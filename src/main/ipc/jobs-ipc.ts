@@ -26,6 +26,7 @@ interface RegisterJobsIpcDependencies {
     getJobContext: (jobName: string) => Promise<Record<string, unknown>>;
     getJobLog: (jobName: string) => Promise<unknown[]>;
     getJobMessages: (jobName: string) => Promise<JobMessageRecord[]>;
+    getRunbook: (jobName: string) => unknown;
     getJobQueues: (options: JobQueueQuery) => Promise<PagedResult<JobQueueRecord>>;
     getJobQueueDetails: (queueName: string, queueLibrary: string) => Promise<{
         queue: Record<string, unknown> | null;
@@ -89,6 +90,7 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
             job,
             statusHistory: dependencies.getJobStatusHistory(jobName),
             response: dependencies.getIncidentResponse(jobName),
+            runbook: dependencies.getRunbook(jobName),
             waitReason: dependencies.buildWaitReason(job),
             guidance: dependencies.buildJobRootCauseGuidance(job),
             actions: dependencies.getAvailableOperatorActions(job)
