@@ -62,6 +62,8 @@ Configure integrations from **Settings**:
 
 Integration credentials and settings are kept separate for the named operator where supported. Test controls can send real messages or create real work items.
 
+iMonitor keeps the incident record locally even when an integration is disabled or unavailable. Configured outbound events show a durable delivery outcome internally, retry short-lived failures within a bounded limit, and do not create a second external ticket when the same event is retried. Linked Jira and ClickUp work items receive approved claim, handoff, and recovery updates from the iMonitor workflow.
+
 ## Data and support
 
 Incident records, action history, and monitoring summaries are retained locally for the current desktop workflow. The shared incident service is designed for customer-controlled storage and synchronisation between clients; its scope is always tied to an organisation and IBM i system, and it reports offline or stale state when synchronisation is unavailable.

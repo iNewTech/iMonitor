@@ -69,6 +69,12 @@ Verify the artifact paths displayed by the app: local reports use the source dir
 
 Reports start in draft. Approval persists the current result with source identity and hash mapping. Adding an AI explanation requires approval of the updated result. Compile generation is separate; there is no automatic execution path.
 
+## Integration delivery
+
+`src/features/integrations/delivery.ts` is the shared outbound delivery contract for external incident and work-item events. `buildDeliveryEventKey()` combines provider, event, source ID, and event revision into a stable key. `createDeliveryRegistry()` persists `pending`, `sent`, `skipped`, and `failed` states, suppresses a successful duplicate, retries a failed operation at most twice by default, and bounds the ledger size. Stored errors are truncated and credential-shaped values are redacted.
+
+The local incident workflow is the source of truth. New Slack alerts and Jira issues are delivered independently, so a provider outage cannot block incident creation. A successful Jira response is mapped to `jiraIssue` on the durable workflow state. ClickUp task references remain mapped in the same state. iMonitor owns lifecycle, owner, evidence, and timeline fields; providers own their external ticket IDs, URLs, assignees, and channel presentation. Claim, handoff, manual recovery, and automatic recovery updates use a new provider/event key and are sent as compact comments or permitted assignee changes. Provider payloads contain workflow fields only; raw evidence, credentials, and local diagnostic files are excluded from workflow updates.
+
 ## Evidence and build limits
 
 Incident evidence is collected by `src/features/alerts/incident-evidence.ts` after alert creation. The collector uses the existing IBM i or demo job context, job log, and message services, runs them in parallel under a bounded budget, caps each source at 100 records, redacts secret-shaped keys and values, and records explicit source status. The trigger job snapshot is retained separately from later refreshes and normalized before it enters the incident ledger. Evidence is passed into the AI context and displayed in the alert and task views; it remains read-only.

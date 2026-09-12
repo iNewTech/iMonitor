@@ -46,7 +46,8 @@ interface RegisterAlertsIpcDependencies {
     getCurrentSystemId: () => string | undefined;
     syncLinkedExternalWorkItem?: (payload: {
         alertId: string;
-        action: 'acknowledge' | 'claim' | 'release' | 'workDone' | 'note' | 'handoff';
+        action: 'acknowledge' | 'claim' | 'release' | 'workDone' | 'note' | 'handoff' | 'recovered';
+        eventKey?: string;
         note?: string;
         nextState: StoredAlertWorkflowState;
     }) => Promise<void> | void;
@@ -184,6 +185,7 @@ export function registerAlertsIpc(dependencies: RegisterAlertsIpcDependencies) {
             await dependencies.syncLinkedExternalWorkItem?.({
                 alertId: payload.alertId,
                 action: payload.action,
+                eventKey: `${payload.action}:${nextState.updatedAt}`,
                 note: payload.note,
                 nextState
             });
@@ -272,6 +274,7 @@ export function registerAlertsIpc(dependencies: RegisterAlertsIpcDependencies) {
             await dependencies.syncLinkedExternalWorkItem?.({
                 alertId: payload.alertId,
                 action: 'handoff',
+                eventKey: `handoff:${nextState.updatedAt}`,
                 nextState
             });
             return { success: true, handoff: handoffResult.handoff, updatedAt: nextState.updatedAt };
@@ -334,6 +337,7 @@ export function registerAlertsIpc(dependencies: RegisterAlertsIpcDependencies) {
             await dependencies.syncLinkedExternalWorkItem?.({
                 alertId: payload.alertId,
                 action: 'handoff',
+                eventKey: `handoff-accepted:${nextState.updatedAt}`,
                 nextState
             });
             await dependencies.assignClickUpTaskToOperator?.(

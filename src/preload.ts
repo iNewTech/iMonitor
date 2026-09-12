@@ -164,6 +164,11 @@ interface MonitorAlert {
         url?: string;
         name?: string;
     };
+    jiraIssue?: {
+        id: string;
+        key: string;
+        url: string;
+    };
     handoff?: IncidentHandoff;
 }
 

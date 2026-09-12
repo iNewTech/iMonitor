@@ -1,4 +1,5 @@
 import type { ClickUpTaskReference } from '../integrations/clickup/clickup-model';
+import type { JiraIssueReference } from '../integrations/jira/jira-model';
 import type { IncidentEvidence } from './incident-evidence';
 import type { IncidentHandoff } from './incident-handoff';
 
@@ -107,6 +108,7 @@ export interface MonitorAlert {
     workflowUpdatedAt: string;
     lastActionSummary?: string;
     clickUpTask?: ClickUpTaskReference;
+    jiraIssue?: JiraIssueReference;
     handoff?: IncidentHandoff;
 }
 
@@ -146,6 +148,7 @@ export interface StoredAlertWorkflowState {
     updatedAt: string;
     lastActionSummary?: string;
     clickUpTask?: ClickUpTaskReference;
+    jiraIssue?: JiraIssueReference;
     handoff?: IncidentHandoff;
 }
 

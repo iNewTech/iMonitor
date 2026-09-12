@@ -420,6 +420,7 @@ export function resolveAlertById(
                 updatedAt: alert.workflowUpdatedAt,
                 lastActionSummary: alert.lastActionSummary,
                 clickUpTask: alert.clickUpTask,
+                jiraIssue: alert.jiraIssue,
                 handoff: alert.handoff
             }, timestamp), { timestamp, detail }))
             : alert

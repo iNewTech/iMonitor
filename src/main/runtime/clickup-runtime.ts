@@ -588,10 +588,10 @@ export function createClickUpRuntime(dependencies: ClickUpRuntimeDependencies) {
         action: string;
         nextState: StoredAlertWorkflowState;
         note?: string;
-    }) {
+    }): Promise<{ success: boolean; skipped?: boolean; error?: string; }> {
         const settings = dependencies.getSettings();
         if (!settings.enabled || !settings.syncComments || !params.nextState.clickUpTask?.id) {
-            return;
+            return { success: false, skipped: true };
         }
 
         const owner = params.nextState.owner || 'Unassigned';
@@ -615,6 +615,7 @@ export function createClickUpRuntime(dependencies: ClickUpRuntimeDependencies) {
                 message: 'Posted the latest alert update to ClickUp.',
                 detail: `${params.alertId} | ${params.nextState.clickUpTask.id}`
             });
+            return { success: true };
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             dependencies.recordActivity({
@@ -623,6 +624,7 @@ export function createClickUpRuntime(dependencies: ClickUpRuntimeDependencies) {
                 message: 'Unable to sync the alert update to ClickUp.',
                 detail: `${params.alertId} | ${message}`
             });
+            return { success: false, error: message };
         }
     }
 

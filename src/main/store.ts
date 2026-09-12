@@ -67,6 +67,7 @@ import {
     type ObjectAnalysisSettings
 } from '../features/object-analysis/model';
 import { normalizeQueueTriageResults, type QueueTriageResult } from '../features/action-board/queue-triage';
+import type { IntegrationDeliveryStatus } from '../features/integrations/delivery';
 
 export interface StoreSchema {
     connections: StoredConnection[];
@@ -82,6 +83,7 @@ export interface StoreSchema {
     smsNotificationSettingsByUser: StoredSmsNotificationSettingsByUser;
     smsNotificationSettings: StoredSmsNotificationSettings;
     alertWorkflowState: Record<string, StoredAlertWorkflowState>;
+    integrationDeliveryStatus: Record<string, IntegrationDeliveryStatus>;
     incidentLedger: IncidentLedger;
     queueTriageResults: Record<string, QueueTriageResult>;
     objectAnalysisSettings: ObjectAnalysisSettings;
@@ -118,6 +120,7 @@ export function createAppStore() {
             smsNotificationSettingsByUser: DEFAULT_STORED_SMS_NOTIFICATION_SETTINGS_BY_USER,
             smsNotificationSettings: DEFAULT_STORED_SMS_NOTIFICATION_SETTINGS,
             alertWorkflowState: {},
+            integrationDeliveryStatus: {},
             incidentLedger: {},
             queueTriageResults: {},
             objectAnalysisSettings: DEFAULT_OBJECT_ANALYSIS_SETTINGS,

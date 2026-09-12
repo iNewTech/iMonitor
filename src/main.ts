@@ -10,11 +10,17 @@ import {
     acknowledgeAlertWorkflow,
     addAlertWorkflowNote,
     attachClickUpTaskToWorkflow,
+    attachJiraIssueToWorkflow,
     claimAlertWorkflow,
     markAlertWorkDone,
     releaseAlertWorkflow
 } from './features/alerts/alert-operator-workflow';
-import { normalizeAlertSettings, shouldWatchAlert } from './features/alerts/alert-model';
+import {
+    normalizeAlertSettings,
+    shouldWatchAlert,
+    type MonitorAlert,
+    type StoredAlertWorkflowState
+} from './features/alerts/alert-model';
 import { captureIncidentEvidence } from './features/alerts/incident-evidence';
 import { buildIncidentResponseSnapshot } from './features/alerts/incident-response';
 import { getDemoAvailability } from './features/demo/demo-runtime';
@@ -105,6 +111,10 @@ import { createSlackRuntime } from './main/runtime/slack-runtime';
 import { createJiraRuntime } from './main/runtime/jira-runtime';
 import { createSmsNotificationRuntime } from './main/runtime/sms-notification-runtime';
 import { createSupportRuntime } from './main/runtime/support-runtime';
+import {
+    buildDeliveryEventKey,
+    createDeliveryRegistry
+} from './features/integrations/delivery';
 import { encryptDiagnostics } from './features/support/diagnostic-crypto';
 import { registerEntitlementsIpc } from './main/ipc/entitlements-ipc';
 import {
@@ -193,6 +203,10 @@ function resolveNotificationOptions(title: string, body: string) {
 }
 
 const store = createAppStore();
+const deliveryRegistry = createDeliveryRegistry(
+    store.get('integrationDeliveryStatus'),
+    (statuses) => store.set('integrationDeliveryStatus', statuses)
+);
 if (developmentBuild && store.get('developmentPlan') === 'free') {
     selectedDevelopmentPlan = 'free';
 }
@@ -580,46 +594,68 @@ const alertState = createAlertStateStore({
     onAlertsChanged: (alerts) => {
         windowRuntime.sendToWindow('alerts-updated', alerts);
     },
+    onAlertResolved: (alert) => {
+        void syncLinkedExternalWorkItem({
+            alertId: alert.id,
+            action: 'recovered',
+            eventKey: `recovered:${alert.workflowUpdatedAt}`,
+            nextState: workflowStateFromAlert(alert)
+        });
+    },
     onAlertCreated: async (alert) => {
         const shouldDeliverAlert = shouldWatchAlert(getAlertSettings(), alert.kind);
-        const shouldSendSlack = Boolean(
-            hasEntitlement(getEntitlements(), 'slack-integration')
-            &&
-            slackRuntime.canSendAlerts()
-            && shouldDeliverAlert
-        );
+        if (!shouldDeliverAlert) return;
 
-        if (shouldSendSlack) {
-            try {
-                await slackRuntime.sendAlert(alert);
-            } catch (error) {
-                const message = error instanceof Error ? error.message : String(error);
-                loggingRuntime.recordActivity({
-                    area: 'monitoring',
-                    level: 'warning',
-                    message: 'Slack alert delivery failed.',
-                    detail: `${alert.id}\n${message}`
-                });
+        const occurrence = alert.occurrence ?? 1;
+        const slackEventKey = buildDeliveryEventKey('slack', 'incident-created', alert.id, occurrence);
+        if (hasEntitlement(getEntitlements(), 'slack-integration')) {
+            if (slackRuntime.canSendAlerts()) {
+                const result = await deliveryRegistry.deliver(
+                    'slack',
+                    slackEventKey,
+                    () => slackRuntime.sendAlert(alert)
+                );
+                if (result.state === 'failed') {
+                    loggingRuntime.recordActivity({
+                        area: 'monitoring',
+                        level: 'warning',
+                        message: 'Slack alert delivery failed after bounded retries.',
+                        detail: `${alert.id}\n${result.error || 'Unknown delivery error'}`
+                    });
+                }
+            } else {
+                deliveryRegistry.skip('slack', slackEventKey, 'Slack is not configured or unavailable.');
             }
         }
 
-        const shouldSendJira = Boolean(
-            hasEntitlement(getEntitlements(), 'jira-integration')
-            && jiraRuntime.canSendAlerts()
-            && shouldDeliverAlert
-        );
-
-        if (shouldSendJira) {
-            try {
-                await jiraRuntime.sendAlert(alert);
-            } catch (error) {
-                const message = error instanceof Error ? error.message : String(error);
-                loggingRuntime.recordActivity({
-                    area: 'monitoring',
-                    level: 'warning',
-                    message: 'Jira alert delivery failed.',
-                    detail: `${alert.id}\n${message}`
-                });
+        const jiraEventKey = buildDeliveryEventKey('jira', 'incident-created', alert.id);
+        if (hasEntitlement(getEntitlements(), 'jira-integration')) {
+            if (jiraRuntime.canSendAlerts()) {
+                const result = await deliveryRegistry.deliver(
+                    'jira',
+                    jiraEventKey,
+                    async () => {
+                        const currentAlert = alertState.getActiveAlerts().find((entry) => entry.id === alert.id);
+                        if (currentAlert?.jiraIssue?.key) {
+                            return currentAlert.jiraIssue;
+                        }
+                        const issue = await jiraRuntime.sendAlert(alert);
+                        alertState.mutateAlertWorkflow(alert.id, (state) => (
+                            attachJiraIssueToWorkflow(state, issue, new Date().toISOString())
+                        ));
+                        return issue;
+                    }
+                );
+                if (result.state === 'failed') {
+                    loggingRuntime.recordActivity({
+                        area: 'monitoring',
+                        level: 'warning',
+                        message: 'Jira incident delivery failed after bounded retries.',
+                        detail: `${alert.id}\n${result.error || 'Unknown delivery error'}`
+                    });
+                }
+            } else {
+                deliveryRegistry.skip('jira', jiraEventKey, 'Jira is not configured or unavailable.');
             }
         }
     }
@@ -700,10 +736,32 @@ async function createClickUpTaskForClaimedAlert(alertId: string) {
     }
 
     try {
-        const task = await clickUpRuntime.createTaskForAlert(alert, { assignToOperator: true });
-        alertState.mutateAlertWorkflow(alertId, (state) => (
-            attachClickUpTaskToWorkflow(state, task, new Date().toISOString())
-        ));
+        const eventKey = buildDeliveryEventKey(
+            'clickup',
+            'incident-task-created',
+            alert.id,
+            alert.occurrence ?? 1
+        );
+        const result = await deliveryRegistry.deliver('clickup', eventKey, async () => {
+            const task = await clickUpRuntime.createTaskForAlert(alert, { assignToOperator: true });
+            alertState.mutateAlertWorkflow(alertId, (state) => (
+                attachClickUpTaskToWorkflow(state, task, new Date().toISOString())
+            ));
+            return task;
+        });
+        if (result.state !== 'sent') {
+            if (result.state === 'failed') {
+                loggingRuntime.recordActivity({
+                    area: 'monitoring',
+                    level: 'warning',
+                    message: 'ClickUp task creation failed after bounded retries.',
+                    detail: `${alertId}\n${result.error || 'Unknown delivery error'}`
+                });
+            }
+            return;
+        }
+        const task = result.value;
+        if (!task) return;
 
         let diagnostic = '';
         try {
@@ -747,6 +805,74 @@ const jiraRuntime = createJiraRuntime({
     getOperatorName: getCurrentOperatorName,
     recordActivity: loggingRuntime.recordActivity
 });
+
+type ExternalWorkflowSyncPayload = {
+    alertId: string;
+    action: 'acknowledge' | 'claim' | 'release' | 'workDone' | 'note' | 'handoff' | 'recovered';
+    eventKey?: string;
+    note?: string;
+    nextState: StoredAlertWorkflowState;
+};
+
+function workflowStateFromAlert(alert: MonitorAlert): StoredAlertWorkflowState {
+    return {
+        status: alert.workflowStatus,
+        owner: alert.owner,
+        notes: alert.notes,
+        timeline: alert.timeline,
+        updatedAt: alert.workflowUpdatedAt,
+        lastActionSummary: alert.lastActionSummary,
+        clickUpTask: alert.clickUpTask,
+        jiraIssue: alert.jiraIssue,
+        handoff: alert.handoff
+    };
+}
+
+/** Sends the same approved workflow event to each configured external adapter. */
+async function syncLinkedExternalWorkItem(payload: ExternalWorkflowSyncPayload) {
+    const eventSuffix = payload.eventKey || `${payload.action}:${payload.nextState.updatedAt}`;
+    const clickUpSettings = getClickUpSettings();
+    if (clickUpSettings.enabled && clickUpSettings.syncComments && payload.nextState.clickUpTask?.id) {
+        const clickUpEventKey = buildDeliveryEventKey('clickup', 'workflow-update', payload.alertId, eventSuffix);
+        const result = await deliveryRegistry.deliver('clickup', clickUpEventKey, async () => {
+            const delivery = await clickUpRuntime.syncAlertWorkflowComment(payload);
+            if (!delivery.success && !delivery.skipped) {
+                throw new Error(delivery.error || 'ClickUp workflow update failed.');
+            }
+            return delivery;
+        });
+        if (result.state === 'failed') {
+            loggingRuntime.recordActivity({
+                area: 'monitoring',
+                level: 'warning',
+                message: 'ClickUp workflow update failed after bounded retries.',
+                detail: `${payload.alertId}\n${result.error || 'Unknown delivery error'}`
+            });
+        }
+    }
+
+    const jiraSettings = getJiraSettings();
+    if (jiraSettings.enabled && payload.nextState.jiraIssue?.key && jiraRuntime.canSendAlerts()) {
+        const jiraEventKey = buildDeliveryEventKey('jira', 'workflow-update', payload.alertId, eventSuffix);
+        const result = await deliveryRegistry.deliver('jira', jiraEventKey, () => (
+            jiraRuntime.syncAlertWorkflowComment({
+                issueKey: payload.nextState.jiraIssue!.key,
+                alertId: payload.alertId,
+                action: payload.action,
+                nextState: payload.nextState,
+                note: payload.note
+            })
+        ));
+        if (result.state === 'failed') {
+            loggingRuntime.recordActivity({
+                area: 'monitoring',
+                level: 'warning',
+                message: 'Jira workflow update failed after bounded retries.',
+                detail: `${payload.alertId}\n${result.error || 'Unknown delivery error'}`
+            });
+        }
+    }
+}
 
 const emailNotificationRuntime = createEmailNotificationRuntime({
     appName: 'iMonitor',
@@ -1252,9 +1378,7 @@ registerAlertsIpc({
     getOperatorName: getCurrentOperatorName,
     authorizeAction: authorizeCurrentOperatorAction,
     getCurrentSystemId,
-    syncLinkedExternalWorkItem: async (payload) => {
-        await clickUpRuntime.syncAlertWorkflowComment(payload);
-    },
+    syncLinkedExternalWorkItem,
     assignClickUpTaskToOperator: (taskId, operatorName) => (
         clickUpRuntime.assignClickUpTaskToOperator(taskId, operatorName)
     ),

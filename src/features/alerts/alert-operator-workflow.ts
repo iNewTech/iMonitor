@@ -66,6 +66,7 @@ export function normalizeAlertWorkflowState(
         updatedAt: state.updatedAt ?? timestamp,
         lastActionSummary: state.lastActionSummary,
         clickUpTask: state.clickUpTask,
+        jiraIssue: state.jiraIssue,
         handoff: normalizeIncidentHandoff(state.handoff)
     };
 }
@@ -87,6 +88,7 @@ export function applyWorkflowStateToAlert(
         workflowUpdatedAt: workflowState.updatedAt,
         lastActionSummary: workflowState.lastActionSummary,
         clickUpTask: workflowState.clickUpTask,
+        jiraIssue: workflowState.jiraIssue,
         handoff: workflowState.handoff
     };
 }
@@ -127,6 +129,24 @@ export function attachClickUpTaskToWorkflow(
         updatedAt: timestamp,
         lastActionSummary: 'ClickUp task linked'
     }, 'condition_seen', timestamp, 'ClickUp task linked', undefined, `${task.name || task.id}${task.url ? ` | ${task.url}` : ''}`);
+}
+
+/** Attaches the linked Jira incident so later workflow events update it. */
+export function attachJiraIssueToWorkflow(
+    state: StoredAlertWorkflowState,
+    issue: StoredAlertWorkflowState['jiraIssue'],
+    timestamp: string
+): StoredAlertWorkflowState {
+    if (!issue?.key) {
+        return state;
+    }
+
+    return appendWorkflowEntry({
+        ...state,
+        jiraIssue: issue,
+        updatedAt: timestamp,
+        lastActionSummary: 'Jira issue linked'
+    }, 'condition_seen', timestamp, 'Jira issue linked', undefined, `${issue.key}${issue.url ? ` | ${issue.url}` : ''}`);
 }
 
 /**

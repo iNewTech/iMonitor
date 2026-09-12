@@ -4,7 +4,7 @@ import {
     type JiraIssueReference,
     type JiraSettings
 } from '../../features/integrations/jira/jira-model';
-import type { MonitorAlert } from '../../features/alerts/alert-model';
+import type { MonitorAlert, StoredAlertWorkflowState } from '../../features/alerts/alert-model';
 
 interface JiraRuntimeDependencies {
     getSettings: () => JiraSettings;
@@ -24,6 +24,17 @@ interface JiraIssueResponse {
     self?: string;
     errors?: Record<string, string>;
     errorMessages?: string[];
+}
+
+interface JiraCommentPayload {
+    body: {
+        type: 'doc';
+        version: 1;
+        content: Array<{
+            type: 'paragraph';
+            content: Array<{ type: 'text'; text: string }>;
+        }>;
+    };
 }
 
 /** Creates the Jira Cloud REST client used for alert issue delivery. */
@@ -111,6 +122,64 @@ export function createJiraRuntime(dependencies: JiraRuntimeDependencies) {
         return issue;
     }
 
+    async function addComment(issueKey: string, commentText: string) {
+        const settings = getConfiguredSettings();
+        const normalizedText = commentText.trim().slice(0, 5000);
+        if (!normalizedText) return;
+
+        const payload: JiraCommentPayload = {
+            body: {
+                type: 'doc',
+                version: 1,
+                content: [{
+                    type: 'paragraph',
+                    content: [{ type: 'text', text: normalizedText }]
+                }]
+            }
+        };
+        const response = await fetcher(
+            `${settings.baseUrl}/rest/api/3/issue/${encodeURIComponent(issueKey)}/comment`,
+            {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    Authorization: `Basic ${Buffer.from(`${settings.username}:${settings.apiToken}`).toString('base64')}`
+                },
+                body: JSON.stringify(payload)
+            }
+        );
+
+        if (!response.ok) {
+            const responseText = await response.text();
+            throw new Error(`Jira comment API ${response.status}: ${responseText || response.statusText}`);
+        }
+    }
+
+    function buildWorkflowComment(params: {
+        alertId: string;
+        action: string;
+        nextState: StoredAlertWorkflowState;
+        note?: string;
+    }) {
+        const owner = params.nextState.owner || 'Unassigned';
+        return [
+            `iMonitor alert update: ${params.action}`,
+            `Incident ID: ${params.alertId}`,
+            `Workflow status: ${params.nextState.status}`,
+            `Assigned owner: ${owner}`,
+            params.nextState.lastActionSummary ? `Summary: ${params.nextState.lastActionSummary}` : '',
+            params.nextState.handoff
+                ? `Handoff: ${params.nextState.handoff.status} from ${params.nextState.handoff.fromOperator} to ${params.nextState.handoff.toOperator}`
+                : '',
+            params.nextState.handoff?.responseTargetAt
+                ? `Response target: ${params.nextState.handoff.responseTargetAt}`
+                : '',
+            params.nextState.handoff?.reason ? `Handoff reason: ${params.nextState.handoff.reason}` : '',
+            params.note ? `Note: ${params.note}` : ''
+        ].filter(Boolean).join('\n');
+    }
+
     return {
         canSendAlerts,
         async sendAlert(alert: MonitorAlert) {
@@ -130,6 +199,22 @@ export function createJiraRuntime(dependencies: JiraRuntimeDependencies) {
                 timeline: [],
                 workflowUpdatedAt: new Date().toISOString()
             }, settings));
+        },
+        async syncAlertWorkflowComment(params: {
+            issueKey: string;
+            alertId: string;
+            action: string;
+            nextState: StoredAlertWorkflowState;
+            note?: string;
+        }) {
+            await addComment(params.issueKey, buildWorkflowComment(params));
+            dependencies.recordActivity({
+                area: 'monitoring',
+                level: 'info',
+                message: 'Posted the latest alert update to Jira.',
+                detail: `${params.alertId} | ${params.issueKey}`
+            });
+            return { success: true };
         }
     };
 }

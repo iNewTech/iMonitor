@@ -84,4 +84,45 @@ describe('jira-runtime', () => {
 
         await expect(runtime.sendTestMessage()).rejects.toThrow('Complete the Jira site URL');
     });
+
+    it('posts a compact workflow update to the linked issue', async () => {
+        const recordActivity = vi.fn();
+        const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
+            expect(url).toBe('https://example.atlassian.net/rest/api/3/issue/OPS-42/comment');
+            expect(init?.method).toBe('POST');
+            const payload = JSON.parse(String(init?.body ?? '{}'));
+            expect(payload.body.content[0].content[0].text).toContain('Workflow status: claimed');
+            expect(payload.body.content[0].content[0].text).not.toContain('Evidence');
+            return new Response('{}', { status: 201 });
+        });
+        const runtime = createJiraRuntime({
+            getSettings: () => ({
+                ...DEFAULT_JIRA_SETTINGS,
+                enabled: true,
+                baseUrl: 'https://example.atlassian.net',
+                username: 'ops@example.com',
+                apiToken: 'secret-token',
+                projectKey: 'OPS'
+            }),
+            recordActivity,
+            fetchImpl: fetchImpl as typeof fetch
+        });
+
+        await expect(runtime.syncAlertWorkflowComment({
+            issueKey: 'OPS-42',
+            alertId: 'lckw:demo/job',
+            action: 'claim',
+            nextState: {
+                status: 'claimed',
+                owner: 'operator-1',
+                notes: [],
+                timeline: [],
+                updatedAt: '2026-09-03T09:05:00.000Z',
+                lastActionSummary: 'Claimed for work'
+            }
+        })).resolves.toEqual({ success: true });
+        expect(recordActivity).toHaveBeenCalledWith(expect.objectContaining({
+            message: 'Posted the latest alert update to Jira.'
+        }));
+    });
 });
