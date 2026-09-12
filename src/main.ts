@@ -111,6 +111,7 @@ import { registerResolutionMemoryIpc } from './main/ipc/resolution-memory-ipc';
 import { registerRunbookIpc } from './main/ipc/runbook-ipc';
 import { registerProblemManagementIpc } from './main/ipc/problem-management-ipc';
 import { registerIncidentReplayIpc } from './main/ipc/incident-replay-ipc';
+import { registerSupportMetricsIpc } from './main/ipc/support-metrics-ipc';
 import { createAiRuntime } from './main/runtime/ai-runtime';
 import { createEmailNotificationRuntime } from './main/runtime/email-notification-runtime';
 import { createClickUpRuntime } from './main/runtime/clickup-runtime';
@@ -776,6 +777,7 @@ const loggingRuntime = createLoggingRuntime({
     getConnectionContext: () => {
         const state = connectionState.getState();
         return {
+            systemId: state.currentConnection?.id ?? null,
             name: state.currentConnection?.name ?? null,
             host: state.currentConnection?.host ?? null,
             user: state.currentConnection?.user ?? null,
@@ -1437,6 +1439,16 @@ registerObjectAnalysisIpc({
 
 registerLogsIpc({
     getMonitoringHistory: () => monitoringState.getMonitoringHistory().slice()
+});
+
+registerSupportMetricsIpc({
+    getSystemId: getCurrentSystemId,
+    getIncidents: () => Object.values(alertState.getIncidentLedger()),
+    getActivityLog: () => loggingRuntime.getActivityLog(),
+    authorizeRead: () => authorizeCurrentOperatorAction('read', getCurrentSystemId()),
+    getDownloadsPath: () => app.getPath('downloads'),
+    showSaveDialog: (options) => dialog.showSaveDialog(options),
+    recordActivity: loggingRuntime.recordActivity
 });
 
 registerSupportIpc({

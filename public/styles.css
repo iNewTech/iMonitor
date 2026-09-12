@@ -36,3 +36,6 @@
 
 /* Selected-job response brief and editable local handoff package. */
 @import url("./styles/response-workspace.css");
+
+/* Evidence-first support outcome reporting. */
+@import url("./styles/support-metrics.css");

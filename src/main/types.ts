@@ -7,6 +7,7 @@ export type ActivityLogArea = ServiceLogEntry['area'] | 'monitoring' | 'navigati
 export interface ActivityLogEntry {
     id: string;
     timestamp: string;
+    systemId?: string;
     area: ActivityLogArea;
     level: ServiceLogEntry['level'];
     message: string;

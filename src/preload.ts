@@ -1037,6 +1037,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }>,
     getMonitoringHistory: () => ipcRenderer.invoke('get-monitoring-history') as Promise<MonitoringSnapshot[]>,
     getActiveAlerts: () => ipcRenderer.invoke('get-active-alerts') as Promise<MonitorAlert[]>,
+    getSupportMetrics: (payload?: { from?: string; to?: string; timeZone?: string }) => (
+        ipcRenderer.invoke('get-support-metrics', payload || {}) as Promise<{
+            success: boolean;
+            report: import('./features/history/support-metrics').SupportMetricsReport | null;
+            error?: string;
+        }>
+    ),
+    exportSupportMetrics: (payload?: { from?: string; to?: string; timeZone?: string }) => (
+        ipcRenderer.invoke('export-support-metrics', payload || {}) as Promise<{
+            success: boolean;
+            canceled?: boolean;
+            filePath?: string;
+            error?: string;
+        }>
+    ),
     getClickUpSettings: () => ipcRenderer.invoke('get-clickup-settings') as Promise<{
         enabled: boolean;
         apiToken: string;

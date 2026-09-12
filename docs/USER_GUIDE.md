@@ -24,6 +24,8 @@ The ActionBoard shows the live system in one work area:
 
 To keep monitoring available when the dashboard is closed, open **Settings → Alerts → Background collector**. Enable collection, choose a saved profile, set the polling interval, and choose whether iMonitor starts with the computer. The collector stores read-only poll snapshots locally for each system and shows its last successful write, record count, storage size, retention period, and any connection or write issue. Use **Purge all records** only after reviewing the confirmation; purge is permanent and does not remove saved credentials.
 
+Open **Outcomes** in the ActionBoard header to review support performance for a selected date window. The panel reports incident volume, resolution and recurrence, average stage times, escalation, AI request availability, and the previous equal window. Every stage shows its measured and unknown sample count. An unresolved incident, missing timestamp, or zero sample stays visible as unknown or unavailable. Recovery is labelled as monitoring-confirmed and operator-verified; the report never presents an operator action as autonomous recovery. **Export JSON** saves only the connected system’s report for customer-owned analysis.
+
 ## Work an incident
 
 The task window keeps the selected job in context:

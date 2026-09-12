@@ -32,6 +32,8 @@ Resource relationships are evidence-backed and timestamped. The graph is bounded
 
 Settings can map a job, resource, queue, or subsystem to a customer-defined business service and owner. The task response shows the configured deadline and expected operating window; unmatched impact stays unknown.
 
+The ActionBoard also includes **Support outcomes** for team leads. Choose a date window to see incident volume, acknowledgement/investigation/recovery measurements, escalation and recurrence signals, AI request availability, sample sizes, unknown outcomes, and a comparison with the previous equal window. The report is scoped to the connected customer system and can be exported as JSON. It records operator-verified recovery separately and keeps autonomous recovery at zero until that future capability is deliberately introduced.
+
 ## Run locally
 
 ```bash

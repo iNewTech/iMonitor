@@ -28,6 +28,9 @@
                             <button id="open-object-analysis" class="btn btn-outline-ink btn-sm">
                                 <i class="bi bi-diagram-3 me-2"></i>Object analysis
                             </button>
+                            <button id="open-support-outcomes" class="btn btn-outline-ink btn-sm">
+                                <i class="bi bi-graph-up-arrow me-2"></i>Outcomes
+                            </button>
                             <button id="open-settings" class="btn btn-outline-ink btn-sm">
                                 <i class="bi bi-gear me-2"></i>Settings
                             </button>
@@ -426,6 +429,40 @@
                     </div>
                 </details>
             </section>
+
+            <details id="support-outcomes-panel" class="surface-card panel-disclosure panel-tone-ai support-outcomes-panel">
+                <summary class="panel-disclosure-summary">
+                    <div class="panel-heading-lockup">
+                        <span class="panel-heading-icon" aria-hidden="true"><i class="bi bi-graph-up-arrow"></i></span>
+                        <div>
+                            <p class="eyebrow mb-2">Support outcomes</p>
+                            <h2 class="section-title">Response and automation readiness</h2>
+                            <p class="panel-copy mb-0">Measure recorded response work, verified recovery, recurrence, and AI request availability.</p>
+                        </div>
+                    </div>
+                    <div class="panel-disclosure-meta">
+                        <span id="support-metrics-window" class="table-caption">Last 7 days</span>
+                        <span id="support-metrics-sample" class="table-caption">0 incidents</span>
+                        <span class="panel-disclosure-icon" aria-hidden="true"><i class="bi bi-chevron-down"></i></span>
+                    </div>
+                </summary>
+                <div class="panel-disclosure-body">
+                    <div class="support-metrics-toolbar">
+                        <div class="support-metrics-toolbar-actions">
+                            <label class="support-metrics-date">From <input id="support-metrics-from" type="date"></label>
+                            <label class="support-metrics-date">To <input id="support-metrics-to" type="date"></label>
+                        </div>
+                        <div class="support-metrics-toolbar-actions">
+                            <button id="support-metrics-refresh" type="button" class="btn btn-outline-ink btn-sm"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+                            <button id="support-metrics-export" type="button" class="btn btn-primary-strong btn-sm"><i class="bi bi-download me-1"></i>Export JSON</button>
+                        </div>
+                    </div>
+                    <div id="support-metrics-cards" class="support-metrics-cards" aria-label="Support outcome summary"></div>
+                    <div id="support-metrics-stages" class="support-metrics-stages" aria-label="Support outcome stages"></div>
+                    <p id="support-metrics-baseline" class="support-metrics-baseline">Open the panel to measure this customer-scoped window.</p>
+                    <p id="support-metrics-status" class="stat-note mb-0" role="status">Metrics use recorded incident timelines. Missing timestamps remain unknown.</p>
+                </div>
+            </details>
 
             <details id="job-queues-panel" class="surface-card panel-disclosure panel-tone-operations job-queues-panel">
                 <summary class="panel-disclosure-summary">

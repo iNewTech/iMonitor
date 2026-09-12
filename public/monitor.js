@@ -21,6 +21,7 @@ import { filterJobs as filterVisibleJobs, getSubsystemOptions } from './monitor/
 import { initSupportPanel } from './shared/support.js';
 import { initJobQueues } from './monitor/job-queues.js';
 import { initQueueTriage } from './monitor/job-queue-triage.js';
+import { initSupportMetrics } from './monitor/support-metrics.js';
 import {
     renderOperatorActions as renderOperatorActionsView,
     renderJobLog as renderJobLogView,
@@ -35,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const disconnectButton = document.getElementById('disconnect');
     const openObjectAnalysisButton = document.getElementById('open-object-analysis');
     const openSettingsButton = document.getElementById('open-settings');
+    const openSupportOutcomesButton = document.getElementById('open-support-outcomes');
     const openAiSettingsButton = document.getElementById('open-ai-settings');
     const refreshInterval = document.getElementById('refresh-interval');
     const customRefreshSeconds = document.getElementById('custom-refresh-seconds');
@@ -204,6 +206,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     const jobQueues = initJobQueues({ root: document, electronAPI: window.electronAPI });
     const queueTriage = initQueueTriage({ root: document, electronAPI: window.electronAPI });
+    const supportMetrics = initSupportMetrics({ root: document, electronAPI: window.electronAPI });
+    const supportOutcomesPanel = document.getElementById('support-outcomes-panel');
 
     document.addEventListener('jobqueues:summary', (event) => {
         const detail = event.detail || {};
@@ -1044,7 +1048,8 @@ document.addEventListener('DOMContentLoaded', () => {
             incidents: activeJobsPanel,
             queues: jobQueuesPanel,
             ai: superpanelAiSlot || activeJobsPanel,
-            jobs: activeJobsPanel
+            jobs: activeJobsPanel,
+            outcomes: supportOutcomesPanel
         }[section];
         if (!target) {
             return;
@@ -1686,6 +1691,7 @@ document.addEventListener('DOMContentLoaded', () => {
     actionboardQuickLinks.forEach((button) => {
         button.addEventListener('click', () => openActionboardSection(button.dataset.actionboardTarget));
     });
+    openSupportOutcomesButton?.addEventListener('click', () => openActionboardSection('outcomes'));
 
     themeSelector?.addEventListener('change', async (event) => {
         const nextThemeId = event.target.value;
@@ -2197,6 +2203,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Claims and releases change row badges without a new IBM i poll.
         renderJobs({ data: latestJobs }, { updatePollTime: false });
         void aiAssistant.refresh();
+        if (supportOutcomesPanel?.open) void supportMetrics.refresh();
     });
 
     window.electronAPI.onAlertSettingsUpdated((settings) => {

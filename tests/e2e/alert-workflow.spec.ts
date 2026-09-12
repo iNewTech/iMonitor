@@ -148,6 +148,28 @@ test('launches the demo monitor and renders live incidents in active jobs', asyn
     }
 });
 
+test('shows evidence-first support outcomes with an explicit autonomy boundary', async () => {
+    const app = await launchTestApp();
+    try {
+        await openDemoMonitor(app.page);
+        await app.page.locator('#open-support-outcomes').click();
+        await expect(app.page.locator('#support-outcomes-panel')).toHaveAttribute('open', '');
+        await expect(app.page.locator('#support-metrics-cards .support-metric-card')).toHaveCount(6);
+        await expect(app.page.locator('#support-metrics-cards')).toContainText('Autonomous recovery');
+        await expect(app.page.locator('#support-metrics-status')).toContainText('recorded incident timelines');
+        const response = await app.page.evaluate(() => window.electronAPI.getSupportMetrics({
+            from: '2026-09-01T00:00:00.000Z',
+            to: '2026-09-02T00:00:00.000Z',
+            timeZone: 'Asia/Kolkata'
+        }));
+        expect(response.success).toBe(true);
+        expect(response.report?.summary.autonomousResolutionCount).toBe(0);
+        expect(response.report?.window.timeZone).toBe('Asia/Kolkata');
+    } finally {
+        await app.cleanup();
+    }
+});
+
 test('prioritizes incident jobs and opens the next task from the active jobs board', async () => {
     const app = await launchTestApp();
     try {

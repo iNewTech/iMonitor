@@ -1,0 +1,124 @@
+/* Compact outcome reporting for team leads; values stay evidence-first. */
+.support-outcomes-panel {
+    margin-top: 14px;
+    border-color: color-mix(in srgb, var(--accent) 20%, var(--border));
+}
+
+.support-metrics-toolbar,
+.support-metrics-toolbar-actions,
+.support-metrics-window-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.support-metrics-toolbar {
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.support-metrics-date {
+    display: grid;
+    gap: 3px;
+    color: var(--muted-strong);
+    font-size: .72rem;
+    font-weight: 800;
+}
+
+.support-metrics-date input {
+    min-height: 34px;
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--surface-elevated);
+    color: var(--text-strong);
+    font: inherit;
+    font-weight: 600;
+}
+
+.support-metrics-window-meta {
+    color: var(--muted);
+    font-size: .78rem;
+}
+
+.support-metrics-window-meta strong {
+    color: var(--muted-strong);
+}
+
+.support-metrics-cards,
+.support-metrics-stages {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.support-metric-card,
+.support-stage-card {
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--surface-elevated) 90%, var(--accent-soft));
+}
+
+.support-metric-card {
+    display: grid;
+    gap: 3px;
+}
+
+.support-metric-card span,
+.support-stage-card small {
+    color: var(--muted);
+    font-size: .7rem;
+    font-weight: 750;
+}
+
+.support-metric-card strong {
+    overflow: hidden;
+    color: var(--text-strong);
+    font-size: 1.18rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.support-metric-card small,
+.support-stage-card span {
+    color: var(--muted-strong);
+    font-size: .7rem;
+}
+
+.support-metrics-stages {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: 10px;
+}
+
+.support-stage-card {
+    display: grid;
+    gap: 2px;
+}
+
+.support-stage-card strong {
+    color: var(--text-strong);
+    font-size: .78rem;
+}
+
+.support-stage-card span {
+    font-size: .9rem;
+    font-weight: 800;
+}
+
+.support-metrics-baseline {
+    margin: 10px 0 0;
+    color: var(--muted-strong);
+    font-size: .78rem;
+}
+
+@media (max-width: 900px) {
+    .support-metrics-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 560px) {
+    .support-metrics-cards,
+    .support-metrics-stages { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

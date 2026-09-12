@@ -83,6 +83,12 @@ imonitor-collection/
 
 Records include the system identity, safe connection metadata, timestamp, interval, and the active-job snapshot. Inventory reports counts, bytes, dates, categories, and systems. Retention removes records older than the configured period; the storage limit removes the oldest system records until the limit is met. Purge rewrites affected files atomically and appends a hash-linked audit record. The IPC purge handler requires explicit confirmation. The background runtime reconnects with bounded retry and starts the existing monitor loop; it does not run job or queue mutations.
 
+## Support outcomes
+
+`src/features/history/support-metrics.ts` is the pure reporting model for Project 7 support outcomes. It accepts incident records and AI request observations, filters by `systemId` and a half-open `[from, to)` window, and returns schema `support-metrics` version 1. Each stage carries `sampleSize`, `measured`, `unknown`, average minutes, and median minutes. The report counts incidents created in the window, distinguishes unresolved and reopened cycles, and reports monitoring-confirmed recovery separately from operator-verified recovery. `autonomousResolutionCount` is deliberately fixed at zero in this release.
+
+`src/main/ipc/support-metrics-ipc.ts` builds the report from the local incident ledger, scopes AI activity records to the current system, enforces read authorization, and writes a customer-scoped JSON export through the native save dialog. The renderer panel defaults to the last seven local calendar days, includes a previous equal-window comparison, and does not display a percentage when its denominator is zero. Exported reports contain no credentials, raw job logs, or command payloads.
+
 ## Integration delivery
 
 `src/features/integrations/delivery.ts` is the shared outbound delivery contract for external incident and work-item events. `buildDeliveryEventKey()` combines provider, event, source ID, and event revision into a stable key. `createDeliveryRegistry()` persists `pending`, `sent`, `skipped`, and `failed` states, suppresses a successful duplicate, retries a failed operation at most twice by default, and bounds the ledger size. Stored errors are truncated and credential-shaped values are redacted.

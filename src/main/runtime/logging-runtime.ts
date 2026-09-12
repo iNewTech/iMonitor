@@ -7,6 +7,7 @@ import { buildJobHistoryLog } from '../../features/action-board/job-history-log'
 interface LoggingRuntimeDependencies {
     userDataPath: string;
     getConnectionContext: () => {
+        systemId?: string | null;
         name: string | null;
         host: string | null;
         user: string | null;
@@ -136,7 +137,8 @@ export function createLoggingRuntime(dependencies: LoggingRuntimeDependencies) {
             const activityEntry: ActivityLogEntry = {
                 id: `${Date.now()}-${activitySequence}`,
                 timestamp: new Date().toISOString(),
-                ...entry
+                ...entry,
+                systemId: dependencies.getConnectionContext().systemId || undefined
             };
 
             activityLog.unshift(activityEntry);
@@ -152,6 +154,7 @@ export function createLoggingRuntime(dependencies: LoggingRuntimeDependencies) {
                 connection: dependencies.getConnectionContext(),
                 payload: {
                     id: activityEntry.id,
+                    systemId: activityEntry.systemId ?? null,
                     area: activityEntry.area,
                     level: activityEntry.level,
                     message: activityEntry.message,
