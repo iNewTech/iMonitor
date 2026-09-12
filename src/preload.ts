@@ -300,6 +300,17 @@ interface JobDetailsPayload {
             scheduleState: 'expected' | 'outside_expected_window' | 'not_configured' | 'unknown';
             summary: string;
         };
+        runbook?: {
+            schema: 'imonitor-runbook-policy';
+            version: 1;
+            id: string;
+            scenario: 'messageWait' | 'lockWait' | 'highCpu' | 'disconnect';
+            title: string;
+            requiredEvidence: string[];
+            safeActions: string[];
+            verification: string;
+            escalation: string;
+        };
         handoff?: IncidentHandoff;
         routing?: {
             rule: {

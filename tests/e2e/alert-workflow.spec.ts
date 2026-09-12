@@ -122,6 +122,7 @@ test('launches the demo monitor and renders live incidents in active jobs', asyn
         await expect(task.locator('#task-response-business-summary')).toContainText('Finance operations');
         await expect(task.getByTestId('incident-correlation-summary')).toContainText(/Priority \d+\/100/);
         await expect(task.locator('#task-routing-summary')).toContainText('Suggested owner:');
+        await expect(task.locator('#task-runbook-policy')).toContainText('Message wait response · v1');
         await task.locator('#task-memory-save').click();
         await expect(task.locator('.resolution-memory-item')).toContainText(incident.title);
         await expect(task.locator('.resolution-memory-item')).toContainText('Draft');

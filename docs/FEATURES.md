@@ -9,6 +9,7 @@ iMonitor uses a simple Free/Premium feature boundary. The application keeps Prem
 - Separate job task windows with workflow actions, AI guidance, and history.
 - Respond, Investigate, and Resolve brief with impact, owner, next check, evidence, and a compact L2/L3 handoff workflow.
 - Explainable routing recommendations match active support grants to incident skills, system scope, permission, availability, and support windows, with an SLA state beside the suggested owner.
+- Versioned scenario policies cover message waits, lock waits, high CPU, and monitoring disconnects with required evidence, safe checks, verification criteria, and escalation guidance.
 - Job AI helpers grounded to the selected job, linked incident evidence, and matching approved procedures only. Responses separate observed facts, interpretation, missing evidence, and suggested checks with stable references.
 - Timestamped incident evidence for the trigger job, job log, messages, queue, and subsystem, with visible missing or permission statuses.
 - Evidence-backed resource relationships in the job Details tab, with compact flow and accessible table views for incidents, jobs, queues, subsystems, message waits, and lock owners.

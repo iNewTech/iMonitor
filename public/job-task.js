@@ -322,6 +322,10 @@ function renderResponseWorkspace(response) {
             ? `Suggested owner: ${routing.recommendedOperator.displayName} · ${slaLabel} (${sla.minutesRemaining} min left). Claim still requires acceptance.`
             : `No eligible operator · ${slaLabel}. ${routing.escalationReasons?.[0] || 'Review routing and hand off manually.'}`
         : 'Routing recommendation unavailable.';
+    const runbook = snapshot.runbook;
+    $('task-runbook-policy').textContent = runbook
+        ? `${runbook.title} · v${runbook.version}. Verify: ${runbook.verification} Escalate: ${runbook.escalation}`
+        : 'No common scenario runbook applies to this job.';
 
     const nextKey = `${snapshot.incidentKey}:${snapshot.status}:${handoff?.id || 'none'}:${handoff?.status || 'none'}`;
     if (nextKey !== handoffDraftKey) {

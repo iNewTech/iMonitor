@@ -20,6 +20,8 @@ Polling supports preset intervals and a custom interval in seconds. Job rows sho
 
 Each incident row can show a compact technical priority badge. Related signals for the same job are correlated within a five-minute window, and the task window explains the grouping and score factors before an operator acts.
 
+Common incident scenarios show a versioned runbook policy with required evidence, safe checks, verification criteria, and escalation guidance. MSGW replies are checked against the current message identity and inquiry queue immediately before execution.
+
 Resource relationships are evidence-backed and timestamped. The graph is bounded, marks stale snapshots, and includes an accessible relationship table; it never invents missing links.
 
 Settings can map a job, resource, queue, or subsystem to a customer-defined business service and owner. The task response shows the configured deadline and expected operating window; unmatched impact stays unknown.

@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron/main';
-import type { ActiveJobRecord, JobQueueRecord, PagedResult, QueuedJobRecord } from '../../services/ibmi';
+import type { ActiveJobRecord, JobMessageRecord, JobQueueRecord, PagedResult, QueuedJobRecord } from '../../services/ibmi';
 import type { JobStatusHistoryEntry } from '../../features/monitoring/monitoring-model';
 import type { IncidentResponseSnapshot } from '../../features/alerts/incident-response';
 import type { OperatorActionKind } from '../../features/action-board/operator-actions';
@@ -15,6 +15,7 @@ import type { RecoveryVerificationResult } from '../../features/action-board/rec
 import { createActionLeaseStore } from '../../features/action-board/action-leases';
 import type { AuthorizationResult, ProtectedAction } from '../../features/action-board/operator-access';
 import type { ResourceGraph } from '../../features/alerts/resource-graph';
+import { validateMessageReplyContext } from '../../features/action-board/runbook-policy';
 
 interface RegisterJobsIpcDependencies {
     requirePremium: () => void;
@@ -24,7 +25,7 @@ interface RegisterJobsIpcDependencies {
     getJobResourceGraph: (jobName: string) => Promise<ResourceGraph>;
     getJobContext: (jobName: string) => Promise<Record<string, unknown>>;
     getJobLog: (jobName: string) => Promise<unknown[]>;
-    getJobMessages: (jobName: string) => Promise<unknown[]>;
+    getJobMessages: (jobName: string) => Promise<JobMessageRecord[]>;
     getJobQueues: (options: JobQueueQuery) => Promise<PagedResult<JobQueueRecord>>;
     getJobQueueDetails: (queueName: string, queueLibrary: string) => Promise<{
         queue: Record<string, unknown> | null;
@@ -249,6 +250,15 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
         const job = dependencies.getJob(payload.jobName);
         if (!job) {
             return { success: false, error: 'The selected job is no longer available.' };
+        }
+
+        if (payload.kind === 'replyMessage') {
+            try {
+                const validation = validateMessageReplyContext(job, await dependencies.getJobMessages(payload.jobName), payload);
+                if (!validation.valid) return { success: false, error: validation.reason };
+            } catch (error) {
+                return { success: false, error: error instanceof Error ? error.message : 'Unable to verify the current message.' };
+            }
         }
 
         const plan = dependencies.buildOperatorActionPlan(payload);

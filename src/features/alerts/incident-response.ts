@@ -5,6 +5,7 @@ import type { MonitorAlert } from './alert-model';
 import type { IncidentHandoff } from './incident-handoff';
 import type { RoutingRecommendation } from '../action-board/incident-routing';
 import { DEFAULT_BUSINESS_SERVICE_SETTINGS, resolveBusinessService, type BusinessServiceImpact, type BusinessServiceSettings } from '../action-board/business-service-mapping';
+import { getRunbookPolicy, type RunbookPolicy } from '../action-board/runbook-policy';
 
 export type IncidentResponseStep = 'respond' | 'investigate' | 'resolve';
 
@@ -33,6 +34,7 @@ export interface IncidentResponseSnapshot {
     unresolvedQuestions: string[];
     escalationReason: string;
     businessImpact: BusinessServiceImpact;
+    runbook?: RunbookPolicy;
     handoff?: IncidentHandoff;
     routing?: RoutingRecommendation;
 }
@@ -60,6 +62,7 @@ export function buildIncidentResponseSnapshot(input: IncidentResponseInput): Inc
     const { job, alert } = input;
     const jobName = String(job.JOB_NAME || job.SUBSYSTEM_JOB || 'Selected job').trim();
     const activeAlert = alert ?? null;
+    const runbook = getRunbookPolicy(activeAlert?.kind);
     const businessImpact = resolveBusinessService({
         systemId: input.systemId,
         job,
@@ -94,6 +97,7 @@ export function buildIncidentResponseSnapshot(input: IncidentResponseInput): Inc
         unresolvedQuestions: getUnresolvedQuestions(activeAlert, job),
         escalationReason: getEscalationReason(activeAlert, job, input.operatorName),
         businessImpact,
+        runbook,
         handoff: activeAlert?.handoff,
         routing: input.routing
     };
