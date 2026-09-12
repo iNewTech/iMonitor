@@ -5,7 +5,7 @@ This folder is the clean handoff area for user-facing installer files.
 Use:
 
 ```bash
-npm run package:release
+npm run release
 ```
 
 That flow will:
