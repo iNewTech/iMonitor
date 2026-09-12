@@ -6,6 +6,8 @@ ActionBoard attaches detected issues to their jobs in the active-job table. The 
 
 Open a job to work in its separate task window. Multiple jobs can stay open while the main board continues polling. Overview, Actions, AI helper, History, and Details keep each task compact. Refresh failures offer retry; in-flight actions cannot be submitted twice, and background refresh preserves the current tab and feedback.
 
+The Actions tab includes a compact Respond, Investigate, and Resolve brief for the selected job. It keeps impact, owner, current status, next check, and evidence visible beside the workflow buttons. Operators can edit the completed checks, failed attempts, open questions, and escalation reason in a local L2/L3 handoff package, then copy or export it without changing the incident ledger or assigning shared ownership.
+
 - **Acknowledge** records that an operator has seen the issue.
 - **Claim Work** assigns it to the current operator. When configured and entitled, the main process creates or reuses its linked ClickUp task.
 - **Remove Claim** releases ownership so another operator can take it.

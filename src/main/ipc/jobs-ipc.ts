@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron/main';
 import type { ActiveJobRecord, JobQueueRecord, PagedResult, QueuedJobRecord } from '../../services/ibmi';
 import type { JobStatusHistoryEntry } from '../../features/monitoring/monitoring-model';
+import type { IncidentResponseSnapshot } from '../../features/alerts/incident-response';
 import type { OperatorActionKind } from '../../features/action-board/operator-actions';
 import { createActionAuditEntry } from '../../features/action-board/action-audit';
 import {
@@ -14,6 +15,7 @@ interface RegisterJobsIpcDependencies {
     requirePremium: () => void;
     getJob: (jobName: string) => ActiveJobRecord | undefined;
     getJobStatusHistory: (jobName: string) => JobStatusHistoryEntry[];
+    getIncidentResponse: (jobName: string) => IncidentResponseSnapshot | null;
     getJobContext: (jobName: string) => Promise<Record<string, unknown>>;
     getJobLog: (jobName: string) => Promise<unknown[]>;
     getJobMessages: (jobName: string) => Promise<unknown[]>;
@@ -67,6 +69,7 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
         return {
             job,
             statusHistory: dependencies.getJobStatusHistory(jobName),
+            response: dependencies.getIncidentResponse(jobName),
             waitReason: dependencies.buildWaitReason(job),
             guidance: dependencies.buildJobRootCauseGuidance(job),
             actions: dependencies.getAvailableOperatorActions(job)

@@ -55,6 +55,14 @@ const aiOutput = $('task-ai-output');
 const aiStatus = $('task-ai-status');
 const aiContent = $('task-ai-content');
 const detailsOutput = $('task-details-output');
+const handoffFields = {
+    nextCheck: $('task-handoff-next-check'),
+    escalation: $('task-handoff-escalation'),
+    checks: $('task-handoff-checks'),
+    attempts: $('task-handoff-attempts'),
+    questions: $('task-handoff-questions')
+};
+let handoffDraftKey = '';
 
 function getJobKey(job) {
     return String(job?.JOB_NAME || job?.SUBSYSTEM_JOB || '').trim();
@@ -194,6 +202,115 @@ function renderIncidentActions(alert) {
     `;
 }
 
+function fallbackResponseSnapshot(job, alert) {
+    const jobLabel = String(job?.JOB_NAME || job?.SUBSYSTEM_JOB || selectedJobName);
+    const evidence = [
+        ['Trigger', alert?.evidence?.trigger],
+        ['Job log', alert?.evidence?.jobLog],
+        ['Messages', alert?.evidence?.messages],
+        ['Queue', alert?.evidence?.queue],
+        ['Subsystem', alert?.evidence?.subsystem]
+    ].map(([label, snapshot]) => ({
+        label,
+        status: snapshot?.status || 'unavailable',
+        recordCount: Number(snapshot?.recordCount || 0)
+    }));
+    return {
+        jobName: jobLabel,
+        incidentKey: alert?.incidentId || alert?.id || `job:${jobLabel}`,
+        incidentTitle: alert?.title || 'No linked incident',
+        step: alert?.workflowStatus === 'claimed' ? 'investigate' : alert?.workflowStatus === 'work_done' ? 'resolve' : 'respond',
+        impactLabel: alert?.severity === 'critical' || ['MSGW', 'LCKW', 'DEQW'].includes(job?.STATUS) ? 'Critical' : alert ? 'High' : 'Normal',
+        impactSummary: alert?.message || 'No linked incident for this job.',
+        owner: alert?.owner || 'Unassigned',
+        status: alert?.workflowStatus || 'clear',
+        nextCheck: 'Confirm the current job state on the next poll.',
+        evidence,
+        completedChecks: ['No operator checks recorded yet.'],
+        unsuccessfulAttempts: ['No unsuccessful attempts recorded.'],
+        unresolvedQuestions: ['Is there an operator-impacting condition outside the current alert rules?'],
+        escalationReason: 'Escalation is optional; continue monitoring this job until an incident is linked.'
+    };
+}
+
+function renderResponseWorkspace(response) {
+    const snapshot = response || fallbackResponseSnapshot(latestPayload?.job, findLinkedAlert());
+    const activeStep = snapshot.step || 'respond';
+    ['respond', 'investigate', 'resolve'].forEach((step) => {
+        const element = $(`task-response-step-${step}`);
+        if (!element) return;
+        const stepIndex = ['respond', 'investigate', 'resolve'].indexOf(step);
+        const activeIndex = ['respond', 'investigate', 'resolve'].indexOf(activeStep);
+        element.classList.toggle('is-active', step === activeStep);
+        element.classList.toggle('is-complete', stepIndex < activeIndex);
+        element.setAttribute('aria-current', step === activeStep ? 'step' : 'false');
+    });
+    $('task-response-impact').textContent = snapshot.impactLabel || 'Normal';
+    $('task-response-impact').className = `response-impact is-${String(snapshot.impactLabel || 'normal').toLowerCase()}`;
+    $('task-response-impact-summary').textContent = snapshot.impactSummary || '-';
+    $('task-response-owner').textContent = snapshot.owner || 'Unassigned';
+    $('task-response-status').textContent = formatWorkflowLabel(snapshot.status || 'clear');
+    $('task-response-next-check').textContent = snapshot.nextCheck || '-';
+    $('task-response-evidence').innerHTML = (snapshot.evidence || []).map((item) => (
+        `<span class="response-evidence-item is-${escapeHtml(item.status || 'unavailable')}"><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(String(item.status || 'unavailable').replace(/-/g, ' '))} · ${Number(item.recordCount || 0)}</small></span>`
+    )).join('');
+
+    const nextKey = `${snapshot.incidentKey}:${snapshot.status}`;
+    if (nextKey !== handoffDraftKey) {
+        handoffDraftKey = nextKey;
+        handoffFields.nextCheck.value = snapshot.nextCheck || '';
+        handoffFields.escalation.value = snapshot.escalationReason || '';
+        handoffFields.checks.value = (snapshot.completedChecks || []).join('\n');
+        handoffFields.attempts.value = (snapshot.unsuccessfulAttempts || []).join('\n');
+        handoffFields.questions.value = (snapshot.unresolvedQuestions || []).join('\n');
+    }
+}
+
+function getHandoffDraft() {
+    const value = (field) => field?.value.trim() || 'None recorded.';
+    return {
+        nextCheck: value(handoffFields.nextCheck),
+        escalation: value(handoffFields.escalation),
+        checks: value(handoffFields.checks),
+        attempts: value(handoffFields.attempts),
+        questions: value(handoffFields.questions)
+    };
+}
+
+function buildHandoffText() {
+    const response = latestPayload?.response || fallbackResponseSnapshot(latestPayload?.job, findLinkedAlert());
+    const draft = getHandoffDraft();
+    return [
+        '# iMonitor incident handoff',
+        `Generated: ${new Date().toISOString()}`,
+        `Job: ${response.jobName || selectedJobName}`,
+        `Incident: ${response.incidentTitle || 'No linked incident'}`,
+        `Stage: ${formatWorkflowLabel(response.step || 'respond')}`,
+        `Impact: ${response.impactLabel || 'Normal'} — ${response.impactSummary || 'No summary.'}`,
+        `Owner: ${response.owner || 'Unassigned'}`,
+        `Status: ${formatWorkflowLabel(response.status || 'clear')}`,
+        '',
+        '## Next check', draft.nextCheck,
+        '',
+        '## Evidence',
+        ...(response.evidence || []).map((item) => `- ${item.label}: ${item.status} (${Number(item.recordCount || 0)} records)`),
+        ...(response.evidence?.length ? [] : ['- No evidence snapshot available.']),
+        '',
+        '## Completed checks', draft.checks,
+        '',
+        '## Unsuccessful attempts', draft.attempts,
+        '',
+        '## Unresolved questions', draft.questions,
+        '',
+        '## Escalation reason', draft.escalation,
+        ''
+    ].join('\n');
+}
+
+function setHandoffStatus(message) {
+    $('task-handoff-status').textContent = message;
+}
+
 // The alert store supplies newest events first, including cleared incidents.
 function renderIncidentHistory() {
     const alerts = latestAlerts.filter((alert) => alert?.jobName === selectedJobName);
@@ -253,6 +370,7 @@ function renderTask() {
     }
     renderIncidentEvidence(alert);
 
+    renderResponseWorkspace(latestPayload.response);
     renderIncidentActions(alert);
     renderOperatorActions(jobActions, null, latestPayload.actions);
     if (!actionFeedback) {
@@ -286,6 +404,9 @@ function updateControls() {
     });
     document.querySelectorAll('.task-alert-ai, #task-ai-summary, #task-ai-resolve').forEach((button) => {
         button.disabled = pending.has('ai') || !stateFresh || !latestPayload?.job || !selectedJobName;
+    });
+    document.querySelectorAll('#task-copy-handoff, #task-download-handoff').forEach((button) => {
+        button.disabled = !stateFresh || !latestPayload?.job || !selectedJobName;
     });
     document.querySelectorAll('#task-load-log, #task-load-messages').forEach((button) => {
         button.disabled = pending.has('details') || !selectedJobName;
@@ -467,6 +588,24 @@ jobActions.addEventListener('click', (event) => {
 
 $('task-ai-summary').addEventListener('click', () => void askAi('summary'));
 $('task-ai-resolve').addEventListener('click', () => void askAi('resolve'));
+$('task-copy-handoff').addEventListener('click', async () => {
+    try {
+        await navigator.clipboard.writeText(buildHandoffText());
+        setHandoffStatus('Handoff copied.');
+    } catch {
+        setHandoffStatus('Copy is unavailable; use Export handoff.');
+    }
+});
+$('task-download-handoff').addEventListener('click', () => {
+    const blob = new Blob([buildHandoffText()], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${String(selectedJobName || 'job').replace(/[^a-z0-9_-]+/gi, '-')}-handoff.md`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setHandoffStatus('Handoff exported locally.');
+});
 $('task-load-log').addEventListener('click', () => void loadDetails('log'));
 $('task-load-messages').addEventListener('click', () => void loadDetails('messages'));
 $('task-refresh').addEventListener('click', () => void loadTask());

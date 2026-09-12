@@ -16,6 +16,7 @@ import {
 } from './features/alerts/alert-operator-workflow';
 import { normalizeAlertSettings, shouldWatchAlert } from './features/alerts/alert-model';
 import { captureIncidentEvidence } from './features/alerts/incident-evidence';
+import { buildIncidentResponseSnapshot } from './features/alerts/incident-response';
 import { getDemoAvailability } from './features/demo/demo-runtime';
 import { buildJobRootCauseGuidance } from './features/guidance/root-cause-guidance';
 import { buildFallbackAlertDiagnostic } from './features/ibmeyeai/alert-diagnostic';
@@ -1162,6 +1163,17 @@ registerJobsIpc({
     requirePremium: () => requireEntitlement('job-actions'),
     getJob: (jobName) => monitoringState.getJob(jobName),
     getJobStatusHistory: (jobName) => monitoringState.getJobStatusHistory(jobName),
+    getIncidentResponse: (jobName) => {
+        const job = monitoringState.getJob(jobName);
+        if (!job) return null;
+        const alert = alertState.getActiveAlerts().find((candidate) => candidate.jobName === jobName);
+        return buildIncidentResponseSnapshot({
+            job,
+            alert,
+            statusHistory: monitoringState.getJobStatusHistory(jobName),
+            operatorName: getCurrentOperatorName()
+        });
+    },
     getJobContext: async (jobName) => {
         if (monitoringState.getMonitorMode() === 'live') {
             const service = sessionRuntime.getCurrentService();

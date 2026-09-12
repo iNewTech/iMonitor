@@ -178,6 +178,25 @@ interface JobDetailsPayload {
         label: string;
     }>;
     waitReason: string;
+    response: {
+        schema: 'imonitor-incident-response';
+        version: 1;
+        generatedAt: string;
+        incidentKey: string;
+        jobName: string;
+        incidentTitle: string;
+        step: 'respond' | 'investigate' | 'resolve';
+        impactLabel: 'Critical' | 'High' | 'Normal';
+        impactSummary: string;
+        owner: string;
+        status: string;
+        nextCheck: string;
+        evidence: Array<{ label: string; status: string; recordCount: number }>;
+        completedChecks: string[];
+        unsuccessfulAttempts: string[];
+        unresolvedQuestions: string[];
+        escalationReason: string;
+    } | null;
     guidance: {
         severity: 'info' | 'warning' | 'critical';
         headline: string;

@@ -6,6 +6,7 @@ iMonitor uses a simple Free/Premium feature boundary. The application keeps Prem
 
 - One active-job workspace with filters, issue labels, owner names, and priority focus.
 - Separate job task windows with workflow actions, AI guidance, and history.
+- Respond, Investigate, and Resolve brief with impact, owner, next check, evidence, and an editable local L2/L3 handoff package.
 - Job AI helpers grounded to the selected job and its linked incident only.
 - Timestamped incident evidence for the trigger job, job log, messages, queue, and subsystem, with visible missing or permission statuses.
 - Compact AI composer with provider/model availability checks.

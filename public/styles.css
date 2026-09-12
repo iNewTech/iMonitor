@@ -33,3 +33,6 @@
 
 /* Timestamped incident evidence and source-status treatments. */
 @import url("./styles/incident-evidence.css");
+
+/* Selected-job response brief and editable local handoff package. */
+@import url("./styles/response-workspace.css");

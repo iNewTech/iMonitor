@@ -143,6 +143,22 @@ test('tabs support keyboard navigation and History shows escaped incident eviden
     await expect(page.locator('#task-status-history')).toContainText('Running');
 });
 
+test('Actions shows the response brief and preserves an editable local handoff', async ({ task: { page } }) => {
+    await page.getByRole('tab', { name: 'Actions', exact: true }).click();
+    await expect(page.locator('#task-response-step-respond')).toHaveClass(/is-active/);
+    await expect(page.locator('#task-response-impact')).toHaveText('High');
+    await expect(page.locator('#task-response-owner')).toHaveText('Unassigned');
+    await expect(page.locator('#task-response-evidence')).toContainText('Trigger');
+
+    const questions = page.locator('#task-handoff-questions');
+    await questions.fill('Confirm the expected workload with the business owner.');
+    await page.clock.runFor(15000);
+    await expect(questions).toHaveValue('Confirm the expected workload with the business owner.');
+
+    await page.locator('#task-download-handoff').click();
+    await expect(page.locator('#task-handoff-status')).toHaveText('Handoff exported locally.');
+});
+
 test('workflow checks failures, deduplicates pending claims, and leaves ClickUp to main', async ({ task: { app, page } }) => {
     await page.getByRole('tab', { name: 'Actions', exact: true }).click();
     await configure(app, { 'update-alert-workflow': { value: { success: false, error: 'Claim rejected.' }, hold: true } });

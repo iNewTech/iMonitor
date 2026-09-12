@@ -36,6 +36,8 @@ Build checks TypeScript **and** parses every JavaScript module in `public/`, inc
 | `tests/e2e/` | Isolated Electron integration and UI tests |
 | `macos-widget/` | Native WidgetKit scaffold and setup instructions |
 
+The standalone task response workspace is split between `src/features/alerts/incident-response.ts` and `public/job-task.js`. The main process builds a deterministic response snapshot from the selected job, linked alert, and status history. The renderer presents the snapshot, keeps operator edits through refreshes, and generates a local Markdown handoff package. The package is intentionally separate from shared assignment and external ticket writes.
+
 ## Local source layout
 
 Supported exports include `root/userlib/LIB/SRCPF/member.rpgle`, `root/LIB/SRCPF/member.rpgle`, or a directly selected library containing source files. `user-libraries` is supported for older exports. Source-file directory names are not prescribed. Disk casing is preserved; IBM i names and lookup lists are normalized for matching.

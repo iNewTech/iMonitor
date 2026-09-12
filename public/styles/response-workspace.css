@@ -1,0 +1,152 @@
+/* Compact Respond / Investigate / Resolve workspace for standalone job tasks. */
+.response-brief {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding: 10px;
+    border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--border));
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--accent-soft) 18%, var(--surface));
+}
+
+.response-stepper {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.response-step {
+    padding: 5px 9px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.response-step.is-active {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: white;
+}
+
+.response-step.is-complete {
+    border-color: color-mix(in srgb, var(--success) 55%, var(--border));
+    background: color-mix(in srgb, var(--success) 12%, var(--surface));
+    color: var(--success);
+}
+
+.response-brief-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(220px, 1.6fr);
+    gap: 8px;
+}
+
+.response-brief-card {
+    min-width: 0;
+    padding: 9px 10px;
+    border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--surface-elevated) 82%, transparent);
+}
+
+.response-brief-card strong {
+    display: block;
+    margin-top: 2px;
+    color: var(--text-strong);
+    overflow-wrap: anywhere;
+}
+
+.response-impact.is-critical { color: var(--danger); }
+.response-impact.is-high { color: var(--warning); }
+.response-impact.is-normal { color: var(--success); }
+
+.response-evidence {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.response-evidence-item {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    padding: 4px 7px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--muted-strong);
+    font-size: 0.72rem;
+}
+
+.response-evidence-item small {
+    color: var(--muted);
+}
+
+.response-evidence-item.is-captured { border-color: color-mix(in srgb, var(--success) 45%, var(--border)); }
+.response-evidence-item.is-missing,
+.response-evidence-item.is-stale { border-color: color-mix(in srgb, var(--warning) 55%, var(--border)); }
+.response-evidence-item.is-permission-denied { border-color: color-mix(in srgb, var(--danger) 45%, var(--border)); }
+
+.handoff-panel {
+    border-color: color-mix(in srgb, var(--accent) 18%, var(--border));
+}
+
+.handoff-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.handoff-field {
+    display: grid;
+    gap: 5px;
+    color: var(--muted-strong);
+    font-size: 0.76rem;
+    font-weight: 800;
+}
+
+.handoff-field textarea {
+    width: 100%;
+    min-height: 64px;
+    resize: vertical;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--surface-elevated);
+    color: var(--text-strong);
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.handoff-field textarea:focus {
+    outline: 2px solid color-mix(in srgb, var(--accent) 42%, transparent);
+    outline-offset: 1px;
+}
+
+.handoff-field-wide {
+    grid-column: 1 / -1;
+}
+
+.handoff-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+@media (max-width: 680px) {
+    .response-brief-grid,
+    .handoff-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .handoff-field-wide {
+        grid-column: auto;
+    }
+}
