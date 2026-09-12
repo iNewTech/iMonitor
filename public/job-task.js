@@ -103,10 +103,40 @@ function getAlertConditionLabel(alert) {
     return kind || 'Issue';
 }
 
+function getAlertPriorityScore(alert) {
+    const score = Number(alert?.correlation?.priority?.score);
+    return Number.isFinite(score) ? score : alert?.severity === 'critical' ? 65 : 35;
+}
+
 function findLinkedAlert() {
-    return latestAlerts.find((alert) => alert?.jobName === selectedJobName && alert?.isActive !== false)
+    return latestAlerts
+        .filter((alert) => alert?.jobName === selectedJobName && alert?.isActive !== false)
+        .sort((left, right) => getAlertPriorityScore(right) - getAlertPriorityScore(left))[0]
         || latestAlerts.find((alert) => alert?.jobName === selectedJobName)
         || null;
+}
+
+function buildPriorityMarkup(alert) {
+    const priority = alert?.correlation?.priority;
+    if (!priority || !Number.isFinite(Number(priority.score))) return '';
+    const reasons = Array.isArray(priority.reasons) ? priority.reasons.join(' ') : 'Priority based on current technical evidence.';
+    return `<span class="activity-log-badge is-priority is-${escapeHtml(priority.band)}" title="${escapeHtml(reasons)}">P${escapeHtml(String(priority.score))} · ${escapeHtml(priority.band)}</span>`;
+}
+
+function buildCorrelationMarkup(alert) {
+    const correlation = alert?.correlation;
+    if (!correlation) return '';
+    const signals = Array.isArray(correlation.relatedSignals) ? correlation.relatedSignals.join(' + ') : '';
+    const reasons = Array.isArray(correlation.priority?.reasons)
+        ? correlation.priority.reasons.slice(0, 3).join(' ')
+        : '';
+    return `
+        <div class="alert-correlation-summary" data-testid="incident-correlation-summary">
+            <div><strong>${correlation.suggested ? 'Suggested grouping' : 'Correlated incident'}</strong>${signals ? ` <span>· ${escapeHtml(signals)}</span>` : ''}</div>
+            <p>${escapeHtml(correlation.groupReason)}</p>
+            ${reasons ? `<small>Priority ${escapeHtml(String(correlation.priority.score))}/100: ${escapeHtml(reasons)}</small>` : ''}
+        </div>
+    `;
 }
 
 function toLocalDateTimeValue(timestamp) {
@@ -208,8 +238,10 @@ function renderIncidentActions(alert) {
         <div class="job-task-action-summary">
             <span class="job-incident-chip">${escapeHtml(getAlertConditionLabel(alert))}</span>
             <span class="activity-log-badge is-area">${escapeHtml(formatWorkflowLabel(alert.workflowStatus))}</span>
+            ${buildPriorityMarkup(alert)}
             <span class="job-task-owner">${owner ? `Owner: ${escapeHtml(owner)}` : 'Unassigned'}</span>
         </div>
+        ${buildCorrelationMarkup(alert)}
         <div class="job-task-action-row">${buttons.join('')}</div>
         ${claimedByAnotherOperator ? `<p class="stat-note mb-0">Claimed by ${escapeHtml(owner)}.</p>` : ''}
     `;

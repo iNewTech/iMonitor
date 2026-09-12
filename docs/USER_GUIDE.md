@@ -16,6 +16,7 @@ The ActionBoard shows the live system in one work area:
 
 - **Active jobs** lists running and waiting work. Use filters, search, or **Focus Next Job** to find the highest-priority incident.
 - A job can be running and still have an issue, such as high CPU or a lock wait. The incident badge explains what needs attention.
+- A `P##` badge shows the technical priority used by **Focus Next Job**. Open the job and choose **Actions** to see which signals were grouped and why the score was assigned. The score is provisional until a business service is mapped.
 - **Job queues** stays separate so waiting work can be inspected without hiding the active-job feed.
 - Open a job to work in its own task window. The main board continues monitoring while task windows are open.
 

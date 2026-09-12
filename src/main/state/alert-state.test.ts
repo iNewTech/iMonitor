@@ -22,6 +22,8 @@ describe('alert-state external recovery notifications', () => {
             vi.fn()
         );
         expect(store.getActiveAlerts()).toHaveLength(1);
+        expect(store.getActiveAlerts()[0]?.correlation?.priority.score).toBeGreaterThan(0);
+        expect(store.getActiveAlerts()[0]?.correlation?.relatedSignals).toContain('message wait');
 
         store.evaluateAlertRules(
             [],

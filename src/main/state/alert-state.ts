@@ -18,6 +18,7 @@ import type { AlertRecheckResult } from '../../features/alerts/alert-recheck';
 import { sortAlerts } from '../../features/alerts/alert-model';
 import type { ActiveJobRecord } from '../../services/ibmi';
 import type { IncidentEvidence } from '../../features/alerts/incident-evidence';
+import { attachIncidentCorrelations } from '../../features/ibmeyeai/incident-correlation';
 import {
     getIncidentsForSystem,
     normalizeIncidentLedger,
@@ -299,10 +300,16 @@ export function createAlertStateStore(dependencies: AlertStateDependencies) {
 
             workflowStateByAlertId = result.workflowStateByAlertId;
             persistWorkflowState();
-            setActiveAlerts(result.alerts);
+            const correlatedAlerts = attachIncidentCorrelations(
+                result.alerts,
+                jobs,
+                settings.highCpuThreshold,
+                result.alerts.length
+            );
+            setActiveAlerts(correlatedAlerts);
             persistCurrentIncidents();
 
-            result.alerts
+            correlatedAlerts
                 .filter((alert) => (
                     alert.isActive === false
                     && previousAlerts.find((previous) => previous.id === alert.id)?.isActive !== false
@@ -311,7 +318,7 @@ export function createAlertStateStore(dependencies: AlertStateDependencies) {
                     void Promise.resolve(dependencies.onAlertResolved?.(alert)).catch(() => undefined);
                 });
 
-            result.alerts.forEach((alert) => {
+            correlatedAlerts.forEach((alert) => {
                 const isNewOccurrence = !previousOccurrences.has(alert.id)
                     || (alert.occurrence ?? 1) > (previousOccurrences.get(alert.id) ?? 0);
                 if (isNewOccurrence || !alert.evidence) {

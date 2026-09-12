@@ -280,6 +280,29 @@ body.monitor-body .app-shell {
     text-transform: uppercase;
 }
 
+.job-priority-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    padding: 4px 7px;
+    border-radius: 999px;
+    background: rgba(181, 66, 53, 0.12);
+    color: #a43e33;
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.job-priority-chip.is-high {
+    background: rgba(181, 104, 34, 0.14);
+    color: #985817;
+}
+
+.job-priority-chip.is-normal {
+    background: rgba(47, 116, 200, 0.12);
+    color: #2f74c8;
+}
+
 .job-owner-chip {
     display: inline-flex;
     align-items: center;

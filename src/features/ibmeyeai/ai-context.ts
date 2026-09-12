@@ -66,7 +66,7 @@ export function buildAiAssistantContext(input: BuildAiAssistantContextInput) {
         input.highCpuThreshold ?? 80,
         Math.min(input.settings.alertLimit, 12)
     ).map((incident, index) => (
-        `Incident ${index + 1} [${incident.severity.toUpperCase()}] ${incident.title} alerts=${incident.alertIds.join(',')} next=${incident.nextAction} evidence=${incident.evidence.join(' | ')}`
+        `Incident ${index + 1} [${incident.severity.toUpperCase()}] priority=${incident.priority.score}/100 ${incident.priority.band} ${incident.title} alerts=${incident.alertIds.join(',')} grouped=${incident.relatedSignals.join('+')} why=${incident.priority.reasons.join(' ')} next=${incident.nextAction} evidence=${incident.evidence.join(' | ')}`
     ));
 
     const selectedJobSummary = selectedJob

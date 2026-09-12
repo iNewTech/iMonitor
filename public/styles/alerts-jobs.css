@@ -1256,6 +1256,39 @@
     color: var(--muted-strong);
 }
 
+.activity-log-badge.is-priority {
+    background: rgba(181, 66, 53, 0.12);
+    color: #a43e33;
+}
+
+.activity-log-badge.is-priority.is-high {
+    background: rgba(181, 104, 34, 0.14);
+    color: #985817;
+}
+
+.activity-log-badge.is-priority.is-normal {
+    background: rgba(47, 116, 200, 0.12);
+    color: #2f74c8;
+}
+
+.alert-correlation-summary {
+    display: grid;
+    gap: 3px;
+    padding: 9px 11px;
+    border: 1px solid rgba(15, 108, 92, 0.14);
+    border-radius: 12px;
+    background: rgba(15, 108, 92, 0.05);
+    color: var(--muted-strong);
+    font-size: 0.8rem;
+}
+
+.alert-correlation-summary p,
+.alert-correlation-summary small {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.35;
+}
+
 .activity-log-time {
     color: var(--muted);
     font-size: 0.84rem;

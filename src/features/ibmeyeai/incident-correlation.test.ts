@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { ActiveJobRecord } from '../../services/ibmi';
 import type { MonitorAlert } from '../alerts/alert-model';
-import { buildIncidentCorrelations } from './incident-correlation';
+import {
+    attachIncidentCorrelations,
+    buildIncidentCorrelations,
+    INCIDENT_CORRELATION_WINDOW_MS
+} from './incident-correlation';
 
 function createJob(overrides: Partial<ActiveJobRecord> = {}): ActiveJobRecord {
     return {
@@ -97,5 +101,80 @@ describe('incident-correlation', () => {
 
         expect(incidents).toHaveLength(2);
         expect(incidents.every((incident) => incident.alertIds.length === 1)).toBe(true);
+    });
+
+    it('keeps similar messages on different jobs separate', () => {
+        const message = 'The job is waiting for an operator response.';
+        const incidents = buildIncidentCorrelations([
+            createAlert({ message, jobName: '123456/QUSER/ORDERJOB' }),
+            createAlert({
+                id: 'msgw:999/QUSER/OTHERJOB',
+                message,
+                jobName: '999/QUSER/OTHERJOB'
+            })
+        ], [createJob(), createJob({
+            JOB_NAME: '999/QUSER/OTHERJOB',
+            JOB_NAME_SHORT: 'OTHERJOB',
+            SUBSYSTEM_JOB: 'QINTER/OTHERJOB'
+        })], 80);
+
+        expect(incidents).toHaveLength(2);
+        expect(incidents.every((incident) => incident.affectedJobs.length === 1)).toBe(true);
+    });
+
+    it('starts a new group outside the correlation time window', () => {
+        const incidents = buildIncidentCorrelations([
+            createAlert({ timestamp: '2026-09-02T10:00:00.000Z' }),
+            createAlert({
+                id: 'cpu:123456/QUSER/ORDERJOB',
+                kind: 'highCpu',
+                severity: 'warning',
+                title: 'High CPU job detected',
+                timestamp: new Date(Date.parse('2026-09-02T10:00:00.000Z') + INCIDENT_CORRELATION_WINDOW_MS + 1).toISOString()
+            })
+        ], [createJob()], 80);
+
+        expect(incidents).toHaveLength(2);
+        expect(incidents.every((incident) => incident.groupReason.includes('One active signal'))).toBe(true);
+    });
+
+    it('attaches a compact priority explanation to every grouped alert', () => {
+        const alerts = [
+            createAlert(),
+            createAlert({
+                id: 'cpu:123456/QUSER/ORDERJOB',
+                kind: 'highCpu',
+                severity: 'warning',
+                occurrence: 4
+            })
+        ];
+        const [first, second] = attachIncidentCorrelations(alerts, [createJob()], 80);
+
+        expect(first?.correlation).toEqual(second?.correlation);
+        expect(first?.correlation?.priority.score).toBeGreaterThan(50);
+        expect(first?.correlation?.priority.reasons.join(' ')).toContain('Recurring condition (4 occurrences).');
+        expect(first?.correlation?.priority.businessImpactMapped).toBe(false);
+    });
+
+    it('uses a stable fingerprint to break equal priority ties', () => {
+        const incidents = buildIncidentCorrelations([
+            createAlert({ id: 'z-alert', jobName: '123456/QUSER/ZJOB' }),
+            createAlert({ id: 'a-alert', jobName: '999/QUSER/AJOB' })
+        ], [
+            createJob({ JOB_NAME: '123456/QUSER/ZJOB', JOB_NAME_SHORT: 'ZJOB', SUBSYSTEM_JOB: 'QINTER/ZJOB' }),
+            createJob({ JOB_NAME: '999/QUSER/AJOB', JOB_NAME_SHORT: 'AJOB', SUBSYSTEM_JOB: 'QINTER/AJOB' })
+        ], 80);
+
+        expect(incidents[0]?.fingerprint.localeCompare(incidents[1]?.fingerprint || '')).toBeLessThan(0);
+    });
+
+    it('marks system-only matches as suggestions for review', () => {
+        const incidents = buildIncidentCorrelations([
+            createAlert({ jobName: undefined }),
+            createAlert({ id: 'poll-2', jobName: undefined })
+        ], [], 80);
+
+        expect(incidents[0]?.suggested).toBe(true);
+        expect(incidents[0]?.groupReason).toContain('operator review');
     });
 });

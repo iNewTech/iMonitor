@@ -107,12 +107,16 @@ test('launches the demo monitor and renders live incidents in active jobs', asyn
         const row = incidentRow(app.page, incident.jobName!);
         await expect(row).toBeVisible();
         await expect(row.locator('.job-incident-chip')).toHaveText('MSGW');
+        await expect(row.locator('.job-priority-chip')).toHaveText(/^P\d+$/);
         await expect(row).toHaveClass(/is-critical/);
         const task = await openTaskWindow(app, () => row.click());
         await expect(task.locator('#task-qualified-job')).toHaveText(incident.jobName!);
         await expect(task.locator('#task-issue-title')).toHaveText(incident.title);
         await expect(task.locator('#task-issue-summary')).toHaveText(incident.message);
         await expect(task.locator('#task-issue-state')).toHaveText('CRITICAL | New');
+        await task.getByRole('tab', { name: 'Actions', exact: true }).click();
+        await expect(task.getByTestId('incident-correlation-summary')).toContainText(/Priority \d+\/100/);
+        await task.getByRole('tab', { name: 'Overview', exact: true }).click();
         await expect(task.locator('[data-testid="task-evidence-captured"]')).toBeVisible();
         await expect(task.locator('[data-testid="task-evidence-captured"]')).toContainText('Job log');
     } finally {
@@ -289,7 +293,7 @@ test('supports acknowledge, claim, note, work done, and return-to-queue in the a
             return { owner: updated?.owner || '', workflowStatus: updated?.workflowStatus };
         }).toEqual({ owner: '', workflowStatus: 'acknowledged' });
         await expect(task.locator('.job-task-owner')).toHaveText('Unassigned');
-        await expect(task.locator('#task-incident-actions .activity-log-badge')).toHaveText('Acknowledged');
+        await expect(task.locator('#task-incident-actions .activity-log-badge.is-area')).toHaveText('Acknowledged');
         await expect(task.getByRole('button', { name: 'Claim Work', exact: true })).toBeEnabled();
         await task.getByRole('tab', { name: 'History', exact: true }).click();
         await expect(task.locator('#task-incident-history')).toContainText('Returned to queue');

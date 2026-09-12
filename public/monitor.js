@@ -289,6 +289,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return 0;
         }
 
+        const correlatedScore = Number(alert?.correlation?.priority?.score);
+        if (Number.isFinite(correlatedScore)) {
+            return correlatedScore;
+        }
+
         const severityScore = alert?.severity === 'critical'
             ? 40
             : alert?.severity === 'warning'
@@ -565,11 +570,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function findAlertForJob(jobName) {
-        return latestAlerts.find((alert) => (
+        return latestAlerts
+            .filter((alert) => (
             alert?.isActive !== false
             && alert.jobName
             && alert.jobName === jobName
-        )) || null;
+            ))
+            .sort((left, right) => getAlertPriorityScore(right) - getAlertPriorityScore(left))[0] || null;
     }
 
     function getJobPriorityScore(job) {
@@ -731,6 +738,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const ownerChip = linkedAlert && isClaimedAlert(linkedAlert) && alertOwner
                 ? `<span class="job-owner-chip" title="Worked by ${escapeHtml(alertOwner)}"><i class="bi bi-person-check" aria-hidden="true"></i>${escapeHtml(alertOwner)}</span>`
                 : '';
+            const priorityChip = linkedAlert?.correlation?.priority
+                ? `<span class="job-priority-chip is-${escapeHtml(linkedAlert.correlation.priority.band)}" title="${escapeHtml(Array.isArray(linkedAlert.correlation.priority.reasons) ? linkedAlert.correlation.priority.reasons.join(' ') : 'Priority based on current technical evidence.')}">P${escapeHtml(String(linkedAlert.correlation.priority.score))}</span>`
+                : '';
             const rowTone = linkedAlert
                 ? ` has-incident is-${escapeHtml(linkedAlert.severity || 'warning')}`
                 : ['MSGW', 'LCKW', 'DEQW', 'DLYW'].includes(status)
@@ -764,6 +774,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="job-state-cell">
                         ${linkedAlert ? `<span class="job-incident-chip">${escapeHtml(getAlertConditionLabel(linkedAlert))}</span>` : ''}
                         <span class="badge ${getStatusBadgeClass(status)}">${escapeHtml(getJobStatusLabel(status))}</span>
+                        ${priorityChip}
                         ${ownerChip}
                         </div>
                     </td>

@@ -15,6 +15,8 @@ The product flow is **Connect → Monitor → Detect → Explain with AI → App
 
 Polling supports preset intervals and a custom interval in seconds. Job rows show incident context and the assigned operator when available; a running job can still have a high-CPU incident.
 
+Each incident row can show a compact technical priority badge. Related signals for the same job are correlated within a five-minute window, and the task window explains the grouping and score factors before an operator acts.
+
 ## Run locally
 
 ```bash

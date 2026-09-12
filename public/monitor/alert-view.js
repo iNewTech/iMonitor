@@ -118,6 +118,34 @@ function buildIncidentEvidenceMarkup(alert) {
     `;
 }
 
+function buildPriorityBadge(alert) {
+    const priority = alert?.correlation?.priority;
+    if (!priority || !Number.isFinite(Number(priority.score))) {
+        return '';
+    }
+
+    const reasons = Array.isArray(priority.reasons) ? priority.reasons.join(' ') : 'Priority based on current technical evidence.';
+    return `<span class="activity-log-badge is-priority is-${escapeHtml(priority.band)}" title="${escapeHtml(reasons)}">P${escapeHtml(String(priority.score))} · ${escapeHtml(priority.band)}</span>`;
+}
+
+function buildCorrelationMarkup(alert) {
+    const correlation = alert?.correlation;
+    if (!correlation) {
+        return '';
+    }
+
+    const priority = correlation.priority;
+    const reasons = Array.isArray(priority?.reasons) ? priority.reasons.slice(0, 3).join(' ') : '';
+    const signals = Array.isArray(correlation.relatedSignals) ? correlation.relatedSignals.join(' + ') : '';
+    return `
+        <div class="alert-correlation-summary" data-testid="incident-correlation-summary">
+            <div><strong>${correlation.suggested ? 'Suggested grouping' : 'Correlated incident'}</strong>${signals ? ` <span>· ${escapeHtml(signals)}</span>` : ''}</div>
+            <p>${escapeHtml(correlation.groupReason)}</p>
+            ${reasons ? `<small>Priority ${escapeHtml(String(priority.score))}/100: ${escapeHtml(reasons)}</small>` : ''}
+        </div>
+    `;
+}
+
 /** @param {AlertRenderContext} context */
 export function buildAlertMarkup(alert, { operatorName, features, recoveryPolls, view = {} }) {
     const isExpanded = Boolean(view.expanded);
@@ -275,6 +303,7 @@ export function buildAlertMarkup(alert, { operatorName, features, recoveryPolls,
                             <span class="activity-log-badge is-area" data-testid="alert-workflow-badge">${escapeHtml(workflowLabel)}</span>
                             <span class="activity-log-badge">${escapeHtml(alert.severity.toUpperCase())}</span>
                             <span class="activity-log-badge is-area">${escapeHtml(alert.kind.toUpperCase())}</span>
+                            ${buildPriorityBadge(alert)}
                         </div>
                         <time class="activity-log-time">${formatTimestamp(alert.timestamp)}</time>
                     </div>
@@ -289,6 +318,7 @@ export function buildAlertMarkup(alert, { operatorName, features, recoveryPolls,
                     ${alert.detail ? `<p class="activity-log-detail">${escapeHtml(alert.detail)}</p>` : ''}
                     ${recoveryMarkup}
                     ${ownerMarkup}
+                    ${buildCorrelationMarkup(alert)}
                     ${buildIncidentEvidenceMarkup(alert)}
                     ${timelineMarkup}
                     ${noteComposerMarkup}
@@ -382,13 +412,17 @@ export function buildDetailIncidentActionsMarkup(alert, { operatorName, features
     const ownerMarkup = owner
         ? `<span class="job-task-owner">Owner: ${escapeHtml(owner)}</span>`
         : '<span class="job-task-owner">Unassigned</span>';
+    const priorityMarkup = buildPriorityBadge(alert);
+    const correlationMarkup = buildCorrelationMarkup(alert);
 
     return `
         <div class="job-task-action-summary">
             <span class="job-incident-chip">${escapeHtml(getAlertConditionLabel(alert))}</span>
             <span class="activity-log-badge is-area">${escapeHtml(formatWorkflowLabel(alert.workflowStatus))}</span>
+            ${priorityMarkup}
             ${ownerMarkup}
         </div>
+        ${correlationMarkup}
         <div class="job-task-action-row">
             ${actionButtons.join('')}
         </div>

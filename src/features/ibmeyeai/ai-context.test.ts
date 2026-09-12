@@ -84,6 +84,8 @@ describe('ai-context', () => {
         expect(context).toContain('CRITICAL messageWait job=123456/QSYSOPR/MSGWJOB MSGW detected');
         expect(context).toContain('Correlated incidents and guided recommendations:');
         expect(context).toContain('Incident 1 [CRITICAL]');
+        expect(context).toContain('priority=');
+        expect(context).toContain('Business impact is provisional until a business service is mapped.');
         expect(context).toContain('next=Inspect the pending message details before replying.');
         expect(context).toContain('QINTER/MSGWJOB status=MSGW cpu=11.70');
         expect(context).toContain('[SQL] SQL executed successfully.');

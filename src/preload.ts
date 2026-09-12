@@ -178,6 +178,26 @@ interface MonitorAlert {
         queue: IncidentEvidenceSnapshot;
         subsystem: IncidentEvidenceSnapshot;
     };
+    correlation?: {
+        fingerprint: string;
+        groupReason: string;
+        suggested: boolean;
+        relatedSignals: string[];
+        priority: {
+            score: number;
+            band: 'critical' | 'high' | 'normal';
+            reasons: string[];
+            factors: {
+                technicalSeverity: number;
+                affectedJobs: number;
+                workloadImpact: number;
+                recurrence: number;
+                workflow: number;
+                businessImpact: number;
+            };
+            businessImpactMapped: boolean;
+        };
+    };
     lifecyclePhase?: 'detected' | 'acknowledged' | 'investigating' | 'awaiting_escalation' | 'verifying' | 'resolved' | 'reopened';
     kind: 'highCpu' | 'messageWait' | 'lockWait' | 'delayWait' | 'dequeueWait' | 'pollFailure';
     severity: 'critical' | 'warning';

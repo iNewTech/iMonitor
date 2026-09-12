@@ -5,6 +5,7 @@ iMonitor uses a simple Free/Premium feature boundary. The application keeps Prem
 ## Current experience
 
 - One active-job workspace with filters, issue labels, owner names, and priority focus.
+- Deterministic incident correlation groups related signals for the same job within a five-minute window and shows a priority score with the reasons behind it.
 - Separate job task windows with workflow actions, AI guidance, and history.
 - Respond, Investigate, and Resolve brief with impact, owner, next check, evidence, and a compact L2/L3 handoff workflow.
 - Job AI helpers grounded to the selected job and its linked incident only.

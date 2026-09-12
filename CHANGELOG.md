@@ -12,6 +12,7 @@
 - Improved analysis panel spacing, sidebar scrolling, responsive action rows, and theme tokens.
 - Added renderer syntax/import validation to builds and expanded domain and Electron regression coverage.
 - Added bounded, redacted incident evidence capture with durable source status in alerts, task windows, and AI context.
+- Added deterministic incident correlation, explainable technical priority scoring, and compact priority explanations in job rows and task windows.
 - Updated architecture, technical, feature, and alert-workflow documentation.
 
 - Renamed the main monitor workspace to `iMonitor ActionBoard`.

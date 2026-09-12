@@ -21,6 +21,31 @@ export type AlertKind = 'highCpu' | 'messageWait' | 'lockWait' | 'delayWait' | '
  */
 export type AlertWorkflowStatus = 'new' | 'acknowledged' | 'claimed' | 'work_done' | 'system_cleared';
 
+export type IncidentPriorityBand = 'critical' | 'high' | 'normal';
+
+export interface IncidentPriority {
+    score: number;
+    band: IncidentPriorityBand;
+    reasons: string[];
+    factors: {
+        technicalSeverity: number;
+        affectedJobs: number;
+        workloadImpact: number;
+        recurrence: number;
+        workflow: number;
+        businessImpact: number;
+    };
+    businessImpactMapped: boolean;
+}
+
+export interface IncidentCorrelationMetadata {
+    fingerprint: string;
+    groupReason: string;
+    suggested: boolean;
+    relatedSignals: string[];
+    priority: IncidentPriority;
+}
+
 /** Canonical incident lifecycle used by reports and future support routing. */
 export type IncidentLifecyclePhase =
     | 'detected'
@@ -88,6 +113,8 @@ export interface MonitorAlert {
     recordVersion?: number;
     /** Immutable evidence captured when the incident first appeared. */
     evidence?: IncidentEvidence;
+    /** Latest deterministic grouping and priority explanation for the alert. */
+    correlation?: IncidentCorrelationMetadata;
     lifecyclePhase?: IncidentLifecyclePhase;
     kind: AlertKind;
     severity: AlertSeverity;
