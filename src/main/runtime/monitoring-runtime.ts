@@ -24,6 +24,7 @@ interface MonitoringRuntimeDependencies {
     notify: (key: string, title: string, body: string) => void;
     persistPoll: (jobs: ActiveJobRecord[], timestamp: string, intervalMs: number) => void;
     persistWidgetSummary?: (jobs: ActiveJobRecord[], timestamp: string) => void;
+    runReadOnlyQueueTriage?: () => Promise<void> | void;
 }
 
 interface TimestampedQueryResult<T> extends QueryResult<T> {
@@ -103,6 +104,7 @@ export function createMonitoringRuntime(dependencies: MonitoringRuntimeDependenc
         dependencies.persistWidgetSummary?.(jobs, timestamp);
         emitMonitoringHistory();
         dependencies.sendToWindow('status-update', result);
+        void dependencies.runReadOnlyQueueTriage?.();
     };
 
     const publishSystemStatus = async () => {

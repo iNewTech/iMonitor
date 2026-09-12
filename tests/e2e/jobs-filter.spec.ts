@@ -144,6 +144,9 @@ test('shows expandable job queues and waiting jobs in demo mode', async () => {
         await expect(queuePanel).toBeVisible();
         await queuePanel.locator('> summary').click();
         await expect(queuePanel.locator('#job-queues-count')).toContainText('queues', { timeout: 10000 });
+        await expect(queuePanel.locator('#job-queue-triage')).toBeVisible();
+        await expect(queuePanel.locator('#job-queue-triage-status')).toContainText('held queue', { timeout: 10000 });
+        await expect(queuePanel.locator('#job-queue-triage')).toContainText('No actions run');
 
         const queueRow = app.page.locator('#job-queues-body .job-queue-row').filter({ hasText: 'QBATCH' }).first();
         await expect(queueRow).toBeVisible();

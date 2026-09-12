@@ -89,6 +89,7 @@ import { createAiRuntime } from './main/runtime/ai-runtime';
 import { createEmailNotificationRuntime } from './main/runtime/email-notification-runtime';
 import { createClickUpRuntime } from './main/runtime/clickup-runtime';
 import { createMonitoringRuntime } from './main/runtime/monitoring-runtime';
+import { createQueueTriageRuntime } from './main/runtime/queue-triage-runtime';
 import { createObjectAnalysisRuntime } from './main/runtime/object-analysis-runtime';
 import { createWidgetSummaryRuntime } from './main/runtime/widget-summary-runtime';
 import { createLoggingRuntime } from './main/runtime/logging-runtime';
@@ -124,6 +125,7 @@ import {
     getNormalizedStoredSmsNotificationSettings,
     setStoredSmsNotificationSettingsForUser,
     getNormalizedObjectAnalysisSettings,
+    getNormalizedQueueTriageResults,
     setObjectAnalysisSettings
 } from './main/store';
 import { createWindowRuntime } from './main/window/window-runtime';
@@ -864,6 +866,54 @@ async function notifyOperators(key: string, title: string, body: string) {
     }
 }
 
+async function readJobQueues(options: JobQueueQuery): Promise<PagedResult<JobQueueRecord>> {
+    const result = monitoringState.getMonitorMode() === 'live'
+        ? await (() => {
+            const service = sessionRuntime.getCurrentService();
+            if (!service) throw new Error('Not connected to IBM i');
+            return service.getJobQueues(options);
+        })()
+        : getDemoDatabase().getJobQueues(options);
+    return { ...result, data: result.data.map((record) => normalizeJobQueueRecord(record as unknown as Record<string, unknown>)) };
+}
+
+async function readJobQueueDetails(queueName: string, queueLibrary: string) {
+    if (monitoringState.getMonitorMode() === 'live') {
+        const service = sessionRuntime.getCurrentService();
+        if (!service) throw new Error('Not connected to IBM i');
+        const queue = await service.getJobQueueDetails(queueName, queueLibrary);
+        const subsystemName = String(queue?.SUBSYSTEM_NAME || '').trim();
+        const subsystemLibrary = String(queue?.SUBSYSTEM_LIBRARY_NAME || 'QSYS').trim() || 'QSYS';
+        return { queue, subsystem: subsystemName ? await service.getSubsystemDetails(subsystemName, subsystemLibrary) : null };
+    }
+    const database = getDemoDatabase();
+    const queue = database.getJobQueueDetails(queueName, queueLibrary);
+    const subsystemName = String(queue?.SUBSYSTEM_NAME || '').trim();
+    const subsystemLibrary = String(queue?.SUBSYSTEM_LIBRARY_NAME || 'QSYS').trim() || 'QSYS';
+    return { queue, subsystem: subsystemName ? database.getSubsystemDetails(subsystemName, subsystemLibrary) : null };
+}
+
+async function readQueuedJobs(options: QueuedJobQuery): Promise<PagedResult<QueuedJobRecord>> {
+    const result = monitoringState.getMonitorMode() === 'live'
+        ? await (() => {
+            const service = sessionRuntime.getCurrentService();
+            if (!service) throw new Error('Not connected to IBM i');
+            return service.getQueuedJobs(options);
+        })()
+        : getDemoDatabase().getQueuedJobs(options);
+    return { ...result, data: result.data.map((record) => normalizeQueuedJobRecord(record as unknown as Record<string, unknown>)) };
+}
+
+const queueTriageRuntime = createQueueTriageRuntime({
+    initialResults: getNormalizedQueueTriageResults(store),
+    getJobQueues: readJobQueues,
+    getQueuedJobs: readQueuedJobs,
+    getJobQueueDetails: readJobQueueDetails,
+    persistResults: (results) => store.set('queueTriageResults', results),
+    sendToWindow: windowRuntime.sendToWindow,
+    recordActivity: loggingRuntime.recordActivity
+});
+
 const monitoringRuntime = createMonitoringRuntime({
     getCurrentService: () => sessionRuntime.getCurrentService(),
     getDemoDatabase,
@@ -883,7 +933,8 @@ const monitoringRuntime = createMonitoringRuntime({
                 detail: error instanceof Error ? error.message : String(error)
             });
         });
-    }
+    },
+    runReadOnlyQueueTriage: () => queueTriageRuntime.runForHeldQueues()
 });
 
 sessionRuntime = createSessionRuntime({
@@ -1206,64 +1257,10 @@ registerJobsIpc({
 
         return getDemoDatabase().getJobMessages(jobName);
     },
-    getJobQueues: async (options: JobQueueQuery): Promise<PagedResult<JobQueueRecord>> => {
-        const result = monitoringState.getMonitorMode() === 'live'
-            ? await (() => {
-                const service = sessionRuntime.getCurrentService();
-                if (!service) {
-                    throw new Error('Not connected to IBM i');
-                }
-                return service.getJobQueues(options);
-            })()
-            : getDemoDatabase().getJobQueues(options);
-
-        return {
-            ...result,
-            data: result.data.map((record) => normalizeJobQueueRecord(record as unknown as Record<string, unknown>))
-        };
-    },
-    getJobQueueDetails: async (queueName: string, queueLibrary: string) => {
-        if (monitoringState.getMonitorMode() === 'live') {
-            const service = sessionRuntime.getCurrentService();
-            if (!service) {
-                throw new Error('Not connected to IBM i');
-            }
-            const queue = await service.getJobQueueDetails(queueName, queueLibrary);
-            const subsystemName = String(queue?.SUBSYSTEM_NAME || '').trim();
-            const subsystemLibrary = String(queue?.SUBSYSTEM_LIBRARY_NAME || 'QSYS').trim() || 'QSYS';
-            return {
-                queue,
-                subsystem: subsystemName
-                    ? await service.getSubsystemDetails(subsystemName, subsystemLibrary)
-                    : null
-            };
-        }
-
-        const database = getDemoDatabase();
-        const queue = database.getJobQueueDetails(queueName, queueLibrary);
-        const subsystemName = String(queue?.SUBSYSTEM_NAME || '').trim();
-        const subsystemLibrary = String(queue?.SUBSYSTEM_LIBRARY_NAME || 'QSYS').trim() || 'QSYS';
-        return {
-            queue,
-            subsystem: subsystemName ? database.getSubsystemDetails(subsystemName, subsystemLibrary) : null
-        };
-    },
-    getQueuedJobs: async (options: QueuedJobQuery): Promise<PagedResult<QueuedJobRecord>> => {
-        const result = monitoringState.getMonitorMode() === 'live'
-            ? await (() => {
-                const service = sessionRuntime.getCurrentService();
-                if (!service) {
-                    throw new Error('Not connected to IBM i');
-                }
-                return service.getQueuedJobs(options);
-            })()
-            : getDemoDatabase().getQueuedJobs(options);
-
-        return {
-            ...result,
-            data: result.data.map((record) => normalizeQueuedJobRecord(record as unknown as Record<string, unknown>))
-        };
-    },
+    getJobQueues: readJobQueues,
+    getJobQueueDetails: readJobQueueDetails,
+    getQueuedJobs: readQueuedJobs,
+    getQueueTriage: () => queueTriageRuntime.getResults(),
     isQueuedJob: async (jobName: string) => {
         if (monitoringState.getMonitorMode() !== 'live') {
             return getDemoDatabase().hasQueuedJob(jobName);

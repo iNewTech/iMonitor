@@ -20,6 +20,7 @@ import { renderAiReportMarkdown } from './monitor/ibmeyeai/render.js';
 import { filterJobs as filterVisibleJobs, getSubsystemOptions } from './monitor/jobs-filter.js';
 import { initSupportPanel } from './shared/support.js';
 import { initJobQueues } from './monitor/job-queues.js';
+import { initQueueTriage } from './monitor/job-queue-triage.js';
 import {
     renderOperatorActions as renderOperatorActionsView,
     renderJobLog as renderJobLogView,
@@ -202,6 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
         getSelectedJobName: () => selectedJobName
     });
     const jobQueues = initJobQueues({ root: document, electronAPI: window.electronAPI });
+    const queueTriage = initQueueTriage({ root: document, electronAPI: window.electronAPI });
 
     document.addEventListener('jobqueues:summary', (event) => {
         const detail = event.detail || {};
@@ -2142,6 +2144,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.electronAPI.onStatusUpdate((data) => {
         renderJobs(data);
         void jobQueues.refresh({ silent: true, onlyIfEmpty: true });
+        void queueTriage.refresh();
         setMonitoringState(true, 'live');
         setOperatorStatus('Monitoring healthy', 'success', `Last update ${new Date().toLocaleTimeString()}`);
         void aiAssistant.refresh();

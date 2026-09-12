@@ -10,6 +10,7 @@ import {
     type JobQueueActionKind
 } from '../../features/action-board/job-queue-actions';
 import type { JobQueueQuery, QueuedJobQuery } from '../../features/action-board/job-queue-model';
+import type { QueueTriageResult } from '../../features/action-board/queue-triage';
 
 interface RegisterJobsIpcDependencies {
     requirePremium: () => void;
@@ -25,6 +26,7 @@ interface RegisterJobsIpcDependencies {
         subsystem: Record<string, unknown> | null;
     }>;
     getQueuedJobs: (options: QueuedJobQuery) => Promise<PagedResult<QueuedJobRecord>>;
+    getQueueTriage: () => QueueTriageResult[];
     isQueuedJob: (jobName: string) => Promise<boolean>;
     runJobQueueCommand: (
         command: string,
@@ -172,6 +174,11 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
             };
         }
     });
+
+    ipcMain.handle('get-queue-triage', () => ({
+        success: true,
+        results: dependencies.getQueueTriage()
+    }));
 
     ipcMain.handle('run-job-action', async (_event, payload: {
         kind: OperatorActionKind;

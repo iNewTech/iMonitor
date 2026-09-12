@@ -477,6 +477,16 @@
                         <span id="job-queues-oldest">Oldest wait --</span>
                         <span id="job-queues-page-note">Showing first 50 queues</span>
                     </div>
+                    <section id="job-queue-triage" class="job-queue-triage" aria-labelledby="job-queue-triage-title">
+                        <div class="job-queue-triage-heading">
+                            <div>
+                                <p id="job-queue-triage-title" class="eyebrow mb-1">Automatic read-only triage</p>
+                                <p id="job-queue-triage-status" class="mb-0">Waiting for the first queue scan…</p>
+                            </div>
+                            <span class="job-queue-triage-badge"><i class="bi bi-shield-check" aria-hidden="true"></i> No actions run</span>
+                        </div>
+                        <ul id="job-queue-triage-list" class="job-queue-triage-list mb-0"></ul>
+                    </section>
                     <div id="job-queues-table" class="table-responsive refined-table job-queues-table">
                         <table class="table table-hover align-middle">
                             <thead>

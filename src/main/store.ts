@@ -66,6 +66,7 @@ import {
     normalizeObjectAnalysisSettings,
     type ObjectAnalysisSettings
 } from '../features/object-analysis/model';
+import { normalizeQueueTriageResults, type QueueTriageResult } from '../features/action-board/queue-triage';
 
 export interface StoreSchema {
     connections: StoredConnection[];
@@ -82,6 +83,7 @@ export interface StoreSchema {
     smsNotificationSettings: StoredSmsNotificationSettings;
     alertWorkflowState: Record<string, StoredAlertWorkflowState>;
     incidentLedger: IncidentLedger;
+    queueTriageResults: Record<string, QueueTriageResult>;
     objectAnalysisSettings: ObjectAnalysisSettings;
     themeId: ThemeId;
     developmentPlan: Plan;
@@ -117,11 +119,22 @@ export function createAppStore() {
             smsNotificationSettings: DEFAULT_STORED_SMS_NOTIFICATION_SETTINGS,
             alertWorkflowState: {},
             incidentLedger: {},
+            queueTriageResults: {},
             objectAnalysisSettings: DEFAULT_OBJECT_ANALYSIS_SETTINGS,
             themeId: DEFAULT_THEME_ID,
             developmentPlan: 'premium'
         }
     }) as AppStore;
+}
+
+/** Loads and normalizes the persisted read-only queue triage evidence. */
+export function getNormalizedQueueTriageResults(store: AppStore) {
+    const storedResults = store.get('queueTriageResults');
+    const normalized = normalizeQueueTriageResults(storedResults);
+    if (JSON.stringify(storedResults) !== JSON.stringify(normalized)) {
+        store.set('queueTriageResults', normalized);
+    }
+    return normalized;
 }
 
 /** Loads durable incidents and drops incomplete records without blocking startup. */

@@ -270,6 +270,20 @@ interface JobQueuePage<T> {
     error?: string;
 }
 
+interface QueueTriageResult {
+    queueKey: string;
+    queueName: string;
+    queueLibrary: string;
+    status: 'running' | 'completed' | 'partial' | 'failed' | 'interrupted' | 'clear';
+    updatedAt: string;
+    waitingJobs: number;
+    subsystemName: string | null;
+    checks: Array<{ id: string; status: string; summary: string; recordCount: number; }>;
+    expectedOutcome: string;
+    stopReason: string;
+    proposedNextSteps: string[];
+}
+
 interface ConnectionTestStatus {
     status: 'testing' | 'success' | 'failed';
     message: string;
@@ -833,6 +847,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
         limit?: number;
         cursor?: string;
     }) => ipcRenderer.invoke('get-queued-jobs', options || {}) as Promise<JobQueuePage<QueuedJobRecord>>,
+    getQueueTriage: () => ipcRenderer.invoke('get-queue-triage') as Promise<{
+        success: boolean;
+        results: QueueTriageResult[];
+        error?: string;
+    }>,
     runJobQueueAction: (payload: {
         kind: 'holdQueue' | 'releaseQueue' | 'holdQueuedJob' | 'releaseQueuedJob';
         queueName: string;
@@ -905,6 +924,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
         action: string;
     }) => void) => {
         ipcRenderer.on('job-queues-updated', (_event, payload) => callback(payload));
+    },
+    onQueueTriageUpdated: (callback: (results: QueueTriageResult[]) => void) => {
+        ipcRenderer.on('job-queue-triage-updated', (_event, results) => callback(results));
     },
     onAlertsUpdated: (callback: (alerts: MonitorAlert[]) => void) => {
         ipcRenderer.on('alerts-updated', (_event, alerts) => callback(alerts));

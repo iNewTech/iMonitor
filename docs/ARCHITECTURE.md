@@ -12,7 +12,7 @@ Renderer pages → preload → main/ipc → main/runtime → features + services
 
 ## Monitoring and task windows
 
-A shared monitoring runtime polls jobs and updates monitoring/alert state. The ActionBoard renders the active-job list, focus controls, compact AI composer, and queues. Each standalone task window reads the selected job by its qualified name through the same backend; it does not create its own IBM i connection.
+A shared monitoring runtime polls jobs and updates monitoring/alert state. After a successful poll it starts the queue-triage runtime, which reads held queues, waiting jobs, and subsystem context through the same service boundary. The ActionBoard renders the active-job list, focus controls, compact AI composer, queues, and persisted triage evidence. Each standalone task window reads the selected job by its qualified name through the same backend; it does not create its own IBM i connection.
 
 Task refreshes are serialized, stale snapshots are ignored, and action feedback survives later refreshes. Background updates preserve the selected task tab. Explicit workflow and job actions are separate from read-only inspection.
 

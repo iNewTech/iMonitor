@@ -4,6 +4,8 @@
 
 ActionBoard attaches detected issues to their jobs in the active-job table. The row distinguishes the job’s operating state from its issue, and shows the claimed owner. “Focus Next Job” opens the highest-priority available issue.
 
+Held job queues also receive an automatic, bounded read-only triage after a monitoring poll. iMonitor checks the queue state, reads waiting work, and reads the associated subsystem context. Each check is persisted so an interrupted run can resume, and changed queue evidence starts a fresh run. The triage result records the expected outcome, stop condition, and proposed next steps for operator review. It never releases or holds a queue, changes a queued job, or treats a successful read as permission to execute a correction.
+
 Open a job to work in its separate task window. Multiple jobs can stay open while the main board continues polling. Overview, Actions, AI helper, History, and Details keep each task compact. Refresh failures offer retry; in-flight actions cannot be submitted twice, and background refresh preserves the current tab and feedback.
 
 The Actions tab includes a compact Respond, Investigate, and Resolve brief for the selected job. It keeps impact, owner, current status, next check, and evidence visible beside the workflow buttons. Operators can edit the completed checks, failed attempts, open questions, and escalation reason in a local L2/L3 handoff package, then copy or export it without changing the incident ledger or assigning shared ownership.
