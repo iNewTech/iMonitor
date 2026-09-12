@@ -497,6 +497,33 @@ interface ProblemMatchPayload {
     reasons: string[];
 }
 
+interface ReplayScenarioPayload {
+    schema: 'imonitor-replay-scenario';
+    version: 1;
+    id: string;
+    title: string;
+    kind: string;
+    description: string;
+    evidence: Array<{ source: string; status: 'captured' | 'missing' | 'stale'; summary: string }>;
+    checks: Array<{ id: string; label: string; expected: string }>;
+    permittedResponses: string[];
+    expectedOutcome: string;
+    expectedSummary: string;
+}
+
+interface ReplayResultPayload {
+    schema: 'imonitor-replay-result';
+    version: 1;
+    scenarioId: string;
+    response: string;
+    outcome: string;
+    checks: Array<{ id: string; label: string; status: 'passed' | 'failed' | 'blocked'; detail: string }>;
+    evidence: ReplayScenarioPayload['evidence'];
+    summary: string;
+    trainingOnly: true;
+    executedLiveAction: false;
+}
+
 interface ResourceGraphPayload {
     success: boolean;
     error?: string;
@@ -1148,6 +1175,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }>,
     resolveProblemRecord: (jobName: string, problemId: string) => ipcRenderer.invoke('resolve-problem-record', { jobName, problemId }) as Promise<{
         success: boolean; record?: ProblemRecordPayload; records?: ProblemRecordPayload[]; error?: string;
+    }>,
+    getIncidentReplayCatalog: () => ipcRenderer.invoke('get-incident-replay-catalog') as Promise<{
+        success: boolean; scenarios: ReplayScenarioPayload[]; error?: string;
+    }>,
+    runIncidentReplay: (scenarioId: string, response: string) => ipcRenderer.invoke('run-incident-replay', { scenarioId, response }) as Promise<{
+        success: boolean; result?: ReplayResultPayload; error?: string;
     }>,
     saveAlertSettings: (settings: Partial<AlertSettings>) => (
         ipcRenderer.invoke('save-alert-settings', settings) as Promise<AlertSettings>

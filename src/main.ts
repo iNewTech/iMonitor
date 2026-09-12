@@ -110,6 +110,7 @@ import { registerSupportAccessIpc } from './main/ipc/support-access-ipc';
 import { registerResolutionMemoryIpc } from './main/ipc/resolution-memory-ipc';
 import { registerRunbookIpc } from './main/ipc/runbook-ipc';
 import { registerProblemManagementIpc } from './main/ipc/problem-management-ipc';
+import { registerIncidentReplayIpc } from './main/ipc/incident-replay-ipc';
 import { createAiRuntime } from './main/runtime/ai-runtime';
 import { createEmailNotificationRuntime } from './main/runtime/email-notification-runtime';
 import { createClickUpRuntime } from './main/runtime/clickup-runtime';
@@ -1852,6 +1853,11 @@ registerProblemManagementIpc({
     getSystemLabel: () => connectionState.getState().currentConnection?.name,
     getOperatorName: getCurrentOperatorName,
     authorizeAction: authorizeCurrentOperatorAction,
+    recordActivity: loggingRuntime.recordActivity
+});
+
+registerIncidentReplayIpc({
+    authorizeRead: () => authorizeCurrentOperatorAction('read', getCurrentSystemId()),
     recordActivity: loggingRuntime.recordActivity
 });
 

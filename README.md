@@ -26,6 +26,8 @@ Supported runbooks can be started from a job task and advanced one checkpoint at
 
 The L3 workspace groups recurring incidents only when the system, job, condition, and runtime shape agree. An operator can confirm the known problem, record the root cause, workaround, and linked ticket, then mark the fix verified. A later occurrence reopens the record for review instead of silently treating it as solved.
 
+The task window also includes isolated incident replay training with ten versioned scenarios. It uses sanitized evidence and expected checks for recovery, blocked work, missing evidence, escalation, and unsafe response attempts; replay never calls a live connector or executes a production action.
+
 Resource relationships are evidence-backed and timestamped. The graph is bounded, marks stale snapshots, and includes an accessible relationship table; it never invents missing links.
 
 Settings can map a job, resource, queue, or subsystem to a customer-defined business service and owner. The task response shows the configured deadline and expected operating window; unmatched impact stays unknown.

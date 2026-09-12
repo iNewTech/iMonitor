@@ -81,6 +81,11 @@ const problemOccurrence = $('task-problem-occurrence');
 const problemConfirm = $('task-problem-confirm');
 const problemResolve = $('task-problem-resolve');
 const problemNote = $('task-problem-note');
+const replayPanel = $('task-replay-panel');
+const replayScenario = $('task-replay-scenario');
+const replayResponse = $('task-replay-response');
+const replayRun = $('task-replay-run');
+const replayResult = $('task-replay-result');
 const handoffFields = {
     recipient: $('task-handoff-recipient'),
     responseTarget: $('task-handoff-response-target'),
@@ -93,6 +98,7 @@ let runbookData = { definition: null, execution: null };
 let problemWorkspace = { records: [], matches: [], currentOccurrence: null, recurringSignal: false };
 let selectedProblemId = '';
 let problemFormRecordId = '';
+let replayScenarios = [];
 
 function getJobKey(job) {
     return String(job?.JOB_NAME || job?.SUBSYSTEM_JOB || '').trim();
@@ -535,6 +541,50 @@ function confirmProblemRecord() {
     }));
 }
 
+function updateReplayResponses() {
+    const scenario = replayScenarios.find((item) => item.id === replayScenario?.value);
+    if (!scenario || !replayResponse) return;
+    replayResponse.innerHTML = (scenario.permittedResponses || []).map((response) => (
+        `<option value="${escapeHtml(response)}">${escapeHtml(formatWorkflowLabel(response))}</option>`
+    )).join('');
+}
+
+function renderReplayResult(result) {
+    if (!replayResult || !result) return;
+    const blocked = ['unsafe-blocked', 'missing-evidence', 'still-blocked', 'escalate'].includes(result.outcome);
+    replayResult.className = `replay-result ${blocked ? 'is-blocked' : 'is-safe'}`;
+    replayResult.innerHTML = `<strong>${escapeHtml(formatWorkflowLabel(result.outcome))}</strong><span>${escapeHtml(result.summary)}</span>
+        <small>Training only · live action executed: ${result.executedLiveAction ? 'yes' : 'no'}</small>
+        <ol class="replay-checks">${(result.checks || []).map((item) => `<li><strong>${escapeHtml(item.label)}</strong> · ${escapeHtml(item.status)} <small>${escapeHtml(item.detail)}</small></li>`).join('')}</ol>`;
+}
+
+async function loadReplayCatalog() {
+    if (!replayPanel || typeof window.electronAPI.getIncidentReplayCatalog !== 'function') return;
+    try {
+        const result = await window.electronAPI.getIncidentReplayCatalog();
+        if (!result?.success || !Array.isArray(result.scenarios) || !result.scenarios.length) return;
+        replayScenarios = result.scenarios;
+        replayPanel.hidden = false;
+        replayScenario.innerHTML = replayScenarios.map((scenario) => `<option value="${escapeHtml(scenario.id)}">${escapeHtml(scenario.title)}</option>`).join('');
+        updateReplayResponses();
+        updateControls();
+    } catch {
+        replayPanel.hidden = true;
+    }
+}
+
+function runIncidentReplay() {
+    if (!replayScenario?.value || !replayResponse?.value) return;
+    return runRequest('replay', async () => {
+        replayRun.disabled = true;
+        replayResult.textContent = 'Running isolated replay…';
+        const result = requireSuccess(await window.electronAPI.runIncidentReplay(replayScenario.value, replayResponse.value), 'Unable to run the training replay.');
+        renderReplayResult(result.result);
+    }, (error) => {
+        replayResult.textContent = errorMessage(error, 'Unable to run the training replay.');
+    });
+}
+
 function matchesWildcard(value, pattern) {
     const escaped = String(pattern).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '.*');
     return new RegExp(`^${escaped}$`, 'i').test(String(value));
@@ -665,6 +715,7 @@ function updateControls() {
     [problemTrack, problemOccurrence, problemConfirm, problemResolve].forEach((button) => {
         if (button) button.disabled = pending.has('problem') || !stateFresh || !latestPayload?.job;
     });
+    if (replayRun) replayRun.disabled = pending.has('replay') || !replayScenario?.value || !replayResponse?.value;
     document.querySelectorAll('#task-load-log, #task-load-messages, #task-load-graph').forEach((button) => {
         button.disabled = pending.has('details') || !selectedJobName;
     });
@@ -982,6 +1033,8 @@ $('task-problem-records')?.addEventListener('click', (event) => {
     problemFormRecordId = '';
     renderProblemWorkspace();
 });
+$('task-replay-scenario')?.addEventListener('change', () => updateReplayResponses());
+$('task-replay-run')?.addEventListener('click', () => void runIncidentReplay());
 $('task-load-log').addEventListener('click', () => void loadDetails('log'));
 $('task-load-messages').addEventListener('click', () => void loadDetails('messages'));
 $('task-load-graph').addEventListener('click', () => void loadDetails('graph'));
@@ -1022,6 +1075,7 @@ window.electronAPI.onAlertsUpdated((alerts) => {
 
 void loadTask();
 void refreshResolutionMemory().catch(() => undefined);
+void loadReplayCatalog();
 const refreshTimer = window.setInterval(() => {
     if (!pending.has('mutation')) void loadTask();
 }, 7000);

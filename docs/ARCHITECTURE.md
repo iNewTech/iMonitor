@@ -34,6 +34,8 @@ The background collector is composed from `background-collector-runtime.ts`, `co
 
 `src/features/action-board/problem-management.ts` defines the L3 problem record, occurrence evidence, environment-compatible match, confirmation, resolution, and reopen transitions. `src/main/ipc/problem-management-ipc.ts` scopes reads and writes to the connected system and the incident-workflow permission. The task window shows only matching records, requires human confirmation for a known error, and stores bounded occurrence history; same-message incidents on another job or changed runtime shape are not grouped.
 
+`src/features/action-board/incident-replay.ts` owns the ten versioned training scenarios and the deterministic playback result. `src/main/ipc/incident-replay-ipc.ts` exposes only catalog and in-memory replay operations behind read authorization; it receives no IBM i service, command runner, or external delivery runtime. The task window labels every result as training-only and records no production mutation.
+
 `src/features/action-board/resolution-memory.ts` is the customer-scoped knowledge boundary. It captures an incident's observed symptoms and evidence references as a draft, requires explicit approval before retrieval can use it, retains reviewer and environment metadata, supports retirement and scoped export, and matches approved entries only by system, incident kind, and job pattern. The store is local to the customer and is never a direct command source for IBM i actions.
 
 ## Shared incident boundary

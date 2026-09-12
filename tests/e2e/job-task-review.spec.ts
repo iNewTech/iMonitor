@@ -105,6 +105,11 @@ const test = base.extend<{ task: TestHandle }>({
                 'record-problem-occurrence': { value: { success: true } },
                 'create-problem-candidate': { value: { success: true } },
                 'resolve-problem-record': { value: { success: true } },
+                'get-incident-replay-catalog': { value: {
+                    success: true,
+                    scenarios: [{ schema: 'imonitor-replay-scenario', version: 1, id: 'msgw-stale-reply', title: 'Stale reply is blocked', kind: 'messageWait', description: 'Stale evidence.', evidence: [{ source: 'messages', status: 'stale', summary: 'Old inquiry.' }], checks: [{ id: 'current', label: 'Current message is verified', expected: 'Fresh evidence.' }], permittedResponses: ['investigate', 'replyMessage', 'escalate'], expectedOutcome: 'unsafe-blocked', expectedSummary: 'The response is blocked.' }]
+                } },
+                'run-incident-replay': { value: { success: true, result: { schema: 'imonitor-replay-result', version: 1, scenarioId: 'msgw-stale-reply', response: 'replyMessage', outcome: 'unsafe-blocked', checks: [{ id: 'current', label: 'Current message is verified', status: 'blocked', detail: 'Blocked by training safety boundary.' }], evidence: [], summary: 'Training blocked the unsafe response. No live action was executed.', trainingOnly: true, executedLiveAction: false } } },
                 'open-external-url': { value: { success: true } },
                 'create-incident-handoff': { value: { success: true, handoff: {
                     schema: 'imonitor-incident-handoff', version: 1, id: 'handoff-1', incidentId: 'review-alert',
@@ -192,6 +197,16 @@ test('L3 workspace explains a problem match and captures confirmation evidence',
     await page.locator('#task-problem-confirm').click();
     await expect(page.locator('#task-problem-note')).toHaveText('L3 problem record updated.');
     expect(JSON.stringify(await calls(app, 'confirm-problem-record'))).toContain('runaway batch step');
+});
+
+test('training replay stays isolated from IBM i actions', async ({ task: { app, page } }) => {
+    await page.getByRole('tab', { name: 'Actions', exact: true }).click();
+    await expect(page.locator('#task-replay-panel')).toBeVisible();
+    await page.locator('#task-replay-response').selectOption('replyMessage');
+    await page.locator('#task-replay-run').click();
+    await expect(page.locator('#task-replay-result')).toContainText('No live action was executed.');
+    expect(await calls(app, 'run-job-action')).toHaveLength(0);
+    expect(JSON.stringify(await calls(app, 'run-incident-replay'))).toContain('replyMessage');
 });
 
 test('sends and accepts a persisted incident handoff', async ({ task: { app, page } }) => {

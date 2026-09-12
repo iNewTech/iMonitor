@@ -172,6 +172,22 @@
                     </div>
                     <p id="task-problem-note" class="stat-note mt-2 mb-0" role="status"></p>
                 </section>
+                <section id="task-replay-panel" class="job-detail-section replay-panel" aria-labelledby="task-replay-title" hidden>
+                    <div class="history-card-header">
+                        <div>
+                            <p class="eyebrow mb-1">Training mode</p>
+                            <h2 id="task-replay-title" class="section-title">Incident replay</h2>
+                        </div>
+                        <span class="table-caption">Isolated · no live actions</span>
+                    </div>
+                    <p class="stat-note mb-2">Practice a prepared scenario with sanitized evidence. Replays never call IBM i, ClickUp, Jira, or Slack.</p>
+                    <div class="replay-controls">
+                        <label>Scenario<select id="task-replay-scenario"></select></label>
+                        <label>Response<select id="task-replay-response"></select></label>
+                        <button id="task-replay-run" type="button" class="btn btn-outline-ink btn-sm">Run replay</button>
+                    </div>
+                    <div id="task-replay-result" class="replay-result" aria-live="polite">Choose a scenario to begin.</div>
+                </section>
                 <section class="job-detail-section handoff-panel" aria-labelledby="task-handoff-title">
                     <div class="history-card-header">
                         <div>

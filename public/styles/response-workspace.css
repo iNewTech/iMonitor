@@ -189,8 +189,65 @@
     gap: 6px;
 }
 
+.replay-panel {
+    border-color: color-mix(in srgb, var(--accent) 24%, var(--border));
+}
+
+.replay-controls {
+    display: grid;
+    grid-template-columns: minmax(180px, 1.8fr) minmax(150px, 1fr) auto;
+    align-items: end;
+    gap: 8px;
+}
+
+.replay-controls label {
+    display: grid;
+    gap: 4px;
+    color: var(--muted-strong);
+    font-size: .76rem;
+    font-weight: 800;
+}
+
+.replay-controls select {
+    min-height: 34px;
+    padding: 7px 9px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-elevated);
+    color: var(--text-strong);
+    font: inherit;
+    font-size: .82rem;
+}
+
+.replay-result {
+    display: grid;
+    gap: 5px;
+    margin-top: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--surface-elevated);
+    color: var(--muted-strong);
+    font-size: .82rem;
+}
+
+.replay-result.is-safe { border-color: color-mix(in srgb, var(--success) 45%, var(--border)); }
+.replay-result.is-blocked { border-color: color-mix(in srgb, var(--danger) 42%, var(--border)); }
+.replay-checks {
+    display: grid;
+    gap: 3px;
+    margin: 0;
+    padding-left: 1.1rem;
+}
+
+.replay-checks small { color: var(--muted); }
+
 @media (max-width: 640px) {
     .problem-ticket-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .replay-controls {
         grid-template-columns: 1fr;
     }
 }
