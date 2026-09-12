@@ -11,6 +11,7 @@ import {
 } from '../../features/action-board/job-queue-actions';
 import type { JobQueueQuery, QueuedJobQuery } from '../../features/action-board/job-queue-model';
 import type { QueueTriageResult } from '../../features/action-board/queue-triage';
+import type { RecoveryVerificationResult } from '../../features/action-board/recovery-verification';
 
 interface RegisterJobsIpcDependencies {
     requirePremium: () => void;
@@ -27,6 +28,12 @@ interface RegisterJobsIpcDependencies {
     }>;
     getQueuedJobs: (options: QueuedJobQuery) => Promise<PagedResult<QueuedJobRecord>>;
     getQueueTriage: () => QueueTriageResult[];
+    verifyJobQueueAction: (payload: {
+        kind: JobQueueActionKind;
+        queueName: string;
+        queueLibrary: string;
+        jobName?: string;
+    }) => Promise<RecoveryVerificationResult>;
     isQueuedJob: (jobName: string) => Promise<boolean>;
     runJobQueueCommand: (
         command: string,
@@ -62,6 +69,7 @@ interface RegisterJobsIpcDependencies {
  * Registers job-detail and operator-action IPC handlers for the main process.
  */
 export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
+    const activeQueueActions = new Set<string>();
     ipcMain.handle('get-job-details', (_event, jobName: string) => {
         const job = dependencies.getJob(jobName);
         if (!job) {
@@ -260,11 +268,45 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
             return { success: false, error: 'The selected queued job is no longer available.' };
         }
 
+        if (payload.jobName) {
+            const currentJobs = await dependencies.getQueuedJobs({ search: payload.jobName, status: 'ALL', limit: 10 });
+            const currentJob = currentJobs.data.find((job) => job.JOB_NAME === payload.jobName);
+            if (!currentJob || currentJob.JOB_QUEUE_NAME !== payload.queueName || currentJob.JOB_QUEUE_LIBRARY !== payload.queueLibrary) {
+                return { success: false, error: 'The queued job moved or changed; refresh before trying again.' };
+            }
+            const currentStatus = String(currentJob.JOB_STATUS || currentJob.JOB_QUEUE_STATUS || '').toUpperCase();
+            if (payload.kind === 'releaseQueuedJob' && currentStatus !== 'HELD') {
+                return { success: false, error: `The queued job is currently ${currentStatus || 'unavailable'}; refresh before releasing it.` };
+            }
+            if (payload.kind === 'holdQueuedJob' && currentStatus === 'HELD') {
+                return { success: false, error: 'The queued job is already held; refresh before trying again.' };
+            }
+        }
+
         if (requiresJobQueueConfirmation(payload.kind) && payload.confirmed !== true) {
             return { success: false, error: 'This queue action requires operator confirmation.' };
         }
 
+        const actionKey = [payload.kind, payload.queueLibrary, payload.queueName, payload.jobName || 'queue'].join('|');
+        if (activeQueueActions.has(actionKey)) {
+            return { success: false, error: 'This queue action is already in progress.' };
+        }
+        activeQueueActions.add(actionKey);
+
         try {
+            if (payload.kind === 'holdQueue' || payload.kind === 'releaseQueue') {
+                const currentQueue = await dependencies.getJobQueueDetails(payload.queueName, payload.queueLibrary);
+                const currentStatus = String(currentQueue.queue?.JOB_QUEUE_STATUS || currentQueue.queue?.STATUS || '').toUpperCase();
+                if (!currentQueue.queue) {
+                    return { success: false, error: 'The selected job queue is no longer available.' };
+                }
+                if (payload.kind === 'releaseQueue' && currentStatus !== 'HELD') {
+                    return { success: false, error: `The queue is currently ${currentStatus || 'unavailable'}; refresh before releasing it.` };
+                }
+                if (payload.kind === 'holdQueue' && currentStatus === 'HELD') {
+                    return { success: false, error: 'The queue is already held; refresh before trying again.' };
+                }
+            }
             await dependencies.runJobQueueCommand(
                 plan.command,
                 payload,
@@ -277,13 +319,22 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
                 result: 'success',
                 detail: plan.command
             }));
+            const verification = await dependencies.verifyJobQueueAction(payload);
+            dependencies.recordActionAudit(createActionAuditEntry({
+                operator: dependencies.getOperatorName(),
+                jobName: payload.jobName || `${payload.queueLibrary}/${payload.queueName}`,
+                action: `${payload.kind}:verification`,
+                result: verification.status === 'recovered' ? 'success' : 'failure',
+                detail: `${verification.summary} | ${verification.evidence.join('; ')}`
+            }));
+            dependencies.sendToWindow('job-queue-action-verification', verification);
             dependencies.sendToWindow('job-queues-updated', {
                 queueName: payload.queueName,
                 queueLibrary: payload.queueLibrary,
                 jobName: payload.jobName,
                 action: payload.kind
             });
-            return { success: true, message: `Action completed: ${payload.kind}` };
+            return { success: true, message: verification.summary, verification };
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown queue action failure';
             dependencies.recordActionAudit(createActionAuditEntry({
@@ -300,6 +351,8 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
                 detail: `${payload.queueLibrary}/${payload.queueName} | ${errorMessage}`
             });
             return { success: false, error: errorMessage };
+        } finally {
+            activeQueueActions.delete(actionKey);
         }
     });
 }

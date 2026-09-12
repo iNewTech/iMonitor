@@ -284,6 +284,13 @@ interface QueueTriageResult {
     proposedNextSteps: string[];
 }
 
+interface RecoveryVerificationResult {
+    status: 'recovered' | 'still-blocked' | 'failed' | 'unknown';
+    summary: string;
+    observedAt: string;
+    evidence: string[];
+}
+
 interface ConnectionTestStatus {
     status: 'testing' | 'success' | 'failed';
     message: string;
@@ -862,6 +869,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         success: boolean;
         error?: string;
         message?: string;
+        verification?: RecoveryVerificationResult;
     }>,
     runJobAction: (payload: {
         kind: 'replyMessage' | 'holdJob' | 'releaseJob' | 'endJob' | 'inspectLocks';
@@ -927,6 +935,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     onQueueTriageUpdated: (callback: (results: QueueTriageResult[]) => void) => {
         ipcRenderer.on('job-queue-triage-updated', (_event, results) => callback(results));
+    },
+    onJobQueueActionVerification: (callback: (result: RecoveryVerificationResult) => void) => {
+        ipcRenderer.on('job-queue-action-verification', (_event, result) => callback(result));
     },
     onAlertsUpdated: (callback: (alerts: MonitorAlert[]) => void) => {
         ipcRenderer.on('alerts-updated', (_event, alerts) => callback(alerts));

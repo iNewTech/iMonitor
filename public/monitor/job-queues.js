@@ -517,7 +517,11 @@ export function initJobQueues({ root = document, electronAPI = window.electronAP
         } else {
             await loadPage();
         }
-        setStatus(result.message || 'Queue action completed.');
+        const verification = result.verification;
+        const verificationLabel = verification
+            ? `Verification ${String(verification.status || 'unknown').replaceAll('-', ' ')}: `
+            : '';
+        setStatus(`${verificationLabel}${result.message || 'Queue action completed.'}`);
     });
 
     searchInput?.addEventListener('input', () => {

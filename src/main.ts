@@ -64,6 +64,7 @@ import {
     type OperatorActionKind
 } from './features/action-board/operator-actions';
 import type { JobQueueActionKind } from './features/action-board/job-queue-actions';
+import { buildQueueRecoveryVerification, type RecoveryVerificationResult } from './features/action-board/recovery-verification';
 import {
     normalizeJobQueueRecord,
     normalizeQueuedJobRecord,
@@ -904,6 +905,44 @@ async function readQueuedJobs(options: QueuedJobQuery): Promise<PagedResult<Queu
     return { ...result, data: result.data.map((record) => normalizeQueuedJobRecord(record as unknown as Record<string, unknown>)) };
 }
 
+async function verifyJobQueueAction(payload: {
+    kind: JobQueueActionKind;
+    queueName: string;
+    queueLibrary: string;
+    jobName?: string;
+}): Promise<RecoveryVerificationResult> {
+    const observedAt = new Date().toISOString();
+    try {
+        const [queuePage, details, jobs] = await Promise.all([
+            readJobQueues({ search: payload.queueName, status: 'ALL', limit: 10 }),
+            readJobQueueDetails(payload.queueName, payload.queueLibrary),
+            readQueuedJobs(payload.jobName
+                ? { search: payload.jobName, status: 'ALL', limit: 10 }
+                : { queueName: payload.queueName, queueLibrary: payload.queueLibrary, status: 'ALL', limit: 100 })
+        ]);
+        const queue = queuePage.data.find((candidate) => candidate.JOB_QUEUE_NAME === payload.queueName
+            && candidate.JOB_QUEUE_LIBRARY === payload.queueLibrary) || null;
+        const queuedJob = payload.jobName
+            ? jobs.data.find((candidate) => candidate.JOB_NAME === payload.jobName) || null
+            : null;
+        const verifiedQueue = queue || (details.queue ? normalizeJobQueueRecord(details.queue) : null);
+        return buildQueueRecoveryVerification(
+            payload,
+            verifiedQueue,
+            queuedJob,
+            Number(verifiedQueue?.WAITING_JOBS || jobs.data.length),
+            observedAt
+        );
+    } catch (error) {
+        return {
+            status: 'unknown',
+            summary: 'The action was submitted, but recovery could not be verified.',
+            observedAt,
+            evidence: [error instanceof Error ? error.message : 'Verification read failed.']
+        };
+    }
+}
+
 const queueTriageRuntime = createQueueTriageRuntime({
     initialResults: getNormalizedQueueTriageResults(store),
     getJobQueues: readJobQueues,
@@ -1261,6 +1300,7 @@ registerJobsIpc({
     getJobQueueDetails: readJobQueueDetails,
     getQueuedJobs: readQueuedJobs,
     getQueueTriage: () => queueTriageRuntime.getResults(),
+    verifyJobQueueAction,
     isQueuedJob: async (jobName: string) => {
         if (monitoringState.getMonitorMode() !== 'live') {
             return getDemoDatabase().hasQueuedJob(jobName);

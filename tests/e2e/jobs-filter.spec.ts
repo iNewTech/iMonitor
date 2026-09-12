@@ -183,6 +183,7 @@ test('finds a queued job outside the visible queue list and supports a safe demo
         await expect(expanded).toContainText('REPORT01');
         app.page.once('dialog', (dialog) => dialog.accept());
         await expanded.locator('.job-queue-action').click();
+        await expect(app.page.locator('#job-queues-status')).toContainText('Verification');
         await expect(app.page.locator('#job-queues-body .job-queue-expanded-row').first()).toContainText('Held');
     } finally {
         await app.cleanup();
