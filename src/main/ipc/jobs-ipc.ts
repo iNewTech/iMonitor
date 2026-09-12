@@ -12,6 +12,8 @@ import {
 import type { JobQueueQuery, QueuedJobQuery } from '../../features/action-board/job-queue-model';
 import type { QueueTriageResult } from '../../features/action-board/queue-triage';
 import type { RecoveryVerificationResult } from '../../features/action-board/recovery-verification';
+import { createActionLeaseStore } from '../../features/action-board/action-leases';
+import type { AuthorizationResult, ProtectedAction } from '../../features/action-board/operator-access';
 
 interface RegisterJobsIpcDependencies {
     requirePremium: () => void;
@@ -55,6 +57,8 @@ interface RegisterJobsIpcDependencies {
     runOperatorCommand: (command: string, payload: { kind: OperatorActionKind; jobName: string; }, live: boolean) => Promise<void>;
     isLiveMonitorMode: () => boolean;
     getOperatorName: () => string;
+    authorizeAction: (action: ProtectedAction, systemId: string | undefined) => AuthorizationResult;
+    getCurrentSystemId: () => string | undefined;
     recordActivity: (entry: {
         area: 'monitoring';
         level: 'success' | 'error';
@@ -69,7 +73,7 @@ interface RegisterJobsIpcDependencies {
  * Registers job-detail and operator-action IPC handlers for the main process.
  */
 export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
-    const activeQueueActions = new Set<string>();
+    const actionLeases = createActionLeaseStore();
     ipcMain.handle('get-job-details', (_event, jobName: string) => {
         const job = dependencies.getJob(jobName);
         if (!job) {
@@ -196,8 +200,18 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
         messageQueue?: string;
         endOption?: 'controlled' | 'immediate';
         confirmed?: boolean;
+        executionId?: string;
+        systemId?: string;
     }) => {
         dependencies.requirePremium();
+        const systemId = dependencies.getCurrentSystemId();
+        if (payload.systemId && payload.systemId !== systemId) {
+            return { success: false, error: 'This job action targets a different IBM i system.' };
+        }
+        const authorization = dependencies.authorizeAction('job-action', systemId);
+        if (!authorization.allowed) {
+            return { success: false, error: authorization.reason || 'The operator is not allowed to run job actions.' };
+        }
         const job = dependencies.getJob(payload.jobName);
         if (!job) {
             return { success: false, error: 'The selected job is no longer available.' };
@@ -212,6 +226,13 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
             return { success: false, error: 'This job action requires operator confirmation.' };
         }
 
+        const actionKey = `job:${systemId}:${payload.jobName}`;
+        const executionId = payload.executionId?.trim() || `${actionKey}:${Date.now()}`;
+        const leaseResult = actionLeases.acquire(actionKey, executionId, dependencies.getOperatorName());
+        if (!leaseResult.granted) {
+            return { success: false, error: formatLeaseRejection(leaseResult.reason, 'job action') };
+        }
+
         try {
             await dependencies.runOperatorCommand(plan.command, payload, dependencies.isLiveMonitorMode());
             dependencies.recordActionAudit(createActionAuditEntry({
@@ -219,7 +240,7 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
                 jobName: payload.jobName,
                 action: payload.kind,
                 result: 'success',
-                detail: plan.command
+                detail: `${plan.command} | execution=${leaseResult.lease.executionId}`
             }));
             return { success: true, message: `Action completed: ${payload.kind}` };
         } catch (error) {
@@ -238,6 +259,8 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
                 detail: `${payload.jobName} | ${errorMessage}`
             });
             return { success: false, error: errorMessage };
+        } finally {
+            actionLeases.complete(leaseResult.lease);
         }
     });
 
@@ -247,6 +270,8 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
         queueLibrary: string;
         jobName?: string;
         confirmed?: boolean;
+        executionId?: string;
+        systemId?: string;
     }) => {
         try {
             dependencies.requirePremium();
@@ -255,6 +280,14 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
                 success: false,
                 error: error instanceof Error ? error.message : 'Job queue actions require Premium.'
             };
+        }
+        const systemId = dependencies.getCurrentSystemId();
+        if (payload.systemId && payload.systemId !== systemId) {
+            return { success: false, error: 'This queue action targets a different IBM i system.' };
+        }
+        const authorization = dependencies.authorizeAction('queue-action', systemId);
+        if (!authorization.allowed) {
+            return { success: false, error: authorization.reason || 'The operator is not allowed to run queue actions.' };
         }
         const plan = buildJobQueueActionPlan(payload);
         if (plan.executionType === 'blocked' || !plan.command) {
@@ -287,11 +320,12 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
             return { success: false, error: 'This queue action requires operator confirmation.' };
         }
 
-        const actionKey = [payload.kind, payload.queueLibrary, payload.queueName, payload.jobName || 'queue'].join('|');
-        if (activeQueueActions.has(actionKey)) {
-            return { success: false, error: 'This queue action is already in progress.' };
+        const actionKey = `queue:${systemId}:${payload.queueLibrary}/${payload.queueName}/${payload.jobName || 'queue'}`;
+        const executionId = payload.executionId?.trim() || `${actionKey}:${Date.now()}`;
+        const leaseResult = actionLeases.acquire(actionKey, executionId, dependencies.getOperatorName());
+        if (!leaseResult.granted) {
+            return { success: false, error: formatLeaseRejection(leaseResult.reason, 'queue action') };
         }
-        activeQueueActions.add(actionKey);
 
         try {
             if (payload.kind === 'holdQueue' || payload.kind === 'releaseQueue') {
@@ -317,7 +351,7 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
                 jobName: payload.jobName || `${payload.queueLibrary}/${payload.queueName}`,
                 action: payload.kind,
                 result: 'success',
-                detail: plan.command
+                detail: `${plan.command} | execution=${leaseResult.lease.executionId}`
             }));
             const verification = await dependencies.verifyJobQueueAction(payload);
             dependencies.recordActionAudit(createActionAuditEntry({
@@ -352,11 +386,17 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
             });
             return { success: false, error: errorMessage };
         } finally {
-            activeQueueActions.delete(actionKey);
+            actionLeases.complete(leaseResult.lease);
         }
     });
 }
 
 function requiresConfirmation(kind: OperatorActionKind) {
     return kind === 'holdJob' || kind === 'releaseJob' || kind === 'endJob' || kind === 'replyMessage';
+}
+
+function formatLeaseRejection(reason: 'duplicate' | 'replay', label: string) {
+    return reason === 'replay'
+        ? `This ${label} request was already submitted.`
+        : `This ${label} is already in progress.`;
 }

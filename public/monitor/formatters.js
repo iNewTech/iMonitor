@@ -61,6 +61,12 @@ export function getJobKey(job) {
     return `${jobNumber}/${jobUser}/${jobName}`;
 }
 
+/** Creates a fresh client request id for replay-safe main-process actions. */
+export function createActionRequestId(prefix = 'action') {
+    const randomId = globalThis.crypto?.randomUUID?.();
+    return `${prefix}:${randomId || `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
+}
+
 export function getStatusBadgeClass(status) {
     switch (status) {
         case 'RUN':

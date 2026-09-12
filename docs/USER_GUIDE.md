@@ -31,6 +31,8 @@ The task window keeps the selected job in context:
 
 Claiming work assigns it to the current named operator. Configured ClickUp workflows can create a linked work item. An incident remains visible until monitoring or a manual recheck confirms the underlying condition is clear.
 
+Only the current named operator on the active IBM i connection can change workflow or run a job/queue action. iMonitor rejects a stale incident update, a request for another system, a duplicate request that is still running, and a replay of a completed request. IBM i permissions are checked again when a command is executed.
+
 Queue actions show a confirmation and command preview. iMonitor checks the exact queue or queued job again immediately before execution, prevents duplicate in-flight actions, and reads the system again afterward. The result is reported as **recovered**, **still blocked**, **failed**, or **unknown**. A successful command submission alone is not shown as recovery.
 
 ## Use AI safely

@@ -770,8 +770,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
         action: 'acknowledge' | 'claim' | 'release' | 'workDone' | 'note';
         note?: string;
         owner?: string;
+        executionId?: string;
+        systemId?: string;
+        expectedUpdatedAt?: string;
     }) => ipcRenderer.invoke('update-alert-workflow', payload) as Promise<{
         success: boolean;
+        error?: string;
     }>,
     getAlertSettings: () => ipcRenderer.invoke('get-alert-settings') as Promise<AlertSettings>,
     saveAlertSettings: (settings: Partial<AlertSettings>) => (
@@ -865,6 +869,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         queueLibrary: string;
         jobName?: string;
         confirmed?: boolean;
+        executionId?: string;
+        systemId?: string;
     }) => ipcRenderer.invoke('run-job-queue-action', payload) as Promise<{
         success: boolean;
         error?: string;
@@ -879,6 +885,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         messageQueue?: string;
         endOption?: 'controlled' | 'immediate';
         confirmed?: boolean;
+        executionId?: string;
+        systemId?: string;
     }) => ipcRenderer.invoke('run-job-action', payload) as Promise<{
         success: boolean;
         error?: string;

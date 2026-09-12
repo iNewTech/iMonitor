@@ -1,4 +1,4 @@
-import { escapeHtml, formatTimestamp, formatNumber, formatCpuValue, formatMegabytes, getJobKey, getStatusBadgeClass } from './monitor/formatters.js';
+import { escapeHtml, formatTimestamp, formatNumber, formatCpuValue, formatMegabytes, getJobKey, getStatusBadgeClass, createActionRequestId } from './monitor/formatters.js';
 import {
     buildAlertMarkup as buildAlertView,
     buildDetailIncidentActionsMarkup,
@@ -1120,11 +1120,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            const currentAlert = latestAlerts.find((entry) => entry.id === noteSaveButton.dataset.alertId);
             void window.electronAPI.updateAlertWorkflow({
                 alertId: noteSaveButton.dataset.alertId,
                 action: 'note',
                 note,
-                owner: currentOperatorName
+                owner: currentOperatorName,
+                executionId: createActionRequestId('incident'),
+                expectedUpdatedAt: currentAlert?.workflowUpdatedAt
             });
             noteDraftByAlertId.delete(noteSaveButton.dataset.alertId);
             noteComposerAlertId = null;
@@ -1162,10 +1165,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 clearFocusedAlert(workflowButton.dataset.alertId);
             }
 
+            const currentAlert = latestAlerts.find((entry) => entry.id === workflowButton.dataset.alertId);
             void window.electronAPI.updateAlertWorkflow({
                 alertId: workflowButton.dataset.alertId,
                 action,
-                owner: currentOperatorName
+                owner: currentOperatorName,
+                executionId: createActionRequestId('incident'),
+                expectedUpdatedAt: currentAlert?.workflowUpdatedAt
             });
             return;
         }
@@ -1359,10 +1365,13 @@ document.addEventListener('DOMContentLoaded', () => {
             clearFocusedAlert(alertId);
         }
 
+        const currentAlert = latestAlerts.find((entry) => entry.id === alertId);
         await window.electronAPI.updateAlertWorkflow({
             alertId,
             action,
-            owner: currentOperatorName
+            owner: currentOperatorName,
+            executionId: createActionRequestId('incident'),
+            expectedUpdatedAt: currentAlert?.workflowUpdatedAt
         });
 
         if (selectedJobName) {
@@ -1854,10 +1863,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         clearFocusedAlert(alertId);
+        const currentAlert = latestAlerts.find((entry) => entry.id === alertId);
         void window.electronAPI.updateAlertWorkflow({
             alertId,
             action: 'release',
-            owner: currentOperatorName
+            owner: currentOperatorName,
+            executionId: createActionRequestId('incident'),
+            expectedUpdatedAt: currentAlert?.workflowUpdatedAt
         });
     });
 
@@ -1896,7 +1908,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await window.electronAPI.runJobAction({
                 kind: actionKind,
                 jobName: selectedJobName,
-                confirmed: true
+                confirmed: true,
+                executionId: createActionRequestId('job')
             });
 
             if (!result?.success) {

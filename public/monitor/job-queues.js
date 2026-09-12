@@ -1,3 +1,5 @@
+import { createActionRequestId } from './formatters.js';
+
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, (character) => ({
         '&': '&amp;',
@@ -494,7 +496,8 @@ export function initJobQueues({ root = document, electronAPI = window.electronAP
             queueName,
             queueLibrary,
             jobName,
-            confirmed: true
+            confirmed: true,
+            executionId: createActionRequestId('queue')
         });
         if (!result?.success) {
         setStatus(result?.error || 'The queue action could not be completed.', true);

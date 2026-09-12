@@ -66,6 +66,12 @@ import {
 import type { JobQueueActionKind } from './features/action-board/job-queue-actions';
 import { buildQueueRecoveryVerification, type RecoveryVerificationResult } from './features/action-board/recovery-verification';
 import {
+    authorizeOperatorAction,
+    createLocalOperatorSession,
+    type AuthorizationResult,
+    type ProtectedAction
+} from './features/action-board/operator-access';
+import {
     normalizeJobQueueRecord,
     normalizeQueuedJobRecord,
     type JobQueueQuery,
@@ -281,6 +287,19 @@ function getCurrentOperatorName() {
     return isDemoSession
         ? DEMO_OPERATOR_NAME
         : LOCAL_OPERATOR_NAME;
+}
+
+function getCurrentSystemId() {
+    return connectionState.getState().currentConnection?.id;
+}
+
+function authorizeCurrentOperatorAction(action: ProtectedAction, systemId: string | undefined): AuthorizationResult {
+    const currentSystemId = getCurrentSystemId();
+    const session = createLocalOperatorSession(getCurrentOperatorName(), {
+        organizationId: 'local',
+        allowedSystemIds: currentSystemId ? [currentSystemId] : []
+    });
+    return authorizeOperatorAction(session, action, systemId);
 }
 
 function getAiAssistantSettings() {
@@ -1231,6 +1250,8 @@ registerAlertsIpc({
     addAlertWorkflowNote,
     normalizeAlertSettings,
     getOperatorName: getCurrentOperatorName,
+    authorizeAction: authorizeCurrentOperatorAction,
+    getCurrentSystemId,
     syncLinkedExternalWorkItem: async (payload) => {
         await clickUpRuntime.syncAlertWorkflowComment(payload);
     },
@@ -1403,6 +1424,8 @@ registerJobsIpc({
     },
     isLiveMonitorMode: () => monitoringState.getMonitorMode() === 'live',
     getOperatorName: getCurrentOperatorName,
+    authorizeAction: authorizeCurrentOperatorAction,
+    getCurrentSystemId,
     recordActionAudit: (entry) => {
         loggingRuntime.recordActivity({
             area: 'monitoring',

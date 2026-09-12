@@ -22,6 +22,8 @@ Task refreshes are serialized, stale snapshots are ignored, and action feedback 
 
 Claims, work completion, and system recovery are distinct states. The main process identifies the current operator and owns ClickUp creation. Renderer code must not create a second task after submitting a claim.
 
+Protected incident, job, and queue mutations pass through a main-process operator authorization check and a per-target execution lease. The current local session is derived from the named OS operator and active IBM i connection; delegated sessions will supply scoped, expiring grants through the shared access work. Execution identifiers are replay-protected, concurrent requests are rejected, and audit entries retain operator and execution attribution. IBM i authority remains the final permission check at command execution.
+
 ## Object analysis
 
 - `src/services/object-analysis.ts`: local provider, graph resolution, ordered object lookup.

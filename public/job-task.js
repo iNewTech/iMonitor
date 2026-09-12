@@ -1,4 +1,4 @@
-import { escapeHtml, formatTimestamp, formatCpuValue, formatNumber, formatMegabytes } from './monitor/formatters.js';
+import { escapeHtml, formatTimestamp, formatCpuValue, formatNumber, formatMegabytes, createActionRequestId } from './monitor/formatters.js';
 import {
     renderJobLog,
     renderJobMessages,
@@ -493,7 +493,11 @@ function runWorkflow(action) {
     return runRequest('mutation', () => mutateTask(async () => {
         workflowNote.textContent = 'Updating incident…';
         requireSuccess(await window.electronAPI.updateAlertWorkflow({
-            alertId: alert.id, action, owner: currentOperatorName
+            alertId: alert.id,
+            action,
+            owner: currentOperatorName,
+            executionId: createActionRequestId('incident'),
+            expectedUpdatedAt: alert.workflowUpdatedAt
         }), 'Incident update failed. Refresh and try again.');
         // The main workflow handler already creates/synchronizes linked tasks.
         workflowNote.textContent = 'Incident updated.';
@@ -578,7 +582,10 @@ jobActions.addEventListener('click', (event) => {
     void runRequest('mutation', () => mutateTask(async () => {
         actionNote.textContent = actionFeedback = 'Running operation…';
         const result = requireSuccess(await window.electronAPI.runJobAction({
-            kind: actionKind, jobName: selectedJobName, confirmed: true
+            kind: actionKind,
+            jobName: selectedJobName,
+            confirmed: true,
+            executionId: createActionRequestId('job')
         }), 'Action failed.');
         actionNote.textContent = actionFeedback = result.message || 'Action completed.';
     }), (error) => {

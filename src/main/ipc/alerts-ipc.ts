@@ -1,6 +1,8 @@
 import { ipcMain } from 'electron/main';
 import type { AlertSettings, StoredAlertWorkflowState } from '../../features/alerts/alert-model';
 import type { EmailNotificationSettings } from '../../features/notifications/email-notification';
+import { createActionLeaseStore } from '../../features/action-board/action-leases';
+import type { AuthorizationResult, ProtectedAction } from '../../features/action-board/operator-access';
 
 interface RegisterAlertsIpcDependencies {
     getActiveAlerts: () => unknown[];
@@ -34,6 +36,8 @@ interface RegisterAlertsIpcDependencies {
     ) => StoredAlertWorkflowState;
     normalizeAlertSettings: (candidate?: Partial<AlertSettings>) => AlertSettings;
     getOperatorName: () => string;
+    authorizeAction: (action: ProtectedAction, systemId: string | undefined) => AuthorizationResult;
+    getCurrentSystemId: () => string | undefined;
     syncLinkedExternalWorkItem?: (payload: {
         alertId: string;
         action: 'acknowledge' | 'claim' | 'release' | 'workDone' | 'note';
@@ -54,6 +58,7 @@ interface RegisterAlertsIpcDependencies {
  * Registers alert and alert-settings IPC handlers for the main process.
  */
 export function registerAlertsIpc(dependencies: RegisterAlertsIpcDependencies) {
+    const actionLeases = createActionLeaseStore();
     ipcMain.handle('get-active-alerts', () => dependencies.getActiveAlerts());
 
     ipcMain.handle('recheck-alert', async (_event, alertId: string) => {
@@ -90,46 +95,96 @@ export function registerAlertsIpc(dependencies: RegisterAlertsIpcDependencies) {
         action: 'acknowledge' | 'claim' | 'release' | 'workDone' | 'note';
         note?: string;
         owner?: string;
+        executionId?: string;
+        systemId?: string;
+        expectedUpdatedAt?: string;
     }) => {
-        const owner = dependencies.getOperatorName();
-        const timestamp = new Date().toISOString();
-
-        const nextState = dependencies.mutateAlertWorkflow(payload.alertId, (state) => {
-            switch (payload.action) {
-                case 'acknowledge':
-                    return dependencies.acknowledgeAlertWorkflow(state, { timestamp, owner });
-                case 'claim':
-                    return dependencies.claimAlertWorkflow(state, { timestamp, owner });
-                case 'release':
-                    return dependencies.releaseAlertWorkflow(state, { timestamp, owner });
-                case 'workDone':
-                    return dependencies.markAlertWorkDone(state, { timestamp, owner, note: payload.note });
-                case 'note':
-                    return dependencies.addAlertWorkflowNote(state, { timestamp, owner, note: payload.note });
-                default:
-                    return state;
-            }
-        });
-
-        dependencies.recordActivity({
-            area: 'monitoring',
-            level: 'info',
-            message: `Alert workflow updated: ${payload.action}.`,
-            detail: `${payload.alertId} | ${nextState.lastActionSummary ?? payload.action}${payload.note ? ` | ${payload.note}` : ''}`
-        });
-
-        await dependencies.syncLinkedExternalWorkItem?.({
-            alertId: payload.alertId,
-            action: payload.action,
-            note: payload.note,
-            nextState
-        });
-
-        if (payload.action === 'claim') {
-            await dependencies.createClickUpTaskForClaimedAlert?.(payload.alertId);
+        const systemId = dependencies.getCurrentSystemId();
+        if (payload.systemId && payload.systemId !== systemId) {
+            return { success: false, error: 'This incident targets a different IBM i system.' };
+        }
+        const authorization = dependencies.authorizeAction('incident-workflow', systemId);
+        if (!authorization.allowed) {
+            return { success: false, error: authorization.reason || 'The operator is not allowed to update incidents.' };
         }
 
-        return { success: true };
+        const currentAlert = dependencies.getActiveAlerts().find((candidate) => (
+            Boolean(candidate)
+            && typeof candidate === 'object'
+            && (candidate as { id?: unknown }).id === payload.alertId
+        )) as {
+            workflowUpdatedAt?: string;
+            owner?: string;
+        } | undefined;
+        if (!currentAlert) {
+            return { success: false, error: 'The selected incident is no longer available.' };
+        }
+        if (payload.expectedUpdatedAt && payload.expectedUpdatedAt !== currentAlert.workflowUpdatedAt) {
+            return { success: false, error: 'This incident changed while you were working. Refresh before trying again.' };
+        }
+
+        const owner = dependencies.getOperatorName();
+        const currentOwner = currentAlert.owner?.trim();
+        if (payload.action === 'claim' && currentOwner && currentOwner !== owner) {
+            return { success: false, error: `This incident is already claimed by ${currentOwner}.` };
+        }
+        if (['release', 'workDone', 'note'].includes(payload.action) && currentOwner && currentOwner !== owner) {
+            return { success: false, error: `Only ${currentOwner} can update this claimed incident.` };
+        }
+
+        const actionKey = `incident:${systemId}:${payload.alertId}`;
+        const executionId = payload.executionId?.trim() || `${actionKey}:${Date.now()}`;
+        const leaseResult = actionLeases.acquire(actionKey, executionId, owner);
+        if (!leaseResult.granted) {
+            return {
+                success: false,
+                error: leaseResult.reason === 'replay'
+                    ? 'This incident update was already submitted.'
+                    : 'This incident update is already in progress.'
+            };
+        }
+        const timestamp = new Date().toISOString();
+
+        try {
+            const nextState = dependencies.mutateAlertWorkflow(payload.alertId, (state) => {
+                switch (payload.action) {
+                    case 'acknowledge':
+                        return dependencies.acknowledgeAlertWorkflow(state, { timestamp, owner });
+                    case 'claim':
+                        return dependencies.claimAlertWorkflow(state, { timestamp, owner });
+                    case 'release':
+                        return dependencies.releaseAlertWorkflow(state, { timestamp, owner });
+                    case 'workDone':
+                        return dependencies.markAlertWorkDone(state, { timestamp, owner, note: payload.note });
+                    case 'note':
+                        return dependencies.addAlertWorkflowNote(state, { timestamp, owner, note: payload.note });
+                    default:
+                        return state;
+                }
+            });
+
+            dependencies.recordActivity({
+                area: 'monitoring',
+                level: 'info',
+                message: `Alert workflow updated: ${payload.action}.`,
+                detail: `${payload.alertId} | operator=${owner} | execution=${leaseResult.lease.executionId} | ${nextState.lastActionSummary ?? payload.action}${payload.note ? ` | ${payload.note}` : ''}`
+            });
+
+            await dependencies.syncLinkedExternalWorkItem?.({
+                alertId: payload.alertId,
+                action: payload.action,
+                note: payload.note,
+                nextState
+            });
+
+            if (payload.action === 'claim') {
+                await dependencies.createClickUpTaskForClaimedAlert?.(payload.alertId);
+            }
+
+            return { success: true };
+        } finally {
+            actionLeases.complete(leaseResult.lease);
+        }
     });
 
     ipcMain.handle('get-alert-settings', () => dependencies.getAlertSettings());
