@@ -22,6 +22,8 @@ Each incident row can show a compact technical priority badge. Related signals f
 
 Resource relationships are evidence-backed and timestamped. The graph is bounded, marks stale snapshots, and includes an accessible relationship table; it never invents missing links.
 
+Settings can map a job, resource, queue, or subsystem to a customer-defined business service and owner. The task response shows the configured deadline and expected operating window; unmatched impact stays unknown.
+
 ## Run locally
 
 ```bash

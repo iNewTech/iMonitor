@@ -12,6 +12,7 @@ iMonitor uses a simple Free/Premium feature boundary. The application keeps Prem
 - Job AI helpers grounded to the selected job and its linked incident only.
 - Timestamped incident evidence for the trigger job, job log, messages, queue, and subsystem, with visible missing or permission statuses.
 - Evidence-backed resource relationships in the job Details tab, with compact flow and accessible table views for incidents, jobs, queues, subsystems, message waits, and lock owners.
+- Customer-owned business service mappings with deterministic precedence, owner, timezone-aware operating window, and deadline-risk context in the task response.
 - Compact AI composer with provider/model availability checks.
 - Job queues remain in their own section below the main workspace.
 - Client-controlled background collector for read-only monitoring, per-system local snapshots, retention, inventory, health, and confirmed purge.

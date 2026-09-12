@@ -8,6 +8,7 @@ import { initJiraSettings } from './settings/jira.js';
 import { initAlertSettings } from './settings/alerts.js';
 import { initSupportAccessSettings } from './settings/support-access.js';
 import { initCollectorSettings } from './settings/collector.js';
+import { initBusinessServiceSettings } from './settings/business-services.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const backButton = document.getElementById('settings-back');
@@ -244,6 +245,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         navStatus: navSupportStatus
     });
     const collectorSettings = initCollectorSettings({ root: document });
+    const businessServiceSettings = initBusinessServiceSettings({ root: document });
 
     const premiumFeaturePanels = new Map([
         ['settings-clickup-panel', 'clickup-integration'],
@@ -371,7 +373,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         jiraSettings.refresh(),
         alertSettings.refresh(),
         supportAccessSettings.refresh(),
-        collectorSettings.refresh()
+        collectorSettings.refresh(),
+        businessServiceSettings.refresh()
     ]);
 
     applyPremiumPreview(entitlements);

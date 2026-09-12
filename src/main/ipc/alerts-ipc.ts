@@ -9,6 +9,7 @@ import { recordHandoffAccepted, recordHandoffRequested } from '../../features/al
 import type { EmailNotificationSettings } from '../../features/notifications/email-notification';
 import { createActionLeaseStore } from '../../features/action-board/action-leases';
 import type { AuthorizationResult, ProtectedAction } from '../../features/action-board/operator-access';
+import type { BusinessServiceSettings } from '../../features/action-board/business-service-mapping';
 
 interface RegisterAlertsIpcDependencies {
     getActiveAlerts: () => unknown[];
@@ -19,6 +20,8 @@ interface RegisterAlertsIpcDependencies {
     }>;
     getSystemMessages: () => Promise<unknown[]>;
     getAlertSettings: () => AlertSettings;
+    getBusinessServiceSettings: () => BusinessServiceSettings;
+    saveBusinessServiceSettings: (settings: Partial<BusinessServiceSettings> | undefined) => BusinessServiceSettings;
     setAlertSettings: (settings: AlertSettings) => void;
     emitAlertSettings: () => void;
     getEmailNotificationSettings: () => EmailNotificationSettings;
@@ -396,6 +399,7 @@ export function registerAlertsIpc(dependencies: RegisterAlertsIpcDependencies) {
     });
 
     ipcMain.handle('get-alert-settings', () => dependencies.getAlertSettings());
+    ipcMain.handle('get-business-service-settings', () => dependencies.getBusinessServiceSettings());
     ipcMain.handle('get-email-notification-settings', () => dependencies.getEmailNotificationSettings());
 
     ipcMain.handle('save-alert-settings', (_event, candidate: Partial<AlertSettings> | undefined) => {
@@ -413,6 +417,9 @@ export function registerAlertsIpc(dependencies: RegisterAlertsIpcDependencies) {
         dependencies.onSettingsSaved();
         return normalized;
     });
+    ipcMain.handle('save-business-service-settings', (_event, candidate: Partial<BusinessServiceSettings> | undefined) => (
+        dependencies.saveBusinessServiceSettings(candidate)
+    ));
 
     ipcMain.handle(
         'save-email-notification-settings',

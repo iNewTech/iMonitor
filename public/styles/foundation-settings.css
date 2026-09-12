@@ -1205,3 +1205,48 @@ body.app-body::before {
     padding-left: 1.1rem;
     color: var(--muted);
 }
+
+.business-service-mapping-list {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+
+.settings-subsection-heading,
+.business-service-mapping-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.settings-subsection-heading h3 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.business-service-list {
+    display: grid;
+    gap: .55rem;
+    margin-top: .75rem;
+}
+
+.business-service-mapping-item {
+    padding: .7rem .85rem;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--bg-soft);
+}
+
+.business-service-mapping-item div {
+    display: grid;
+    gap: .15rem;
+    min-width: 0;
+}
+
+.business-service-mapping-item small {
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

@@ -274,7 +274,13 @@ function fallbackResponseSnapshot(job, alert) {
         completedChecks: ['No operator checks recorded yet.'],
         unsuccessfulAttempts: ['No unsuccessful attempts recorded.'],
         unresolvedQuestions: ['Is there an operator-impacting condition outside the current alert rules?'],
-        escalationReason: 'Escalation is optional; continue monitoring this job until an incident is linked.'
+        escalationReason: 'Escalation is optional; continue monitoring this job until an incident is linked.',
+        businessImpact: {
+            mapped: false,
+            deadlineState: 'not_configured',
+            scheduleState: 'not_configured',
+            summary: 'Business impact is unknown until a customer mapping matches this job.'
+        }
     };
 }
 
@@ -297,6 +303,9 @@ function renderResponseWorkspace(response) {
     $('task-response-impact-summary').textContent = snapshot.impactSummary || '-';
     $('task-response-owner').textContent = snapshot.owner || 'Unassigned';
     $('task-response-status').textContent = formatWorkflowLabel(snapshot.status || 'clear');
+    const businessImpact = snapshot.businessImpact;
+    $('task-response-business').textContent = businessImpact?.serviceName || 'Unknown impact';
+    $('task-response-business-summary').textContent = businessImpact?.summary || 'No customer mapping matched.';
     $('task-response-next-check').textContent = snapshot.nextCheck || '-';
     $('task-response-evidence').innerHTML = (snapshot.evidence || []).map((item) => (
         `<span class="response-evidence-item is-${escapeHtml(item.status || 'unavailable')}"><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(String(item.status || 'unavailable').replace(/-/g, ' '))} · ${Number(item.recordCount || 0)}</small></span>`

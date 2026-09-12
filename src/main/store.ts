@@ -70,6 +70,7 @@ import { normalizeQueueTriageResults, type QueueTriageResult } from '../features
 import type { IntegrationDeliveryStatus } from '../features/integrations/delivery';
 import { normalizeSupportAccessGrants, type SupportAccessGrants } from '../features/action-board/support-access';
 import { DEFAULT_COLLECTOR_SETTINGS, normalizeCollectorSettings, type CollectorSettings } from '../features/collector/collector-model';
+import { DEFAULT_BUSINESS_SERVICE_SETTINGS, normalizeBusinessServiceSettings, type BusinessServiceSettings } from '../features/action-board/business-service-mapping';
 
 export interface StoreSchema {
     connections: StoredConnection[];
@@ -91,6 +92,7 @@ export interface StoreSchema {
     queueTriageResults: Record<string, QueueTriageResult>;
     objectAnalysisSettings: ObjectAnalysisSettings;
     collectorSettings: CollectorSettings;
+    businessServiceSettings: BusinessServiceSettings;
     themeId: ThemeId;
     developmentPlan: Plan;
 }
@@ -130,10 +132,28 @@ export function createAppStore() {
             queueTriageResults: {},
             objectAnalysisSettings: DEFAULT_OBJECT_ANALYSIS_SETTINGS,
             collectorSettings: DEFAULT_COLLECTOR_SETTINGS,
+            businessServiceSettings: DEFAULT_BUSINESS_SERVICE_SETTINGS,
             themeId: DEFAULT_THEME_ID,
             developmentPlan: 'premium'
         }
     }) as AppStore;
+}
+
+/** Loads and normalizes customer-owned business service mappings. */
+export function getNormalizedBusinessServiceSettings(store: AppStore) {
+    const storedSettings = store.get('businessServiceSettings');
+    const normalized = normalizeBusinessServiceSettings(storedSettings);
+    if (JSON.stringify(storedSettings) !== JSON.stringify(normalized)) {
+        store.set('businessServiceSettings', normalized);
+    }
+    return normalized;
+}
+
+/** Persists the bounded business service mapping set. */
+export function saveBusinessServiceSettings(store: AppStore, candidate?: Partial<BusinessServiceSettings>) {
+    const normalized = normalizeBusinessServiceSettings(candidate);
+    store.set('businessServiceSettings', normalized);
+    return normalized;
 }
 
 /** Loads and normalizes the client-owned background collector settings. */

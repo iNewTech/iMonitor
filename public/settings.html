@@ -168,6 +168,59 @@
                     </div>
                 </details>
 
+                <details id="settings-business-services-panel" data-settings-view="alerts" class="surface-card settings-card settings-disclosure">
+                    <summary class="settings-card-summary">
+                        <div class="settings-heading-lockup">
+                            <span class="settings-heading-icon"><i class="bi bi-diagram-3" aria-hidden="true"></i></span>
+                            <div>
+                                <p class="eyebrow mb-2">Business context</p>
+                                <h2 class="section-title">Business service mappings</h2>
+                                <p class="panel-copy mb-0">Connect technical jobs to the business service, owner, schedule, and response deadline they affect.</p>
+                            </div>
+                        </div>
+                        <div class="settings-card-summary-meta">
+                            <span id="settings-business-services-summary" class="settings-provider-chip">No mappings</span>
+                            <i class="bi bi-chevron-down settings-card-chevron" aria-hidden="true"></i>
+                        </div>
+                    </summary>
+                    <div class="settings-disclosure-body">
+                        <form id="settings-business-service-form" class="settings-form-grid">
+                            <div class="settings-field-grid settings-field-grid-two">
+                                <label class="control-select"><span class="control-label">Business service</span><input id="settings-business-service-name" type="text" class="form-control" required placeholder="Order processing"></label>
+                                <label class="control-select"><span class="control-label">Business owner</span><input id="settings-business-service-owner" type="text" class="form-control" required placeholder="Finance operations"></label>
+                            </div>
+                            <div class="settings-field-grid settings-field-grid-two">
+                                <label class="control-select"><span class="control-label">IBM i systems</span><input id="settings-business-service-systems" type="text" class="form-control" placeholder="prod, uat or *"></label>
+                                <label class="control-select"><span class="control-label">Alert kinds</span><input id="settings-business-service-alert-kinds" type="text" class="form-control" placeholder="messageWait, lockWait or blank"></label>
+                            </div>
+                            <div class="settings-field-grid settings-field-grid-two">
+                                <label class="control-select"><span class="control-label">Job pattern</span><input id="settings-business-service-job" type="text" class="form-control" placeholder="ORDER/*"></label>
+                                <label class="control-select"><span class="control-label">Resource pattern</span><input id="settings-business-service-resource" type="text" class="form-control" placeholder="Optional resource or job pattern"></label>
+                            </div>
+                            <div class="settings-field-grid settings-field-grid-two">
+                                <label class="control-select"><span class="control-label">Queue pattern</span><input id="settings-business-service-queue" type="text" class="form-control" placeholder="ORDQ"></label>
+                                <label class="control-select"><span class="control-label">Subsystem pattern</span><input id="settings-business-service-subsystem" type="text" class="form-control" placeholder="QBATCH"></label>
+                            </div>
+                            <div class="settings-field-grid settings-field-grid-three">
+                                <label class="control-select"><span class="control-label">Response deadline</span><div class="input-group"><input id="settings-business-service-deadline" type="number" class="form-control" min="1" max="10080" placeholder="60"><span class="input-group-text">minutes</span></div></label>
+                                <label class="control-select"><span class="control-label">Expected timezone</span><input id="settings-business-service-timezone" type="text" class="form-control" placeholder="Asia/Kolkata"></label>
+                                <label class="control-select"><span class="control-label">Days (0 Sun – 6 Sat)</span><input id="settings-business-service-days" type="text" class="form-control" placeholder="1,2,3,4,5"></label>
+                            </div>
+                            <div class="settings-field-grid settings-field-grid-two">
+                                <label class="control-select"><span class="control-label">Expected start</span><input id="settings-business-service-start" type="time" class="form-control" value="09:00"></label>
+                                <label class="control-select"><span class="control-label">Expected end</span><input id="settings-business-service-end" type="time" class="form-control" value="18:00"></label>
+                            </div>
+                            <p class="form-footnote mb-0">Use <code>*</code> as a wildcard. More specific matches win; ties use priority and then saved order. Leave schedule and deadline blank when the business timing is unknown.</p>
+                            <div class="settings-actions"><button type="submit" class="btn btn-primary-strong"><i class="bi bi-plus-circle me-2" aria-hidden="true"></i>Add mapping</button></div>
+                            <p id="settings-business-service-status" class="stat-note mb-0" role="status">Business mappings are loading.</p>
+                        </form>
+                        <section class="business-service-mapping-list" aria-labelledby="settings-business-service-list-title">
+                            <div class="settings-subsection-heading"><h3 id="settings-business-service-list-title">Saved mappings</h3><span class="stat-note">Customer-owned and local to this machine.</span></div>
+                            <div id="settings-business-service-list" class="business-service-list" aria-live="polite"></div>
+                        </section>
+                    </div>
+                </details>
+
                 <div class="settings-section-divider" role="presentation" data-settings-view="ai">
                     <span class="settings-section-divider-title">AI &amp; integrations</span>
                     <span class="settings-section-divider-note">Premium options are marked clearly</span>

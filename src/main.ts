@@ -156,7 +156,9 @@ import {
     getNormalizedQueueTriageResults,
     setObjectAnalysisSettings,
     getNormalizedSupportAccessGrants,
-    getNormalizedCollectorSettings
+    getNormalizedCollectorSettings,
+    getNormalizedBusinessServiceSettings,
+    saveBusinessServiceSettings
 } from './main/store';
 import type { CollectorSettings } from './features/collector/collector-model';
 import { registerCollectorIpc } from './main/ipc/collector-ipc';
@@ -1544,6 +1546,8 @@ registerAlertsIpc({
         return getDemoDatabase().getSystemMessages();
     },
     getAlertSettings,
+    getBusinessServiceSettings: () => getNormalizedBusinessServiceSettings(store),
+    saveBusinessServiceSettings: (settings) => saveBusinessServiceSettings(store, settings),
     setAlertSettings: (settings) => {
         store.set('alertSettings', settings);
     },
@@ -1622,6 +1626,8 @@ registerJobsIpc({
             alert,
             statusHistory: monitoringState.getJobStatusHistory(jobName),
             operatorName: getCurrentOperatorName(),
+            systemId,
+            businessServiceSettings: getNormalizedBusinessServiceSettings(store),
             routing
         });
     },

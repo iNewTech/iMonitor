@@ -4,6 +4,7 @@ import type { JobStatusHistoryEntry } from '../monitoring/monitoring-model';
 import type { MonitorAlert } from './alert-model';
 import type { IncidentHandoff } from './incident-handoff';
 import type { RoutingRecommendation } from '../action-board/incident-routing';
+import { DEFAULT_BUSINESS_SERVICE_SETTINGS, resolveBusinessService, type BusinessServiceImpact, type BusinessServiceSettings } from '../action-board/business-service-mapping';
 
 export type IncidentResponseStep = 'respond' | 'investigate' | 'resolve';
 
@@ -31,6 +32,7 @@ export interface IncidentResponseSnapshot {
     unsuccessfulAttempts: string[];
     unresolvedQuestions: string[];
     escalationReason: string;
+    businessImpact: BusinessServiceImpact;
     handoff?: IncidentHandoff;
     routing?: RoutingRecommendation;
 }
@@ -40,6 +42,8 @@ interface IncidentResponseInput {
     alert?: MonitorAlert | null;
     statusHistory: JobStatusHistoryEntry[];
     operatorName?: string;
+    systemId?: string;
+    businessServiceSettings?: BusinessServiceSettings;
     routing?: RoutingRecommendation;
 }
 
@@ -56,6 +60,12 @@ export function buildIncidentResponseSnapshot(input: IncidentResponseInput): Inc
     const { job, alert } = input;
     const jobName = String(job.JOB_NAME || job.SUBSYSTEM_JOB || 'Selected job').trim();
     const activeAlert = alert ?? null;
+    const businessImpact = resolveBusinessService({
+        systemId: input.systemId,
+        job,
+        alert: activeAlert,
+        now: new Date().toISOString()
+    }, input.businessServiceSettings || DEFAULT_BUSINESS_SERVICE_SETTINGS);
     const status = String(activeAlert?.workflowStatus || 'new');
     const step = getResponseStep(status);
     const impactLabel = getImpactLabel(activeAlert, job);
@@ -83,6 +93,7 @@ export function buildIncidentResponseSnapshot(input: IncidentResponseInput): Inc
         unsuccessfulAttempts: getUnsuccessfulAttempts(activeAlert),
         unresolvedQuestions: getUnresolvedQuestions(activeAlert, job),
         escalationReason: getEscalationReason(activeAlert, job, input.operatorName),
+        businessImpact,
         handoff: activeAlert?.handoff,
         routing: input.routing
     };

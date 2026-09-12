@@ -109,12 +109,17 @@ test('launches the demo monitor and renders live incidents in active jobs', asyn
         await expect(row.locator('.job-incident-chip')).toHaveText('MSGW');
         await expect(row.locator('.job-priority-chip')).toHaveText(/^P\d+$/);
         await expect(row).toHaveClass(/is-critical/);
+        await app.page.evaluate(() => window.electronAPI.saveBusinessServiceSettings({
+            mappings: [{ id: 'demo-service', serviceName: 'Order processing', owner: 'Finance operations', systemIds: ['*'], alertKinds: [], jobPattern: '*', priority: 0, deadlineMinutes: 60 }]
+        }));
         const task = await openTaskWindow(app, () => row.click());
         await expect(task.locator('#task-qualified-job')).toHaveText(incident.jobName!);
         await expect(task.locator('#task-issue-title')).toHaveText(incident.title);
         await expect(task.locator('#task-issue-summary')).toHaveText(incident.message);
         await expect(task.locator('#task-issue-state')).toHaveText('CRITICAL | New');
         await task.getByRole('tab', { name: 'Actions', exact: true }).click();
+        await expect(task.locator('#task-response-business')).toHaveText('Order processing');
+        await expect(task.locator('#task-response-business-summary')).toContainText('Finance operations');
         await expect(task.getByTestId('incident-correlation-summary')).toContainText(/Priority \d+\/100/);
         await expect(task.locator('#task-routing-summary')).toContainText('Suggested owner:');
         await task.getByRole('tab', { name: 'Details', exact: true }).click();

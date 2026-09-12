@@ -24,6 +24,8 @@ The background collector is composed from `background-collector-runtime.ts`, `co
 
 `src/features/alerts/resource-graph.ts` builds the selected job's bounded resource relationship graph from the current alert, job poll, and job-context evidence. It records only observed incident/job, queue, subsystem, message-wait, and lock-owner edges, carries observation timestamps, marks stale snapshots, and reports missing lock-owner evidence. The task Details tab renders the flow and an accessible table through `get-job-resource-graph` IPC; it never infers or executes a relationship.
 
+`src/features/action-board/business-service-mapping.ts` is the customer-owned mapping boundary. It resolves a job to one explicit service using system, alert-kind, resource, queue, subsystem, and specificity precedence, then evaluates the configured timezone-aware schedule and response deadline. Settings are persisted through the alert settings IPC; the task response consumes the result without changing technical alert detection or action authority.
+
 ## Shared incident boundary
 
 `src/features/alerts/shared-incident-service.ts` defines the customer-controlled collaboration contract used by future unattended collection and delegated support clients. It carries versioned incident events scoped by organisation and IBM i system, merges duplicate or out-of-order events deterministically, keeps a local read cache, tracks pending writes, and exposes online, offline, and stale states. The service accepts an adapter rather than choosing a transport, so a customer-owned service or shared store can be added without making the desktop process the long-term authority. Retention and export operate on the same versioned cache.

@@ -219,6 +219,34 @@ test('configures the read-only background collector and shows its local inventor
     }
 });
 
+test('saves and removes a customer business service mapping', async () => {
+    const app = await launchTestApp();
+
+    try {
+        await app.page.locator('#connect').click();
+        await app.page.locator('#open-settings').click();
+        await app.page.getByTestId('settings-page-alerts').click();
+        const panel = app.page.locator('#settings-business-services-panel');
+        await expect(panel).toBeVisible();
+        await panel.locator(':scope > summary').click();
+        await app.page.locator('#settings-business-service-name').fill('Order processing');
+        await app.page.locator('#settings-business-service-owner').fill('Finance operations');
+        await app.page.locator('#settings-business-service-systems').fill('*');
+        await app.page.locator('#settings-business-service-job').fill('ORDER/*');
+        await app.page.locator('#settings-business-service-deadline').fill('60');
+        await app.page.locator('#settings-business-service-form').evaluate((form: HTMLFormElement) => form.requestSubmit());
+        await expect(app.page.locator('#settings-business-service-status')).toHaveText('Business service mapping saved.');
+        const mapping = app.page.locator('.business-service-mapping-item');
+        await expect(mapping).toContainText('Order processing');
+        await expect(mapping).toContainText('Finance operations');
+        await mapping.getByRole('button', { name: 'Remove', exact: true }).click();
+        await expect(app.page.locator('#settings-business-services-summary')).toHaveText('No mappings');
+        await expect(app.page.locator('#settings-business-service-list')).toContainText('Technical impact will remain explicitly unknown.');
+    } finally {
+        await app.cleanup();
+    }
+});
+
 test('shows the Slack configuration as a Premium preview on the Free plan', async () => {
     const app = await launchTestApp({ forceFree: true });
 

@@ -289,6 +289,17 @@ interface JobDetailsPayload {
         unsuccessfulAttempts: string[];
         unresolvedQuestions: string[];
         escalationReason: string;
+        businessImpact: {
+            mapped: boolean;
+            serviceName?: string;
+            owner?: string;
+            mappingId?: string;
+            matchedBy?: string;
+            deadlineState: 'on_track' | 'at_risk' | 'overdue' | 'not_configured' | 'unknown';
+            deadlineAt?: string;
+            scheduleState: 'expected' | 'outside_expected_window' | 'not_configured' | 'unknown';
+            summary: string;
+        };
         handoff?: IncidentHandoff;
         routing?: {
             rule: {
@@ -335,6 +346,23 @@ interface JobContextPayload {
     jobInfo?: Record<string, unknown> | null;
     jobQueue?: Record<string, unknown> | null;
     subsystem?: Record<string, unknown> | null;
+}
+
+interface BusinessServiceSettingsPayload {
+    mappings: Array<{
+        id: string;
+        serviceName: string;
+        owner: string;
+        systemIds: string[];
+        alertKinds: string[];
+        jobPattern?: string;
+        resourcePattern?: string;
+        queuePattern?: string;
+        subsystemPattern?: string;
+        priority: number;
+        deadlineMinutes?: number;
+        expectedSchedule?: { timezone: string; days: number[]; startMinute: number; endMinute: number };
+    }>;
 }
 
 interface ResourceGraphPayload {
@@ -951,6 +979,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
         error?: string;
     }>,
     getAlertSettings: () => ipcRenderer.invoke('get-alert-settings') as Promise<AlertSettings>,
+    getBusinessServiceSettings: () => ipcRenderer.invoke('get-business-service-settings') as Promise<BusinessServiceSettingsPayload>,
+    saveBusinessServiceSettings: (settings: Partial<BusinessServiceSettingsPayload>) => (
+        ipcRenderer.invoke('save-business-service-settings', settings) as Promise<BusinessServiceSettingsPayload>
+    ),
     saveAlertSettings: (settings: Partial<AlertSettings>) => (
         ipcRenderer.invoke('save-alert-settings', settings) as Promise<AlertSettings>
     ),

@@ -10,6 +10,8 @@ iMonitor is an IBM i operations workspace. It connects to a system, watches acti
 
 Connection profiles are stored locally on the machine. The password is protected by the operating system's secure storage.
 
+To add business context, open **Settings → Alerts → Business service mappings**. Add a service owner and at least one job, resource, queue, or subsystem pattern. Use `*` for a wildcard, and optionally add systems, alert kinds, timezone, operating days, and a response deadline. More specific mappings win; if no mapping matches, iMonitor shows **Unknown impact** rather than guessing.
+
 ## Monitor
 
 The ActionBoard shows the live system in one work area:
