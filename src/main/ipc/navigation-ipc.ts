@@ -7,6 +7,7 @@ interface RegisterNavigationIpcDependencies {
     loadConnectionPage: () => void;
     loadSettingsPage: () => void;
     loadObjectAnalysisPage: () => void;
+    openJobTaskWindow: (jobName: string) => void;
     openExternalUrl: (target: string) => Promise<void> | void;
     recordActivity: (entry: {
         area: 'navigation';
@@ -66,6 +67,17 @@ export function registerNavigationIpc(dependencies: RegisterNavigationIpcDepende
 
     ipcMain.handle('open-external-url', async (_event, target: string) => {
         await dependencies.openExternalUrl(target);
+        return { success: true };
+    });
+
+    ipcMain.handle('open-job-task-window', async (_event, jobName: string) => {
+        dependencies.openJobTaskWindow(jobName);
+        dependencies.recordActivity({
+            area: 'navigation',
+            level: 'info',
+            message: 'Opened a job task window.',
+            detail: jobName
+        });
         return { success: true };
     });
 }

@@ -1,4 +1,5 @@
 import type { ClickUpTaskReference } from '../integrations/clickup/clickup-model';
+import type { IncidentEvidence } from './incident-evidence';
 
 /**
  * Alert severities shown in the operator queue.
@@ -17,6 +18,16 @@ export type AlertKind = 'highCpu' | 'messageWait' | 'lockWait' | 'delayWait' | '
  * Operator workflow states for tracked alerts.
  */
 export type AlertWorkflowStatus = 'new' | 'acknowledged' | 'claimed' | 'work_done' | 'system_cleared';
+
+/** Canonical incident lifecycle used by reports and future support routing. */
+export type IncidentLifecyclePhase =
+    | 'detected'
+    | 'acknowledged'
+    | 'investigating'
+    | 'awaiting_escalation'
+    | 'verifying'
+    | 'resolved'
+    | 'reopened';
 
 /**
  * Supported operator actions on an alert.
@@ -60,6 +71,20 @@ export interface AlertSettings {
  */
 export interface MonitorAlert {
     id: string;
+    /** Stable identity for this condition on one IBM i system. */
+    incidentId?: string;
+    /** Stable saved-connection identity; prevents cross-system collisions. */
+    systemId?: string;
+    systemLabel?: string;
+    /** Job, queue, or monitor resource that raised the condition. */
+    resourceId?: string;
+    /** Increments when a resolved condition returns. */
+    occurrence?: number;
+    /** Durable incident record schema version. */
+    recordVersion?: number;
+    /** Immutable evidence captured when the incident first appeared. */
+    evidence?: IncidentEvidence;
+    lifecyclePhase?: IncidentLifecyclePhase;
     kind: AlertKind;
     severity: AlertSeverity;
     timestamp: string;
@@ -96,6 +121,8 @@ export interface AlertNote {
  */
 export interface AlertTimelineEntry {
     id: string;
+    /** Monotonic event version within this incident. */
+    version?: number;
     timestamp: string;
     action: AlertWorkflowAction;
     label: string;
@@ -107,6 +134,7 @@ export interface AlertTimelineEntry {
  * Persisted operator workflow state stored independently from live poll results.
  */
 export interface StoredAlertWorkflowState {
+    version?: number;
     status: AlertWorkflowStatus;
     owner?: string;
     notes: AlertNote[];

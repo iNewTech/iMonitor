@@ -23,6 +23,7 @@ interface MonitoringRuntimeDependencies {
     sendToWindow: (channel: string, payload: unknown) => void;
     notify: (key: string, title: string, body: string) => void;
     persistPoll: (jobs: ActiveJobRecord[], timestamp: string, intervalMs: number) => void;
+    persistWidgetSummary?: (jobs: ActiveJobRecord[], timestamp: string) => void;
 }
 
 interface TimestampedQueryResult<T> extends QueryResult<T> {
@@ -99,6 +100,7 @@ export function createMonitoringRuntime(dependencies: MonitoringRuntimeDependenc
             'A later monitoring poll completed successfully.'
         );
         dependencies.persistPoll(jobs, timestamp, dependencies.monitoringState.getLastMonitoringInterval());
+        dependencies.persistWidgetSummary?.(jobs, timestamp);
         emitMonitoringHistory();
         dependencies.sendToWindow('status-update', result);
     };

@@ -55,6 +55,13 @@ import type { Plan } from '../features/entitlements/entitlements';
 import type { StoredConnection } from '../utils/connections';
 import type { StoredAlertWorkflowState } from '../features/alerts/alert-model';
 import {
+    getStableDemoIncidentId,
+    migrateLegacyDemoIncidents,
+    normalizeIncidentLedger,
+    type IncidentLedger
+} from '../features/alerts/incident-ledger';
+import { DEMO_CONNECTION_ID, DEMO_CONNECTION_NAME } from '../features/demo/demo-runtime';
+import {
     DEFAULT_OBJECT_ANALYSIS_SETTINGS,
     normalizeObjectAnalysisSettings,
     type ObjectAnalysisSettings
@@ -74,6 +81,7 @@ export interface StoreSchema {
     smsNotificationSettingsByUser: StoredSmsNotificationSettingsByUser;
     smsNotificationSettings: StoredSmsNotificationSettings;
     alertWorkflowState: Record<string, StoredAlertWorkflowState>;
+    incidentLedger: IncidentLedger;
     objectAnalysisSettings: ObjectAnalysisSettings;
     themeId: ThemeId;
     developmentPlan: Plan;
@@ -108,11 +116,35 @@ export function createAppStore() {
             smsNotificationSettingsByUser: DEFAULT_STORED_SMS_NOTIFICATION_SETTINGS_BY_USER,
             smsNotificationSettings: DEFAULT_STORED_SMS_NOTIFICATION_SETTINGS,
             alertWorkflowState: {},
+            incidentLedger: {},
             objectAnalysisSettings: DEFAULT_OBJECT_ANALYSIS_SETTINGS,
             themeId: DEFAULT_THEME_ID,
             developmentPlan: 'premium'
         }
     }) as AppStore;
+}
+
+/** Loads durable incidents and drops incomplete records without blocking startup. */
+export function getNormalizedIncidentLedger(store: AppStore) {
+    const storedLedger = store.get('incidentLedger');
+    const normalized = migrateLegacyDemoIncidents(
+        normalizeIncidentLedger(storedLedger),
+        DEMO_CONNECTION_ID,
+        DEMO_CONNECTION_NAME
+    );
+    const storedWorkflowState = store.get('alertWorkflowState');
+    const migratedWorkflowState = Object.fromEntries(
+        Object.entries(storedWorkflowState).map(([id, state]) => id.startsWith('demo-')
+            ? [getStableDemoIncidentId(id, DEMO_CONNECTION_ID), state]
+            : [id, state])
+    );
+    if (JSON.stringify(storedWorkflowState) !== JSON.stringify(migratedWorkflowState)) {
+        store.set('alertWorkflowState', migratedWorkflowState);
+    }
+    if (JSON.stringify(storedLedger) !== JSON.stringify(normalized)) {
+        store.set('incidentLedger', normalized);
+    }
+    return normalized;
 }
 
 /**

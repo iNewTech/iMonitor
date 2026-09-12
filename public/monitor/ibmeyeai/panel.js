@@ -27,14 +27,13 @@ function escapeHtml(value) {
 
 function buildModelOptions(providerId, snapshot, selectedModel) {
     const models = getProviderModels(snapshot, providerId);
+    if (!models.length) {
+        return '<option value="" selected disabled>Set up a model first</option>';
+    }
     const options = ['<option value="">Auto-select provider default</option>'];
 
     for (const model of models) {
         options.push(`<option value="${escapeHtml(model)}">${escapeHtml(model)}</option>`);
-    }
-
-    if (selectedModel && !models.includes(selectedModel)) {
-        options.push(`<option value="${escapeHtml(selectedModel)}">${escapeHtml(selectedModel)}</option>`);
     }
 
     return options.join('');
@@ -202,13 +201,14 @@ export function initIBMEyeAiPanel(dependencies) {
         const activeProviderId = getActiveProviderId(snapshot);
         const catalog = getProviderCatalog(snapshot);
         providerQuickInput.innerHTML = catalog.map((provider) => (
-            `<option value="${provider.id}">${provider.label}</option>`
+            `<option value="${provider.id}">${escapeHtml(provider.symbol)} ${escapeHtml(provider.label)}</option>`
         )).join('');
         providerQuickInput.value = activeProviderId;
 
         const selectedModel = snapshot.settings?.model || snapshot.availability?.selectedModel || '';
         modelQuickInput.innerHTML = buildModelOptions(activeProviderId, snapshot, selectedModel);
         modelQuickInput.value = selectedModel;
+        modelQuickInput.disabled = snapshot.pendingReply || !getProviderModels(snapshot, activeProviderId).length;
 
         if (modelSourceHint) {
             modelSourceHint.textContent = getProviderModelSourceHint(snapshot, activeProviderId);
@@ -236,6 +236,7 @@ export function initIBMEyeAiPanel(dependencies) {
         const providerModelInput = providerPanel.querySelector('#ai-provider-model');
         if (providerModelInput) {
             providerModelInput.value = snapshot.settings?.model || snapshot.availability?.selectedModel || '';
+            providerModelInput.disabled = !getProviderModels(snapshot, activeProviderId).length;
         }
     }
 

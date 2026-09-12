@@ -5,7 +5,6 @@ import * as path from 'path';
 import Db, { type ServiceLogEntry } from './services/ibmi';
 import type { JobQueueRecord, PagedResult, QueuedJobRecord } from './services/ibmi';
 import { DemoDatabase } from './services/demo-db';
-import { DemoObjectAnalysisService } from './services/object-analysis';
 import { IbmiObjectAnalysisService } from './services/object-analysis-live';
 import {
     acknowledgeAlertWorkflow,
@@ -16,6 +15,7 @@ import {
     releaseAlertWorkflow
 } from './features/alerts/alert-operator-workflow';
 import { normalizeAlertSettings, shouldWatchAlert } from './features/alerts/alert-model';
+import { captureIncidentEvidence } from './features/alerts/incident-evidence';
 import { getDemoAvailability } from './features/demo/demo-runtime';
 import { buildJobRootCauseGuidance } from './features/guidance/root-cause-guidance';
 import { buildFallbackAlertDiagnostic } from './features/ibmeyeai/alert-diagnostic';
@@ -88,6 +88,8 @@ import { createAiRuntime } from './main/runtime/ai-runtime';
 import { createEmailNotificationRuntime } from './main/runtime/email-notification-runtime';
 import { createClickUpRuntime } from './main/runtime/clickup-runtime';
 import { createMonitoringRuntime } from './main/runtime/monitoring-runtime';
+import { createObjectAnalysisRuntime } from './main/runtime/object-analysis-runtime';
+import { createWidgetSummaryRuntime } from './main/runtime/widget-summary-runtime';
 import { createLoggingRuntime } from './main/runtime/logging-runtime';
 import { createSessionRuntime } from './main/runtime/session-runtime';
 import { createSlackRuntime } from './main/runtime/slack-runtime';
@@ -109,6 +111,7 @@ import {
     createAppStore,
     getNormalizedAiAssistantSettings,
     getNormalizedAlertSettings,
+    getNormalizedIncidentLedger,
     getNormalizedStoredClickUpSettings,
     getNormalizedStoredEmailNotificationSettings,
     getNormalizedStoredSlackSettings,
@@ -124,21 +127,11 @@ import {
 } from './main/store';
 import { createWindowRuntime } from './main/window/window-runtime';
 import { protectPassword, revealPassword } from './utils/password-store';
-import { getDemoDatabasePath, getDemoObjectAnalysisPath } from './utils/demo-system';
+import { getDemoDatabasePath } from './utils/demo-system';
 import {
-    buildObjectAnalysisAiContext,
-    buildObjectAnalysisAiQuestion
-} from './features/object-analysis/ai-prompt';
-import {
-    formatObjectAnalysisReport,
     normalizeObjectAnalysisSettings,
-    type ObjectAnalysisResult,
     type ObjectAnalysisSettings
 } from './features/object-analysis/model';
-import { type AnalyzeObjectRequest } from './features/object-analysis/model';
-import { buildDetailedProgramAnalysis } from './features/object-analysis/program-analysis';
-import { persistObjectAnalysisReport } from './features/object-analysis/report-storage';
-import { writeFile } from 'node:fs/promises';
 
 const DEFAULT_MONITORING_INTERVAL = 5000;
 const MAX_ACTIVITY_LOG_ENTRIES = 200;
@@ -445,197 +438,57 @@ function isDemoSession() {
         || currentConnection?.user === DEMO_OPERATOR_NAME;
 }
 
-function getLocalObjectAnalysisService(settings: ObjectAnalysisSettings) {
-    return new DemoObjectAnalysisService(settings.localDirectory || getDemoObjectAnalysisPath());
-}
-
-async function getObjectAnalysisLibraryList(options?: {
-    source?: ObjectAnalysisSettings['source'];
-    localDirectory?: string;
-}) {
-    const currentSettings = await getObjectAnalysisRuntimeSettings();
-    const source = options?.source || currentSettings.source;
-    if (source === 'local') {
-        const settings = {
-            ...currentSettings,
-            source: 'local' as const,
-            localDirectory: options?.localDirectory ?? currentSettings.localDirectory
-        };
-        return getLocalObjectAnalysisService(settings).getLibraryListInfo();
-    }
-
-    if (isDemoSession() || !connectionState.getState().isConnected) {
-        throw new Error('Connect to a live IBM i system before loading the IBM i library list.');
-    }
-
-    const service = sessionRuntime.getCurrentService();
-    if (!service) {
-        throw new Error('The IBM i session is not ready. Reconnect and try again.');
-    }
-    return {
-        libraries: await new IbmiObjectAnalysisService(service).getEnvironmentLibraryList(),
-        source: 'environment' as const
-    };
-}
-
-async function getObjectAnalysisWorkspace(settings: ObjectAnalysisSettings) {
-    if (settings.source === 'local') {
-        return getLocalObjectAnalysisService(settings).getWorkspace(settings);
-    }
-
-    if (isDemoSession() || !connectionState.getState().isConnected) {
-        throw new Error('Connect to a live IBM i system before loading IBM i libraries.');
-    }
-
-    const service = sessionRuntime.getCurrentService();
-    if (!service) {
-        throw new Error('The IBM i session is not ready. Reconnect and try again.');
-    }
-    return new IbmiObjectAnalysisService(service).getWorkspace(settings);
-}
-
-async function persistDetailedObjectAnalysis(
-    result: ObjectAnalysisResult,
-    sourceText: string,
-    settings: ObjectAnalysisSettings
-) {
-    const appStorageRoot = path.join(app.getPath('userData'), 'object-analysis');
-    if (settings.source === 'local') {
-        const sourceRoot = settings.localDirectory || getDemoObjectAnalysisPath();
-        const artifact = await persistObjectAnalysisReport(sourceRoot, result, sourceText, 'source-directory');
-        if (artifact.mode !== 'error') return artifact;
-    }
-    return persistObjectAnalysisReport(appStorageRoot, result, sourceText, 'app-storage');
-}
-
-async function analyzeObject(request: AnalyzeObjectRequest, settings: ObjectAnalysisSettings) {
-    let result: ObjectAnalysisResult;
-    if (settings.source === 'local') {
-        result = await getLocalObjectAnalysisService(settings).analyzeObject(request, settings);
-    } else {
-        if (isDemoSession() || !connectionState.getState().isConnected) {
-            throw new Error('Connect to a live IBM i system before analyzing IBM i source.');
-        }
-
-        const service = sessionRuntime.getCurrentService();
-        if (!service) {
-            throw new Error('The IBM i session is not ready. Reconnect and try again.');
-        }
-        result = await new IbmiObjectAnalysisService(service).analyzeObject(request, settings);
-    }
-
-    const sourceText = await getObjectAnalysisSourceContent(request, settings);
-    const detailed = buildDetailedProgramAnalysis(result, sourceText);
-    detailed.approval = { status: 'draft' };
-    delete detailed.reportArtifact;
-    return detailed;
-}
-
-async function getObjectAnalysisSourceContent(request: AnalyzeObjectRequest, settings: ObjectAnalysisSettings) {
-    if (settings.source === 'local') {
-        return getLocalObjectAnalysisService(settings).getSourceContent(request, settings);
-    }
-
-    if (isDemoSession() || !connectionState.getState().isConnected) {
-        throw new Error('Connect to a live IBM i system before loading IBM i source.');
-    }
-
-    const service = sessionRuntime.getCurrentService();
-    if (!service) {
-        throw new Error('The IBM i session is not ready. Reconnect and try again.');
-    }
-    return new IbmiObjectAnalysisService(service).getSourceContent(request, settings);
-}
-
-async function analyzeObjectWithAi(request: AnalyzeObjectRequest, existingResult?: ObjectAnalysisResult) {
-    const settings = await getObjectAnalysisRuntimeSettings();
-    const result = existingResult || await analyzeObject(request, settings);
-    const sourceText = await getObjectAnalysisSourceContent(request, settings);
-    const response = await aiRuntime.askAssistant({
-        message: buildObjectAnalysisAiQuestion(result),
-        additionalContext: buildObjectAnalysisAiContext(result, sourceText)
-    });
-    if (response.success && response.reply) {
-        result.approval = { status: 'draft' };
-        delete result.reportArtifact;
-        result.aiReport = {
-            content: response.reply,
-            providerLabel: response.availability.providerLabel,
-            model: response.availability.selectedModel || 'configured model',
-            generatedAt: new Date().toISOString()
-        };
-        return { ...response, result };
-    }
-    return response;
-}
-
-async function approveObjectAnalysis(request: AnalyzeObjectRequest, result: ObjectAnalysisResult) {
-    const settings = await getObjectAnalysisRuntimeSettings();
-    const sourceText = await getObjectAnalysisSourceContent(request, settings);
-    result.approval = {
-        status: 'approved',
-        approvedAt: new Date().toISOString(),
-        approvedBy: getCurrentOperatorName()
-    };
-    delete result.reportArtifact;
-    const artifact = await persistDetailedObjectAnalysis(result, sourceText, settings);
-    if (artifact.mode === 'error') {
-        result.approval = { status: 'draft' };
-        return { success: false, result, error: artifact.error || artifact.message };
-    }
-    return { success: true, result, artifact };
-}
-
-async function saveObjectAnalysisLibraryList(value: string[]) {
-    const settings = await getObjectAnalysisRuntimeSettings();
-    if (settings.source !== 'local') {
-        throw new Error('Permanent setup-file saves are available when a local source directory is selected.');
-    }
-
-    const saved = await getLocalObjectAnalysisService(settings).saveLibraryList(value);
-    const nextSettings = await setObjectAnalysisRuntimeSettings({
-        libraryList: saved.libraries,
-        libraries: saved.libraries
-    });
-    return { ...saved, settings: nextSettings };
-}
-
-async function selectObjectAnalysisDirectory() {
-    const selection = await dialog.showOpenDialog({
-        title: 'Choose local IBM i source directory',
-        properties: ['openDirectory', 'createDirectory']
-    });
-    return selection.canceled ? null : (selection.filePaths[0] || null);
-}
-
-async function saveObjectAnalysisReport(result: ObjectAnalysisResult) {
-    const suggestedName = `${result.root.library}-${result.root.name}-analysis.md`.toLowerCase();
-    const selection = await dialog.showSaveDialog({
-        title: 'Save object analysis report',
-        defaultPath: path.join(app.getPath('downloads'), suggestedName),
-        filters: [{ name: 'Markdown report', extensions: ['md'] }, { name: 'All files', extensions: ['*'] }]
-    });
-
-    if (selection.canceled || !selection.filePath) {
-        return { success: false, error: 'Report save canceled.' };
-    }
-
-    try {
-        await writeFile(selection.filePath, formatObjectAnalysisReport(result), 'utf8');
-        loggingRuntime.recordActivity({
-            area: 'monitoring',
-            level: 'success',
-            message: 'Object analysis report saved.',
-            detail: selection.filePath
-        });
-        return { success: true, filePath: selection.filePath };
-    } catch (error) {
+function getIncidentEvidenceCollectors() {
+    if (isDemoSession()) {
+        const database = getDemoDatabase();
         return {
-            success: false,
-            error: error instanceof Error ? error.message : 'Unable to save the analysis report.'
+            getJobContext: async (jobName: string) => database.getJobContext(jobName),
+            getJobLog: async (jobName: string) => database.getJobLog(jobName),
+            getJobMessages: async (jobName: string) => database.getJobMessages(jobName)
         };
     }
+
+    const service = sessionRuntime.getCurrentService();
+    if (!service) {
+        return {
+            getJobContext: async () => { throw new Error('Not connected to IBM i'); },
+            getJobLog: async () => { throw new Error('Not connected to IBM i'); },
+            getJobMessages: async () => { throw new Error('Not connected to IBM i'); }
+        };
+    }
+
+    return {
+        getJobContext: (jobName: string) => service.getJobContext(jobName),
+        getJobLog: (jobName: string) => service.getJobLog(jobName),
+        getJobMessages: (jobName: string) => service.getJobMessages(jobName)
+    };
 }
+
+const {
+    getLocalObjectAnalysisService,
+    getObjectAnalysisLibraryList,
+    getObjectAnalysisWorkspace,
+    getObjectAnalysisSourceContent,
+    analyzeObject,
+    analyzeObjectWithAi,
+    approveObjectAnalysis,
+    saveObjectAnalysisLibraryList,
+    selectObjectAnalysisDirectory,
+    generateObjectAnalysisCompilePlan,
+    saveObjectAnalysisReport
+} = createObjectAnalysisRuntime({
+    getSettings: getObjectAnalysisRuntimeSettings,
+    setSettings: setObjectAnalysisRuntimeSettings,
+    isDemoSession,
+    isConnected: () => connectionState.getState().isConnected,
+    getCurrentService: () => sessionRuntime.getCurrentService(),
+    getAppPath: (name) => app.getPath(name),
+    getCurrentOperatorName,
+    showOpenDialog: (options) => dialog.showOpenDialog(options),
+    showSaveDialog: (options) => dialog.showSaveDialog(options),
+    askAssistant: (payload) => aiRuntime.askAssistant(payload),
+    recordActivity: (entry) => loggingRuntime.recordActivity(entry)
+});
 
 const windowRuntime = createWindowRuntime({
     preloadPath: path.join(__dirname, 'preload.js'),
@@ -646,10 +499,60 @@ const windowRuntime = createWindowRuntime({
     }
 });
 
+app.setAsDefaultProtocolClient('imonitor');
+
+function handleAppDeepLink(target: string) {
+    try {
+        const url = new URL(target);
+        if (url.protocol !== 'imonitor:') {
+            return;
+        }
+
+        if (url.hostname === 'open' && url.pathname === '/actionboard') {
+            if (connectionState.getState().isConnected) {
+                windowRuntime.loadMonitorPage();
+            } else {
+                windowRuntime.loadConnectionPage();
+            }
+            windowRuntime.getWindow()?.show();
+            windowRuntime.getWindow()?.focus();
+        }
+    } catch {
+        // Ignore malformed external URLs.
+    }
+}
+
+app.on('open-url', (event, target) => {
+    event.preventDefault();
+    handleAppDeepLink(target);
+});
+
+const persistedIncidentLedger = getNormalizedIncidentLedger(store);
 const alertState = createAlertStateStore({
     initialWorkflowStateByAlertId: store.get('alertWorkflowState') ?? {},
+    initialIncidentLedger: persistedIncidentLedger,
     persistWorkflowState: (workflowStateByAlertId) => {
         store.set('alertWorkflowState', workflowStateByAlertId);
+    },
+    persistIncidentLedger: (incidentLedger) => {
+        store.set('incidentLedger', incidentLedger);
+    },
+    getIncidentScope: () => {
+        const connection = connectionState.getState().currentConnection;
+        return connection
+            ? { systemId: connection.id, systemLabel: connection.name }
+            : undefined;
+    },
+    captureIncidentEvidence: (alert, triggerJob) => {
+        const connection = connectionState.getState().currentConnection;
+        return captureIncidentEvidence({
+            alert,
+            triggerJob,
+            source: isDemoSession() ? 'demo' : 'ibmi',
+            systemId: connection?.id,
+            systemLabel: connection?.name,
+            collectors: getIncidentEvidenceCollectors()
+        });
     },
     onAlertsChanged: (alerts) => {
         windowRuntime.sendToWindow('alerts-updated', alerts);
@@ -723,6 +626,21 @@ const loggingRuntime = createLoggingRuntime({
     getJobKey,
     toNumber: (value) => toNumber(value as string | number | null | undefined),
     maxActivityEntries: MAX_ACTIVITY_LOG_ENTRIES
+});
+
+const widgetSummaryRuntime = createWidgetSummaryRuntime({
+    userDataPath: app.getPath('userData'),
+    appGroupIdentifier: 'group.com.inewtech.imonitor',
+    getConnectionContext: () => {
+        const state = connectionState.getState();
+        return {
+            name: state.currentConnection?.name ?? null,
+            host: state.currentConnection?.host ?? null,
+            user: state.currentConnection?.user ?? null,
+            port: state.currentConnection?.port ?? null
+        };
+    },
+    isMonitoringActive: () => monitoringState.getMonitoringState().active
 });
 
 const clickUpRuntime = createClickUpRuntime({
@@ -953,7 +871,17 @@ const monitoringRuntime = createMonitoringRuntime({
     recordActivity: loggingRuntime.recordActivity,
     sendToWindow: windowRuntime.sendToWindow,
     notify: notifyOperators,
-    persistPoll: loggingRuntime.persistPoll
+    persistPoll: loggingRuntime.persistPoll,
+    persistWidgetSummary: (jobs, timestamp) => {
+        widgetSummaryRuntime.writeSummary(jobs, alertState.getActiveAlerts(), timestamp).catch((error) => {
+            loggingRuntime.recordActivity({
+                area: 'monitoring',
+                level: 'warning',
+                message: 'macOS widget summary update failed.',
+                detail: error instanceof Error ? error.message : String(error)
+            });
+        });
+    }
 });
 
 sessionRuntime = createSessionRuntime({
@@ -961,7 +889,6 @@ sessionRuntime = createSessionRuntime({
     connectionState,
     monitoringState,
     clearRuntimeMonitoringState: monitoringRuntime.clearRuntimeMonitoringState,
-    clearDemoWorkflowLinks: alertState.clearDemoWorkflowLinks,
     loadConnectionPage: windowRuntime.loadConnectionPage,
     sendToWindow: windowRuntime.sendToWindow,
     emitConnectionAction,
@@ -1033,6 +960,7 @@ registerNavigationIpc({
     loadConnectionPage: windowRuntime.loadConnectionPage,
     loadSettingsPage: windowRuntime.loadSettingsPage,
     loadObjectAnalysisPage: windowRuntime.loadObjectAnalysisPage,
+    openJobTaskWindow: windowRuntime.openJobTaskWindow,
     openExternalUrl: (target) => shell.openExternal(target),
     recordActivity: loggingRuntime.recordActivity
 });
@@ -1049,6 +977,7 @@ registerObjectAnalysisIpc({
     analyzeWithAi: analyzeObjectWithAi,
     approveAnalysis: approveObjectAnalysis,
     saveReport: saveObjectAnalysisReport,
+    generateCompilePlan: generateObjectAnalysisCompilePlan,
     recordActivity: loggingRuntime.recordActivity
 });
 

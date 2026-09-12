@@ -39,6 +39,82 @@ async function launchTestApp(): Promise<{
     };
 }
 
+test('loads the source browser and preview without renderer errors', async () => {
+    const app = await launchTestApp();
+    const errors: string[] = [];
+    app.page.on('pageerror', (error) => errors.push(error.message));
+    try {
+        await app.page.locator('#connect').click();
+        await app.page.locator('#open-object-analysis').click();
+        const source = app.page.locator('[data-analysis-file="true"]').filter({ hasText: 'ORDENTR.rpgle' });
+        await expect(source).toBeVisible();
+        await source.click();
+        await expect(app.page.locator('#generate-compile-plan')).toBeVisible();
+        await app.page.locator('#load-object-source').click();
+        await expect(app.page.locator('#analysis-source-preview')).toBeVisible();
+        await expect(app.page.locator('#analysis-source-preview-code')).toContainText('dcl-f CUSTOMER');
+        expect(errors).toEqual([]);
+    } finally {
+        await app.cleanup();
+    }
+});
+
+test('ignores a delayed source response after another member is selected', async () => {
+    const app = await launchTestApp();
+    try {
+        await app.page.locator('#connect').click();
+        await app.page.locator('#open-object-analysis').click();
+        await app.electronApp.evaluate(({ ipcMain }) => {
+            ipcMain.removeHandler('load-object-analysis-source');
+            ipcMain.handle('load-object-analysis-source', () => new Promise((resolve) => {
+                (globalThis as any).releaseSourceReview = () => resolve({ success: true, content: 'OLD MEMBER CONTENT' });
+            }));
+        });
+        await app.page.locator('[data-analysis-file="true"]').filter({ hasText: 'ORDENTR.rpgle' }).click();
+        await app.page.locator('#load-object-source').click();
+        await expect.poll(() => app.electronApp.evaluate(() => Boolean((globalThis as any).releaseSourceReview))).toBe(true);
+        await app.page.locator('[data-analysis-file="true"]').filter({ hasText: 'PRICING.rpgle' }).click();
+        await app.electronApp.evaluate(() => (globalThis as any).releaseSourceReview());
+        await app.page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+        await expect(app.page.locator('#analysis-selection-title')).toHaveText('PRICING.rpgle');
+        await expect(app.page.locator('#analysis-source-preview')).toBeHidden();
+        await expect(app.page.locator('#analysis-source-preview-code')).toHaveText('');
+        await expect(app.page.locator('#load-object-source')).toBeEnabled();
+    } finally {
+        await app.cleanup();
+    }
+});
+
+test('generates a saved compile plan and keeps report approval disabled while AI is pending', async () => {
+    const app = await launchTestApp();
+    try {
+        await app.page.locator('#connect').click();
+        await app.page.locator('#open-object-analysis').click();
+        await app.page.locator('[data-analysis-file="true"]').filter({ hasText: 'ORDENTR.rpgle' }).click();
+        await expect(app.page.locator('#generate-compile-plan')).toBeDisabled();
+        await app.page.locator('#run-object-analysis').click();
+        await expect(app.page.locator('#generate-compile-plan')).toBeEnabled();
+        await app.page.locator('#generate-compile-plan').click();
+        await expect(app.page.locator('#analysis-compile-storage')).toContainText('.build.json');
+        await expect(app.page.locator('#analysis-compile-cl')).toContainText('Manual review items');
+        await expect(app.page.locator('#analysis-compile-cl')).toContainText('nothing is executed');
+        await app.electronApp.evaluate(({ ipcMain }) => {
+            ipcMain.removeHandler('analyze-object-with-ai');
+            ipcMain.handle('analyze-object-with-ai', () => new Promise((resolve) => {
+                (globalThis as any).releaseAiReview = () => resolve({ success: false, error: 'Provider unavailable in test' });
+            }));
+        });
+        await app.page.locator('#analyze-business-logic').click();
+        await expect(app.page.locator('#approve-object-analysis')).toBeDisabled();
+        await expect.poll(() => app.electronApp.evaluate(() => Boolean((globalThis as any).releaseAiReview))).toBe(true);
+        await app.electronApp.evaluate(() => (globalThis as any).releaseAiReview());
+        await expect(app.page.locator('#analysis-status')).toContainText('Provider unavailable in test');
+        await expect(app.page.locator('#approve-object-analysis')).toBeEnabled();
+    } finally {
+        await app.cleanup();
+    }
+});
+
 test('opens demo object analysis and traces an RPGLE source', async () => {
     const app = await launchTestApp();
 
@@ -74,7 +150,7 @@ test('opens demo object analysis and traces an RPGLE source', async () => {
         await expect(app.page.locator('#analysis-dependency-body')).toContainText('COMMONLIB/PRICING_CALC');
         await expect(app.page.locator('#analysis-dependency-body')).toContainText('Service programs');
         await expect(app.page.locator('#analysis-dependency-body')).toContainText('Files');
-        await expect(app.page.locator('#analysis-dependency-tree')).toContainText('ORDERLIB/ORDENTR');
+        await expect(app.page.locator('#analysis-call-graph')).toContainText('ORDERLIB/ORDENTR');
         await expect(app.page.locator('#analysis-business-summary')).toContainText('detected business or runtime');
         await expect(app.page.locator('#analysis-business-findings')).toContainText('Validate program state');
         await expect(app.page.locator('#analysis-program-flow')).toContainText('Write ORDERLIB/ORDHDR');
@@ -151,7 +227,7 @@ test('resizes the source browser with keyboard controls', async () => {
     }
 });
 
-test('limits the local tree to the submitted comma-separated library list', async () => {
+test('keeps source browsing independent of the object search library list', async () => {
     const app = await launchTestApp();
 
     try {
@@ -162,7 +238,7 @@ test('limits the local tree to the submitted comma-separated library list', asyn
         await app.page.locator('#analysis-library-input').fill('ORDERLIB');
         await app.page.locator('#analysis-load-libraries').click();
         await expect(app.page.locator('[data-analysis-file="true"]').filter({ hasText: 'ORDENTR.rpgle' })).toBeVisible();
-        await expect(app.page.locator('[data-analysis-file="true"]').filter({ hasText: 'PRICING.rpgle' })).toHaveCount(0);
+        await expect(app.page.locator('[data-analysis-file="true"]').filter({ hasText: 'PRICING.rpgle' })).toBeVisible();
         await expect(app.page.locator('#analysis-status')).toContainText('Select an RPG');
     } finally {
         await app.cleanup();
@@ -207,7 +283,7 @@ test('explains that IBM i source needs a live connection in demo mode', async ()
     }
 });
 
-test('places WRKJOBQ immediately after the IBMEye incident queue', async () => {
+test('places WRKJOBQ after active jobs and before support', async () => {
     const app = await launchTestApp();
 
     try {
@@ -217,13 +293,11 @@ test('places WRKJOBQ immediately after the IBMEye incident queue', async () => {
             name: child.id || child.className,
             cssOrder: getComputedStyle(child).order
         })));
-        const incidentIndex = order.findIndex((item) => item.name.includes('alerts-panel'));
         const queueIndex = order.findIndex((item) => item.name.includes('job-queues-panel'));
-        const aiIndex = order.findIndex((item) => item.name.includes('ai-assistant-panel'));
-        expect(queueIndex).toBe(incidentIndex + 1);
-        expect(aiIndex).toBe(queueIndex + 1);
-        expect(order[queueIndex].cssOrder).toBe('3');
-        expect(order[aiIndex].cssOrder).toBe('4');
+        const jobsIndex = order.findIndex((item) => item.name.includes('operations-grid'));
+        const footerIndex = order.findIndex((item) => item.name.includes('app-footer'));
+        expect(Number(order[queueIndex].cssOrder)).toBeGreaterThan(Number(order[jobsIndex].cssOrder));
+        expect(Number(order[queueIndex].cssOrder)).toBeLessThan(Number(order[footerIndex].cssOrder));
     } finally {
         await app.cleanup();
     }

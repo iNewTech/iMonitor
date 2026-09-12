@@ -237,6 +237,50 @@ export interface ConversionPlanItem {
     status: 'required' | 'review';
 }
 
+
+export interface ObjectAnalysisCompilePlanArtifact {
+    key: string;
+    mode: 'source-directory' | 'app-storage' | 'error';
+    relativePath?: string;
+    clPath?: string;
+    message: string;
+    error?: string;
+}
+
+export interface ObjectAnalysisCompilePlanStep {
+    id: string;
+    sequence: number;
+    phase: string;
+    object: {
+        library: string;
+        name: string;
+        type: AnalysisObjectType;
+        sourcePath?: string;
+        language?: string;
+    };
+    command: string;
+    reason: string;
+    status: 'ready' | 'review';
+}
+
+export interface ObjectAnalysisCompilePlan {
+    schema: 'imonitor-object-compile-plan';
+    version: 1;
+    generatedAt: string;
+    root: {
+        library: string;
+        name: string;
+        type: AnalysisObjectType;
+        sourcePath?: string;
+        language?: string;
+    };
+    libraryList: string[];
+    steps: ObjectAnalysisCompilePlanStep[];
+    reviewItems: string[];
+    clCommands: string;
+    artifact?: ObjectAnalysisCompilePlanArtifact;
+}
+
 export interface ObjectAnalysisReportArtifact {
     key: string;
     mode: 'source-directory' | 'app-storage' | 'error';
@@ -269,6 +313,7 @@ export interface ObjectAnalysisResult {
     conversionPlan?: ConversionPlanItem[];
     approval?: ObjectAnalysisApproval;
     reportArtifact?: ObjectAnalysisReportArtifact;
+    compilePlan?: ObjectAnalysisCompilePlan;
     systemEvidence?: ObjectAnalysisSystemEvidence;
     aiReport?: ObjectAnalysisAiReport;
     generatedAt: string;

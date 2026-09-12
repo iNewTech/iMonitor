@@ -72,7 +72,7 @@ test('filters and searches the active jobs table in demo mode', async () => {
         const runningRows = app.page.locator('#system-stats tbody tr.job-row');
         await expect(runningRows).not.toHaveCount(0);
         const runningStatuses = await runningRows.locator('.badge').allTextContents();
-        expect(runningStatuses.every((status) => status.trim() === 'RUN')).toBe(true);
+        expect(runningStatuses.every((status) => status.trim() === 'Running')).toBe(true);
 
         await app.page.getByTestId('jobs-search-input').fill('interct');
         await expect(app.page.locator('#system-stats tbody tr')).toHaveCount(1);
@@ -88,13 +88,14 @@ test('filters and searches the active jobs table in demo mode', async () => {
         await app.cleanup();
     }
     });
-test('shows all compact activity history views with live metrics', async () => {
+test('shows live metrics in the jobs panel without a separate overview', async () => {
     const app = await launchTestApp();
 
     try {
         await openDemoMonitor(app.page);
         const overview = app.page.locator('.activity-overview');
-        await expect(overview).toBeVisible();
+        await expect(overview).toBeHidden();
+        await expect(app.page.locator('#superpanel-metrics-slot')).toBeVisible();
         await expect(overview).toHaveAttribute('open', '');
         await expect(app.page.locator('.table-shell')).toHaveAttribute('open', '');
         await expect(app.page.locator('#total-jobs')).toBeVisible();
@@ -102,9 +103,9 @@ test('shows all compact activity history views with live metrics', async () => {
         await expect(app.page.locator('#running-jobs')).toBeVisible();
         await expect(app.page.locator('#waiting-jobs')).toBeVisible();
 
-        await expect(app.page.locator('[data-history-view="jobs"]')).toBeVisible();
-        await expect(app.page.locator('[data-history-view="cpu"]')).toBeVisible();
-        await expect(app.page.locator('[data-history-view="waits"]')).toBeVisible();
+        await expect(app.page.locator('[data-history-view="jobs"]')).toBeHidden();
+        await expect(app.page.locator('[data-history-view="cpu"]')).toBeHidden();
+        await expect(app.page.locator('[data-history-view="waits"]')).toBeHidden();
         await expect(app.page.locator('#total-jobs')).toBeVisible();
     } finally {
         await app.cleanup();
@@ -117,7 +118,7 @@ test('keeps the inner work surfaces compact and free of duplicate history contro
     try {
         await openDemoMonitor(app.page);
 
-        await expect(app.page.getByTestId('activity-overview')).toBeVisible();
+        await expect(app.page.getByTestId('activity-overview')).toBeHidden();
         await expect(app.page.locator('#jobs-history-chart')).toHaveCount(1);
         await expect(app.page.locator('#cpu-history-chart')).toHaveCount(1);
         await expect(app.page.locator('#wait-history-chart')).toHaveCount(1);
@@ -125,12 +126,9 @@ test('keeps the inner work surfaces compact and free of duplicate history contro
         const jobsTableHeader = app.page.locator('#system-stats thead th').first();
         await expect(jobsTableHeader).toHaveCSS('position', 'sticky');
 
-        const alertsPanel = app.page.locator('.alerts-panel');
-        if (!(await alertsPanel.evaluate((panel: HTMLDetailsElement) => panel.open))) {
-            await alertsPanel.locator(':scope > summary').click();
-        }
-        await expect(app.page.locator('.alert-queue-context')).toContainText('Action queue');
-        await expect(app.page.locator('.alert-search-control')).toBeVisible();
+        await expect(app.page.locator('.alerts-panel')).toBeHidden();
+        await expect(app.page.locator('#superpanel-focus-next')).toBeVisible();
+        await expect(app.page.locator('#superpanel-ai-slot')).toBeVisible();
         await expect(app.page.getByText('QSYSOPR messages', { exact: true })).toHaveCount(0);
     } finally {
         await app.cleanup();

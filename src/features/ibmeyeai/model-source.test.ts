@@ -45,7 +45,7 @@ describe('ibmeyeai model-source', () => {
         expect(getProviderModelSourceHint(snapshot, 'ollama')).toBe('Live models loaded (2)');
     });
 
-    it('falls back to suggested models when live models are unavailable', () => {
+    it('does not offer unverified models when live models are unavailable', () => {
         const snapshot = {
             providerCatalog,
             availability: {
@@ -54,7 +54,7 @@ describe('ibmeyeai model-source', () => {
             }
         };
 
-        expect(getProviderModels(snapshot, 'ollama')).toEqual(['gemma3:latest', 'llama3.1:latest']);
+        expect(getProviderModels(snapshot, 'ollama')).toEqual([]);
         expect(getProviderModelSourceHint(snapshot, 'ollama')).toBe('Using fallback suggestions');
     });
 });

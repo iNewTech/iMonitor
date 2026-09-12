@@ -22,10 +22,11 @@ export interface AlertWorkflowMutation {
  */
 export function createAlertWorkflowState(timestamp: string, detail?: string): StoredAlertWorkflowState {
     return {
+        version: 1,
         status: 'new',
         notes: [],
         timeline: [
-            createTimelineEntry('created', timestamp, 'Alert created', undefined, detail)
+            createTimelineEntry('created', timestamp, 'Alert created', undefined, detail, 1)
         ],
         updatedAt: timestamp,
         lastActionSummary: 'New alert'
@@ -44,6 +45,7 @@ export function normalizeAlertWorkflowState(
     }
 
     return {
+        version: positiveVersion(state.version, state.timeline),
         status: normalizeWorkflowStatus(state.status),
         owner: state.owner?.trim() || undefined,
         notes: Array.isArray(state.notes)
@@ -53,8 +55,9 @@ export function normalizeAlertWorkflowState(
             }))
             : [],
         timeline: Array.isArray(state.timeline) && state.timeline.length
-            ? state.timeline.slice(0, 30).map((entry) => ({
+            ? state.timeline.slice(0, 30).map((entry, index, entries) => ({
                 ...entry,
+                version: entry.version ?? entries.length - index,
                 action: normalizeWorkflowAction(entry.action),
                 actor: entry.actor?.trim() || undefined
             }))
@@ -74,6 +77,7 @@ export function applyWorkflowStateToAlert(
 ): MonitorAlert {
     return {
         ...alert,
+        lifecyclePhase: getIncidentLifecyclePhase(workflowState),
         workflowStatus: workflowState.status,
         owner: workflowState.owner,
         notes: workflowState.notes,
@@ -82,6 +86,21 @@ export function applyWorkflowStateToAlert(
         lastActionSummary: workflowState.lastActionSummary,
         clickUpTask: workflowState.clickUpTask
     };
+}
+
+export function getIncidentLifecyclePhase(state: StoredAlertWorkflowState): MonitorAlert['lifecyclePhase'] {
+    switch (state.status) {
+        case 'acknowledged':
+            return 'acknowledged';
+        case 'claimed':
+            return 'investigating';
+        case 'work_done':
+            return 'verifying';
+        case 'system_cleared':
+            return 'resolved';
+        default:
+            return state.timeline[0]?.action === 'reopened' ? 'reopened' : 'detected';
+    }
 }
 
 /**
@@ -341,13 +360,20 @@ function appendWorkflowEntry(
     actor?: string,
     detail?: string
 ) {
+    const nextVersion = positiveVersion(state.version, state.timeline) + 1;
     return {
         ...state,
+        version: nextVersion,
         timeline: [
-            createTimelineEntry(action, timestamp, label, actor, detail),
+            createTimelineEntry(action, timestamp, label, actor, detail, nextVersion),
             ...state.timeline
         ].slice(0, 30)
     };
+}
+
+function positiveVersion(version: number | undefined, timeline: AlertTimelineEntry[]) {
+    const eventVersion = timeline.reduce((highest, entry) => Math.max(highest, entry.version ?? 0), 0);
+    return Math.max(Number.isInteger(version) ? Number(version) : 0, eventVersion);
 }
 
 function createNote(timestamp: string, author: string | undefined, text: string): AlertNote {
@@ -364,10 +390,12 @@ function createTimelineEntry(
     timestamp: string,
     label: string,
     actor?: string,
-    detail?: string
+    detail?: string,
+    version?: number
 ): AlertTimelineEntry {
     return {
         id: `${action}-${timestamp}-${Math.random().toString(36).slice(2, 8)}`,
+        version,
         timestamp,
         action,
         label,

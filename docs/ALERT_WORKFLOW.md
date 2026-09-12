@@ -1,64 +1,39 @@
-# IBMEye Alerts in iMonitor ActionBoard
+# Alert and task workflow
 
-## Current State
+## From detection to recovery
 
-The `IBMEye` alert module inside `iMonitor` currently supports:
+ActionBoard attaches detected issues to their jobs in the active-job table. The row distinguishes the job’s operating state from its issue, and shows the claimed owner. “Focus Next Job” opens the highest-priority available issue.
 
-- active alerts
-- resolved alerts
-- manual clear
-- DLYW and DEQW wait detection
-- newest-first ordering
-- sticky queue behavior
-- scroll-stable refresh behavior while reading expanded alerts
+Open a job to work in its separate task window. Multiple jobs can stay open while the main board continues polling. Overview, Actions, AI helper, History, and Details keep each task compact. Refresh failures offer retry; in-flight actions cannot be submitted twice, and background refresh preserves the current tab and feedback.
 
-## Current Rules
+- **Acknowledge** records that an operator has seen the issue.
+- **Claim Work** assigns it to the current operator. When configured and entitled, the main process creates or reuses its linked ClickUp task.
+- **Remove Claim** releases ownership so another operator can take it.
+- **Mark Work Done** records completion of the operator’s work. It does not prove system recovery.
+- Monitoring confirms recovery before clearing the active issue. Its history remains available.
 
-- alerts remain visible after the triggering condition changes
-- active alerts appear before resolved alerts
-- manual clear hides an alert until the condition clears and reoccurs
-- failed poll alerts resolve after a successful later poll
+Workflow state and history are stored locally. This is a desktop workflow; it does not yet provide a shared multi-client assignment service or delegated support permissions across machines.
 
-## ClickUp Action Tracking
+Each saved IBM i connection has its own durable incident ledger. A record uses the connection ID plus the monitored resource and condition as its stable identity. Repeated polls update that record, verified recovery resolves it, and a later recurrence increments the occurrence count while preserving the earlier timeline. The canonical lifecycle is detected, acknowledged, investigating, awaiting escalation, verifying, resolved, and reopened. The current operator actions cover every phase except awaiting escalation, which is reserved for the support-routing workflow.
 
-New alerts do not create ClickUp tasks automatically. Slack handles alert delivery; ClickUp begins tracking only when an operator selects `Start Work`.
+When an incident is first observed, iMonitor asynchronously captures a bounded evidence snapshot for the trigger job, job context, job log, messages, job queue, and subsystem. Each snapshot carries its collection time, source, record count, and status. Missing, stale, permission-denied, unavailable, and partial results remain visible; capture does not block the monitoring poll. A reconnect also backfills older ledger records that have no evidence, while later polls preserve the original snapshot.
 
-When work starts, the backend:
+## Storage, retention, and export
 
-1. claims the alert for the active operator
-2. creates one linked ClickUp task and assigns it to that operator
-3. posts an AI report with `Issue`, `Why`, and `How to resolve` sections
-4. attaches only the matching job history when captured history exists
+The local Electron store retains operator-facing incident facts: system label, resource identity, severity, ownership, notes, external task link, resolution state, and a versioned event timeline. Invalid or incomplete records are ignored during startup so one damaged entry cannot prevent monitoring. Incident records remain after recovery and across app restarts; automated retention controls and incident export are planned before production rollout.
 
-AI and attachment failures are recorded in encrypted developer diagnostics and do not remove the task or alert.
+Operator evidence stays separate from encrypted developer diagnostics. Incident exports must include only the operator-facing ledger and must redact credentials, API keys, connection passwords, raw diagnostic logs, and unrelated source or SQL text. Developer support bundles continue through the encrypted diagnostics path.
 
-## Slack Delivery
+## Actions and AI
 
-Slack delivery uses one Incoming Webhook configured for a shared operations channel. The `IBMEye Alerts` watch rules are the single source of truth for which conditions are delivered to Slack; the Slack integration does not duplicate those condition switches. Each newly created alert is sent once, while repeated polls for the same active condition remain quiet.
+Task windows offer issue explanation and resolution guidance with the configured AI provider. These are recommendations. IBM i operations follow the main-process action planner, entitlement checks, and confirmation flow. Unsupported actions remain unavailable. AI does not autonomously execute recovery commands.
 
-Webhook failures are recorded in encrypted developer diagnostics and do not interrupt monitoring.
+Task actions report failures without dropping the selected job. The backend owns external ticket creation so opening or refreshing a task cannot duplicate a ClickUp request from the renderer.
 
-## Jira Delivery
+## Integrations
 
-Jira is an optional Premium alert destination. It uses the configured Jira Cloud REST API credentials and project. The shared `IBMEye Alerts` watch rules decide which new alerts create Jira issues. Each issue includes the alert title, severity, job, timestamp, incident ID, message, and available IBM i details. Jira API failures are recorded in encrypted developer diagnostics and do not interrupt monitoring.
+ClickUp starts tracking on claim rather than on every monitoring poll. The backend links the task, attempts operator assignment, and can add AI context and matching captured job history. Subsequent workflow updates synchronize through that link. External integration failures are recorded for diagnostics; they do not remove the local incident.
 
-## Planned Workflow States
+Slack uses a configured Incoming Webhook. Jira creates issues through its configured project. Email and SMS use their configured transports. Shared alert watch rules control delivery conditions, with notification suppression to avoid sending the same active condition on every poll.
 
-- New
-- Acknowledged
-- In Progress
-- Resolved
-- Cleared
-
-## Planned User Actions
-
-- Acknowledge
-- Mark In Progress
-- Resolve
-- Clear
-- Add note
-- Export incident
-
-## Planned Persistence
-
-Alert workflow state should survive app restart and live in a dedicated local store module.
+Setup, licensing, and the selected provider determine availability. Electron tests use isolated stores and mocked external services; successful test delivery does not replace validation against a client’s live configuration.

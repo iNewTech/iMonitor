@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "app": "iMonitor",
+  "generatedAt": "2026-09-08T13:20:00.000Z",
+  "connection": {
+    "name": "Demo connection",
+    "host": "dummy",
+    "user": "GajenderT",
+    "port": 8076
+  },
+  "status": {
+    "label": "Live",
+    "healthy": false,
+    "detail": "2 active issues"
+  },
+  "metrics": {
+    "totalJobs": 18,
+    "runningJobs": 9,
+    "waitingJobs": 9,
+    "messageWaitJobs": 2,
+    "lockWaitJobs": 3,
+    "peakCpu": 76.8
+  },
+  "topIssue": {
+    "title": "QBATCH/NIGHTBCH",
+    "subtitle": "High CPU job detected",
+    "severity": "warning",
+    "jobName": "552901/BATCHNGT/NIGHTBCH",
+    "owner": "GajenderT"
+  }
+}

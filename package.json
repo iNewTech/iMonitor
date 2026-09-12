@@ -4,8 +4,9 @@
   "description": "iMonitor desktop app for IBM i operations monitoring",
   "main": "dist/main.js",
   "scripts": {
-    "start": "tsc && electron .",
-    "build": "tsc",
+    "start": "npm run build && electron .",
+    "build": "tsc && npm run check:renderers",
+    "bstart": "npm run build && npm run start",
     "watch": "tsc -w",
     "dev": "npm run build && electron .",
     "package": "electron-builder build --mac --win",
@@ -17,11 +18,20 @@
     "test:watch": "vitest",
     "docs:api": "typedoc",
     "docs:serve": "python3 -m http.server 8000 --directory docs",
-    "license:dev": "node scripts/generate-dev-license.mjs"
+    "license:dev": "node scripts/generate-dev-license.mjs",
+    "check:renderers": "node --experimental-vm-modules scripts/check-renderers.mjs"
   },
   "build": {
     "appId": "com.inewtech.imonitor",
     "productName": "iMonitor",
+    "protocols": [
+      {
+        "name": "iMonitor",
+        "schemes": [
+          "imonitor"
+        ]
+      }
+    ],
     "directories": {
       "output": "release",
       "buildResources": "build"
@@ -60,6 +70,8 @@
     "asar": true,
     "mac": {
       "icon": "build/icons/icon.icns",
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
       "category": "public.app-category.developer-tools",
       "target": [
         "dmg"

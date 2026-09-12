@@ -1,5 +1,6 @@
 import { applyTheme, escapeHtml } from './connection/shared.js';
-import { renderAiReportMarkdown } from './monitor/ibmeyeai/render.js';
+import { createReportView } from './object-analysis/report-view.js';
+import { createAnalysisActions } from './object-analysis/actions.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const elements = {
@@ -45,6 +46,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         selectionPath: document.getElementById('analysis-selection-path'),
         selectionScope: document.getElementById('analysis-selection-scope'),
         loadSource: document.getElementById('load-object-source'),
+        loadSourceResult: document.getElementById('load-object-source-result'),
         sourcePreview: document.getElementById('analysis-source-preview'),
         sourcePreviewTitle: document.getElementById('analysis-source-preview-title'),
         sourcePreviewMeta: document.getElementById('analysis-source-preview-meta'),
@@ -52,6 +54,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         copySource: document.getElementById('copy-object-source'),
         hideSource: document.getElementById('hide-object-source'),
         run: document.getElementById('run-object-analysis'),
+        compile: document.getElementById('generate-compile-plan'),
+        compileResult: document.getElementById('generate-compile-plan-result'),
         result: document.getElementById('analysis-result'),
         resultTitle: document.getElementById('analysis-result-title'),
         resultSubtitle: document.getElementById('analysis-result-subtitle'),
@@ -68,7 +72,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         confirmed: document.getElementById('analysis-confirmed'),
         edgeCount: document.getElementById('analysis-edge-count'),
         dependencyBody: document.getElementById('analysis-dependency-body'),
-        dependencyTree: document.getElementById('analysis-dependency-tree'),
         sourceSignals: document.getElementById('analysis-source-signals'),
         businessSection: document.getElementById('analysis-business-section'),
         businessCount: document.getElementById('analysis-business-count'),
@@ -77,9 +80,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         flowSection: document.getElementById('analysis-flow-section'),
         flowCount: document.getElementById('analysis-flow-count'),
         programFlow: document.getElementById('analysis-program-flow'),
+        callGraphCount: document.getElementById('analysis-call-graph-count'),
+        callGraph: document.getElementById('analysis-call-graph'),
         conversionSection: document.getElementById('analysis-conversion-section'),
         conversionCount: document.getElementById('analysis-conversion-count'),
         conversionPlan: document.getElementById('analysis-conversion-plan'),
+        compileSection: document.getElementById('analysis-compile-section'),
+        compileCount: document.getElementById('analysis-compile-count'),
+        compileStorage: document.getElementById('analysis-compile-storage'),
+        compilePlan: document.getElementById('analysis-compile-plan'),
+        compileCl: document.getElementById('analysis-compile-cl'),
+        copyCompileCl: document.getElementById('copy-compile-cl'),
         aiButton: document.getElementById('analyze-business-logic'),
         aiSection: document.getElementById('analysis-ai-section'),
         aiMeta: document.getElementById('analysis-ai-meta'),
@@ -102,6 +113,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
     let libraryDraft = [];
     let workspace = null;
+    let workspaceRevision = 0;
     let selectedFile = null;
     let latestResult = null;
     let scopeDirty = false;
@@ -109,6 +121,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     let libraryListOrigin = { source: 'detected', fileName: null };
 
     const sidebarWidthStorageKey = 'imonitor.object-analysis.sidebar-width';
+
+
+    const view = createReportView(elements, () => settings);
+    const actions = createAnalysisActions({
+        elements, view, setStatus,
+        getSelection: () => selectedFile,
+        getResult: () => latestResult,
+        setResult: (result) => { latestResult = result; },
+        isScopeDirty: () => scopeDirty
+    });
 
     function setSidebarWidth(value, persist = true) {
         if (!elements.workspaceLayout) return;
@@ -256,11 +278,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             elements.scopeBadge.classList.toggle('is-dirty', scopeDirty);
         }
         renderLibrarySourceStatus();
-        if (elements.run && selectedFile) elements.run.disabled = scopeDirty;
+        actions.sync();
     }
 
     function handleScopeEdit() {
         scopeDirty = hasScopeChanges();
+        actions.invalidate();
         if (scopeDirty && latestResult) {
             latestResult = null;
             elements.result.hidden = true;
@@ -334,238 +357,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderTree();
     }
 
-    function renderList(element, items, emptyText) {
-        if (!element) return;
-        element.innerHTML = items.length ? items.map((item) => `<li>${escapeHtml(item)}</li>`).join('') : `<li class="is-empty">${escapeHtml(emptyText)}</li>`;
-    }
-
-    function dependencyCategory(type) {
-        switch (type) {
-            case '*PGM': return 'Programs';
-            case '*SRVPGM': return 'Service programs';
-            case '*MODULE': return 'Modules';
-            case '*FILE': return 'Files';
-            case '*DTAQ': return 'Data queues';
-            case '*DTAARA': return 'Data areas';
-            case '*ENVVAR': return 'Environment variables';
-            case '*JOBD':
-            case '*JOBQ':
-            case '*SBS': return 'Jobs & subsystems';
-            case '*CMD':
-            case '*COPY': return 'Commands & copybooks';
-            default: return 'Other';
-        }
-    }
-
-    function renderDependencyRows(result, nodeById) {
-        const groups = new Map();
-        result.edges.forEach((edge) => {
-            const to = nodeById.get(edge.to);
-            const category = dependencyCategory(to?.type || '*UNKNOWN');
-            const edges = groups.get(category) || [];
-            edges.push(edge);
-            groups.set(category, edges);
-        });
-        const order = ['Programs', 'Service programs', 'Modules', 'Files', 'Data queues', 'Data areas', 'Environment variables', 'Jobs & subsystems', 'Commands & copybooks', 'Other'];
-        return order.map((category) => {
-            const edges = groups.get(category);
-            if (!edges?.length) return '';
-            const heading = `<tr class="analysis-table-group-row"><th colspan="5">${escapeHtml(category)} <span>${edges.length}</span></th></tr>`;
-            const rows = edges.map((edge) => {
-                const from = nodeById.get(edge.from);
-                const to = nodeById.get(edge.to);
-                const tone = dependencyTone(to?.type || '*UNKNOWN', to?.status);
-                return `<tr data-category="${tone}"><td><strong>${escapeHtml(`${to?.library || ''}/${to?.name || edge.to}`)}</strong>${edge.detail ? `<small>${escapeHtml(edge.detail)}</small>` : ''}</td><td><span class="analysis-inline-badge" data-category="${tone}">${escapeHtml(to?.type || 'UNKNOWN')}</span></td><td>${escapeHtml(edge.relationship)}${edge.line ? `<small>line ${edge.line}</small>` : ''}<small>from ${escapeHtml(`${from?.library || ''}/${from?.name || edge.from}`)}</small></td><td>${escapeHtml(edge.evidence)}</td><td><span class="analysis-confidence" data-confidence="${escapeHtml(edge.confidence)}">${escapeHtml(edge.confidence)}</span></td></tr>`;
-            }).join('');
-            return heading + rows;
-        }).join('');
-    }
-
-    function renderDependencyTree(result, nodeById) {
-        if (!elements.dependencyTree) return;
-        const childrenById = new Map();
-        result.edges.forEach((edge) => {
-            const children = childrenById.get(edge.from) || [];
-            children.push({ edge, node: nodeById.get(edge.to) });
-            childrenById.set(edge.from, children);
-        });
-        const renderNode = (node, path = []) => {
-            if (!node) return '';
-            const children = childrenById.get(node.id) || [];
-            const cycle = path.includes(node.id);
-            const childMarkup = !cycle && children.length
-                ? `<ul>${children.map(({ edge, node: child }) => `<li class="analysis-dependency-tree-branch"><span class="analysis-dependency-tree-relationship">${escapeHtml(edge.relationship)}</span>${renderNode(child, [...path, node.id])}</li>`).join('')}</ul>`
-                : '';
-            const tone = dependencyTone(node.type, node.status);
-            return `<div class="analysis-dependency-tree-node${node.status === 'unresolved' ? ' is-unresolved' : ''}" data-category="${tone}"><div class="analysis-dependency-tree-label"><span class="analysis-inline-badge" data-category="${tone}">${escapeHtml(node.type)}</span><strong>${escapeHtml(`${node.library}/${node.name}`)}</strong>${cycle ? '<small>cycle</small>' : ''}</div>${childMarkup}</div>`;
-        };
-        elements.dependencyTree.innerHTML = result.edges.length
-            ? `<div class="analysis-dependency-tree-intro">${escapeHtml(`${result.root.library}/${result.root.name}`)} is the starting object. Expand each branch to follow its dependencies.</div><div class="analysis-dependency-tree-root">${renderNode(result.root)}</div>`
-            : '<p class="analysis-table-empty">No dependency path was found in the selected scope.</p>';
-    }
-
-    function renderSystemEvidence(result) {
-        if (!elements.evidenceStatus) return;
-        const evidence = result.systemEvidence;
-        if (!evidence || evidence.source === 'local-source') {
-            elements.evidenceStatus.textContent = 'Evidence: local source and catalog only · no IBM i commands run';
-            return;
-        }
-        const collected = evidence.commands.filter((command) => command.status === 'collected').length;
-        const failed = evidence.commands.filter((command) => command.status === 'failed').length;
-        elements.evidenceStatus.textContent = `Evidence: IBM i commands · ${collected} collected${failed ? ` · ${failed} unavailable` : ''}`;
-    }
-
-    function resetResultDetails() {
-        const sections = Array.from(elements.result?.querySelectorAll('.analysis-section') || []);
-        sections.forEach((section) => {
-            section.open = !section.id || ['analysis-business-section', 'analysis-flow-section', 'analysis-conversion-section'].includes(section.id);
-        });
-    }
-
-    function renderAiReport(report) {
-        if (!elements.aiSection || !elements.aiContent || !elements.aiMeta) return;
-        if (!report?.content) {
-            elements.aiSection.hidden = true;
-            elements.aiContent.innerHTML = '';
-            elements.aiMeta.textContent = 'Not run';
-            return;
-        }
-        elements.aiSection.hidden = false;
-        elements.aiSection.open = true;
-        elements.aiMeta.textContent = `${report.providerLabel} · ${report.model}`;
-        elements.aiContent.innerHTML = renderAiReportMarkdown(report.content);
-    }
-
-    function dependencyTone(type, status) {
-        if (status === 'unresolved') return 'unresolved';
-        if (type === '*PGM') return 'program';
-        if (type === '*SRVPGM' || type === '*MODULE') return 'service';
-        if (type === '*FILE') return 'data';
-        return 'runtime';
-    }
-
-    function renderBusinessLogic(result) {
-        const logic = result.businessLogic;
-        const findings = Array.isArray(logic?.findings) ? logic.findings : [];
-        if (elements.businessCount) elements.businessCount.textContent = `${findings.length} finding${findings.length === 1 ? '' : 's'}`;
-        if (elements.businessSummary) elements.businessSummary.textContent = logic?.summary || 'No deterministic business logic was detected. Review the source and IBM i evidence manually.';
-        if (!elements.businessFindings) return;
-        elements.businessFindings.innerHTML = findings.length
-            ? findings.map((finding) => `
-                <article class="analysis-business-finding" data-category="${escapeHtml(finding.category)}">
-                    <div class="analysis-finding-heading">
-                        <span class="analysis-rule-category">${escapeHtml(finding.category)}</span>
-                        <span class="analysis-confidence" data-confidence="${escapeHtml(finding.confidence)}">${escapeHtml(finding.confidence)}</span>
-                    </div>
-                    <strong>${escapeHtml(finding.title)}</strong>
-                    <p>${escapeHtml(finding.detail)}</p>
-                    <small>${escapeHtml(finding.evidence)} evidence${finding.line ? ` · line ${finding.line}` : ''}</small>
-                </article>
-            `).join('')
-            : '<p class="analysis-table-empty">No business-rule patterns were found in this source.</p>';
-    }
-
-    function renderProgramFlow(result) {
-        const steps = Array.isArray(result.programFlow) ? result.programFlow : [];
-        if (elements.flowCount) elements.flowCount.textContent = `${steps.length} step${steps.length === 1 ? '' : 's'}`;
-        if (!elements.programFlow) return;
-        elements.programFlow.innerHTML = steps.length
-            ? steps.map((step) => `
-                <article class="analysis-flow-step" data-kind="${escapeHtml(step.kind)}">
-                    <span class="analysis-flow-sequence">${step.sequence}</span>
-                    <span class="analysis-flow-marker"><i class="bi bi-arrow-down" aria-hidden="true"></i></span>
-                    <div class="analysis-flow-copy">
-                        <div><span>${escapeHtml(step.kind)}</span>${step.line ? `<small>line ${step.line}</small>` : ''}</div>
-                        <strong>${escapeHtml(step.title)}</strong>
-                        <p>${escapeHtml(step.detail)}</p>
-                    </div>
-                </article>
-            `).join('')
-            : '<p class="analysis-table-empty">No ordered execution steps were detected.</p>';
-    }
-
-    function renderConversionPlan(result) {
-        const plan = Array.isArray(result.conversionPlan) ? result.conversionPlan : [];
-        if (elements.conversionCount) elements.conversionCount.textContent = `${plan.length} action${plan.length === 1 ? '' : 's'}`;
-        if (!elements.conversionPlan) return;
-        elements.conversionPlan.innerHTML = plan.length
-            ? plan.map((item) => `
-                <article class="analysis-plan-item" data-priority="${escapeHtml(item.priority)}">
-                    <span class="analysis-plan-order">${item.order}</span>
-                    <div class="analysis-plan-copy">
-                        <div><span class="analysis-plan-phase">${escapeHtml(item.phase)}</span><span class="analysis-plan-priority">${escapeHtml(item.priority)}</span></div>
-                        <strong>${escapeHtml(item.title)}</strong>
-                        <p>${escapeHtml(item.action)}</p>
-                        <small>${escapeHtml(item.reason)}</small>
-                    </div>
-                </article>
-            `).join('')
-            : '<p class="analysis-table-empty">No conversion actions were generated.</p>';
-    }
-
-    function renderReportStorage(result) {
-        if (!elements.reportStorage) return;
-        const artifact = result.reportArtifact;
-        const approved = result.approval?.status === 'approved' && artifact?.mode !== 'error';
-        if (elements.approve) {
-            elements.approve.disabled = approved;
-            elements.approve.innerHTML = approved
-                ? '<i class="bi bi-check2-circle me-2"></i>Approved & mapped'
-                : '<i class="bi bi-check2-circle me-2"></i>Approve & map report';
-        }
-        if (elements.download) elements.download.disabled = !approved;
-        if (!artifact) {
-            elements.reportStorage.textContent = 'Draft analysis · Review the findings, then approve to save and map this report.';
-            elements.reportStorage.dataset.status = 'draft';
-            return;
-        }
-        elements.reportStorage.textContent = artifact.mode === 'error'
-            ? `${artifact.message}${artifact.error ? ` ${artifact.error}` : ''}`
-            : `Approved by ${result.approval?.approvedBy || 'operator'} · Mapped report: ${artifact.key} · ${artifact.relativePath}`;
-        elements.reportStorage.dataset.status = artifact.mode;
-        elements.reportStorage.title = artifact.message;
-    }
-
-    function renderResult(result) {
-        latestResult = result;
-        const nodeById = new Map(result.nodes.map((node) => [node.id, node]));
-        elements.empty.hidden = true;
-        elements.result.hidden = false;
-        elements.resultTitle.textContent = `${result.root.library}/${result.root.name}`;
-        elements.resultSubtitle.textContent = `${result.root.type} · ${result.root.description || result.root.sourcePath || 'Source object'} · scanned ${new Date(result.generatedAt).toLocaleTimeString()}`;
-        if (elements.resultScope) {
-            const sourceLibrary = result.scope?.sourceLibrary || settings.sourceLibrary;
-            elements.resultScope.textContent = `Object scope: ${result.scope?.libraries?.join(', ') || 'No libraries recorded'} · source: ${sourceLibrary || 'selected member'} · depth ${result.scope?.depth ?? settings.dependencyDepth}`;
-        }
-        renderSystemEvidence(result);
-        renderReportStorage(result);
-        resetResultDetails();
-        renderAiReport(result.aiReport);
-        renderBusinessLogic(result);
-        renderProgramFlow(result);
-        renderConversionPlan(result);
-        elements.readiness.textContent = result.readiness.label;
-        elements.readiness.dataset.status = result.readiness.status;
-        elements.readinessScore.textContent = `${result.readiness.score}/100 confidence score`;
-        elements.dependencies.textContent = String(result.directDependencies);
-        elements.impacted.textContent = String(result.impactedObjects);
-        elements.unresolved.textContent = String(result.unresolvedReferences.length);
-        elements.edgeCount.textContent = `${result.edges.length} relationship${result.edges.length === 1 ? '' : 's'}`;
-        renderList(elements.blockers, result.readiness.blockers, 'No blockers found.');
-        renderList(elements.warnings, result.readiness.warnings, 'No additional review notes.');
-        renderList(elements.confirmed, result.readiness.confirmed, 'No confirmed signals yet.');
-        renderList(elements.sourceSignals, result.sourceSignals, 'No source signals detected.');
-        elements.dependencyBody.innerHTML = result.edges.length
-            ? renderDependencyRows(result, nodeById)
-            : '<tr><td colspan="5" class="analysis-table-empty">No relationships were found in the selected scope.</td></tr>';
-        renderDependencyTree(result, nodeById);
-    }
-
     async function loadWorkspace() {
+        const version = ++workspaceRevision;
+        actions.invalidate();
+        selectedFile = null;
+        latestResult = null;
+        workspace = null;
+        elements.selection.hidden = true;
+        elements.result.hidden = true;
+        elements.tree.textContent = 'Loading sources…';
+        elements.tree.setAttribute('aria-busy', 'true');
+        actions.sync();
+        if (elements.sourcePreview) elements.sourcePreview.hidden = true;
         setStatus(settings.source === 'ibmi' ? 'Loading the selected IBM i source library…' : 'Loading the selected local directory…');
         try {
-            settings = await window.electronAPI.getObjectAnalysisSettings();
+            const loadedSettings = await window.electronAPI.getObjectAnalysisSettings();
+            if (version !== workspaceRevision) return;
+            settings = loadedSettings;
             libraryDraft = activeLibraries().slice();
             scopeDirty = false;
             try {
@@ -573,6 +381,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     source: settings.source,
                     localDirectory: settings.localDirectory
                 });
+                if (version !== workspaceRevision) return;
                 if (libraryInfo?.success && Array.isArray(libraryInfo.libraries)) {
                     libraryBaseline = parseLibraries(libraryInfo.libraries.join(','));
                     libraryListOrigin = {
@@ -583,11 +392,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     libraryBaseline = activeLibraries().slice();
                 }
             } catch {
+                if (version !== workspaceRevision) return;
                 libraryBaseline = activeLibraries().slice();
                 libraryListOrigin = { source: settings.source === 'ibmi' ? 'environment' : 'detected', fileName: null };
             }
             renderScope();
             const response = await window.electronAPI.getObjectAnalysisWorkspace();
+            if (version !== workspaceRevision) return;
             if (!response?.success || !response.tree) throw new Error(response?.error || 'The analysis workspace could not be loaded.');
             workspace = response;
             selectedFile = null;
@@ -596,9 +407,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             elements.result.hidden = true;
             elements.empty.hidden = false;
             elements.run.disabled = true;
+            actions.sync();
             renderWorkspace();
             setStatus('Select an RPG or database source to begin.', 'success');
         } catch (error) {
+            if (version !== workspaceRevision) return;
             workspace = null;
             selectedFile = null;
             latestResult = null;
@@ -608,7 +421,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             elements.run.disabled = true;
             setStatus(error instanceof Error ? error.message : String(error), 'error');
             elements.rootLabel.textContent = settings.source === 'ibmi' ? 'IBM i workspace unavailable' : 'Local workspace unavailable';
-            elements.tree.innerHTML = '<p class="analysis-tree-empty">Choose a source and load a valid scope to continue.</p>';
+            elements.treeCount.textContent = '0 files';
+            elements.tree.innerHTML = '<p class="analysis-tree-empty">Unable to load sources. Check the directory or source library, then use Refresh scan.</p>';
+            actions.sync();
+        } finally {
+            if (version === workspaceRevision) elements.tree.removeAttribute('aria-busy');
         }
     }
 
@@ -635,6 +452,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function selectSourceFile(fileButton) {
         if (!fileButton || fileButton.dataset.analyzable !== 'true') return false;
+        actions.invalidate();
         selectedFile = { library: fileButton.dataset.library, relativePath: fileButton.dataset.path, name: fileButton.querySelector('strong')?.textContent || fileButton.dataset.path, language: fileButton.querySelector('small')?.textContent || 'Source' };
         elements.selection.hidden = false;
         elements.empty.hidden = true;
@@ -650,61 +468,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (elements.sourcePreviewMeta) elements.sourcePreviewMeta.textContent = '';
         if (elements.loadSource) elements.loadSource.disabled = false;
         elements.run.disabled = scopeDirty;
+        actions.sync();
         renderTree();
         return true;
-    }
-
-    async function loadSelectedSource() {
-        if (!selectedFile) return;
-        setButtonBusy(elements.loadSource, true, 'Loading…', 'Load source');
-        setStatus(`Loading ${selectedFile.name}…`);
-        try {
-            const response = await window.electronAPI.loadObjectAnalysisSource({
-                library: selectedFile.library,
-                relativePath: selectedFile.relativePath
-            });
-            if (!response?.success || typeof response.content !== 'string') {
-                throw new Error(response?.error || 'The source file could not be loaded.');
-            }
-            if (elements.sourcePreviewTitle) elements.sourcePreviewTitle.textContent = selectedFile.name;
-            if (elements.sourcePreviewMeta) {
-                elements.sourcePreviewMeta.textContent = `${selectedFile.library} · ${selectedFile.relativePath} · ${response.lineCount || response.content.split(/\r?\n/).length} lines`;
-            }
-            if (elements.sourcePreviewCode) elements.sourcePreviewCode.textContent = response.content;
-            if (elements.sourcePreview) elements.sourcePreview.hidden = false;
-            setStatus(`${selectedFile.name} loaded. Review the source, then run the complete analysis.`, 'success');
-        } catch (error) {
-            setStatus(error instanceof Error ? error.message : String(error), 'error');
-        } finally {
-            setButtonBusy(elements.loadSource, false, '', 'Load source');
-        }
-    }
-
-    async function analyzeSelectedFile() {
-        if (!selectedFile) return;
-        if (scopeDirty) {
-            setStatus('Apply the library list before analyzing this object.', 'error');
-            return;
-        }
-        setButtonBusy(elements.run, true, 'Analyzing…', 'Analyze object');
-        setStatus(`Tracing ${selectedFile.name} across the selected libraries…`);
-        try {
-            const response = await window.electronAPI.analyzeObject({ library: selectedFile.library, relativePath: selectedFile.relativePath });
-            if (!response?.success || !response.result) throw new Error(response?.error || 'The object could not be analyzed.');
-            renderResult(response.result);
-            setStatus('Analysis complete. Confirm the review notes before conversion.', 'success');
-        } catch (error) {
-            setStatus(error instanceof Error ? error.message : String(error), 'error');
-        } finally {
-            setButtonBusy(elements.run, false, '', 'Analyze object');
-        }
     }
 
     elements.tree?.addEventListener('click', (event) => {
         const actionButton = event.target.closest?.('[data-analysis-action="true"]');
         const fileButton = event.target.closest?.('[data-analysis-file="true"]');
         if (!selectSourceFile(fileButton)) return;
-        if (actionButton) void analyzeSelectedFile();
+        if (actionButton) void actions.analyze();
     });
 
     elements.tree?.addEventListener('keydown', (event) => {
@@ -781,10 +554,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }));
 
     elements.chooseDirectory?.addEventListener('click', async () => {
-        const selectedDirectory = await window.electronAPI.selectObjectAnalysisDirectory();
-        if (!selectedDirectory) return;
         setButtonBusy(elements.chooseDirectory, true, 'Selecting…', 'Choose directory');
         try {
+            const selectedDirectory = await window.electronAPI.selectObjectAnalysisDirectory();
+            if (!selectedDirectory) return;
             settings = await window.electronAPI.saveObjectAnalysisSettings({ source: 'local', localDirectory: selectedDirectory, sourceLibrary: null });
             libraryDraft = activeLibraries().slice();
             await refreshEnvironmentLibraries(true, { source: 'local', localDirectory: selectedDirectory });
@@ -863,91 +636,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             setStatus(error instanceof Error ? error.message : String(error), 'error');
         } finally {
             setButtonBusy(elements.saveLibraries, false, '', 'Save permanently');
-        }
-    });
-
-    elements.loadSource?.addEventListener('click', () => void loadSelectedSource());
-    elements.copySource?.addEventListener('click', async () => {
-        const source = elements.sourcePreviewCode?.textContent || '';
-        if (!source) return;
-        try {
-            await navigator.clipboard.writeText(source);
-            setStatus('Source copied to the clipboard.', 'success');
-        } catch (error) {
-            setStatus(error instanceof Error ? error.message : 'The source could not be copied.', 'error');
-        }
-    });
-    elements.hideSource?.addEventListener('click', () => {
-        if (elements.sourcePreview) elements.sourcePreview.hidden = true;
-    });
-    elements.run?.addEventListener('click', () => void analyzeSelectedFile());
-
-    elements.approve?.addEventListener('click', async () => {
-        if (!latestResult || !selectedFile || latestResult.approval?.status === 'approved') return;
-        setButtonBusy(elements.approve, true, 'Saving…', 'Approve & map report');
-        setStatus(`Approving and mapping ${latestResult.root.library}/${latestResult.root.name}…`);
-        try {
-            const response = await window.electronAPI.approveObjectAnalysis({
-                library: selectedFile.library,
-                relativePath: selectedFile.relativePath
-            }, latestResult);
-            if (!response?.success || !response.result) throw new Error(response?.error || 'The approved report could not be saved.');
-            latestResult = response.result;
-            renderReportStorage(latestResult);
-            setStatus(`Approved report saved and mapped to ${latestResult.reportArtifact?.key}.`, 'success');
-        } catch (error) {
-            if (latestResult) latestResult.approval = { status: 'draft' };
-            renderReportStorage(latestResult || {});
-            setStatus(error instanceof Error ? error.message : String(error), 'error');
-        } finally {
-            if (latestResult?.approval?.status !== 'approved') setButtonBusy(elements.approve, false, '', 'Approve & map report');
-        }
-    });
-
-    elements.aiButton?.addEventListener('click', async () => {
-        if (!latestResult || !selectedFile) return;
-        setButtonBusy(elements.aiButton, true, 'Preparing…', 'Explain with IBMEye AI');
-        if (elements.aiSection) {
-            elements.aiSection.hidden = false;
-            elements.aiSection.open = true;
-        }
-        if (elements.aiMeta) elements.aiMeta.textContent = 'Working…';
-        if (elements.aiContent) elements.aiContent.innerHTML = '<p class="ai-report-pending"><i class="bi bi-hourglass-split me-2"></i>Reading the source and confirmed dependency evidence…</p>';
-        try {
-            const response = await window.electronAPI.analyzeObjectWithAi({
-                library: selectedFile.library,
-                relativePath: selectedFile.relativePath
-            }, latestResult);
-            if (!response?.success || !response.reply) throw new Error(response?.error || 'IBMEye AI could not complete the business analysis.');
-            latestResult = response.result || latestResult;
-            latestResult.aiReport ||= {
-                content: response.reply,
-                providerLabel: response.availability?.providerLabel || 'IBMEye AI',
-                model: response.availability?.selectedModel || 'configured model',
-                generatedAt: new Date().toISOString()
-            };
-            renderAiReport(latestResult.aiReport);
-            renderReportStorage(latestResult);
-            setStatus('Business logic report added. Download the combined report when ready.', 'success');
-        } catch (error) {
-            if (elements.aiMeta) elements.aiMeta.textContent = 'Analysis unavailable';
-            if (elements.aiContent) elements.aiContent.innerHTML = `<p class="ai-report-error">${escapeHtml(error?.message || 'Unable to complete the business analysis.')}</p>`;
-            setStatus(error instanceof Error ? error.message : String(error), 'error');
-        } finally {
-            setButtonBusy(elements.aiButton, false, '', 'Explain with IBMEye AI');
-        }
-    });
-
-    elements.download?.addEventListener('click', async () => {
-        if (!latestResult) return;
-        elements.download.disabled = true;
-        try {
-            const response = await window.electronAPI.saveObjectAnalysisReport(latestResult);
-            setStatus(response.success ? `Report saved to ${response.filePath}.` : (response.error || 'Report was not saved.'), response.success ? 'success' : 'error');
-        } catch (error) {
-            setStatus(error instanceof Error ? error.message : String(error), 'error');
-        } finally {
-            elements.download.disabled = false;
         }
     });
 

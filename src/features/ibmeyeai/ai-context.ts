@@ -46,7 +46,7 @@ export function buildAiAssistantContext(input: BuildAiAssistantContextInput) {
     const connectionLabel = formatConnection(input.connection);
     const selectedJob = input.selectedJob ?? null;
     const alerts = input.alerts.slice(0, input.settings.alertLimit).map((alert) => (
-        `${alert.severity.toUpperCase()} ${alert.kind} ${alert.jobName ? `job=${alert.jobName} ` : ''}${alert.title} :: ${alert.message}`
+        `${alert.severity.toUpperCase()} ${alert.kind} ${alert.jobName ? `job=${alert.jobName} ` : ''}${alert.title} :: ${alert.message} :: ${formatIncidentEvidence(alert)}`
     ));
     const jobs = input.latestJobs.slice(0, input.settings.jobLimit).map((job) => (
         `${getJobTitle(job)} status=${job.STATUS || 'UNKNOWN'} cpu=${toNumber(job.CPU).toFixed(2)} user=${job.CURRENT_USER || job.JOB_USER || 'UNKNOWN'} function=${job.FUNCTION_NAME || 'Unknown'}`
@@ -115,4 +115,20 @@ function formatConnection(connection: ConnectionContext | null) {
     const namePrefix = connection.name ? `${connection.name} ` : '';
     const port = connection.port ? `:${connection.port}` : '';
     return `${namePrefix}(${connection.user}@${connection.host}${port})`;
+}
+
+function formatIncidentEvidence(alert: MonitorAlert) {
+    const evidence = alert.evidence;
+    if (!evidence) {
+        return 'evidence=pending';
+    }
+
+    const sources = ['trigger', 'job', 'jobLog', 'messages', 'queue', 'subsystem'] as const;
+    const status = sources.map((source) => (
+        `${source}=${evidence[source].status}/${evidence[source].recordCount}`
+    )).join(',');
+    const excerpts = [...evidence.messages.records, ...evidence.jobLog.records]
+        .slice(0, 4)
+        .map((record) => JSON.stringify(record).slice(0, 320));
+    return `evidence=${status}${excerpts.length ? ` excerpts=${excerpts.join(' | ')}` : ''}`;
 }

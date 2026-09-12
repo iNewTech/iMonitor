@@ -70,7 +70,7 @@ export function initIBMEyeAiWidget(dependencies) {
 
     function render(snapshot) {
         const providerMarkup = getProviderCatalog(snapshot).map((provider) => (
-            `<option value="${provider.id}">${provider.label}</option>`
+            `<option value="${provider.id}">${provider.symbol} ${provider.label}</option>`
         )).join('');
         providerInput.innerHTML = providerMarkup;
         providerInput.value = snapshot.settings?.provider || 'ollama';
@@ -78,11 +78,14 @@ export function initIBMEyeAiWidget(dependencies) {
         const activeProvider = snapshot.settings?.provider || 'ollama';
         const selectedModel = snapshot.settings?.model || snapshot.availability?.selectedModel || '';
         const modelNames = getProviderModels(snapshot, activeProvider);
-        modelInput.innerHTML = [
-            '<option value="">Auto-select provider default</option>',
-            ...modelNames.map((model) => `<option value="${model}">${model}</option>`)
-        ].join('');
+        modelInput.innerHTML = modelNames.length
+            ? [
+                '<option value="">Auto-select provider default</option>',
+                ...modelNames.map((model) => `<option value="${model}">${model}</option>`)
+            ].join('')
+            : '<option value="" selected disabled>Set up a model first</option>';
         modelInput.value = selectedModel;
+        modelInput.disabled = !modelNames.length;
         setElementText(modelSource, getProviderModelSourceHint(snapshot, activeProvider));
 
         transcript.innerHTML = buildAiTranscriptMarkup(
@@ -143,9 +146,17 @@ export function initIBMEyeAiWidget(dependencies) {
             return;
         }
 
-        persist({
-            widgetWidth: nextEntry.contentRect.width,
-            widgetHeight: nextEntry.contentRect.height
+        // CSS dimensions include padding and borders. Persist the observed
+        // border box without applying it again inside the resize callback.
+        const box = nextEntry.borderBoxSize[0];
+        if (!box || box.inlineSize <= 0 || box.blockSize <= 0) return;
+        const width = Math.round(box.inlineSize);
+        const height = Math.round(box.blockSize);
+        if (width === preferences.widgetWidth && height === preferences.widgetHeight) return;
+        preferences = saveIBMEyeAiPreferences({
+            ...preferences,
+            widgetWidth: width,
+            widgetHeight: height
         });
     });
 

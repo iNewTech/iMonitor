@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Split analysis rendering, request coordination, source discovery, and main-process analysis setup into focused modules.
+- Organized styles by feature behind an ordered import manifest and reused shared monitor formatters.
+- Fixed source discovery for common IBM i export layouts, preserved disk casing, and excluded generated analysis output.
+- Prevented late analysis/source responses from replacing a newly selected program and restored draft approval after AI changes.
+- Added evidence-based executable call graphs, conservative compile-plan validation, and artifact-path checks.
+- Improved task-window retry, action feedback, keyboard navigation, history, and request coordination.
+- Fixed immediate job-owner updates, AI preset menu layering, and a floating AI widget resize loop.
+- Improved analysis panel spacing, sidebar scrolling, responsive action rows, and theme tokens.
+- Added renderer syntax/import validation to builds and expanded domain and Electron regression coverage.
+- Added bounded, redacted incident evidence capture with durable source status in alerts, task windows, and AI context.
+- Updated architecture, technical, feature, and alert-workflow documentation.
+
 - Renamed the main monitor workspace to `iMonitor ActionBoard`.
 - Added structured ActionBoard audit records for IBM i job actions.
 

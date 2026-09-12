@@ -1,140 +1,73 @@
 # iMonitor
 
-iMonitor is the desktop app for IBM i teams. Inside it, `IBMEye` is the alert and watch module that tracks conditions such as `MSGW`, `LCKW`, high CPU, and failed polls while iMonitor keeps connection, monitoring, and logs in one operator surface.
+iMonitor is an Electron desktop app for IBM i operations. Its ActionBoard brings live jobs, incident ownership, job queues, and IBMEye AI assistance into one workspace.
 
-## What The App Does
+## Operator workflow
 
-- Connects to IBM i systems through Mapepire
-- Auto-starts live monitoring after connect
-- Shows active job health, waits, CPU, and SQL details
-- Shows root-cause guidance in the job detail drawer
-- Includes an Ollama-backed IBMEye AI analyst on the ActionBoard for alert, SQL, and selected-job analysis
-- Includes a dedicated Settings page for AI providers and action integrations
-- Supports drawer-based operator actions for hold, release, and end job
-- Raises operator alerts, desktop notifications, and SMTP email notifications
-- Keeps detailed developer diagnostics out of the operator UI
-- Can detect, start, or deploy Mapepire during connect
-- Includes a development-only demo system for UI testing without real credentials
+- Connect through Mapepire using a saved system profile.
+- Scan active jobs, filter by subsystem/status, or use **Focus Next Job** to inspect a priority job.
+- Open a job in its own task window. Multiple job windows can stay open together.
+- Read the issue, claim work, inspect history, ask AI for an explanation or resolution guidance, and deliberately choose an available job action.
+- **Mark Work Done** records the operator's progress. Monitoring must confirm recovery before the incident is cleared.
+- Inspect queued work in the separate **Job queues** panel before Support.
 
-## Quick Start
+Polling supports preset intervals and a custom interval in seconds. Job rows show incident context and the assigned operator when available; a running job can still have a high-CPU incident.
 
-### 1. Install dependencies
+## Run locally
 
 ```bash
 npm install
-```
-
-### 2. Start the app
-
-```bash
 npm start
 ```
 
-### 3. Use the app
+`npm start` builds TypeScript, checks browser JavaScript syntax/imports, and launches Electron from this checkout. In development, the saved **Demo connection** lets you connect without an IBM i host. Packaged builds disable demo access.
 
-1. Enter a connection name, system address, user, password, and Mapepire port.
-2. Click `Connect Now`.
-3. iMonitor will:
-   - check whether Mapepire is already running
-   - start it if it is installed but stopped
-   - deploy it if it is missing
-   - connect and open the monitor
-4. Watch the action bar below the button for the current step.
+For renderer-only edits, reload the app window. Main-process/preload changes require an app restart. When using a Git worktree, launch from the checkout containing your changes.
 
-## Demo Mode
+## AI and integrations
 
-Use `Launch Demo` to open a local test system with generated jobs, waits, alerts, and monitoring history.
+Settings contains provider setup, notification rules, and integrations. IBMEye supports local Ollama models and hosted provider adapters for OpenAI, Claude, and Grok. Availability depends on the provider's configuration and the active entitlement. AI provides guidance; it does not automatically execute IBM i recovery actions.
 
-This is only available in development builds. Packaged production builds do not expose demo mode and will ignore demo connection requests.
+- **ClickUp:** a claim creates a linked work item when configured; later workflow activity is synchronized. The main process owns task creation.
+- **Slack:** shared-channel webhook alerts.
+- **Jira:** incident issues for enabled watch conditions.
+- **Email:** SMTP notifications.
+- **SMS:** a configured compatible HTTP provider.
 
-## Logs And Diagnostics
+Test delivery controls send real external messages or create work items. Local tests use isolated stores and mock external integrations.
 
-The operator sees only a small status bar for monitoring health. Detailed application activity is kept in the main process and written to encrypted daily developer logs using Electron's local secure storage. There is no renderer bridge for reading, downloading, or opening those logs.
+## Object analysis
 
-The Support menu creates a separate encrypted diagnostics file containing app metadata, monitoring summaries, and recent developer activity. Credentials are redacted before the file is encrypted. A support public key must be configured as `IMONITOR_SUPPORT_PUBLIC_KEY`; the corresponding private key remains with the application developer.
+Browse local exported sources or choose an IBM i source library. The ordered library list controls **object lookup**, independently of the source browser. It loads from `setup.json`/`settings.json` when available; **Apply for this session** changes the active list, while **Save permanently** writes `setup.json`.
 
-## Email Notifications
+**Analyze object** produces dependency inventory, business-rule findings, program flow, a call graph, and a conversion plan. Local analysis uses source and available catalog evidence. Live analysis additionally collects supported IBM i metadata. AI explanations are optional and distinguish source evidence from inferred behavior.
 
-The iMonitor ActionBoard includes SMTP email notification settings for `IBMEye Alerts`.
+**Compile plan** becomes available after analysis. It saves ordered build JSON and CL under `imonitor-analysis/build/<LIBRARY>/`. Unsupported commands, cycles, missing sources, and uncertain build metadata require manual review. Generation does not run compilation.
 
-You can:
+**Approve & map report** saves the report and its source mapping under `imonitor-analysis/reports/`. An AI addition returns the report to draft for approval. Generated output directories are excluded from source discovery. See [the technical guide](docs/TECHNICAL.md) for paths and boundaries.
 
-- enable or disable alert emails
-- set SMTP host, port, secure mode, username, and password
-- set sender and recipient addresses
-- send a test email before relying on it during incidents
+## macOS widget
 
-Alert-triggering conditions such as `MSGW`, `LCKW`, high CPU, failed polls, and disconnects can now send email when the alert itself is enabled and the SMTP settings are valid.
+A native WidgetKit scaffold lives in [`macos-widget/`](macos-widget/README.md). Electron writes job/CPU summaries for it; building and signing the native extension still requires the documented Xcode/App Group setup. It is not an automatically installed widget, and macOS controls its refresh schedule.
 
-## Alert Tickets And Diagnostics
+## Checks
 
-`IBMEye Alerts` sends newly detected alerts to the configured Slack channel. ClickUp is an action-tracking destination, not an automatic alert sink: no ClickUp task is created when an alert first appears.
+```bash
+npm run build           # TypeScript plus renderer syntax/import checks
+npm run test:unit       # Domain and runtime tests
+npm run test:e2e        # Isolated Electron UI tests
+npm test               # All of the above
+```
 
-When an operator selects `Start Work`, iMonitor creates one ClickUp task for that incident, assigns it to the active operator, and links it back to the alert. The backend then adds an AI-generated diagnostic with the issue, likely cause, and resolution guidance, and attaches only the matching job history when captured history exists. If a task already exists, later workflow updates are added as comments instead of creating duplicates.
+UI tests exercise the development demo, not a production IBM i host. Live commands, credentials, platform signing, and real integration delivery still need environment-specific validation.
 
-If AI or job-history attachment is unavailable, iMonitor keeps the ClickUp task and records the failure in encrypted developer diagnostics instead of losing the incident.
+## Documentation
 
-## AI Analysis
+- [Features and access](docs/FEATURES.md)
+- [Technical guide and maintenance rules](docs/TECHNICAL.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Incident lifecycle and integrations](docs/ALERT_WORKFLOW.md)
+- [Mapepire setup](docs/MAPEPIRE_SETUP.md)
+- [Change log](CHANGELOG.md)
 
-The `IBMEye Watch` area on the dashboard now includes a local AI analyst panel.
-
-It can:
-
-- summarize current alerts
-- explain selected-job waits
-- review recent SQL and diagnostic activity
-- suggest likely cause and next best action
-
-For now this uses local Ollama on `http://127.0.0.1:11434`. The feature is intentionally isolated so it can be licensed or removed later without changing the rest of iMonitor.
-
-Use `Settings` to switch the active AI provider, choose that provider's model, and save its required setup values in one place. The dashboard keeps the chat and AI actions, while setup now lives off the main monitor screen.
-
-## ClickUp Action Tracking
-
-The new `Settings` page also includes ClickUp setup for action tracking.
-
-You can:
-
-- save one ClickUp token locally
-- choose the workspace, space, and list used for alert tasks
-- start work on an alert to create one assigned task
-- keep later operator notes and workflow updates synced as ClickUp comments
-- open the linked ClickUp task from the alert
-- add AI diagnostic comments and the current readable log to the task created when work starts
-
-## Slack Channel Alerts
-
-`iMonitor` can send new `IBMEye Alerts` to one shared Slack operations channel through an Incoming Webhook. The webhook is connected to its channel in Slack, so the app does not need to select or message an individual user. Slack settings are saved per local operator.
-
-In `Settings`, paste the webhook URL and channel label in the Slack card, then enable Slack in the `IBMEye Alerts` notification channels. The alert conditions enabled in that shared panel are the single source of truth for Desktop, Slack, and Email delivery. Use `Send Test` to verify the connection. Repeated polls for the same active condition are not sent repeatedly.
-
-## Jira Incident Tracking
-
-Jira is an optional Premium alert destination. Configure the Jira site URL, account email, API token, project key, and issue type in `Settings`, then enable Jira in the `IBMEye Alerts` notification channels. Each newly created watched alert creates one Jira issue with the incident, severity, job, timestamp, message, and IBM i details. `Create Test Issue` verifies the configured Jira project and credentials.
-
-## Support Tools
-
-The Support menu is available even before login. `Contact Only` opens a normal email draft. `Contact + Send Encrypted Diagnostics` creates a support bundle containing the app version, platform details, connection context, recent monitor snapshots, and developer activity. The bundle is encrypted for the application developer before it is written to disk.
-
-The ActionBoard and job detail drawer are read-only for investigation until an operator deliberately chooses an IBM i action. Built-in guidance explains likely causes, impact, and safe checks for waits, high CPU, poll failures, and connection failures.
-
-## Current Operator Actions
-
-The job detail drawer currently supports:
-
-- `Hold Job`
-- `Release Job`
-- `End Job`
-
-These actions are recorded in encrypted developer diagnostics. In demo mode they are simulated safely for UI and workflow testing.
-
-`Reply to MSGW` and deeper lock investigation are the next actions to finish and need additional IBM i message and lock context.
-
-## Project Notes
-
-- User guide and setup notes: [docs/FEATURES.md](docs/FEATURES.md)
-- Technical developer guide: [docs/TECHNICAL.md](docs/TECHNICAL.md)
-- Architecture overview: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- Alert workflow notes: [docs/ALERT_WORKFLOW.md](docs/ALERT_WORKFLOW.md)
-- Mapepire setup notes: [docs/MAPEPIRE_SETUP.md](docs/MAPEPIRE_SETUP.md)
-- Change log: [CHANGELOG.md](CHANGELOG.md)
+Support is available before and after connection. Developer diagnostics are encrypted locally; support bundles are redacted and encrypted for the configured support public key. No renderer API exposes raw developer logs.

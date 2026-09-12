@@ -56,6 +56,15 @@ interface RegisterObjectAnalysisIpcDependencies {
         filePath?: string;
         error?: string;
     }>;
+    generateCompilePlan: (
+        request: AnalyzeObjectRequest,
+        result: ObjectAnalysisResult
+    ) => Promise<{
+        success: boolean;
+        result: ObjectAnalysisResult;
+        compilePlan?: ObjectAnalysisResult['compilePlan'];
+        error?: string;
+    }>;
     recordActivity: (entry: {
         area: 'navigation' | 'monitoring';
         level: 'info' | 'success' | 'warning' | 'error';
@@ -226,6 +235,29 @@ export function registerObjectAnalysisIpc(dependencies: RegisterObjectAnalysisIp
         }
 
         return dependencies.saveReport(result);
+    });
+
+    ipcMain.handle('generate-object-analysis-compile-plan', async (_event, request: unknown, result?: ObjectAnalysisResult) => {
+        if (!isSafeAnalysisRequest(request) || !result?.root?.name || !Array.isArray(result.nodes) || !Array.isArray(result.edges)) {
+            return { success: false, error: 'Run a valid analysis before generating a compile plan.' };
+        }
+
+        try {
+            const response = await dependencies.generateCompilePlan(request, result);
+            dependencies.recordActivity({
+                area: 'monitoring',
+                level: response.success ? 'success' : 'error',
+                message: response.success
+                    ? `Compile plan generated for ${result.root.library}/${result.root.name}.`
+                    : `Compile plan generation failed for ${result.root.library}/${result.root.name}.`,
+                detail: response.compilePlan?.artifact?.relativePath || response.error
+            });
+            return response;
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Unable to generate the compile plan.';
+            dependencies.recordActivity({ area: 'monitoring', level: 'error', message: 'Compile plan generation failed.', detail: message });
+            return { success: false, error: message };
+        }
     });
 
 }

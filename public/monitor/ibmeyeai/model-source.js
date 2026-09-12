@@ -8,16 +8,17 @@ export function getAiProviderOption(snapshot, providerId) {
 }
 
 export function getProviderModels(snapshot, providerId) {
-    const provider = getAiProviderOption(snapshot, providerId);
-    if (!provider) {
+    if (!getAiProviderOption(snapshot, providerId)) {
         return [];
     }
 
-    if (snapshot.availability?.provider === providerId && snapshot.availability?.availableModels?.length) {
-        return snapshot.availability.availableModels.slice();
+    if (snapshot.availability?.provider !== providerId) {
+        return [];
     }
 
-    return provider.suggestedModels.slice();
+    return Array.isArray(snapshot.availability.availableModels)
+        ? snapshot.availability.availableModels.slice()
+        : [];
 }
 
 export function getProviderModelSourceHint(snapshot, providerId) {

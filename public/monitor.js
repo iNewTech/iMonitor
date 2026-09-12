@@ -1,3 +1,13 @@
+import { escapeHtml, formatTimestamp, formatNumber, formatCpuValue, formatMegabytes, getJobKey, getStatusBadgeClass } from './monitor/formatters.js';
+import {
+    buildAlertMarkup as buildAlertView,
+    buildDetailIncidentActionsMarkup,
+    formatWorkflowLabel,
+    getAlertConditionLabel,
+    getAlertOwner,
+    isClaimedAlert,
+    isOwnedByCurrentOperator
+} from './monitor/alert-view.js';
 import { renderHistory as renderHistoryView } from './monitor/history.js';
 import { initAiAssistant } from './monitor/ai-assistant.js';
 import {
@@ -26,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const openSettingsButton = document.getElementById('open-settings');
     const openAiSettingsButton = document.getElementById('open-ai-settings');
     const refreshInterval = document.getElementById('refresh-interval');
+    const customRefreshSeconds = document.getElementById('custom-refresh-seconds');
     const systemStats = document.getElementById('system-stats');
     const appStatusBar = document.getElementById('app-status-bar');
     const appStatusIndicator = document.getElementById('app-status-indicator');
@@ -46,6 +57,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const actionboardActiveJobCount = document.getElementById('actionboard-active-job-count');
     const actionboardWaitingJobCount = document.getElementById('actionboard-waiting-job-count');
     const heroFocusNextButton = document.getElementById('hero-focus-next');
+    const superpanelFocusNextButton = document.getElementById('superpanel-focus-next');
+    const superpanelFocusCopy = document.getElementById('superpanel-focus-copy');
+    const superpanelMetricsSlot = document.getElementById('superpanel-metrics-slot');
+    const superpanelAiSlot = document.getElementById('superpanel-ai-slot');
     const actionboardQuickLinks = Array.from(document.querySelectorAll('[data-actionboard-target]'));
     const alertsPanel = document.querySelector('.alerts-panel');
     const jobQueuesPanel = document.getElementById('job-queues-panel');
@@ -117,9 +132,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const detailGuidanceCause = document.getElementById('detail-guidance-cause');
     const detailGuidanceSteps = document.getElementById('detail-guidance-steps');
     const detailGuidanceTechnical = document.getElementById('detail-guidance-technical');
+    const detailIssueSection = document.getElementById('detail-issue-section');
+    const detailIssueTitle = document.getElementById('detail-issue-title');
+    const detailIssueState = document.getElementById('detail-issue-state');
+    const detailIssueSummary = document.getElementById('detail-issue-summary');
+    const detailIssueHistory = document.getElementById('detail-issue-history');
+    const detailIncidentActions = document.getElementById('detail-incident-actions');
     const detailOperatorActions = document.getElementById('detail-operator-actions');
     const detailOperatorActionNote = document.getElementById('detail-operator-action-note');
     const detailAiHealth = document.getElementById('detail-ai-health');
+    const jobTaskTabs = Array.from(document.querySelectorAll('[data-job-task-tab]'));
+    const jobTaskPanels = Array.from(document.querySelectorAll('[data-job-task-panel]'));
     const detailStatusHistory = document.getElementById('detail-status-history');
     const loadJobLogButton = document.getElementById('load-job-log');
     const loadJobMessagesButton = document.getElementById('load-job-messages');
@@ -145,15 +168,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const themeMenuOptions = document.getElementById('theme-menu-options');
     const themeDescription = document.getElementById('theme-description');
 
-    // Keep the operator flow in priority order: incidents, queued work, then AI.
-    // Anchor the queue immediately before AI so its position is deterministic
-    // even though the source markup keeps the operations sections together.
-    if (jobQueuesPanel) {
-        if (aiPanel) {
-            aiPanel.before(jobQueuesPanel);
-        } else {
-            alertsPanel?.after(jobQueuesPanel);
-        }
+    const activityMetrics = document.querySelector('.activity-metrics');
+    const aiAssistantBody = aiPanel?.querySelector('.panel-disclosure-body');
+    if (superpanelMetricsSlot && activityMetrics) {
+        superpanelMetricsSlot.append(activityMetrics);
+    }
+    if (superpanelAiSlot && aiAssistantBody) {
+        superpanelAiSlot.append(aiAssistantBody);
     }
 
     let monitoring = false;
@@ -244,61 +265,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function escapeHtml(value) {
-        return String(value ?? '').replace(/[&<>"']/g, (char) => (
-            {
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                '\'': '&#39;'
-            }[char]
-        ));
-    }
-
-    function formatTimestamp(value) {
-        const timestamp = new Date(value);
-        if (Number.isNaN(timestamp.getTime())) {
-            return escapeHtml(value);
-        }
-
-        return escapeHtml(timestamp.toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        }));
-    }
-
-    function formatNumber(value) {
-        const parsed = Number(value);
-        if (!Number.isFinite(parsed)) {
-            return '0';
-        }
-
-        return parsed.toLocaleString();
-    }
-
-    function formatCpuValue(value) {
-        const parsed = Number(value);
-        if (!Number.isFinite(parsed)) {
-            return '0.00%';
-        }
-
-        return `${parsed.toFixed(2)}%`;
-    }
-
-    function formatWorkflowLabel(status) {
-        const normalized = String(status || 'new').replace(/_/g, ' ');
-        switch (normalized) {
-            case 'work done':
-                return 'WORK DONE';
-            case 'system cleared':
-                return 'SYSTEM CLEARED';
-            default:
-                return normalized.toUpperCase();
-        }
-    }
-
     function matchesAlertFilter(alert, filter = alertFilter) {
         const active = alert?.isActive !== false;
         switch (filter) {
@@ -365,37 +331,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     ? `${activeAlertsOnly.length} active incident${activeAlertsOnly.length === 1 ? '' : 's'} in the queue.`
                     : 'No active incidents. The queue is clear.';
         }
-        if (actionboardFocusTitle) {
-            actionboardFocusTitle.textContent = focusedAlert
-                ? `Working: ${focusedAlert.jobName || focusedAlert.title || 'selected incident'}`
-                : attentionCount
-                    ? `${attentionCount} incident${attentionCount === 1 ? '' : 's'} need review`
-                    : activeAlertsOnly.length
-                        ? 'No incident is pinned'
-                        : 'All clear';
-        }
-        if (actionboardFocusCopy) {
-            actionboardFocusCopy.textContent = focusedAlert
-                ? 'This incident stays pinned while you investigate and record the next step.'
-                : activeAlertsOnly.length
-                    ? 'Use Focus next to bring the highest-priority unassigned incident into your work area.'
-                    : 'The board will surface the next incident when monitoring detects one.';
-        }
         if (focusNextAlertButton) {
             focusNextAlertButton.disabled = activeAlertsOnly.length === 0;
             focusNextAlertButton.innerHTML = activeAlertsOnly.length
                 ? `<i class="bi bi-crosshair me-1" aria-hidden="true"></i>${focusedAlert ? 'Focus another' : 'Focus next'}`
                 : '<i class="bi bi-check2-circle me-1" aria-hidden="true"></i>All clear';
-        }
-        if (heroFocusNextButton) {
-            heroFocusNextButton.disabled = activeAlertsOnly.length === 0;
-            heroFocusNextButton.querySelector('span').textContent = focusedAlert
-                ? 'Open incident'
-                : attentionCount
-                    ? 'Review next'
-                    : activeAlertsOnly.length
-                        ? 'Open queue'
-                        : 'All clear';
         }
 
         const countByFilter = {
@@ -411,53 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         syncAlertQuickFilters();
-    }
-
-    function getAlertOwner(alert) {
-        return String(alert?.owner || '').trim();
-    }
-
-    function isOwnedByCurrentOperator(alert) {
-        return Boolean(getAlertOwner(alert)) && getAlertOwner(alert) === currentOperatorName;
-    }
-
-    function isClaimedAlert(alert) {
-        return String(alert?.workflowStatus || '') === 'claimed';
-    }
-
-    function isOwnedWorkAlert(alert) {
-        const status = String(alert?.workflowStatus || '');
-        return isOwnedByCurrentOperator(alert) && (status === 'claimed' || status === 'work_done');
-    }
-
-    function premiumControl(label, feature, className, attributes = '') {
-        const available = entitlements.features?.[feature] !== false;
-        return `<button class="btn btn-outline-ink btn-sm ${className}${available ? '' : ' premium-locked'}" ${available ? '' : 'disabled'} ${attributes}>${available ? '' : '<i class="bi bi-lock-fill premium-action-icon" aria-hidden="true"></i>'}${label}</button>`;
-    }
-
-    function premiumIntegrationControl(label, feature, className, attributes = '') {
-        const available = entitlements.features?.[feature] !== false;
-        return `<button class="btn btn-outline-ink btn-sm ${className}${available ? '' : ' premium-locked'}" ${available ? '' : 'disabled'} ${attributes}>${available ? '' : '<i class="bi bi-lock-fill premium-action-icon" aria-hidden="true"></i>'}${label} <small class="premium-inline-label"><i class="bi bi-lock-fill" aria-hidden="true"></i>Premium</small></button>`;
-    }
-
-    function formatMegabytes(value) {
-        const parsed = Number(value);
-        if (!Number.isFinite(parsed)) {
-            return '0 MB';
-        }
-
-        return `${parsed.toLocaleString()} MB`;
-    }
-
-    function getJobKey(job) {
-        if (job?.JOB_NAME) {
-            return job.JOB_NAME;
-        }
-
-        const jobNumber = job?.JOB_NUMBER || '------';
-        const jobUser = job?.JOB_USER || 'UNKNOWN';
-        const jobName = job?.JOB_NAME_SHORT || 'UNKNOWN';
-        return `${jobNumber}/${jobUser}/${jobName}`;
+        updateFocusJobControls();
     }
 
     function setMonitoringState(isMonitoring, variant = 'idle') {
@@ -493,8 +387,31 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const selectedOption = refreshInterval.options[refreshInterval.selectedIndex];
-        currentRefresh.textContent = `Refresh cadence: ${selectedOption?.textContent || '5 seconds'}`;
+        currentRefresh.textContent = `Refresh cadence: ${describeSelectedRefreshInterval()}`;
+    }
+
+    function getSelectedRefreshInterval() {
+        if (!refreshInterval || refreshInterval.value !== 'custom') {
+            const interval = Number.parseInt(refreshInterval?.value || '5000', 10);
+            return Number.isFinite(interval) ? interval : 5000;
+        }
+
+        const seconds = Number.parseInt(customRefreshSeconds?.value || '5', 10);
+        const boundedSeconds = Math.min(3600, Math.max(2, Number.isFinite(seconds) ? seconds : 5));
+        if (customRefreshSeconds) {
+            customRefreshSeconds.value = String(boundedSeconds);
+        }
+        return boundedSeconds * 1000;
+    }
+
+    function describeSelectedRefreshInterval() {
+        const interval = getSelectedRefreshInterval();
+        if (interval < 60000) {
+            return `${Math.round(interval / 1000)} seconds`;
+        }
+
+        const minutes = interval / 60000;
+        return Number.isInteger(minutes) ? `${minutes} minute${minutes === 1 ? '' : 's'}` : `${Math.round(interval / 1000)} seconds`;
     }
 
     function updateSummary(jobs = []) {
@@ -601,26 +518,168 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function getStatusBadgeClass(status) {
-        switch (status) {
-            case 'RUN':
-                return 'bg-success';
+    function getJobStatusLabel(status) {
+        switch (String(status || '').trim().toUpperCase()) {
             case 'MSGW':
-                return 'bg-warning text-dark';
+                return 'Message wait';
             case 'LCKW':
-                return 'bg-danger';
+                return 'Lock wait';
             case 'DEQW':
+                return 'Dequeue wait';
             case 'DLYW':
-                return 'bg-info';
+                return 'Delay wait';
+            case 'RUN':
+                return 'Running';
             case 'END':
             case 'EOJ':
-                return 'bg-secondary';
+                return 'Ended';
             default:
-                return 'bg-secondary';
+                return status || 'Unknown';
         }
     }
 
-    function renderJobs(result) {
+    function getJobAttentionReason(job, linkedAlert = null) {
+        const status = String(job?.STATUS || '').trim().toUpperCase();
+        if (linkedAlert?.title) {
+            return linkedAlert.title;
+        }
+        if (status === 'MSGW') {
+            return 'Waiting for an operator message reply';
+        }
+        if (status === 'LCKW') {
+            return 'Waiting on a lock';
+        }
+        if (status === 'DEQW') {
+            return 'Waiting on a data queue';
+        }
+        if (status === 'DLYW') {
+            return 'Delayed wait';
+        }
+        const cpu = Number(job?.CPU) || 0;
+        if (cpu >= Number(highCpuThreshold?.value || 80)) {
+            return `High CPU at ${formatCpuValue(cpu)}`;
+        }
+        return 'No active incident linked';
+    }
+
+    function findAlertForJob(jobName) {
+        return latestAlerts.find((alert) => (
+            alert?.isActive !== false
+            && alert.jobName
+            && alert.jobName === jobName
+        )) || null;
+    }
+
+    function getJobPriorityScore(job) {
+        const jobName = getJobKey(job);
+        const linkedAlert = findAlertForJob(jobName);
+        const status = String(job?.STATUS || '').trim().toUpperCase();
+        const cpu = Number(job?.CPU) || 0;
+        const statusScore = {
+            MSGW: 70,
+            LCKW: 62,
+            DEQW: 48,
+            DLYW: 38,
+            RUN: 8
+        }[status] || 0;
+        const alertScore = linkedAlert ? getAlertPriorityScore(linkedAlert) : 0;
+        const cpuScore = Math.min(cpu, 100) / 2;
+        return statusScore + alertScore + cpuScore;
+    }
+
+    function getNextJobToFocus() {
+        const alertJob = latestAlerts
+            .filter((alert) => alert?.isActive !== false && alert.jobName)
+            .sort((left, right) => getAlertPriorityScore(right) - getAlertPriorityScore(left))
+            .map((alert) => latestJobs.find((job) => getJobKey(job) === alert.jobName))
+            .find(Boolean);
+
+        if (alertJob) {
+            return alertJob;
+        }
+
+        return latestJobs
+            .slice()
+            .sort((left, right) => getJobPriorityScore(right) - getJobPriorityScore(left))[0] || null;
+    }
+
+    function updateFocusJobControls() {
+        const nextJob = getNextJobToFocus();
+        const hasJobs = latestJobs.length > 0;
+        const nextJobName = nextJob ? getJobKey(nextJob) : '';
+        const nextReason = nextJob ? getJobAttentionReason(nextJob, findAlertForJob(nextJobName)) : '';
+
+        if (superpanelFocusNextButton) {
+            superpanelFocusNextButton.disabled = !hasJobs;
+            superpanelFocusNextButton.innerHTML = hasJobs
+                ? '<i class="bi bi-crosshair me-2" aria-hidden="true"></i>Focus Next Job'
+                : '<i class="bi bi-check2-circle me-2" aria-hidden="true"></i>No Jobs';
+        }
+        if (superpanelFocusCopy) {
+            superpanelFocusCopy.textContent = nextJob
+                ? `${nextJob.SUBSYSTEM_JOB || nextJobName}: ${nextReason}`
+                : 'The next job needing attention will open here with evidence, history, AI help, and actions.';
+        }
+        if (heroFocusNextButton) {
+            heroFocusNextButton.disabled = !hasJobs;
+            heroFocusNextButton.querySelector('span').textContent = selectedJobName
+                ? 'Open selected'
+                : hasJobs
+                    ? 'Focus next'
+                    : 'All clear';
+        }
+        if (actionboardFocusTitle) {
+            actionboardFocusTitle.textContent = selectedJobName
+                ? `Selected: ${selectedJobName}`
+                : nextJob
+                    ? `Next: ${nextJob.SUBSYSTEM_JOB || nextJobName}`
+                    : 'Waiting for first poll';
+        }
+        if (actionboardFocusCopy) {
+            actionboardFocusCopy.textContent = nextJob
+                ? nextReason
+                : 'The board will surface the next job that needs attention.';
+        }
+    }
+
+    function focusNextJob() {
+        const nextJob = getNextJobToFocus();
+        if (!nextJob) {
+            return;
+        }
+
+        const jobName = getJobKey(nextJob);
+        if (activeJobsPanel instanceof HTMLDetailsElement) {
+            activeJobsPanel.open = true;
+        }
+        jobFilters = {
+            subsystem: 'ALL',
+            query: '',
+            status: 'ALL'
+        };
+        if (jobsSubsystemFilter) {
+            jobsSubsystemFilter.value = 'ALL';
+        }
+        if (jobsSearchInput) {
+            jobsSearchInput.value = '';
+        }
+        syncJobQuickFilters();
+        renderJobs({ data: latestJobs });
+        if (window.electronAPI.openJobTaskWindow) {
+            void window.electronAPI.openJobTaskWindow(jobName);
+        } else {
+            void loadJobDetails(jobName);
+        }
+        window.requestAnimationFrame(() => {
+            const selectorValue = window.CSS?.escape ? window.CSS.escape(jobName) : jobName.replace(/"/g, '\\"');
+            const row = tbody?.querySelector(`[data-job-name="${selectorValue}"]`);
+            row?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            activeJobsPanel?.classList.add('is-command-target');
+            window.setTimeout(() => activeJobsPanel?.classList.remove('is-command-target'), 900);
+        });
+    }
+
+    function renderJobs(result, { updatePollTime = true } = {}) {
         if (!tbody) {
             return;
         }
@@ -629,20 +688,23 @@ document.addEventListener('DOMContentLoaded', () => {
         renderSubsystemFilterOptions(latestJobs);
         syncJobQuickFilters();
         updateSummary(latestJobs);
-        const pollTimestamp = result?.generatedAt || new Date().toISOString();
-        if (jobsLastPoll) {
-            jobsLastPoll.textContent = formatShortDateTime(pollTimestamp);
+        if (updatePollTime) {
+            const pollTimestamp = result?.generatedAt || new Date().toISOString();
+            if (jobsLastPoll) {
+                jobsLastPoll.textContent = formatShortDateTime(pollTimestamp);
+            }
+            updateLastUpdated(`Updated ${new Date(pollTimestamp).toLocaleString([], {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            })}`);
         }
-        updateLastUpdated(`Updated ${new Date(pollTimestamp).toLocaleString([], {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        })}`);
 
         if (!latestJobs.length) {
             updateVisibleJobsCount(0, 0);
+            updateFocusJobControls();
             showTableMessage('No active jobs to display');
             closeDrawer();
             return;
@@ -650,6 +712,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const visibleJobs = filterVisibleJobs(latestJobs, jobFilters);
         updateVisibleJobsCount(visibleJobs.length, latestJobs.length);
+        updateFocusJobControls();
 
         if (!visibleJobs.length) {
             showTableMessage('No jobs match the current subsystem or search.', 'bi-search', 'text-muted');
@@ -659,32 +722,54 @@ document.addEventListener('DOMContentLoaded', () => {
         tbody.innerHTML = visibleJobs.map((job) => {
             const jobName = getJobKey(job);
             const isSelected = selectedJobName === jobName;
+            const linkedAlert = findAlertForJob(jobName);
+            const reason = getJobAttentionReason(job, linkedAlert);
+            const status = String(job.STATUS || '').trim().toUpperCase();
+            const alertOwner = getAlertOwner(linkedAlert);
+            const ownerChip = linkedAlert && isClaimedAlert(linkedAlert) && alertOwner
+                ? `<span class="job-owner-chip" title="Worked by ${escapeHtml(alertOwner)}"><i class="bi bi-person-check" aria-hidden="true"></i>${escapeHtml(alertOwner)}</span>`
+                : '';
+            const rowTone = linkedAlert
+                ? ` has-incident is-${escapeHtml(linkedAlert.severity || 'warning')}`
+                : ['MSGW', 'LCKW', 'DEQW', 'DLYW'].includes(status)
+                    ? ' has-wait'
+                    : '';
 
             return `
                 <tr
-                    class="job-row${isSelected ? ' is-selected' : ''}"
+                    class="job-row${rowTone}${isSelected ? ' is-selected' : ''}"
                     data-job-name="${escapeHtml(jobName)}"
                     tabindex="0"
                     role="button"
                     aria-label="Open details for ${escapeHtml(job.SUBSYSTEM_JOB || jobName)}"
                 >
-                    <td>${escapeHtml(job.SUBSYSTEM_JOB)}</td>
-                    <td>${escapeHtml(job.CURRENT_USER)}</td>
-                    <td>${escapeHtml(job.TYPE)}</td>
-                    <td>${formatCpuValue(job.CPU)}</td>
-                    <td>${escapeHtml(job.FUNCTION_NAME)}</td>
                     <td>
-                        <span class="badge ${getStatusBadgeClass(job.STATUS)}">
-                            ${escapeHtml(job.STATUS)}
-                        </span>
+                        <div class="job-cell-primary">
+                            <strong>${escapeHtml(job.SUBSYSTEM_JOB || jobName)}</strong>
+                            <small>${escapeHtml(job.JOB_NAME || jobName)}</small>
+                        </div>
+                    </td>
+                    <td>${escapeHtml(job.CURRENT_USER || job.JOB_USER || '-')}</td>
+                    <td>${escapeHtml(job.SUBSYSTEM || job.TYPE || '-')}</td>
+                    <td>${formatCpuValue(job.CPU)}</td>
+                    <td>
+                        <div class="job-cell-primary">
+                            <strong>${escapeHtml(job.FUNCTION_NAME || '-')}</strong>
+                            <small>${escapeHtml(reason)}</small>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="job-state-cell">
+                        ${linkedAlert ? `<span class="job-incident-chip">${escapeHtml(getAlertConditionLabel(linkedAlert))}</span>` : ''}
+                        <span class="badge ${getStatusBadgeClass(status)}">${escapeHtml(getJobStatusLabel(status))}</span>
+                        ${ownerChip}
+                        </div>
                     </td>
                 </tr>
             `;
         }).join('');
 
-        if (selectedJobName) {
-            void loadJobDetails(selectedJobName);
-        }
+        selectedJobName = null;
     }
 
     function setOperatorStatus(message, level = 'info', detail = '') {
@@ -766,190 +851,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function buildAlertMarkup(alert, options = {}) {
-        const isExpanded = Boolean(options.expanded);
-        const isFocused = Boolean(options.focused);
-        const workflowLabel = formatWorkflowLabel(alert.workflowStatus);
-        const owner = getAlertOwner(alert);
-        const ownedByCurrentOperator = isOwnedByCurrentOperator(alert);
-        const claimedByAnotherOperator = isClaimedAlert(alert) && Boolean(owner) && !ownedByCurrentOperator;
-        const resolutionLabel = alert.resolutionSource === 'manual_recheck'
-            ? 'RESOLVED · RECHECK'
-            : 'RESOLVED · AUTO';
-        const stateMarkup = alert.isActive === false
-            ? `<span class="activity-log-badge">${resolutionLabel} ${formatTimestamp(alert.resolvedAt || alert.timestamp)}</span>`
-            : '<span class="activity-log-badge">ACTIVE</span>';
-        const recoveryMarkup = alert.kind === 'highCpu' && alert.isActive !== false && Number(alert.recoveryPollCount || 0) > 0
-            ? `<p class="alert-recovery-progress"><i class="bi bi-activity me-1"></i>Recovery check ${Number(alert.recoveryPollCount)} of ${Number(highCpuRecoveryPolls?.value || 3)} healthy polls</p>`
-            : '';
-        const ownerMarkup = owner
-            ? `<p class="alert-owner">${isClaimedAlert(alert) ? 'Working owner' : 'Assigned to'}: ${escapeHtml(owner)}</p>`
-            : '';
-        const timelineEntries = Array.isArray(alert.timeline) ? alert.timeline : [];
-        const isTimelineExpanded = expandedTimelineAlertIds.has(alert.id);
-        const timelineMarkup = timelineEntries.length
-            ? `
-                <div class="alert-history-shell">
-                    <div class="alert-history-header">
-                        <h4 class="alert-history-title">Incident history</h4>
-                        <p class="alert-history-copy">Operator actions and alert events for this incident.</p>
-                    </div>
-                    <div class="alert-timeline" data-testid="alert-timeline">
-                        ${timelineEntries.slice(0, isTimelineExpanded ? timelineEntries.length : 4).map((entry) => `
-                            <div class="alert-timeline-entry">
-                                <strong>${escapeHtml(entry.label)}</strong>
-                                <span>${formatTimestamp(entry.timestamp)}</span>
-                                ${entry.actor ? `<p>Operator: ${escapeHtml(entry.actor)}</p>` : ''}
-                                ${entry.detail ? `<p>${escapeHtml(entry.detail)}</p>` : ''}
-                            </div>
-                        `).join('')}
-                    </div>
-                    ${timelineEntries.length > 4 ? `
-                        <button class="btn btn-outline-ink btn-sm alert-history-toggle" type="button" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-history-toggle">
-                            <i class="bi bi-clock-history me-1" aria-hidden="true"></i>${isTimelineExpanded ? 'Show less history' : `Show all history (${timelineEntries.length})`}
-                        </button>
-                    ` : ''}
-                </div>
-            `
-            : '';
-        const openJobButton = alert.jobName
-            ? `
-                <button class="btn btn-outline-ink btn-sm alert-open-job" data-job-name="${escapeHtml(alert.jobName)}" data-testid="alert-open-job">
-                    Open Job
-                </button>
-            `
-            : '';
-        const acknowledgeButton = alert.workflowStatus === 'new'
-            ? `
-                <button class="btn btn-outline-ink btn-sm alert-acknowledge" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-acknowledge">
-                    Acknowledge
-                </button>
-            `
-            : '';
-        const claimButton = alert.isActive !== false && !claimedByAnotherOperator && !isClaimedAlert(alert)
-            ? `
-                <button class="btn btn-outline-ink btn-sm alert-claim" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-claim">
-                    Start Work
-                </button>
-            `
-            : '';
-        const releaseButton = isOwnedWorkAlert(alert)
-            ? `
-                <button class="btn btn-outline-ink btn-sm alert-release" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-release">
-                    Return To Queue
-                </button>
-            `
-            : '';
-        const workDoneButton = ownedByCurrentOperator && isClaimedAlert(alert)
-            ? `
-                <button class="btn btn-outline-ink btn-sm alert-work-done" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-work-done">
-                    Mark Work Done
-                </button>
-            `
-            : '';
-        const noteButton = `
-            <button class="btn btn-outline-ink btn-sm alert-note-action" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-note-toggle"${claimedByAnotherOperator ? ` disabled title="Claimed by ${escapeHtml(owner)}"` : ''}>
-                Add Note
-            </button>
-        `;
-        const aiAvailable = entitlements.features?.['ai-analysis'] !== false;
-        const explainButton = premiumControl(
-            `${aiAvailable ? '<img src="assets/ibmeyeai-eye-open.svg" alt="" aria-hidden="true" class="alert-ai-button-icon">' : ''}Explain Alert`,
-            'ai-analysis',
-            'alert-ai-button alert-ai-explain',
-            `data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-ai-explain" title="${aiAvailable ? 'Explain this alert with IBMEye AI' : 'IBMEye AI requires Premium'}"`
-        );
-        const nextActionsButton = premiumControl(
-            `${aiAvailable ? '<img src="assets/ibmeyeai-eye-open.svg" alt="" aria-hidden="true" class="alert-ai-button-icon">' : ''}Next Best Action`,
-            'ai-analysis',
-            'alert-ai-button alert-ai-next-actions',
-            `data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-ai-next-actions" title="${aiAvailable ? 'Get the next best action with IBMEye AI' : 'IBMEye AI requires Premium'}"`
-        );
-        const clickUpButton = alert.clickUpTask?.id
-            ? premiumIntegrationControl(
-                'Open ClickUp Task',
-                'clickup-integration',
-                'alert-clickup-open',
-                `data-task-url="${escapeHtml(alert.clickUpTask.url || '')}" data-testid="alert-clickup-open" title="${entitlements.features?.['clickup-integration'] !== false ? 'Open linked ClickUp task' : 'ClickUp integration requires Premium'}"`
-            )
-            : '';
-        const recheckButton = alert.isActive !== false
-            ? `
-                <button class="btn btn-outline-ink btn-sm alert-recheck" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-recheck"${pendingRecheckAlertIds.has(alert.id) ? ' disabled' : ''}>
-                    <i class="bi bi-arrow-repeat me-1"></i>${pendingRecheckAlertIds.has(alert.id) ? 'Checking...' : 'Recheck'}
-                </button>
-            `
-            : '';
-        const noteComposerMarkup = noteComposerAlertId === alert.id
-            ? `
-                <div class="alert-note-composer" data-testid="alert-note-composer">
-                    <label class="alert-note-label" for="alert-note-${escapeHtml(alert.id)}">Operator note</label>
-                    <textarea
-                        id="alert-note-${escapeHtml(alert.id)}"
-                        class="form-control alert-note-input"
-                        data-alert-id="${escapeHtml(alert.id)}"
-                        data-testid="alert-note-input"
-                        rows="3"
-                        placeholder="Describe what you checked, who owns it, or the next step."
-                    >${escapeHtml(noteDraftByAlertId.get(alert.id) || '')}</textarea>
-                    <div class="alert-note-actions">
-                        <button class="btn btn-primary-strong btn-sm alert-note-save" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-note-save">
-                            Save Note
-                        </button>
-                        <button class="btn btn-outline-ink btn-sm alert-note-cancel" data-alert-id="${escapeHtml(alert.id)}">
-                            Cancel
-                        </button>
-                    </div>
-                </div>
-            `
-            : '';
-        const summaryLabel = alert.jobName || alert.message;
-
-        return `
-            <article
-                class="alert-entry is-${escapeHtml(alert.severity)}${alert.isActive === false ? ' is-resolved' : ''}${isFocused ? ' is-focused' : ''}"
-                data-testid="${isFocused ? 'focus-alert-card' : 'alert-card'}"
-                data-alert-id="${escapeHtml(alert.id)}"
-            >
-                <button class="alert-toggle" data-alert-id="${escapeHtml(alert.id)}" data-testid="alert-toggle" aria-expanded="${isExpanded ? 'true' : 'false'}">
-                    <div class="alert-toggle-main">
-                        <div class="activity-log-meta">
-                            <div class="activity-log-tags">
-                                ${stateMarkup}
-                                <span class="activity-log-badge is-area" data-testid="alert-workflow-badge">${escapeHtml(workflowLabel)}</span>
-                                <span class="activity-log-badge">${escapeHtml(alert.severity.toUpperCase())}</span>
-                                <span class="activity-log-badge is-area">${escapeHtml(alert.kind.toUpperCase())}</span>
-                            </div>
-                            <time class="activity-log-time">${formatTimestamp(alert.timestamp)}</time>
-                        </div>
-                        <h3 class="activity-log-message">${escapeHtml(alert.title)}</h3>
-                        <p class="activity-log-detail">${escapeHtml(summaryLabel)}</p>
-                    </div>
-                    <span class="alert-toggle-icon" aria-hidden="true">${isExpanded ? '−' : '+'}</span>
-                </button>
-                ${isExpanded ? `
-                    <div class="alert-body" data-testid="alert-body">
-                        <p class="activity-log-detail">${escapeHtml(alert.message)}</p>
-                        ${alert.detail ? `<p class="activity-log-detail">${escapeHtml(alert.detail)}</p>` : ''}
-                        ${recoveryMarkup}
-                        ${ownerMarkup}
-                        ${timelineMarkup}
-                        ${noteComposerMarkup}
-                        <div class="alert-actions">
-                            ${acknowledgeButton}
-                            ${claimButton}
-                            ${releaseButton}
-                            ${workDoneButton}
-                            ${noteButton}
-                            ${explainButton}
-                            ${nextActionsButton}
-                            ${clickUpButton}
-                            ${recheckButton}
-                            ${openJobButton}
-                        </div>
-                    </div>
-                ` : ''}
-            </article>
-        `;
+        return buildAlertView(alert, {
+            operatorName: currentOperatorName,
+            features: entitlements.features,
+            recoveryPolls: Number(highCpuRecoveryPolls?.value || 3),
+            view: {
+                ...options,
+                timelineExpanded: expandedTimelineAlertIds.has(alert.id),
+                rechecking: pendingRecheckAlertIds.has(alert.id),
+                noteOpen: noteComposerAlertId === alert.id,
+                noteDraft: noteDraftByAlertId.get(alert.id) || ''
+            }
+        });
     }
 
     function renderAlerts(alerts) {
@@ -1054,7 +967,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function openAlertNoteComposer(alertId) {
         const alert = latestAlerts.find((entry) => entry.id === alertId);
-        if (alert && isClaimedAlert(alert) && getAlertOwner(alert) && !isOwnedByCurrentOperator(alert)) {
+        if (alert && isClaimedAlert(alert) && getAlertOwner(alert) && !isOwnedByCurrentOperator(alert, currentOperatorName)) {
             return;
         }
         noteComposerAlertId = alertId;
@@ -1089,13 +1002,13 @@ document.addEventListener('DOMContentLoaded', () => {
             .filter((alert) => (
                 alert?.isActive !== false
                 && matchesAlertFilter(alert, 'attention')
-                && (!isClaimedAlert(alert) || isOwnedByCurrentOperator(alert))
+                && (!isClaimedAlert(alert) || isOwnedByCurrentOperator(alert, currentOperatorName))
             ))
             .sort((left, right) => getAlertPriorityScore(right) - getAlertPriorityScore(left));
         const fallbackCandidates = latestAlerts
             .filter((alert) => (
                 alert?.isActive !== false
-                && (!isClaimedAlert(alert) || isOwnedByCurrentOperator(alert))
+                && (!isClaimedAlert(alert) || isOwnedByCurrentOperator(alert, currentOperatorName))
             ))
             .sort((left, right) => getAlertPriorityScore(right) - getAlertPriorityScore(left));
         const orderedCandidates = candidates.length ? candidates : fallbackCandidates;
@@ -1115,9 +1028,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function openActionboardSection(section) {
         const target = {
-            incidents: alertsPanel,
+            incidents: activeJobsPanel,
             queues: jobQueuesPanel,
-            ai: aiPanel,
+            ai: superpanelAiSlot || activeJobsPanel,
             jobs: activeJobsPanel
         }[section];
         if (!target) {
@@ -1287,6 +1200,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const openJobButton = target.closest('.alert-open-job');
         if (openJobButton?.dataset?.jobName) {
+            if (window.electronAPI.openJobTaskWindow) {
+                void window.electronAPI.openJobTaskWindow(openJobButton.dataset.jobName);
+                return;
+            }
+
             void loadJobDetails(openJobButton.dataset.jobName);
         }
     }
@@ -1399,6 +1317,57 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function setJobTaskTab(tabName = 'overview') {
+        const nextTab = jobTaskTabs.some((button) => button.dataset.jobTaskTab === tabName)
+            ? tabName
+            : 'overview';
+
+        jobTaskTabs.forEach((button) => {
+            const selected = button.dataset.jobTaskTab === nextTab;
+            button.classList.toggle('is-active', selected);
+            button.setAttribute('aria-selected', selected ? 'true' : 'false');
+        });
+
+        jobTaskPanels.forEach((panel) => {
+            const selected = panel.dataset.jobTaskPanel === nextTab;
+            panel.classList.toggle('is-active', selected);
+            panel.hidden = !selected;
+        });
+    }
+
+    function renderDetailIncidentActions(alert) {
+        if (!detailIncidentActions) {
+            return;
+        }
+        detailIncidentActions.innerHTML = buildDetailIncidentActionsMarkup(alert, {
+            operatorName: currentOperatorName,
+            features: entitlements.features
+        });
+    }
+
+    async function runDetailAlertWorkflow(alertId, action) {
+        if (!alertId || !action) {
+            return;
+        }
+
+        if (action === 'claim') {
+            setFocusedAlert(alertId);
+        }
+        if (action === 'release') {
+            clearFocusedAlert(alertId);
+        }
+
+        await window.electronAPI.updateAlertWorkflow({
+            alertId,
+            action,
+            owner: currentOperatorName
+        });
+
+        if (selectedJobName) {
+            await loadJobDetails(selectedJobName);
+        }
+    }
+
     function populateJobDetails(payload) {
         if (!payload?.job) {
             if (jobDetailEmpty) {
@@ -1411,6 +1380,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const job = payload.job;
+        const jobName = getJobKey(job);
+        const linkedAlert = findAlertForJob(jobName);
 
         if (jobDetailTitle) {
             jobDetailTitle.textContent = job.SUBSYSTEM_JOB || getJobKey(job) || 'Selected job';
@@ -1453,6 +1424,27 @@ document.addEventListener('DOMContentLoaded', () => {
         if (detailWaitReason) {
             detailWaitReason.textContent = payload.waitReason || 'No wait reason available.';
         }
+        if (detailIssueSection) {
+            detailIssueSection.hidden = false;
+        }
+        if (detailIssueTitle) {
+            detailIssueTitle.textContent = linkedAlert?.title || 'No linked incident';
+        }
+        if (detailIssueState) {
+            detailIssueState.textContent = linkedAlert
+                ? `${String(linkedAlert.severity || 'warning').toUpperCase()} | ${formatWorkflowLabel(linkedAlert.workflowStatus)}`
+                : 'Clear';
+        }
+        if (detailIssueSummary) {
+            detailIssueSummary.textContent = linkedAlert?.message || getJobAttentionReason(job, linkedAlert);
+        }
+        if (detailIssueHistory) {
+            const timelineCount = Array.isArray(linkedAlert?.timeline) ? linkedAlert.timeline.length : 0;
+            detailIssueHistory.textContent = linkedAlert
+                ? `${timelineCount} history event${timelineCount === 1 ? '' : 's'} recorded for this incident.`
+                : 'This job has no active incident record.';
+        }
+        renderDetailIncidentActions(linkedAlert);
         renderRootCauseGuidanceView({
             detailGuidanceHeadline,
             detailGuidanceSeverity,
@@ -1486,12 +1478,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             selectedJobName = jobName;
             populateJobDetails(payload);
+            updateFocusJobControls();
             if (detailWaitAiReport) {
                 detailWaitAiReport.hidden = true;
             }
             if (detailWaitAiContent) {
                 detailWaitAiContent.innerHTML = '';
             }
+            setJobTaskTab('overview');
             openDrawer();
 
             if (tbody) {
@@ -1527,7 +1521,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function startMonitoring() {
-        const interval = Number.parseInt(refreshInterval?.value || '5000', 10);
+        const interval = getSelectedRefreshInterval();
         if (!Number.isFinite(interval)) {
             showTableMessage('Refresh interval is invalid.', 'bi-exclamation-triangle', 'text-danger');
             return;
@@ -1605,11 +1599,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     refreshInterval?.addEventListener('change', (event) => {
+        if (customRefreshSeconds) {
+            customRefreshSeconds.hidden = event.target.value !== 'custom';
+        }
         if (monitoring) {
-            const nextInterval = Number.parseInt(event.target.value, 10);
+            const nextInterval = getSelectedRefreshInterval();
             if (Number.isFinite(nextInterval)) {
                 window.electronAPI.startMonitoring(nextInterval);
             }
+        }
+        updateRefreshLabel();
+    });
+
+    customRefreshSeconds?.addEventListener('change', () => {
+        if (monitoring) {
+            window.electronAPI.startMonitoring(getSelectedRefreshInterval());
         }
         updateRefreshLabel();
     });
@@ -1652,14 +1656,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    focusNextAlertButton?.addEventListener('click', focusNextAlert);
+    focusNextAlertButton?.addEventListener('click', focusNextJob);
+    superpanelFocusNextButton?.addEventListener('click', focusNextJob);
     heroFocusNextButton?.addEventListener('click', () => {
-        if (focusedAlertId) {
-            openActionboardSection('incidents');
-            window.requestAnimationFrame(() => focusAlertShell?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
-            return;
-        }
-        focusNextAlert();
+        focusNextJob();
     });
     actionboardQuickLinks.forEach((button) => {
         button.addEventListener('click', () => openActionboardSection(button.dataset.actionboardTarget));
@@ -1796,6 +1796,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        if (window.electronAPI.openJobTaskWindow) {
+            void window.electronAPI.openJobTaskWindow(row.dataset.jobName);
+            return;
+        }
+
         void loadJobDetails(row.dataset.jobName);
     });
 
@@ -1810,6 +1815,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         event.preventDefault();
+        if (window.electronAPI.openJobTaskWindow) {
+            void window.electronAPI.openJobTaskWindow(row.dataset.jobName);
+            return;
+        }
+
         void loadJobDetails(row.dataset.jobName);
     });
 
@@ -1908,6 +1918,47 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    detailIncidentActions?.addEventListener('click', async (event) => {
+        const workflowButton = event.target.closest('.detail-alert-action');
+        if (workflowButton?.dataset?.alertId && workflowButton.dataset.alertAction) {
+            const originalMarkup = workflowButton.innerHTML;
+            workflowButton.disabled = true;
+            workflowButton.innerHTML = 'Working...';
+
+            try {
+                await runDetailAlertWorkflow(workflowButton.dataset.alertId, workflowButton.dataset.alertAction);
+                setOperatorStatus('Incident workflow updated', 'success');
+            } catch (error) {
+                console.error('Unable to update incident workflow:', error);
+                setOperatorStatus('Incident workflow failed', 'danger', error?.message || '');
+                workflowButton.disabled = false;
+                workflowButton.innerHTML = originalMarkup;
+            }
+            return;
+        }
+
+        const aiButton = event.target.closest('.detail-alert-ai');
+        if (aiButton?.dataset?.alertId && aiButton.dataset.aiAction) {
+            const alert = latestAlerts.find((entry) => entry.id === aiButton.dataset.alertId);
+            if (!alert) {
+                return;
+            }
+
+            aiAssistant.openWidget();
+            void aiAssistant.submitPrompt(
+                aiButton.dataset.aiAction === 'resolve'
+                    ? buildAlertNextActionsPrompt(alert)
+                    : buildAlertExplanationPrompt(alert)
+            );
+            return;
+        }
+
+        const clickUpButton = event.target.closest('.detail-clickup-open');
+        if (clickUpButton?.dataset?.taskUrl) {
+            void window.electronAPI.openExternalUrl(clickUpButton.dataset.taskUrl);
+        }
+    });
+
     detailAiHealth?.addEventListener('click', () => {
         if (!selectedJobName) {
             return;
@@ -1915,6 +1966,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         aiAssistant.openWidget();
         void aiAssistant.submitPrompt(buildSelectedJobHealthPrompt(selectedJobName));
+    });
+
+    jobTaskTabs.forEach((button) => {
+        button.addEventListener('click', () => setJobTaskTab(button.dataset.jobTaskTab));
     });
 
     function formatWaitAnalysisEvidence(job, payload, messages, logs) {
@@ -2112,6 +2167,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.electronAPI.onAlertsUpdated((alerts) => {
         renderAlerts(alerts);
+        // Claims and releases change row badges without a new IBM i poll.
+        renderJobs({ data: latestJobs }, { updatePollTime: false });
         void aiAssistant.refresh();
     });
 

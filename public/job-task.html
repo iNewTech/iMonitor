@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iMonitor Job Task</title>
+    <link rel="stylesheet" href="../node_modules/bootstrap/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../node_modules/bootstrap-icons/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="job-task-body">
+    <main class="job-task-window">
+        <header class="job-task-header">
+            <div class="job-window-title-block">
+                <p class="eyebrow mb-1">Job Task</p>
+                <h1 id="task-title" class="section-title">Loading job</h1>
+                <p id="task-subtitle" class="panel-copy mb-0">Preparing current job evidence.</p>
+            </div>
+            <span id="task-sync-state" class="table-caption" role="status">Live</span>
+            <button id="task-refresh" type="button" class="btn btn-outline-ink btn-sm">Refresh</button>
+        </header>
+
+        <nav class="job-task-tabs" role="tablist" aria-label="Job task sections">
+            <button type="button" class="job-task-tab is-active" id="task-tab-overview" role="tab" aria-controls="task-panel-overview" aria-selected="true" tabindex="0" data-task-tab="overview">Overview</button>
+            <button type="button" class="job-task-tab" id="task-tab-actions" role="tab" aria-controls="task-panel-actions" aria-selected="false" tabindex="-1" data-task-tab="actions">Actions</button>
+            <button type="button" class="job-task-tab" id="task-tab-ai" role="tab" aria-controls="task-panel-ai" aria-selected="false" tabindex="-1" data-task-tab="ai">AI helper</button>
+            <button type="button" class="job-task-tab" id="task-tab-history" role="tab" aria-controls="task-panel-history" aria-selected="false" tabindex="-1" data-task-tab="history">History</button>
+            <button type="button" class="job-task-tab" id="task-tab-details" role="tab" aria-controls="task-panel-details" aria-selected="false" tabindex="-1" data-task-tab="details">Details</button>
+        </nav>
+
+        <section id="task-empty" class="activity-log-empty" role="status">
+            <i class="bi bi-hourglass-split"></i>
+            <span>Loading selected job...</span>
+        </section>
+
+        <section id="task-content" class="job-task-content" hidden>
+            <section class="job-task-panel is-active" id="task-panel-overview" role="tabpanel" aria-labelledby="task-tab-overview" tabindex="0" data-task-panel="overview">
+                <section id="task-issue-section" class="job-detail-section detail-issue-section">
+                    <div class="history-card-header">
+                        <div>
+                            <p class="eyebrow mb-1">Current Issue</p>
+                            <h2 id="task-issue-title" class="section-title">No linked incident</h2>
+                        </div>
+                        <span id="task-issue-state" class="table-caption">Clear</span>
+                    </div>
+                    <p id="task-issue-summary" class="panel-copy mb-2">-</p>
+                    <p id="task-issue-history" class="stat-note mb-0">-</p>
+                    <div id="task-incident-evidence" class="mt-3" data-testid="task-incident-evidence"></div>
+                </section>
+
+                <section class="job-detail-grid">
+                    <article class="job-detail-card"><span class="stat-label">Qualified Job</span><strong id="task-qualified-job" class="job-detail-value text-break">-</strong></article>
+                    <article class="job-detail-card"><span class="stat-label">Subsystem</span><strong id="task-subsystem" class="job-detail-value text-break">-</strong></article>
+                    <article class="job-detail-card"><span class="stat-label">User</span><strong id="task-user" class="job-detail-value text-break">-</strong></article>
+                    <article class="job-detail-card"><span class="stat-label">State</span><strong id="task-status" class="job-detail-value text-break">-</strong></article>
+                    <article class="job-detail-card"><span class="stat-label">CPU</span><strong id="task-cpu" class="job-detail-value text-break">-</strong></article>
+                    <article class="job-detail-card"><span class="stat-label">Threads</span><strong id="task-threads" class="job-detail-value text-break">-</strong></article>
+                </section>
+
+                <section class="job-detail-section">
+                    <div class="history-card-header">
+                        <div>
+                            <p class="eyebrow mb-1">Wait Analysis</p>
+                            <h2 class="section-title">Current wait reason</h2>
+                        </div>
+                    </div>
+                    <p id="task-wait-reason" class="panel-copy mb-0">-</p>
+                </section>
+            </section>
+
+            <section class="job-task-panel" id="task-panel-actions" role="tabpanel" aria-labelledby="task-tab-actions" tabindex="0" data-task-panel="actions" hidden>
+                <section class="job-detail-section">
+                    <div class="history-card-header">
+                        <div>
+                            <p class="eyebrow mb-1">Incident Workflow</p>
+                            <h2 class="section-title">Claim and track work</h2>
+                        </div>
+                    </div>
+                    <div id="task-incident-actions" class="task-workflow-actions"></div>
+                    <p id="task-workflow-note" class="stat-note mt-2 mb-0 text-break" role="status"></p>
+                </section>
+                <section class="job-detail-section">
+                    <div class="history-card-header">
+                        <div>
+                            <p class="eyebrow mb-1">Job Actions</p>
+                            <h2 class="section-title">Available operations</h2>
+                        </div>
+                    </div>
+                    <div id="task-job-actions" class="task-safe-actions"></div>
+                    <p id="task-action-note" class="stat-note mt-2 mb-0 text-break" role="status">Actions load from the selected job state.</p>
+                </section>
+            </section>
+
+            <section class="job-task-panel" id="task-panel-ai" role="tabpanel" aria-labelledby="task-tab-ai" tabindex="0" data-task-panel="ai" hidden>
+                <section class="job-detail-section">
+                    <div class="history-card-header">
+                        <div>
+                            <p class="eyebrow mb-1">IBMEye AI</p>
+                            <h2 class="section-title">Job helper</h2>
+                        </div>
+                    </div>
+                    <div class="alert-actions">
+                        <button id="task-ai-summary" type="button" class="btn btn-outline-ink btn-sm job-ai-button">
+                            <img src="assets/ibmeyeai-eye-open.svg" alt="" aria-hidden="true" class="job-ai-button-icon">Job health summary
+                        </button>
+                        <button id="task-ai-resolve" type="button" class="btn btn-outline-ink btn-sm job-ai-button">
+                            <img src="assets/ibmeyeai-eye-open.svg" alt="" aria-hidden="true" class="job-ai-button-icon">How to resolve
+                        </button>
+                    </div>
+                    <div id="task-ai-output" class="wait-ai-report mt-3" hidden>
+                        <div class="wait-ai-report-header">
+                            <p class="eyebrow mb-0">AI response</p>
+                            <span id="task-ai-status" class="table-caption" role="status">Ready</span>
+                        </div>
+                        <div id="task-ai-content" class="ai-report-content"></div>
+                    </div>
+                </section>
+            </section>
+
+            <section class="job-task-panel" id="task-panel-history" role="tabpanel" aria-labelledby="task-tab-history" tabindex="0" data-task-panel="history" hidden>
+                <section class="job-detail-section" aria-labelledby="task-incident-history-title">
+                    <h2 id="task-incident-history-title" class="h6 mb-2">Incident history</h2>
+                    <p class="stat-note mb-2">Newest events first, including cleared incidents. Times use your local timezone.</p>
+                    <div id="task-incident-history"></div>
+                </section>
+                <section class="job-detail-section">
+                    <div class="history-card-header">
+                        <div>
+                            <p class="eyebrow mb-1">Status History</p>
+                            <h2 class="section-title">Recent status changes</h2>
+                        </div>
+                    </div>
+                    <div id="task-status-history" class="status-history-list"></div>
+                </section>
+            </section>
+
+            <section class="job-task-panel" id="task-panel-details" role="tabpanel" aria-labelledby="task-tab-details" tabindex="0" data-task-panel="details" hidden>
+                <section class="job-detail-grid">
+                    <article class="job-detail-card"><span class="stat-label">Temporary Storage</span><strong id="task-temp-storage" class="job-detail-value text-break">-</strong></article>
+                    <article class="job-detail-card"><span class="stat-label">Disk I/O</span><strong id="task-disk-io" class="job-detail-value text-break">-</strong></article>
+                </section>
+                <section class="job-detail-section">
+                    <div class="alert-actions">
+                        <button id="task-load-log" type="button" class="btn btn-outline-ink btn-sm">Load job log</button>
+                        <button id="task-load-messages" type="button" class="btn btn-outline-ink btn-sm">Load MSGW context</button>
+                    </div>
+                    <div id="task-details-output" class="on-demand-output text-break" role="status"></div>
+                </section>
+            </section>
+        </section>
+    </main>
+
+    <script type="module" src="job-task.js"></script>
+</body>
+</html>

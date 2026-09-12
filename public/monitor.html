@@ -78,10 +78,10 @@
                         </button>
                     </section>
                     <nav class="hero-quick-nav" aria-label="ActionBoard sections">
-                        <button type="button" class="hero-quick-link is-incidents" data-actionboard-target="incidents">
+                        <button type="button" class="hero-quick-link is-incidents" data-actionboard-target="jobs">
                             <span class="hero-quick-icon"><i class="bi bi-shield-exclamation" aria-hidden="true"></i></span>
                             <span class="hero-quick-copy">
-                                <strong>Incidents</strong>
+                                <strong>Needs review</strong>
                                 <small><span id="actionboard-working-count">0</span> being worked</small>
                             </span>
                             <span id="actionboard-attention-count" class="hero-quick-value">0</span>
@@ -106,7 +106,7 @@
                             <span class="hero-quick-icon"><i class="bi bi-stars" aria-hidden="true"></i></span>
                             <span class="hero-quick-copy">
                                 <strong>Ask IBMEye</strong>
-                                <small>Explain and resolve</small>
+                                <small>Attached to selected job</small>
                             </span>
                             <i class="bi bi-arrow-up-right hero-quick-arrow" aria-hidden="true"></i>
                         </button>
@@ -114,7 +114,7 @@
                 </div>
             </header>
 
-            <details class="surface-card activity-overview" open data-testid="activity-overview">
+            <details class="surface-card activity-overview monitor-legacy-overview" open data-testid="activity-overview">
                 <summary class="activity-overview-summary">
                     <div class="panel-heading-lockup">
                         <span class="panel-heading-icon is-activity" aria-hidden="true"><i class="bi bi-activity"></i></span>
@@ -160,7 +160,7 @@
                 </div>
             </details>
 
-            <details class="surface-card panel-disclosure panel-tone-incidents alerts-panel" open>
+            <details class="surface-card panel-disclosure panel-tone-incidents alerts-panel monitor-legacy-incident-panel" open>
                 <summary class="panel-disclosure-summary">
                     <div class="panel-heading-lockup">
                         <span class="panel-heading-icon" aria-hidden="true"><i class="bi bi-shield-exclamation"></i></span>
@@ -248,38 +248,6 @@
                 </summary>
                 <div class="panel-disclosure-body">
                     <div class="ai-assistant-layout">
-                        <div class="ai-provider-toolbar">
-                            <label class="ai-provider-control" for="ai-provider-quick">
-                                <span class="jobs-toolbar-label">Provider</span>
-                                <select id="ai-provider-quick" class="form-select ai-toolbar-select"></select>
-                            </label>
-                            <label class="ai-provider-control" for="ai-model-quick">
-                                <span class="jobs-toolbar-label">Model</span>
-                                <select id="ai-model-quick" class="form-select ai-toolbar-select"></select>
-                            </label>
-                        </div>
-                        <p id="ai-provider-model-source" class="stat-note ai-provider-model-source mb-0">
-                            Checking provider models.
-                        </p>
-
-                        <div class="ai-quick-actions">
-                            <button type="button" class="btn btn-outline-ink btn-sm ai-prompt-chip" data-ai-prompt-type="incident-summary" data-testid="ai-prompt-incident-summary">
-                                Incident summary
-                            </button>
-                            <button type="button" class="btn btn-outline-ink btn-sm ai-prompt-chip" data-ai-prompt-type="shift-handoff" data-testid="ai-prompt-shift-handoff">
-                                Shift handoff summary
-                            </button>
-                            <button type="button" class="btn btn-outline-ink btn-sm ai-prompt-chip" data-ai-prompt-type="sql-activity" data-testid="ai-prompt-sql-activity">
-                                Explain SQL activity
-                            </button>
-                            <button type="button" class="btn btn-outline-ink btn-sm ai-prompt-chip" data-ai-prompt-type="job-health" data-testid="ai-prompt-job-health">
-                                Job health summary
-                            </button>
-                            <button type="button" class="btn btn-outline-ink btn-sm" id="open-ai-settings">
-                                <i class="bi bi-sliders me-2"></i>AI & Integrations Settings
-                            </button>
-                        </div>
-
                         <div id="ai-chat-shell" class="ai-chat-shell">
                             <div id="ai-chat-transcript" class="ai-chat-transcript">
                                 <div class="activity-log-empty">
@@ -290,30 +258,69 @@
                         </div>
 
                         <form id="ai-assistant-form" class="ai-assistant-form ai-composer-shell">
-                            <label for="ai-assistant-input" class="control-label">Ask IBMEye AI analysis</label>
-                            <textarea
-                                id="ai-assistant-input"
-                                class="form-control ai-assistant-input"
-                                rows="3"
-                                placeholder="Example: Why is the MSGW job waiting and what should the operator check first?"
-                            ></textarea>
-                            <p class="stat-note mb-0">Press <code>Enter</code> to send. Press <code>Shift</code> + <code>Enter</code> for a new line.</p>
-                            <p id="ai-assistant-status" class="stat-note mb-0">Local Ollama analysis is preparing.</p>
+                            <div class="ai-composer-main">
+                                <details class="ai-attach-menu">
+                                    <summary class="ai-icon-button" title="Attach context" aria-label="Attach context">
+                                        <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                                    </summary>
+                                    <div class="ai-attach-popover">
+                                        <button type="button" class="ai-prompt-chip" data-ai-prompt-type="incident-summary" data-testid="ai-prompt-incident-summary">
+                                            Incident summary
+                                        </button>
+                                        <button type="button" class="ai-prompt-chip" data-ai-prompt-type="shift-handoff" data-testid="ai-prompt-shift-handoff">
+                                            Shift handoff
+                                        </button>
+                                        <button type="button" class="ai-prompt-chip" data-ai-prompt-type="sql-activity" data-testid="ai-prompt-sql-activity">
+                                            SQL activity
+                                        </button>
+                                        <button type="button" class="ai-prompt-chip" data-ai-prompt-type="job-health" data-testid="ai-prompt-job-health">
+                                            Job health
+                                        </button>
+                                    </div>
+                                </details>
+                                <label for="ai-assistant-input" class="visually-hidden">Ask IBMEye AI analysis</label>
+                                <textarea
+                                    id="ai-assistant-input"
+                                    class="form-control ai-assistant-input"
+                                    rows="1"
+                                    placeholder="Ask IBMEye AI about the selected job..."
+                                ></textarea>
+                                <div class="ai-composer-controls">
+                                    <div class="ai-model-picker" role="group" aria-label="AI provider and model">
+                                        <span class="ai-model-picker-icon" aria-hidden="true"><i class="bi bi-stars"></i></span>
+                                        <select id="ai-provider-quick" class="form-select ai-toolbar-select" aria-label="AI provider"></select>
+                                        <span class="ai-model-picker-divider" aria-hidden="true">·</span>
+                                        <select id="ai-model-quick" class="form-select ai-toolbar-select" aria-label="AI model"></select>
+                                    </div>
+                                    <button type="button" class="ai-icon-button" id="open-ai-settings" title="AI settings" aria-label="AI settings">
+                                        <i class="bi bi-sliders" aria-hidden="true"></i>
+                                    </button>
+                                    <button id="ai-assistant-submit" type="submit" class="ai-send-button" aria-label="Send to IBMEye AI">
+                                        <i class="bi bi-arrow-up" aria-hidden="true"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="ai-composer-footer">
+                                <p id="ai-provider-model-source" class="stat-note ai-provider-model-source mb-0">
+                                    Checking provider models.
+                                </p>
+                                <p id="ai-assistant-status" class="stat-note mb-0">Local Ollama analysis is preparing.</p>
+                            </div>
                         </form>
 
                     </div>
                 </div>
             </details>
 
-            <section class="operations-grid">
-                <details class="table-shell surface-card panel-disclosure panel-tone-operations" open>
+            <section class="operations-grid actionboard-superpanel">
+                <details class="table-shell surface-card panel-disclosure panel-tone-operations actionboard-jobs-panel" open>
                     <summary class="panel-disclosure-summary">
                         <div class="panel-heading-lockup">
                             <span class="panel-heading-icon" aria-hidden="true"><i class="bi bi-stack"></i></span>
                             <div>
                             <p class="eyebrow mb-2">WRKACTJOB · Active Jobs</p>
-                            <h2 class="section-title">System activity feed</h2>
-                            <p class="panel-copy mb-0">Click a row to inspect current SQL, wait details, and status changes.</p>
+                            <h2 class="section-title">System Activity Feed</h2>
+                            <p class="panel-copy mb-0">Work from the live job list: filter, focus, inspect, ask AI, and take approved action from one place.</p>
                             </div>
                         </div>
                         <div class="panel-disclosure-meta">
@@ -327,6 +334,15 @@
                     </summary>
 
                     <div class="panel-disclosure-body table-shell-body">
+                        <div id="superpanel-metrics-slot" class="superpanel-metrics-slot" aria-label="Current system health"></div>
+                        <div class="superpanel-command-row">
+                            <button id="superpanel-focus-next" type="button" class="btn btn-primary-strong" disabled>
+                                <i class="bi bi-crosshair me-2" aria-hidden="true"></i>Focus Next Job
+                            </button>
+                            <p id="superpanel-focus-copy" class="stat-note mb-0">
+                                The next job needing attention will open here with evidence, history, AI help, and actions.
+                            </p>
+                        </div>
                         <div class="jobs-toolbar">
                             <label class="jobs-toolbar-control jobs-toolbar-interval" for="refresh-interval">
                                 <span class="jobs-toolbar-label">Polling</span>
@@ -339,7 +355,9 @@
                                         <option value="10000">10 seconds</option>
                                         <option value="30000">30 seconds</option>
                                         <option value="60000">1 minute</option>
+                                        <option value="custom">Custom</option>
                                     </select>
+                                    <input id="custom-refresh-seconds" class="form-control jobs-toolbar-custom-seconds" type="number" min="2" max="3600" step="1" value="5" aria-label="Custom polling seconds" hidden>
                                 </div>
                             </label>
                             <label class="jobs-toolbar-control" for="jobs-subsystem-filter">
@@ -376,19 +394,22 @@
                                 <button type="button" class="jobs-quick-filter" data-job-filter="RUN" aria-pressed="false" data-testid="jobs-filter-running">Running</button>
                                 <button type="button" class="jobs-quick-filter" data-job-filter="WAITING" aria-pressed="false" data-testid="jobs-filter-waiting">Waiting</button>
                                 <button type="button" class="jobs-quick-filter" data-job-filter="MSGW" aria-pressed="false" data-testid="jobs-filter-msgw">MSGW</button>
+                                <button type="button" class="jobs-quick-filter" data-job-filter="LCKW" aria-pressed="false" data-testid="jobs-filter-lckw">LCKW</button>
+                                <button type="button" class="jobs-quick-filter" data-job-filter="DLYW" aria-pressed="false" data-testid="jobs-filter-dlyw">DLYW</button>
+                                <button type="button" class="jobs-quick-filter" data-job-filter="DEQW" aria-pressed="false" data-testid="jobs-filter-deqw">DEQW</button>
                             </div>
                         </div>
 
                         <div id="system-stats" class="table-responsive refined-table">
-                            <table class="table table-hover table-striped align-middle">
+                            <table class="table table-hover align-middle">
                                 <thead>
                                     <tr>
-                                        <th scope="col">Subsystem/Job</th>
-                                        <th scope="col">Current User</th>
-                                        <th scope="col">Type</th>
-                                        <th scope="col">CPU %</th>
+                                        <th scope="col">Job</th>
+                                        <th scope="col">User</th>
+                                        <th scope="col">Subsystem</th>
+                                        <th scope="col">CPU</th>
                                         <th scope="col">Function</th>
-                                        <th scope="col">Status</th>
+                                        <th scope="col">Health / State</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -401,6 +422,7 @@
                                 </tbody>
                             </table>
                         </div>
+                        <div id="superpanel-ai-slot" class="superpanel-ai-slot"></div>
                     </div>
                 </details>
             </section>
@@ -671,8 +693,12 @@
             </div>
             <div class="ibmeyeai-widget-provider-shell">
                 <div class="ibmeyeai-popout-provider-row">
-                    <select id="ibmeyeai-widget-provider" class="form-select ibmeyeai-widget-select"></select>
-                    <select id="ibmeyeai-widget-model" class="form-select ibmeyeai-widget-select"></select>
+                    <div class="ai-model-picker ai-model-picker-widget" role="group" aria-label="AI provider and model">
+                        <span class="ai-model-picker-icon" aria-hidden="true"><i class="bi bi-stars"></i></span>
+                        <select id="ibmeyeai-widget-provider" class="form-select ibmeyeai-widget-select" aria-label="AI provider"></select>
+                        <span class="ai-model-picker-divider" aria-hidden="true">·</span>
+                        <select id="ibmeyeai-widget-model" class="form-select ibmeyeai-widget-select" aria-label="AI model"></select>
+                    </div>
                 </div>
                 <p id="ibmeyeai-widget-model-source" class="stat-note ibmeyeai-widget-model-source mb-0">
                     Checking provider models.
@@ -708,7 +734,12 @@
     <div id="job-drawer-overlay" class="job-drawer-overlay"></div>
     <aside id="job-detail-drawer" class="job-detail-drawer" aria-hidden="true">
         <div class="job-drawer-header">
-            <div>
+            <div class="job-window-controls" aria-hidden="true">
+                <span class="job-window-dot is-close"></span>
+                <span class="job-window-dot is-minimize"></span>
+                <span class="job-window-dot is-maximize"></span>
+            </div>
+            <div class="job-window-title-block">
                 <p class="eyebrow mb-2">Job Detail</p>
                 <h2 id="job-detail-title" class="section-title">Select a job</h2>
                 <p id="job-detail-subtitle" class="panel-copy mb-0">
@@ -726,129 +757,173 @@
         </div>
 
         <div id="job-detail-content" class="job-drawer-content" hidden>
-            <section class="job-detail-grid">
-                <article class="job-detail-card">
-                    <span class="stat-label">Qualified Job</span>
-                    <strong id="detail-qualified-job" class="job-detail-value">-</strong>
-                </article>
-                <article class="job-detail-card">
-                    <span class="stat-label">Subsystem</span>
-                    <strong id="detail-subsystem" class="job-detail-value">-</strong>
-                </article>
-                <article class="job-detail-card">
-                    <span class="stat-label">Current User</span>
-                    <strong id="detail-current-user" class="job-detail-value">-</strong>
-                </article>
-                <article class="job-detail-card">
-                    <span class="stat-label">Status</span>
-                    <strong id="detail-status" class="job-detail-value">-</strong>
-                </article>
-                <article class="job-detail-card">
-                    <span class="stat-label">Elapsed CPU</span>
-                    <strong id="detail-cpu" class="job-detail-value">-</strong>
-                </article>
-                <article class="job-detail-card">
-                    <span class="stat-label">Threads</span>
-                    <strong id="detail-threads" class="job-detail-value">-</strong>
-                </article>
-                <article class="job-detail-card">
-                    <span class="stat-label">Temporary Storage</span>
-                    <strong id="detail-temp-storage" class="job-detail-value">-</strong>
-                </article>
-                <article class="job-detail-card">
-                    <span class="stat-label">Elapsed Disk I/O</span>
-                    <strong id="detail-disk-io" class="job-detail-value">-</strong>
-                </article>
+            <div class="job-task-tabs" role="tablist" aria-label="Job detail sections">
+                <button type="button" class="job-task-tab is-active" data-job-task-tab="overview">Overview</button>
+                <button type="button" class="job-task-tab" data-job-task-tab="actions">Actions</button>
+                <button type="button" class="job-task-tab" data-job-task-tab="ai">AI helper</button>
+                <button type="button" class="job-task-tab" data-job-task-tab="history">History</button>
+                <button type="button" class="job-task-tab" data-job-task-tab="details">Details</button>
+            </div>
+
+            <section class="job-task-panel is-active" data-job-task-panel="overview">
+                <section id="detail-issue-section" class="job-detail-section detail-issue-section" hidden>
+                    <div class="history-card-header">
+                        <div>
+                            <p class="eyebrow mb-2">Issue Details</p>
+                            <h3 id="detail-issue-title" class="section-title">No linked incident</h3>
+                        </div>
+                        <span id="detail-issue-state" class="table-caption">Clear</span>
+                    </div>
+                    <p id="detail-issue-summary" class="panel-copy mb-2">-</p>
+                    <p id="detail-issue-history" class="stat-note mb-0">-</p>
+                </section>
+
+                <section class="job-detail-grid">
+                    <article class="job-detail-card">
+                        <span class="stat-label">Qualified Job</span>
+                        <strong id="detail-qualified-job" class="job-detail-value">-</strong>
+                    </article>
+                    <article class="job-detail-card">
+                        <span class="stat-label">Subsystem</span>
+                        <strong id="detail-subsystem" class="job-detail-value">-</strong>
+                    </article>
+                    <article class="job-detail-card">
+                        <span class="stat-label">Current User</span>
+                        <strong id="detail-current-user" class="job-detail-value">-</strong>
+                    </article>
+                    <article class="job-detail-card">
+                        <span class="stat-label">Status</span>
+                        <strong id="detail-status" class="job-detail-value">-</strong>
+                    </article>
+                    <article class="job-detail-card">
+                        <span class="stat-label">Elapsed CPU</span>
+                        <strong id="detail-cpu" class="job-detail-value">-</strong>
+                    </article>
+                    <article class="job-detail-card">
+                        <span class="stat-label">Threads</span>
+                        <strong id="detail-threads" class="job-detail-value">-</strong>
+                    </article>
+                </section>
+
+                <section class="job-detail-section">
+                    <div class="history-card-header wait-analysis-header">
+                        <div>
+                            <p class="eyebrow mb-2">Wait Analysis</p>
+                            <h3 class="section-title">Current wait reason</h3>
+                        </div>
+                        <button id="detail-wait-ai" type="button" class="btn btn-outline-ink btn-sm job-ai-button" data-testid="detail-wait-ai" disabled>
+                            <img src="assets/ibmeyeai-eye-open.svg" alt="" aria-hidden="true" class="job-ai-button-icon">
+                            Analyze
+                        </button>
+                    </div>
+                    <p id="detail-wait-reason" class="panel-copy mb-0">-</p>
+                    <div id="detail-wait-ai-report" class="wait-ai-report" hidden>
+                        <div class="wait-ai-report-header">
+                            <p class="eyebrow mb-0">IBMEye AI diagnostic</p>
+                            <span id="detail-wait-ai-status" class="table-caption">Ready</span>
+                        </div>
+                        <div id="detail-wait-ai-content" class="ai-report-content"></div>
+                    </div>
+                </section>
             </section>
 
-            <section class="job-detail-section">
-                <div class="history-card-header wait-analysis-header">
-                    <div>
-                        <p class="eyebrow mb-2">Wait Analysis</p>
-                        <h3 class="section-title">Current wait reason</h3>
+            <section class="job-task-panel" data-job-task-panel="actions" hidden>
+                <section class="job-detail-section">
+                    <div class="history-card-header">
+                        <div>
+                            <p class="eyebrow mb-2">Incident Workflow</p>
+                            <h3 class="section-title">Claim, work, and close</h3>
+                        </div>
                     </div>
-                    <button id="detail-wait-ai" type="button" class="btn btn-outline-ink btn-sm job-ai-button" data-testid="detail-wait-ai" disabled>
-                        <img src="assets/ibmeyeai-eye-open.svg" alt="" aria-hidden="true" class="job-ai-button-icon">
-                        Analyze with IBMEye AI
-                    </button>
-                </div>
-                <p id="detail-wait-reason" class="panel-copy mb-0">-</p>
-                <div id="detail-wait-ai-report" class="wait-ai-report" hidden>
-                    <div class="wait-ai-report-header">
-                        <p class="eyebrow mb-0">IBMEye AI diagnostic</p>
-                        <span id="detail-wait-ai-status" class="table-caption">Ready</span>
+                    <div id="detail-incident-actions" class="alert-actions"></div>
+                    <p class="stat-note mt-3 mb-0">Incidents stay visible until monitoring confirms the underlying issue is resolved.</p>
+                </section>
+
+                <section class="job-detail-section">
+                    <div class="history-card-header">
+                        <div>
+                            <p class="eyebrow mb-2">iMonitor ActionBoard</p>
+                            <h3 class="section-title">Safe job actions</h3>
+                        </div>
                     </div>
-                    <div id="detail-wait-ai-content" class="ai-report-content"></div>
-                </div>
+                    <div id="detail-operator-actions" class="alert-actions"></div>
+                    <p id="detail-operator-action-note" class="stat-note mt-3 mb-0">
+                        MSGW reply and deeper lock tools need additional IBM i message and lock context and are not wired yet.
+                    </p>
+                </section>
             </section>
 
-            <section class="job-detail-section">
-                <div class="history-card-header">
-                    <div>
-                        <p class="eyebrow mb-2">Root Cause Guidance</p>
-                        <h3 id="detail-guidance-headline" class="section-title">No guidance yet</h3>
+            <section class="job-task-panel" data-job-task-panel="ai" hidden>
+                <section class="job-detail-section">
+                    <div class="history-card-header">
+                        <div>
+                            <p class="eyebrow mb-2">IBMEye AI Analysis</p>
+                            <h3 class="section-title">Ask for job help</h3>
+                        </div>
                     </div>
-                    <span id="detail-guidance-severity" class="table-caption">Info</span>
-                </div>
-                <p id="detail-guidance-impact" class="panel-copy mb-2">-</p>
-                <p id="detail-guidance-cause" class="panel-copy mb-3">-</p>
-                <div id="detail-guidance-steps" class="status-history-list"></div>
-                <p id="detail-guidance-technical" class="stat-note mt-3 mb-0">-</p>
+                    <div id="detail-ai-actions" class="alert-actions">
+                        <button id="detail-ai-health" class="btn btn-outline-ink btn-sm job-ai-button" data-testid="detail-ai-health" disabled>
+                            <img src="assets/ibmeyeai-eye-open.svg" alt="" aria-hidden="true" class="job-ai-button-icon">
+                            Job health summary
+                        </button>
+                    </div>
+                    <p class="stat-note mt-3 mb-0">Uses the selected job, recent alerts, logs, and SQL context.</p>
+                </section>
+
+                <section class="job-detail-section">
+                    <div class="history-card-header">
+                        <div>
+                            <p class="eyebrow mb-2">Root Cause Guidance</p>
+                            <h3 id="detail-guidance-headline" class="section-title">No guidance yet</h3>
+                        </div>
+                        <span id="detail-guidance-severity" class="table-caption">Info</span>
+                    </div>
+                    <p id="detail-guidance-impact" class="panel-copy mb-2">-</p>
+                    <p id="detail-guidance-cause" class="panel-copy mb-3">-</p>
+                    <div id="detail-guidance-steps" class="status-history-list"></div>
+                    <p id="detail-guidance-technical" class="stat-note mt-3 mb-0">-</p>
+                </section>
             </section>
 
-            <section class="job-detail-section">
-                <div class="history-card-header">
-                    <div>
-                        <p class="eyebrow mb-2">IBMEye AI Analysis</p>
-                        <h3 class="section-title">Job health summary</h3>
+            <section class="job-task-panel" data-job-task-panel="history" hidden>
+                <section class="job-detail-section">
+                    <div class="history-card-header">
+                        <div>
+                            <p class="eyebrow mb-2">Status History</p>
+                            <h3 class="section-title">Recent status changes</h3>
+                        </div>
                     </div>
-                </div>
-                <div id="detail-ai-actions" class="alert-actions">
-                    <button id="detail-ai-health" class="btn btn-outline-ink btn-sm job-ai-button" data-testid="detail-ai-health" disabled>
-                        <img src="assets/ibmeyeai-eye-open.svg" alt="" aria-hidden="true" class="job-ai-button-icon">
-                        Ask IBMEye AI
-                    </button>
-                </div>
-                <p class="stat-note mt-3 mb-0">Uses the selected job, recent alerts, logs, and SQL context.</p>
+                    <div id="detail-status-history" class="status-history-list"></div>
+                </section>
             </section>
 
-            <section class="job-detail-section">
-                <div class="history-card-header">
-                    <div>
-                        <p class="eyebrow mb-2">iMonitor ActionBoard</p>
-                        <h3 class="section-title">Take action from the drawer</h3>
-                    </div>
-                </div>
-                <div id="detail-operator-actions" class="alert-actions"></div>
-                <p id="detail-operator-action-note" class="stat-note mt-3 mb-0">
-                    MSGW reply and deeper lock tools need additional IBM i message and lock context and are not wired yet.
-                </p>
-            </section>
+            <section class="job-task-panel" data-job-task-panel="details" hidden>
+                <section class="job-detail-grid">
+                    <article class="job-detail-card">
+                        <span class="stat-label">Temporary Storage</span>
+                        <strong id="detail-temp-storage" class="job-detail-value">-</strong>
+                    </article>
+                    <article class="job-detail-card">
+                        <span class="stat-label">Elapsed Disk I/O</span>
+                        <strong id="detail-disk-io" class="job-detail-value">-</strong>
+                    </article>
+                </section>
 
-            <section class="job-detail-section">
-                <div class="history-card-header">
-                    <div>
-                        <p class="eyebrow mb-2">Status History</p>
-                        <h3 class="section-title">Recent status changes</h3>
+                <section class="job-detail-section on-demand-panel">
+                    <div class="history-card-header">
+                        <div>
+                            <p class="eyebrow mb-2">Additional details</p>
+                            <h3 class="section-title">Load only when needed</h3>
+                        </div>
                     </div>
-                </div>
-                <div id="detail-status-history" class="status-history-list"></div>
-            </section>
-
-            <section class="job-detail-section on-demand-panel">
-                <div class="history-card-header">
-                    <div>
-                        <p class="eyebrow mb-2">Additional details</p>
-                        <h3 class="section-title">Load only when needed</h3>
+                    <div class="alert-actions">
+                        <button id="load-job-log" type="button" class="btn btn-outline-ink btn-sm">Load job log</button>
+                        <button id="load-job-messages" type="button" class="btn btn-outline-ink btn-sm">Load MSGW context</button>
                     </div>
-                </div>
-                <div class="alert-actions">
-                    <button id="load-job-log" type="button" class="btn btn-outline-ink btn-sm">Load job log</button>
-                    <button id="load-job-messages" type="button" class="btn btn-outline-ink btn-sm">Load MSGW context</button>
-                </div>
-                <p id="job-on-demand-status" class="stat-note mt-3 mb-0">These queries run only when requested.</p>
-                <div id="job-log-output" class="on-demand-output"></div>
-                <div id="job-messages-output" class="on-demand-output"></div>
+                    <p id="job-on-demand-status" class="stat-note mt-3 mb-0">These queries run only when requested.</p>
+                    <div id="job-log-output" class="on-demand-output"></div>
+                    <div id="job-messages-output" class="on-demand-output"></div>
+                </section>
             </section>
         </div>
     </aside>

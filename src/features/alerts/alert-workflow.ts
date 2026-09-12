@@ -14,6 +14,11 @@ import {
     toNumber
 } from '../monitoring/monitoring-model';
 import { shouldWatchAlert, type AlertSettings, type MonitorAlert, type StoredAlertWorkflowState } from './alert-model';
+import {
+    buildIncidentMetadata,
+    buildScopedAlertId,
+    type IncidentScope
+} from './incident-ledger';
 
 export interface AlertWorkflowDependencies {
     activeAlerts: MonitorAlert[];
@@ -21,6 +26,7 @@ export interface AlertWorkflowDependencies {
     workflowStateByAlertId: Record<string, StoredAlertWorkflowState>;
     settings: AlertSettings;
     timestamp: string;
+    incidentScope?: IncidentScope;
     notify: (key: string, title: string, body: string) => void;
 }
 
@@ -67,6 +73,7 @@ export function evaluateAlertRules(
         workflowStateByAlertId,
         settings,
         timestamp,
+        incidentScope,
         notify
     } = dependencies;
     const existingAlerts = new Map(activeAlerts.map((alert) => [alert.id, alert]));
@@ -78,7 +85,7 @@ export function evaluateAlertRules(
         const cpu = toNumber(job.CPU);
 
         if (shouldWatchAlert(settings, 'messageWait') && job.STATUS === 'MSGW') {
-            const alertId = `msgw:${jobKey}`;
+            const alertId = buildScopedAlertId(incidentScope, `msgw:${jobKey}`);
             if (!dismissedAlertIds.has(alertId)) {
                 const existingAlert = existingAlerts.get(alertId);
                 const eventTimestamp = existingAlert?.isActive !== false && existingAlert?.timestamp
@@ -94,6 +101,7 @@ export function evaluateAlertRules(
                 });
                 const alert = applyWorkflowStateToAlert({
                     id: alertId,
+                    ...buildIncidentMetadata(incidentScope, alertId, jobKey, existingAlert),
                     kind: 'messageWait',
                     severity: 'critical',
                     timestamp: existingAlert && existingAlert.isActive !== false ? existingAlert.timestamp : eventTimestamp,
@@ -108,7 +116,7 @@ export function evaluateAlertRules(
                     jobName: jobKey
                 }, nextWorkflowState);
 
-                if (!existingAlert) {
+                if (!existingAlert || existingAlert.isActive === false) {
                     notify(alertId, alert.title, `${alert.message} ${alert.detail || ''}`);
                 }
 
@@ -118,7 +126,7 @@ export function evaluateAlertRules(
         }
 
         if (shouldWatchAlert(settings, 'lockWait') && job.STATUS === 'LCKW') {
-            const alertId = `lckw:${jobKey}`;
+            const alertId = buildScopedAlertId(incidentScope, `lckw:${jobKey}`);
             if (!dismissedAlertIds.has(alertId)) {
                 const existingAlert = existingAlerts.get(alertId);
                 const eventTimestamp = existingAlert?.isActive !== false && existingAlert?.timestamp
@@ -134,6 +142,7 @@ export function evaluateAlertRules(
                 });
                 const alert = applyWorkflowStateToAlert({
                     id: alertId,
+                    ...buildIncidentMetadata(incidentScope, alertId, jobKey, existingAlert),
                     kind: 'lockWait',
                     severity: 'critical',
                     timestamp: existingAlert && existingAlert.isActive !== false ? existingAlert.timestamp : eventTimestamp,
@@ -148,7 +157,7 @@ export function evaluateAlertRules(
                     jobName: jobKey
                 }, nextWorkflowState);
 
-                if (!existingAlert) {
+                if (!existingAlert || existingAlert.isActive === false) {
                     notify(alertId, alert.title, `${alert.message} ${alert.detail || ''}`);
                 }
 
@@ -158,7 +167,7 @@ export function evaluateAlertRules(
         }
 
         if (shouldWatchAlert(settings, 'delayWait') && job.STATUS === 'DLYW') {
-            const alertId = `dlyw:${jobKey}`;
+            const alertId = buildScopedAlertId(incidentScope, `dlyw:${jobKey}`);
             if (!dismissedAlertIds.has(alertId)) {
                 const existingAlert = existingAlerts.get(alertId);
                 const eventTimestamp = existingAlert?.isActive !== false && existingAlert?.timestamp
@@ -174,6 +183,7 @@ export function evaluateAlertRules(
                 });
                 const alert = applyWorkflowStateToAlert({
                     id: alertId,
+                    ...buildIncidentMetadata(incidentScope, alertId, jobKey, existingAlert),
                     kind: 'delayWait',
                     severity: 'warning',
                     timestamp: existingAlert && existingAlert.isActive !== false ? existingAlert.timestamp : eventTimestamp,
@@ -188,7 +198,7 @@ export function evaluateAlertRules(
                     jobName: jobKey
                 }, nextWorkflowState);
 
-                if (!existingAlert) {
+                if (!existingAlert || existingAlert.isActive === false) {
                     notify(alertId, alert.title, `${alert.message} ${alert.detail || ''}`);
                 }
 
@@ -198,7 +208,7 @@ export function evaluateAlertRules(
         }
 
         if (shouldWatchAlert(settings, 'dequeueWait') && job.STATUS === 'DEQW') {
-            const alertId = `deqw:${jobKey}`;
+            const alertId = buildScopedAlertId(incidentScope, `deqw:${jobKey}`);
             if (!dismissedAlertIds.has(alertId)) {
                 const existingAlert = existingAlerts.get(alertId);
                 const eventTimestamp = existingAlert?.isActive !== false && existingAlert?.timestamp
@@ -214,6 +224,7 @@ export function evaluateAlertRules(
                 });
                 const alert = applyWorkflowStateToAlert({
                     id: alertId,
+                    ...buildIncidentMetadata(incidentScope, alertId, jobKey, existingAlert),
                     kind: 'dequeueWait',
                     severity: 'warning',
                     timestamp: existingAlert && existingAlert.isActive !== false ? existingAlert.timestamp : eventTimestamp,
@@ -228,7 +239,7 @@ export function evaluateAlertRules(
                     jobName: jobKey
                 }, nextWorkflowState);
 
-                if (!existingAlert) {
+                if (!existingAlert || existingAlert.isActive === false) {
                     notify(alertId, alert.title, `${alert.message} ${alert.detail || ''}`);
                 }
 
@@ -238,7 +249,7 @@ export function evaluateAlertRules(
         }
 
         if (shouldWatchAlert(settings, 'highCpu') && cpu >= settings.highCpuThreshold) {
-            const alertId = `cpu:${jobKey}`;
+            const alertId = buildScopedAlertId(incidentScope, `cpu:${jobKey}`);
             if (!dismissedAlertIds.has(alertId)) {
                 const existingAlert = existingAlerts.get(alertId);
                 const eventTimestamp = existingAlert?.isActive !== false && existingAlert?.timestamp
@@ -254,6 +265,7 @@ export function evaluateAlertRules(
                 });
                 const alert = applyWorkflowStateToAlert({
                     id: alertId,
+                    ...buildIncidentMetadata(incidentScope, alertId, jobKey, existingAlert),
                     kind: 'highCpu',
                     severity: cpu >= settings.highCpuThreshold + 10 ? 'critical' : 'warning',
                     timestamp: existingAlert && existingAlert.isActive !== false ? existingAlert.timestamp : eventTimestamp,
@@ -268,7 +280,7 @@ export function evaluateAlertRules(
                     jobName: jobKey
                 }, nextWorkflowState);
 
-                if (!existingAlert) {
+                if (!existingAlert || existingAlert.isActive === false) {
                     notify(alertId, alert.title, `${alert.message} ${job.CURRENT_USER || ''}`.trim());
                 }
 
@@ -334,9 +346,10 @@ export function createPollFailureAlert(
     errorMessage: string,
     activeAlerts: MonitorAlert[],
     dismissedAlertIds: Set<string>,
-    workflowStateByAlertId: Record<string, StoredAlertWorkflowState>
+    workflowStateByAlertId: Record<string, StoredAlertWorkflowState>,
+    incidentScope?: IncidentScope
 ) {
-    const alertId = 'poll-failure';
+    const alertId = buildScopedAlertId(incidentScope, 'poll-failure');
     if (dismissedAlertIds.has(alertId)) {
         return null;
     }
@@ -357,9 +370,10 @@ export function createPollFailureAlert(
     return {
         alert: applyWorkflowStateToAlert({
             id: alertId,
+            ...buildIncidentMetadata(incidentScope, alertId, 'monitoring-poll', existingAlert),
             kind: 'pollFailure',
             severity: 'critical',
-            timestamp: existingAlert?.timestamp ?? eventTimestamp,
+            timestamp: existingAlert && existingAlert.isActive !== false ? existingAlert.timestamp : eventTimestamp,
             lastSeenAt: timestamp,
             resolvedAt: undefined,
             isActive: true,
@@ -367,7 +381,7 @@ export function createPollFailureAlert(
             message: 'iMonitor could not refresh active jobs.',
             detail: errorMessage
         }, nextWorkflowState),
-        isNew: !existingAlert,
+        isNew: !existingAlert || existingAlert.isActive === false,
         workflowState: nextWorkflowState
     };
 }

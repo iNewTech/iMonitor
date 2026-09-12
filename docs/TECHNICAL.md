@@ -1,133 +1,95 @@
-# Technical Guide
+# Technical guide
 
-## Stack
+## Stack and commands
 
-- Electron
-- TypeScript for main and preload
-- Plain JavaScript for renderer pages
-- Bootstrap for UI primitives
-- `electron-store` for local app state
-- `nodemailer` for SMTP email delivery
-- `ssh2` for remote Mapepire setup actions
-
-## Run Commands
+Electron, TypeScript main/preload, browser ES modules, Bootstrap, Mapepire, `electron-store`, `ssh2`, and `nodemailer`.
 
 ```bash
 npm install
 npm start
-```
-
-Other commands:
-
-```bash
 npm run build
+npm run check:renderers
+npm run test:unit
+npm run test:e2e
 npm test
 npm run docs:api
 ```
 
-## Current Source Layout
+Build checks TypeScript **and** parses every JavaScript module in `public/`, including its relative imports. TypeScript alone does not validate renderer JavaScript. `check:renderers` parses modules without evaluating them or contacting providers. Electron UI tests are still required for DOM, CSS, preload, and navigation changes.
 
-```text
-src/
-  features/
-    alerts/
-      alert-model.ts
-      alert-operator-workflow.ts
-      alert-workflow.ts
-    demo/
-      demo-runtime.ts
-    guidance/
-      root-cause-guidance.ts
-    history/
-      history-model.ts
-    monitoring/
-      monitoring-model.ts
-    notifications/
-      email-notification.ts
-    operator-actions/
-      operator-actions.ts
-    theme/
-      theme-model.ts
-  services/
-    ibmi.ts
-  utils/
-    connections.ts
-    crypto.ts
-    demo-system.ts
-    mapepire-deploy.ts
-    password-store.ts
-  main/
-    ipc/
-      alerts-ipc.ts
-      connection-ipc.ts
-      jobs-ipc.ts
-      logs-ipc.ts
-      navigation-ipc.ts
-    runtime/
-      email-notification-runtime.ts
-      logging-runtime.ts
-      monitoring-runtime.ts
-      session-runtime.ts
-    state/
-      alert-state.ts
-      connection-state.ts
-      monitoring-state.ts
-    window/
-      window-runtime.ts
-    store.ts
-    types.ts
-  main.ts
-  preload.ts
+## Source layout
+
+| Location | Responsibility |
+|---|---|
+| `src/main.ts` | Composition and application lifecycle |
+| `src/main/ipc/` | IPC registration and request boundaries |
+| `src/main/runtime/` | Monitoring, analysis, sessions, AI, notifications, integrations, support |
+| `src/main/state/` | Shared in-memory connection, monitoring, and alert state |
+| `src/main/window/` | Main and standalone job windows |
+| `src/features/` | Domain models, validation, parsers, action planning, persistence |
+| `src/services/` | IBM i, demo database, local/live analysis providers |
+| `src/preload.ts` | Renderer-facing API contract |
+| `public/monitor/` | Job/queue views, formatters, history, AI modules |
+| `public/object-analysis/` | Async actions, report view, call graph |
+| `public/job-task.js` | Standalone task behavior and request coordination |
+| `public/styles/` | Feature styles loaded by the ordered `styles.css` manifest |
+| `tests/e2e/` | Isolated Electron integration and UI tests |
+| `macos-widget/` | Native WidgetKit scaffold and setup instructions |
+
+## Local source layout
+
+Supported exports include `root/userlib/LIB/SRCPF/member.rpgle`, `root/LIB/SRCPF/member.rpgle`, or a directly selected library containing source files. `user-libraries` is supported for older exports. Source-file directory names are not prescribed. Disk casing is preserved; IBM i names and lookup lists are normalized for matching.
+
+A root setup file can contain:
+
+```json
+{ "libraryList": ["ORDERLIB", "COMMONLIB", "INVENTORY"] }
 ```
 
-## Main Process Responsibilities
+`librarylist` and the legacy `libraries` key are accepted. Setup precedence is `setup.json`, `settings.json`, then legacy `library-list.json`. Without a setup file, library discovery supplies the initial list. Session changes do not rewrite these files; only the permanent-save action writes `setup.json`.
 
-- `src/main.ts` is the composition root for the `iMonitor` app
-- `src/main/ipc/*` owns Electron IPC registration
-- `src/main/runtime/session-runtime.ts` owns saved connections, Mapepire setup, connect, and disconnect
-- `src/main/runtime/monitoring-runtime.ts` owns poll cadence, demo polling, snapshots, and failure handling
-- `src/main/runtime/email-notification-runtime.ts` owns SMTP email delivery, cooldowns, and test-email sends
-- `src/main/runtime/logging-runtime.ts` owns in-memory activity events and daily persistent logs
-- `src/main/state/*` owns short-lived in-memory connection, alert, and monitoring state
-- `src/main/window/window-runtime.ts` owns the Electron window lifecycle and page navigation
+The source browser lists discovered members independently of the object list. The list determines object resolution order. Reports/build output under `imonitor-analysis` and hidden directories are excluded from discovery.
 
-## Preload Responsibilities
+## Analysis artifacts
 
-- safe API bridge between renderer and main
-- no business logic
+```text
+<source-root>/imonitor-analysis/
+  reports/
+    <LIBRARY>/<PROGRAM>.analysis.json
+    <LIBRARY>/<PROGRAM>.analysis.md
+    program-map.json
+  build/
+    <LIBRARY>/<PROGRAM>.build.json
+    <LIBRARY>/<PROGRAM>.cl
+```
 
-## Renderer Responsibilities
+Verify the artifact paths displayed by the app: local reports use the source directory when writable; reports can fall back to app storage, and remote build artifacts use app storage. `report-storage.ts` defines report/mapping formats. Compile output is produced by `compile-plan.ts`.
 
-- page rendering
-- button handlers
-- showing current connection action status
-- alert and monitor interactions
-- job drawer guidance and operator action UI
-- ActionBoard operator actions and structured audit records
+Reports start in draft. Approval persists the current result with source identity and hash mapping. Adding an AI explanation requires approval of the updated result. Compile generation is separate; there is no automatic execution path.
 
-## Documentation Model
+## Evidence and build limits
 
-- Markdown in `docs/` for human guides
-- JSDoc on exported TypeScript functions for generated API docs
-- TypeDoc configuration in `typedoc.json`
-- themed docs home and technical guide live in `docs/index.html` and `docs/technical.html`
+Incident evidence is collected by `src/features/alerts/incident-evidence.ts` after alert creation. The collector uses the existing IBM i or demo job context, job log, and message services, runs them in parallel under a bounded budget, caps each source at 100 records, redacts secret-shaped keys and values, and records explicit source status. The trigger job snapshot is retained separately from later refreshes and normalized before it enters the incident ledger. Evidence is passed into the AI context and displayed in the alert and task views; it remains read-only.
 
-## Current Feature Foundations
+The initial RPG parser recognizes common declarations, calls, files, SQL, and runtime resources. It is not a complete RPG/COBOL/CL compiler. Local catalogs help resolve references but do not prove runtime execution. Live metadata collection depends on available IBM i services and permissions.
 
-- `src/features/operator-actions/operator-actions.ts` builds supported IBM i job action plans
-- `src/features/history/history-model.ts` parses structured `.jsonl` records and rebuilds history trends
-- `src/features/guidance/root-cause-guidance.ts` generates operator-facing cause and next-step guidance
-- `src/features/notifications/email-notification.ts` normalizes SMTP settings and builds outbound email messages for `IBMEye Alerts`
+The call graph keeps actual recorded `from`/`to` call and binding relationships between executable objects. It does not turn source ordering into a chain, include tables/queues as calls, or infer procedure calls from declarations. Confidence and evidence remain visible.
 
-## Demo Mode Boundary
+Compile plans order supported dependencies, validate names, and turn unsupported or uncertain steps into review comments. Cycles and their dependent steps are flagged. Service-program binding, missing sources, target release/options, and environment-specific compilation require review. The app does not execute generated CL.
 
-- `src/features/demo/demo-runtime.ts` decides whether demo mode is available at runtime
-- `src/utils/demo-system.ts` contains the generated snapshot writer and reader
-- packaged production builds disable demo requests and the renderer removes the demo button
+## Maintenance rules
 
-## Current Refactor Focus
+- Keep entry files focused on composition and page state; place feature behavior in its existing feature directory.
+- Extract a module for one coherent responsibility, not a file per small function. Reuse shared formatters and views.
+- Favor a few clear APIs with explicit inputs over wrappers, generic frameworks, or duplicated state.
+- Keep generated artifacts separate from source inputs.
+- Preserve IPC/API contracts during extraction; check the application from the checkout actually being run.
+- Serialize conflicting requests and ignore late responses after selection changes.
+- Add behavioral tests for bugs, not tests that merely repeat implementation details.
+- Update relevant guides with behavior changes. Generated API docs are refreshed separately with `docs:api`.
 
-- keep `session-runtime.ts` shrinking as new delivery channels like email notifications are added
-- continue moving renderer page logic into smaller feature modules
-- extend job detail fetches with IBM i message-level context for real `MSGW` replies
-- add direct unit coverage around extracted main-process modules
+## Verification boundaries
+
+Unit tests cover domain behavior. Electron tests use temporary application stores, demo jobs, and mocked external services. They exercise loading, window navigation, workflow failures, AI feedback, source selection, graphs, and responsive layouts. They do not establish successful live IBM i compilation, external delivery, or signed widget installation.
+
+`public/monitor.js` and the preload remain larger integration surfaces. Continue extracting coherent features when changing them; avoid a broad rewrite solely to meet an arbitrary line count.

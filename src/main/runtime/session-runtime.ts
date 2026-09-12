@@ -39,7 +39,6 @@ interface SessionRuntimeDependencies {
     connectionState: ReturnType<typeof createConnectionStateStore>;
     monitoringState: ReturnType<typeof createMonitoringStateStore>;
     clearRuntimeMonitoringState: () => void;
-    clearDemoWorkflowLinks?: () => void;
     loadConnectionPage: () => void;
     sendToWindow: (channel: string, payload: unknown) => void;
     emitConnectionAction: (message: string, detail?: string) => void;
@@ -64,6 +63,22 @@ export function createSessionRuntime(dependencies: SessionRuntimeDependencies) {
     let ibmiService: Db | null = null;
     const localOperatorName = os.userInfo().username?.trim() || 'local-operator';
     const demoOperatorName = 'GajenderT';
+
+    function getStableSessionId(config: Pick<DaemonServer, 'host' | 'user' | 'port'> & { id?: string }) {
+        if (config.id?.trim()) {
+            return config.id.trim();
+        }
+
+        const savedConnection = dependencies.store.get('connections').find((connection) => (
+            connection.host.trim().toLowerCase() === String(config.host).trim().toLowerCase()
+            && connection.user.trim().toLowerCase() === String(config.user).trim().toLowerCase()
+        ));
+        if (savedConnection) {
+            return savedConnection.id;
+        }
+
+        return `system:${String(config.host).trim().toLowerCase()}:${String(config.user).trim().toLowerCase()}:${config.port ?? DEFAULT_PORT}`;
+    }
 
     function seedDemoConnection() {
         if (!getDemoAvailability(app.isPackaged).enabled) {
@@ -475,11 +490,10 @@ export function createSessionRuntime(dependencies: SessionRuntimeDependencies) {
 
                     ibmiService?.close();
                     ibmiService = null;
-                    dependencies.clearDemoWorkflowLinks?.();
                     dependencies.clearRuntimeMonitoringState();
                     dependencies.monitoringState.setMonitorMode('dummy');
                     dependencies.connectionState.setCurrentConnection({
-                        id: `demo-${Date.now()}`,
+                        id: DEMO_CONNECTION_ID,
                         name: config.name?.trim() || 'iMonitor Demo System',
                         host: 'dummy.local',
                         user: demoOperatorName,
@@ -539,7 +553,7 @@ export function createSessionRuntime(dependencies: SessionRuntimeDependencies) {
                 dependencies.clearRuntimeMonitoringState();
                 dependencies.monitoringState.setMonitorMode('live');
                 dependencies.connectionState.setCurrentConnection({
-                    id: `session-${Date.now()}`,
+                    id: getStableSessionId(config),
                     name: config.name?.trim() || `${config.host}:${connectionConfig.port}`,
                     host: config.host,
                     user: config.user,

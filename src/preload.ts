@@ -92,6 +92,26 @@ interface JiraSettings {
 
 interface MonitorAlert {
     id: string;
+    incidentId?: string;
+    systemId?: string;
+    systemLabel?: string;
+    resourceId?: string;
+    occurrence?: number;
+    recordVersion?: number;
+    evidence?: {
+        version: number;
+        capturedAt: string;
+        source: 'ibmi' | 'demo';
+        systemId?: string;
+        systemLabel?: string;
+        trigger: IncidentEvidenceSnapshot;
+        job: IncidentEvidenceSnapshot;
+        jobLog: IncidentEvidenceSnapshot;
+        messages: IncidentEvidenceSnapshot;
+        queue: IncidentEvidenceSnapshot;
+        subsystem: IncidentEvidenceSnapshot;
+    };
+    lifecyclePhase?: 'detected' | 'acknowledged' | 'investigating' | 'awaiting_escalation' | 'verifying' | 'resolved' | 'reopened';
     kind: 'highCpu' | 'messageWait' | 'lockWait' | 'delayWait' | 'dequeueWait' | 'pollFailure';
     severity: 'critical' | 'warning';
     timestamp: string;
@@ -114,6 +134,7 @@ interface MonitorAlert {
     }>;
     timeline: Array<{
         id: string;
+        version?: number;
         timestamp: string;
         action: string;
         label: string;
@@ -127,6 +148,15 @@ interface MonitorAlert {
         url?: string;
         name?: string;
     };
+}
+
+interface IncidentEvidenceSnapshot {
+    status: 'captured' | 'missing' | 'stale' | 'permission-denied' | 'unavailable';
+    collectedAt: string;
+    source: 'ibmi' | 'demo' | 'monitoring-poll';
+    recordCount: number;
+    records: Array<Record<string, unknown>>;
+    detail?: string;
 }
 
 interface MonitoringSnapshot {
@@ -398,6 +428,32 @@ interface ObjectAnalysisResult {
         message: string;
         error?: string;
     };
+    compilePlan?: {
+        schema: 'imonitor-object-compile-plan';
+        version: 1;
+        generatedAt: string;
+        root: { library: string; name: string; type: AnalysisObjectType; sourcePath?: string; language?: string; };
+        libraryList: string[];
+        steps: Array<{
+            id: string;
+            sequence: number;
+            phase: string;
+            object: { library: string; name: string; type: AnalysisObjectType; sourcePath?: string; language?: string; };
+            command: string;
+            reason: string;
+            status: 'ready' | 'review';
+        }>;
+        reviewItems: string[];
+        clCommands: string;
+        artifact?: {
+            key: string;
+            mode: 'source-directory' | 'app-storage' | 'error';
+            relativePath?: string;
+            clPath?: string;
+            message: string;
+            error?: string;
+        };
+    };
     generatedAt: string;
     scope: { libraries: string[]; sourceLibrary: string | null; depth: number; maxNodes: number; };
 }
@@ -480,6 +536,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     navigateToConnection: () => ipcRenderer.invoke('navigate-to-connection'),
     navigateToSettings: () => ipcRenderer.invoke('navigate-to-settings'),
     navigateToObjectAnalysis: () => ipcRenderer.invoke('navigate-to-object-analysis'),
+    openJobTaskWindow: (jobName: string) => ipcRenderer.invoke('open-job-task-window', jobName) as Promise<{ success: boolean; }>,
     openExternalUrl: (target: string) => ipcRenderer.invoke('open-external-url', target) as Promise<{ success: boolean; }>,
 
     getConnectionState: () => ipcRenderer.invoke('get-connection-state') as Promise<ConnectionState>,
@@ -568,6 +625,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.invoke('save-object-analysis-report', result) as Promise<{
             success: boolean;
             filePath?: string;
+            error?: string;
+        }>
+    ),
+    generateObjectAnalysisCompilePlan: (request: AnalyzeObjectRequest, result: ObjectAnalysisResult) => (
+        ipcRenderer.invoke('generate-object-analysis-compile-plan', request, result) as Promise<{
+            success: boolean;
+            result?: ObjectAnalysisResult;
+            compilePlan?: ObjectAnalysisResult['compilePlan'];
             error?: string;
         }>
     ),

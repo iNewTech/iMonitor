@@ -2,6 +2,16 @@
 
 iMonitor uses a simple Free/Premium feature boundary. The application keeps Premium controls visible so users can understand what is available, but protected operations are disabled until Premium is active.
 
+## Current experience
+
+- One active-job workspace with filters, issue labels, owner names, and priority focus.
+- Separate job task windows with workflow actions, AI guidance, and history.
+- Timestamped incident evidence for the trigger job, job log, messages, queue, and subsystem, with visible missing or permission statuses.
+- Compact AI composer with provider/model availability checks.
+- Job queues remain in their own section below the main workspace.
+- Local and IBM i source analysis, evidence-based call graphs, approved reports mapped to source programs, and saved compile plans. Compile commands are never run automatically.
+- A macOS WidgetKit scaffold is available under `macos-widget/`; signing and native installation remain separate from the Electron app.
+
 ## Free plan
 
 - Job, subsystem, wait, SQL, message, and log information

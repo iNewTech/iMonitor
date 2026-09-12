@@ -9,7 +9,7 @@ import {
     type MonitorAlert,
     type StoredAlertWorkflowState
 } from '../../features/alerts/alert-model';
-import { normalizeAlertWorkflowState } from '../../features/alerts/alert-operator-workflow';
+import { getIncidentLifecyclePhase, normalizeAlertWorkflowState } from '../../features/alerts/alert-operator-workflow';
 import {
     recordAlertRecheckWorkflow,
     systemClearAlertWorkflow
@@ -17,12 +17,27 @@ import {
 import type { AlertRecheckResult } from '../../features/alerts/alert-recheck';
 import { sortAlerts } from '../../features/alerts/alert-model';
 import type { ActiveJobRecord } from '../../services/ibmi';
+import type { IncidentEvidence } from '../../features/alerts/incident-evidence';
+import {
+    getIncidentsForSystem,
+    normalizeIncidentLedger,
+    mergeSystemIncidents,
+    type IncidentLedger,
+    type IncidentScope
+} from '../../features/alerts/incident-ledger';
 
 interface AlertStateDependencies {
     initialWorkflowStateByAlertId: Record<string, StoredAlertWorkflowState>;
+    initialIncidentLedger?: IncidentLedger;
     persistWorkflowState: (workflowStateByAlertId: Record<string, StoredAlertWorkflowState>) => void;
+    persistIncidentLedger?: (ledger: IncidentLedger) => void;
+    getIncidentScope?: () => IncidentScope | undefined;
     onAlertsChanged: (alerts: MonitorAlert[]) => void;
-    onAlertCreated?: (alert: MonitorAlert) => void | Promise<void>;
+    captureIncidentEvidence?: (
+        alert: MonitorAlert,
+        triggerJob?: ActiveJobRecord
+    ) => Promise<IncidentEvidence>;
+    onAlertCreated?: (alert: MonitorAlert, triggerJob?: ActiveJobRecord) => void | Promise<void>;
 }
 
 /**
@@ -31,8 +46,11 @@ interface AlertStateDependencies {
 export function createAlertStateStore(dependencies: AlertStateDependencies) {
     let activeAlerts: MonitorAlert[] = [];
     let workflowStateByAlertId = dependencies.initialWorkflowStateByAlertId;
+    let incidentLedger = normalizeIncidentLedger(dependencies.initialIncidentLedger);
+    let activeSystemId: string | undefined;
     const dismissedAlertIds = new Set<string>();
     const notificationLedger = new Map<string, number>();
+    const evidenceCaptureInFlight = new Set<string>();
 
     const persistWorkflowState = () => {
         dependencies.persistWorkflowState(workflowStateByAlertId);
@@ -41,6 +59,53 @@ export function createAlertStateStore(dependencies: AlertStateDependencies) {
     const setActiveAlerts = (nextAlerts: MonitorAlert[]) => {
         activeAlerts = sortAlerts([...nextAlerts]);
         dependencies.onAlertsChanged(activeAlerts.slice());
+    };
+
+    const activateIncidentScope = () => {
+        const scope = dependencies.getIncidentScope?.();
+        if (!scope || scope.systemId === activeSystemId) {
+            return scope;
+        }
+
+        activeSystemId = scope.systemId;
+        setActiveAlerts(getIncidentsForSystem(incidentLedger, scope.systemId));
+        return scope;
+    };
+
+    const persistCurrentIncidents = () => {
+        if (!activeSystemId || !dependencies.persistIncidentLedger) {
+            return;
+        }
+        incidentLedger = mergeSystemIncidents(incidentLedger, activeSystemId, activeAlerts);
+        dependencies.persistIncidentLedger(incidentLedger);
+    };
+
+    const attachIncidentEvidence = (alertId: string, evidence: IncidentEvidence) => {
+        const currentAlert = activeAlerts.find((alert) => alert.id === alertId);
+        if (!currentAlert) {
+            return;
+        }
+
+        setActiveAlerts(activeAlerts.map((alert) => alert.id === alertId
+            ? { ...alert, evidence }
+            : alert));
+        persistCurrentIncidents();
+    };
+
+    const emitAlertCreated = (alert: MonitorAlert, triggerJob?: ActiveJobRecord) => {
+        if (dependencies.captureIncidentEvidence && !evidenceCaptureInFlight.has(alert.id)) {
+            evidenceCaptureInFlight.add(alert.id);
+                void dependencies.captureIncidentEvidence(alert, triggerJob)
+                    .then((evidence) => attachIncidentEvidence(alert.id, evidence))
+                .catch(() => undefined)
+                .finally(() => evidenceCaptureInFlight.delete(alert.id));
+        }
+
+        try {
+            void Promise.resolve(dependencies.onAlertCreated?.(alert, triggerJob)).catch(() => undefined);
+        } catch {
+            // Local incident creation must not depend on an external delivery adapter.
+        }
     };
 
     return {
@@ -56,9 +121,8 @@ export function createAlertStateStore(dependencies: AlertStateDependencies) {
         getWorkflowStateByAlertId() {
             return workflowStateByAlertId;
         },
-        clearDemoWorkflowLinks() {
-            workflowStateByAlertId = {};
-            persistWorkflowState();
+        getIncidentLedger() {
+            return incidentLedger;
         },
         setActiveAlerts,
         persistWorkflowState,
@@ -81,6 +145,7 @@ export function createAlertStateStore(dependencies: AlertStateDependencies) {
                 persistWorkflowState();
             }
             setActiveAlerts(nextAlerts);
+            persistCurrentIncidents();
         },
         recordAlertRecheck(
             alertId: string,
@@ -135,6 +200,7 @@ export function createAlertStateStore(dependencies: AlertStateDependencies) {
                     recoveryPollCount: cleared ? candidate.recoveryPollCount : 0,
                     lastSeenAt: cleared ? candidate.lastSeenAt : timestamp,
                     workflowStatus: nextState.status,
+                    lifecyclePhase: getIncidentLifecyclePhase(nextState),
                     owner: nextState.owner,
                     notes: nextState.notes,
                     timeline: nextState.timeline,
@@ -143,6 +209,7 @@ export function createAlertStateStore(dependencies: AlertStateDependencies) {
                     clickUpTask: nextState.clickUpTask
                 }
                 : candidate));
+            persistCurrentIncidents();
 
             return activeAlerts.find((candidate) => candidate.id === alertId);
         },
@@ -167,6 +234,7 @@ export function createAlertStateStore(dependencies: AlertStateDependencies) {
                     ? {
                         ...alert,
                         workflowStatus: nextState.status,
+                        lifecyclePhase: getIncidentLifecyclePhase(nextState),
                         owner: nextState.owner,
                         notes: nextState.notes,
                         timeline: nextState.timeline,
@@ -176,6 +244,7 @@ export function createAlertStateStore(dependencies: AlertStateDependencies) {
                     }
                     : alert
             )));
+            persistCurrentIncidents();
 
             return nextState;
         },
@@ -185,23 +254,33 @@ export function createAlertStateStore(dependencies: AlertStateDependencies) {
             settings: AlertSettings,
             notify: (key: string, title: string, body: string) => void
         ) {
-            const previousAlertIds = new Set(activeAlerts.map((alert) => alert.id));
+            const incidentScope = activateIncidentScope();
+            const previousOccurrences = new Map(
+                activeAlerts.map((alert) => [alert.id, alert.occurrence ?? 1])
+            );
             const result = evaluateAlertQueue(jobs, {
                 activeAlerts,
                 dismissedAlertIds,
                 workflowStateByAlertId,
                 settings,
                 timestamp,
+                incidentScope,
                 notify
             });
 
             workflowStateByAlertId = result.workflowStateByAlertId;
             persistWorkflowState();
             setActiveAlerts(result.alerts);
+            persistCurrentIncidents();
 
             result.alerts.forEach((alert) => {
-                if (!previousAlertIds.has(alert.id)) {
-                    void dependencies.onAlertCreated?.(alert);
+                const isNewOccurrence = !previousOccurrences.has(alert.id)
+                    || (alert.occurrence ?? 1) > (previousOccurrences.get(alert.id) ?? 0);
+                if (isNewOccurrence || !alert.evidence) {
+                    const triggerJob = jobs.find((job) => (
+                        String(job.JOB_NAME || job.SUBSYSTEM_JOB || '').trim() === String(alert.jobName || '').trim()
+                    ));
+                    emitAlertCreated(alert, triggerJob);
                 }
             });
         },
@@ -210,11 +289,13 @@ export function createAlertStateStore(dependencies: AlertStateDependencies) {
             settings: AlertSettings,
             notify: (key: string, title: string, body: string) => void
         ) {
+            const incidentScope = activateIncidentScope();
             const nextFailureAlert = createPollFailureAlert(
                 errorMessage,
                 activeAlerts,
                 dismissedAlertIds,
-                workflowStateByAlertId
+                workflowStateByAlertId,
+                incidentScope
             );
             if (!nextFailureAlert) {
                 return;
@@ -228,9 +309,10 @@ export function createAlertStateStore(dependencies: AlertStateDependencies) {
             };
             persistWorkflowState();
             setActiveAlerts([nextAlert, ...remainingAlerts]);
+            persistCurrentIncidents();
 
             if (isNew) {
-                void dependencies.onAlertCreated?.(nextAlert);
+                emitAlertCreated(nextAlert);
                 if (settings.watchFailedPolls) {
                     notify(nextAlert.id, nextAlert.title, `${nextAlert.message} ${errorMessage}`);
                 }
@@ -238,6 +320,7 @@ export function createAlertStateStore(dependencies: AlertStateDependencies) {
         },
         clearRuntimeState() {
             activeAlerts = [];
+            activeSystemId = undefined;
             notificationLedger.clear();
             dependencies.onAlertsChanged([]);
         }

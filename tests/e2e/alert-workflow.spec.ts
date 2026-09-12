@@ -10,12 +10,10 @@ async function launchTestApp(): Promise<{
     cleanup: () => Promise<void>;
 }> {
     const sandboxRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ibmeye-e2e-'));
-    const homeDirectory = path.join(sandboxRoot, 'home');
     const storeDirectory = path.join(sandboxRoot, 'store');
     const userDataDirectory = path.join(sandboxRoot, 'user-data');
 
     await Promise.all([
-        fs.mkdir(homeDirectory, { recursive: true }),
         fs.mkdir(storeDirectory, { recursive: true }),
         fs.mkdir(userDataDirectory, { recursive: true })
     ]);
@@ -24,13 +22,24 @@ async function launchTestApp(): Promise<{
         args: [path.resolve(process.cwd())],
         env: {
             ...process.env,
-            HOME: homeDirectory,
             IBM_EYE_STORE_DIR: storeDirectory,
             IBM_EYE_USER_DATA_DIR: userDataDirectory
         }
     });
 
     const page = await electronApp.firstWindow();
+    // Only provider boundaries are mocked; job and incident operations use the
+    // actual demo runtime, persisted workflow store, preload and native windows.
+    await electronApp.evaluate(({ ipcMain }) => {
+        ipcMain.removeHandler('ask-ai-assistant');
+        ipcMain.handle('ask-ai-assistant', () => ({ success: true, reply: 'Mock job analysis: inspect the job log.' }));
+        ipcMain.removeHandler('get-ai-availability');
+        ipcMain.handle('get-ai-availability', () => ({
+            enabled: true, provider: 'ollama', providerLabel: 'Ollama', providerFamily: 'ollama',
+            endpoint: 'http://127.0.0.1:11434', selectedModel: 'gemma3:latest', availableModels: [],
+            healthy: true, featureAccess: 'included', message: 'Mock provider ready.'
+        }));
+    });
 
     return {
         electronApp,
@@ -45,46 +54,96 @@ async function launchTestApp(): Promise<{
 async function openDemoMonitor(page: Page) {
     await expect(page.locator('#saved-connections')).toHaveValue('demo-connection');
     await page.locator('#connect').click();
-    await expect(page.getByRole('heading', { name: 'IBMEye Incident Queue', exact: true })).toBeVisible();
-    const alertsPanel = page.locator('.alerts-panel');
-    if (!(await alertsPanel.evaluate((panel: HTMLDetailsElement) => panel.open))) {
-        await alertsPanel.locator(':scope > summary').click();
-    }
-    await expect(page.getByTestId('alert-card').first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'iMonitor ActionBoard', exact: true })).toBeVisible();
+    await expect(page.locator('.actionboard-jobs-panel')).toHaveAttribute('open', '');
+    await expect(page.locator('.job-row.has-incident').first()).toBeVisible();
+    // Keep the real demo poll running, with stable evidence during each workflow.
+    await page.locator('#refresh-interval').selectOption('60000');
 }
 
-test('launches the demo monitor and renders live alert cards', async () => {
-    const app = await launchTestApp();
+async function openTaskWindow(app: Awaited<ReturnType<typeof launchTestApp>>, open: () => Promise<unknown>) {
+    const opened = app.electronApp.waitForEvent('window');
+    await open();
+    const task = await opened;
+    await task.waitForLoadState('domcontentloaded');
+    await expect(task).toHaveURL(/job-task\.html\?jobName=/);
+    await expect(task.locator('#task-content')).toBeVisible();
+    await expect(app.page.locator('#job-detail-drawer')).not.toHaveClass(/is-open/);
+    return task;
+}
 
+async function selectedIncident(page: Page) {
+    const alerts = await page.evaluate(() => window.electronAPI.getActiveAlerts());
+    const incident = alerts.find((entry) => entry.kind === 'messageWait' && entry.isActive !== false);
+    expect(incident, 'The persistent demo MSGW incident must be available').toBeDefined();
+    return incident!;
+}
+
+async function readIncident(page: Page, alertId: string) {
+    return page.evaluate(async (id) => (await window.electronAPI.getActiveAlerts()).find((entry) => entry.id === id), alertId);
+}
+
+function incidentRow(page: Page, jobName: string) {
+    return page.locator('.job-row').filter({ has: page.locator('.job-cell-primary small', { hasText: jobName }) });
+}
+
+test('launches the demo monitor and renders live incidents in active jobs', async () => {
+    const app = await launchTestApp();
     try {
         await openDemoMonitor(app.page);
-        await expect(app.page.getByRole('heading', { name: 'iMonitor ActionBoard', exact: true })).toBeVisible();
         await expect(app.page.locator('.hero-logo')).toHaveAttribute('src', 'assets/ibm-eye.svg');
         await expect(app.page.locator('.ai-assistant-panel')).toHaveClass(/panel-tone-ai/);
         await expect(app.page.locator('.alert-rules-panel')).toHaveClass(/panel-tone-alerts/);
         await expect(app.page.locator('#app-status-bar')).toBeVisible();
         await expect(app.page.locator('#app-status-message')).toContainText(/Monitoring healthy|Waiting for monitoring/);
         await expect(app.page.locator('.activity-log-shell')).toHaveCount(0);
-        await expect(app.page.getByTestId('alert-count')).toContainText('active alert');
+        await expect(app.page.locator('.alerts-panel')).toBeHidden();
+        await expect(app.page.getByTestId('jobs-visible-count')).toContainText(/Showing \d+ of \d+ jobs/);
+        const incident = await selectedIncident(app.page);
+        await expect.poll(async () => {
+            const current = await readIncident(app.page, incident.id);
+            return current?.evidence?.jobLog.status;
+        }).toMatch(/^(captured|stale)$/);
+        const row = incidentRow(app.page, incident.jobName!);
+        await expect(row).toBeVisible();
+        await expect(row.locator('.job-incident-chip')).toHaveText('MSGW');
+        await expect(row).toHaveClass(/is-critical/);
+        const task = await openTaskWindow(app, () => row.click());
+        await expect(task.locator('#task-qualified-job')).toHaveText(incident.jobName!);
+        await expect(task.locator('#task-issue-title')).toHaveText(incident.title);
+        await expect(task.locator('#task-issue-summary')).toHaveText(incident.message);
+        await expect(task.locator('#task-issue-state')).toHaveText('CRITICAL | New');
+        await expect(task.locator('[data-testid="task-evidence-captured"]')).toBeVisible();
+        await expect(task.locator('[data-testid="task-evidence-captured"]')).toContainText('Job log');
     } finally {
         await app.cleanup();
     }
 });
 
-test('turns the incident queue into a prioritized action board', async () => {
+test('prioritizes incident jobs and opens the next task from the active jobs board', async () => {
     const app = await launchTestApp();
-
     try {
         await openDemoMonitor(app.page);
         await expect(app.page.locator('#actionboard-focus-title')).toBeVisible();
-        await expect(app.page.locator('#actionboard-attention-count')).toContainText(/\d+/);
-        await expect(app.page.getByTestId('alert-filter-attention')).toBeVisible();
-
-        await app.page.getByTestId('alert-filter-attention').click();
-        await expect(app.page.getByTestId('alert-filter-attention')).toHaveAttribute('aria-pressed', 'true');
-        await app.page.getByTestId('focus-next-alert').click();
-        await expect(app.page.locator('#focus-alert-shell')).not.toHaveAttribute('hidden', '');
-        await expect(app.page.getByTestId('focus-alert-card')).toBeVisible();
+        await expect(app.page.locator('#actionboard-attention-count')).toContainText(/[1-9]\d*/);
+        await app.page.getByTestId('jobs-filter-msgw').click();
+        await expect(app.page.getByTestId('jobs-filter-msgw')).toHaveAttribute('aria-pressed', 'true');
+        await expect(app.page.locator('.job-row .badge').first()).toHaveText('Message wait');
+        const filteredStates = await app.page.locator('.job-row .badge').allTextContents();
+        expect(filteredStates.length).toBeGreaterThan(0);
+        expect(filteredStates.every((status) => status.trim() === 'Message wait')).toBe(true);
+        // Focus Next must escape an unrelated filter and open a critical wait.
+        await app.page.getByTestId('jobs-search-input').fill('no-matching-job');
+        await expect(app.page.locator('#system-stats tbody')).toContainText('No jobs match');
+        const task = await openTaskWindow(app, () => app.page.locator('#superpanel-focus-next').click());
+        await expect(app.page.getByTestId('jobs-filter-all')).toHaveAttribute('aria-pressed', 'true');
+        await expect(app.page.getByTestId('jobs-search-input')).toHaveValue('');
+        await expect(task.locator('#task-issue-state')).toContainText('CRITICAL');
+        await expect(task.locator('#task-status')).toHaveText(/MSGW|LCKW/);
+        const jobName = await task.locator('#task-qualified-job').innerText();
+        await expect(incidentRow(app.page, jobName)).toBeVisible();
+        await task.getByRole('tab', { name: 'Actions', exact: true }).click();
+        await expect(task.getByRole('button', { name: 'Claim Work', exact: true })).toBeEnabled();
     } finally {
         await app.cleanup();
     }
@@ -92,13 +151,20 @@ test('turns the incident queue into a prioritized action board', async () => {
 
 test('keeps ClickUp ticket creation with the operator workflow', async () => {
     const app = await launchTestApp();
-
     try {
         await openDemoMonitor(app.page);
-
+        const operator = (await app.page.evaluate(() => window.electronAPI.getAppFlags())).operatorName;
+        expect(operator).toBeTruthy();
         await app.page.locator('#open-settings').click();
         await app.page.getByTestId('settings-page-alerts').click();
         await expect(app.page.locator('#settings-alert-panel')).toBeVisible();
+        await expect(app.page.locator('#settings-alert-panel').getByText('ClickUp', { exact: true })).toHaveCount(0);
+        await app.page.getByTestId('settings-page-integrations').click();
+        await expect(app.page.locator('#settings-clickup-panel')).toBeVisible();
+        await expect(app.page.locator('#settings-clickup-user')).toContainText(`Saved for operator: ${operator}`);
+        await app.page.locator('#settings-clickup-panel > summary').click();
+        await expect(app.page.locator('#settings-clickup-enabled')).not.toBeChecked();
+        await expect(app.page.locator('#settings-clickup-token')).toHaveValue('');
     } finally {
         await app.cleanup();
     }
@@ -106,25 +172,27 @@ test('keeps ClickUp ticket creation with the operator workflow', async () => {
 
 test('keeps duplicate properties out and loads job logs only when requested', async () => {
     const app = await launchTestApp();
-
     try {
         await openDemoMonitor(app.page);
-        await expect(app.page.locator('.job-row').first()).toBeVisible();
-        await app.page.locator('.job-row').first().click();
-        await expect(app.page.locator('#job-detail-drawer')).toHaveClass(/is-open/);
-        await expect(app.page.getByRole('heading', { name: 'Current or last SQL statement', exact: true })).toHaveCount(0);
-        await expect(app.page.locator('#load-job-context')).toHaveCount(0);
-        await expect(app.page.locator('#job-context-output')).toHaveCount(0);
-        await expect(app.page.getByTestId('detail-wait-ai')).toBeEnabled();
-
-        await app.page.getByTestId('detail-wait-ai').click();
-        await expect(app.page.locator('#detail-wait-ai-report')).toBeVisible();
-        await expect(app.page.locator('#detail-wait-ai-content')).not.toBeEmpty();
+        const task = await openTaskWindow(app, () => app.page.locator('.job-row').first().click());
+        await expect(task.getByRole('heading', { name: 'Current or last SQL statement', exact: true })).toHaveCount(0);
+        await expect(task.locator('#load-job-context')).toHaveCount(0);
+        await expect(task.locator('#job-context-output')).toHaveCount(0);
+        await task.getByRole('tab', { name: 'Details', exact: true }).click();
+        await expect(task.locator('#task-details-output')).toBeEmpty();
+        await task.getByRole('tab', { name: 'AI helper', exact: true }).click();
+        await expect(task.locator('#task-ai-output')).toBeHidden();
+        await expect(task.locator('#task-ai-summary')).toBeEnabled();
+        await task.locator('#task-ai-summary').click();
+        await expect(task.locator('#task-ai-output')).toBeVisible();
+        await expect(task.locator('#task-ai-status')).toHaveText('Ready');
+        await expect(task.locator('#task-ai-content')).toContainText('Mock job analysis: inspect the job log.');
         await expect(app.page.locator('#ibmeyeai-widget')).toHaveAttribute('data-open', 'false');
-
-        await app.page.locator('#load-job-log').click();
-        await expect(app.page.locator('#job-log-output')).toContainText('Recent job log');
-        await expect(app.page.locator('#job-log-output')).toContainText('STATUS');
+        await task.getByRole('tab', { name: 'Details', exact: true }).click();
+        await expect(task.locator('#task-details-output')).toBeEmpty();
+        await task.locator('#task-load-log').click();
+        await expect(task.locator('#task-details-output')).toContainText('Recent job log');
+        await expect(task.locator('#task-details-output')).toContainText('STATUS');
     } finally {
         await app.cleanup();
     }
@@ -132,14 +200,36 @@ test('keeps duplicate properties out and loads job logs only when requested', as
 
 test('requires confirmation before running an IBM i job action', async () => {
     const app = await launchTestApp();
-
     try {
-        app.page.on('dialog', (dialog) => void dialog.accept());
         await openDemoMonitor(app.page);
-        await expect(app.page.locator('.job-row').first()).toBeVisible();
-        await app.page.locator('.job-row').first().click();
-        await app.page.locator('#job-detail-drawer').getByRole('button', { name: 'Hold Job' }).click();
-        await expect(app.page.locator('#detail-operator-action-note')).toContainText('Action completed: holdJob');
+        const task = await openTaskWindow(app, () => app.page.locator('.job-row').first().click());
+        await task.getByRole('tab', { name: 'Actions', exact: true }).click();
+        const jobName = await task.locator('#task-qualified-job').innerText();
+        const originalNote = await task.locator('#task-action-note').innerText();
+        let dismissed = false;
+        task.once('dialog', async (dialog) => {
+            expect(dialog.type()).toBe('confirm');
+            expect(dialog.message()).toContain(jobName);
+            dismissed = true;
+            await dialog.dismiss();
+        });
+        await task.getByRole('button', { name: 'Hold Job', exact: true }).click();
+        expect(dismissed).toBe(true);
+        await expect(task.locator('#task-action-note')).toHaveText(originalNote);
+        let confirmed = false;
+        task.once('dialog', async (dialog) => {
+            expect(dialog.type()).toBe('confirm');
+            expect(dialog.message()).toContain(jobName);
+            confirmed = true;
+            await dialog.accept();
+        });
+        await task.getByRole('button', { name: 'Hold Job', exact: true }).click();
+        expect(confirmed).toBe(true);
+        await expect(task.locator('#task-action-note')).toContainText('Action completed: holdJob');
+        await expect(task.locator('#task-refresh')).toBeEnabled();
+        await task.locator('#task-refresh').click();
+        await expect(task.locator('#task-refresh')).toBeEnabled();
+        await expect(task.locator('#task-action-note')).toContainText('Action completed: holdJob');
     } finally {
         await app.cleanup();
     }
@@ -147,51 +237,86 @@ test('requires confirmation before running an IBM i job action', async () => {
 
 test('supports acknowledge, claim, note, work done, and return-to-queue in the alert workflow', async () => {
     const app = await launchTestApp();
-
     try {
         await openDemoMonitor(app.page);
+        const incident = await selectedIncident(app.page);
+        const alertId = incident.id;
+        const jobName = incident.jobName!;
+        const operator = (await app.page.evaluate(() => window.electronAPI.getAppFlags())).operatorName;
+        expect(operator).toBeTruthy();
+        const row = incidentRow(app.page, jobName);
+        const task = await openTaskWindow(app, () => row.click());
+        await task.getByRole('tab', { name: 'Actions', exact: true }).click();
+        await task.getByRole('button', { name: 'Acknowledge', exact: true }).click();
+        await expect.poll(() => readIncident(app.page, alertId)).toMatchObject({ workflowStatus: 'acknowledged' });
+        await expect(task.getByRole('button', { name: 'Acknowledge', exact: true })).toHaveCount(0);
+        await task.getByRole('button', { name: 'Claim Work', exact: true }).click();
+        await expect.poll(() => readIncident(app.page, alertId)).toMatchObject({ workflowStatus: 'claimed', owner: operator });
+        await expect(task.locator('.job-task-owner')).toHaveText(`Owner: ${operator}`);
+        await expect(task.getByRole('button', { name: 'Claim Work', exact: true })).toHaveCount(0);
+        await expect(task.getByRole('button', { name: 'Mark Work Done', exact: true })).toBeEnabled();
+        expect((await readIncident(app.page, alertId))?.clickUpTask).toBeUndefined();
 
-        const firstAlert = app.page.getByTestId('alert-card').first();
-        await firstAlert.getByTestId('alert-toggle').click();
-        await expect(firstAlert.getByTestId('alert-body')).toBeVisible();
-        const alertId = await firstAlert.getAttribute('data-alert-id');
-
-        await firstAlert.getByTestId('alert-acknowledge').click();
+        // Native task windows currently lack the old note composer. Preserve the
+        // real note mutation/persistence and visible timeline coverage through IPC;
+        // this does not claim coverage of a note-entry UI that no longer exists.
+        const note = 'Checked by e2e smoke test';
+        const result = await task.evaluate(({ id, text }) => window.electronAPI.updateAlertWorkflow({
+            alertId: id, action: 'note', note: text
+        }), { id: alertId, text: note });
+        expect(result.success).toBe(true);
+        await expect.poll(async () => (await readIncident(app.page, alertId))?.notes).toEqual([
+            expect.objectContaining({ text: note, author: operator })
+        ]);
+        await task.getByRole('tab', { name: 'History', exact: true }).click();
+        await expect(task.locator('#task-incident-history')).toContainText('Note added');
+        await expect(task.locator('#task-incident-history')).toContainText(note);
+        await task.getByRole('tab', { name: 'Actions', exact: true }).click();
+        await task.getByRole('button', { name: 'Mark Work Done', exact: true }).click();
+        await expect.poll(() => readIncident(app.page, alertId)).toMatchObject({ workflowStatus: 'work_done', owner: operator });
+        await task.getByRole('tab', { name: 'History', exact: true }).click();
+        const history = task.locator('#task-incident-history .on-demand-record-group').filter({
+            has: task.getByRole('heading', { name: `${incident.title} · Work done`, exact: true })
+        });
+        await expect(history.locator('.alert-timeline-entry')).toHaveCount(5);
+        await expect(history.locator('.alert-timeline-entry strong')).toHaveText([
+            'Work marked done', 'Note added', 'Work claimed', 'Acknowledged', 'Alert created'
+        ]);
+        await task.getByRole('tab', { name: 'Actions', exact: true }).click();
+        await task.getByRole('button', { name: 'Remove Claim', exact: true }).click();
         await expect.poll(async () => {
-            const alerts = await app.page.evaluate(() => window.electronAPI.getActiveAlerts());
-            return alerts.find((entry) => entry.id === alertId)?.workflowStatus;
-        }).toBe('acknowledged');
+            const updated = await readIncident(app.page, alertId);
+            return { owner: updated?.owner || '', workflowStatus: updated?.workflowStatus };
+        }).toEqual({ owner: '', workflowStatus: 'acknowledged' });
+        await expect(task.locator('.job-task-owner')).toHaveText('Unassigned');
+        await expect(task.locator('#task-incident-actions .activity-log-badge')).toHaveText('Acknowledged');
+        await expect(task.getByRole('button', { name: 'Claim Work', exact: true })).toBeEnabled();
+        await task.getByRole('tab', { name: 'History', exact: true }).click();
+        await expect(task.locator('#task-incident-history')).toContainText('Returned to queue');
+        await expect(task.locator('#task-incident-history')).toContainText(note);
+    } finally {
+        await app.cleanup();
+    }
+});
 
-        await firstAlert.getByTestId('alert-claim').click();
-        const workingAlert = app.page.getByTestId('focus-alert-card');
-        await expect(workingAlert).toBeVisible();
-        await expect.poll(async () => {
-            const alerts = await app.page.evaluate(() => window.electronAPI.getActiveAlerts());
-            return alerts.find((entry) => entry.id === alertId)?.workflowStatus;
-        }).toBe('claimed');
-
-        await workingAlert.getByTestId('alert-note-toggle').click();
-        await expect(workingAlert.getByTestId('alert-note-composer')).toBeVisible();
-        await workingAlert.getByTestId('alert-note-input').fill('Checked by e2e smoke test');
-        await workingAlert.getByTestId('alert-note-save').click();
-        await expect(workingAlert.getByTestId('alert-timeline')).toContainText('Note added');
-        await expect(workingAlert.getByTestId('alert-timeline')).toContainText('Checked by e2e smoke test');
-        await workingAlert.getByTestId('alert-work-done').click();
-        await expect.poll(async () => {
-            const alerts = await app.page.evaluate(() => window.electronAPI.getActiveAlerts());
-            return alerts.find((entry) => entry.id === alertId)?.workflowStatus;
-        }).toBe('work_done');
-        await workingAlert.getByTestId('alert-history-toggle').click();
-        await expect(workingAlert.getByTestId('alert-history-toggle')).toContainText('Show less history');
-        await expect(workingAlert.getByTestId('alert-timeline').locator('.alert-timeline-entry')).toHaveCount(5);
-
-        await workingAlert.getByTestId('alert-release').click();
-        const returnedAlert = app.page.locator(`[data-testid="alert-card"][data-alert-id="${alertId}"]`);
-        await expect.poll(async () => {
-            const alerts = await app.page.evaluate(() => window.electronAPI.getActiveAlerts());
-            return alerts.find((entry) => entry.id === alertId)?.owner || '';
-        }).toBe('');
-        await expect(returnedAlert.getByTestId('alert-workflow-badge')).toHaveText('ACKNOWLEDGED');
+// Keep cross-window freshness separate so a stale board cannot prevent the
+// acknowledge/note/work-done/release persistence scenario above from running.
+test('updates the active job owner badge immediately after claiming and releasing work', async () => {
+    const app = await launchTestApp();
+    try {
+        await openDemoMonitor(app.page);
+        const incident = await selectedIncident(app.page);
+        const operator = (await app.page.evaluate(() => window.electronAPI.getAppFlags())).operatorName;
+        expect(operator).toBeTruthy();
+        const row = incidentRow(app.page, incident.jobName!);
+        const task = await openTaskWindow(app, () => row.click());
+        await task.getByRole('tab', { name: 'Actions', exact: true }).click();
+        await task.getByRole('button', { name: 'Claim Work', exact: true }).click();
+        await expect.poll(() => readIncident(app.page, incident.id)).toMatchObject({ workflowStatus: 'claimed', owner: operator });
+        await expect(row.locator('.job-owner-chip')).toHaveText(operator!);
+        await task.getByRole('button', { name: 'Remove Claim', exact: true }).click();
+        await expect.poll(async () => (await readIncident(app.page, incident.id))?.owner || '').toBe('');
+        await expect(row.locator('.job-owner-chip')).toHaveCount(0);
     } finally {
         await app.cleanup();
     }

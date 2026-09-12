@@ -1,17 +1,13 @@
-import { readFile, readdir, stat, writeFile } from 'node:fs/promises';
+import { readFile, readdir, writeFile } from 'node:fs/promises';
 import * as path from 'node:path';
 import {
-    classifyAnalysisFile,
     DEFAULT_OBJECT_ANALYSIS_SETTINGS,
     normalizeObjectAnalysisSettings,
     objectId,
     parseObjectAnalysisLibraryList,
     isValidIbmiName,
-    type AnalysisFileNode,
-    type AnalysisFileKind,
     type AnalysisObjectNode,
     type AnalysisObjectType,
-    type AnalysisRelationship,
     type AnalyzeObjectRequest,
     type DependencyEdge,
     type ObjectAnalysisResult,
@@ -19,7 +15,8 @@ import {
     type ObjectAnalysisWorkspace,
     type ObjectAnalysisLibraryListInfo
 } from '../features/object-analysis/model';
-import { parseRpgSource, type SourceReference } from '../features/object-analysis/rpg-parser';
+import { parseRpgSource } from '../features/object-analysis/rpg-parser';
+import { collectSourceFiles, discoverLocalLibraries, selectLocalSource, walkDirectory, type LocalSourceLibrary, type SourceFile } from '../features/object-analysis/local-source';
 
 interface DemoObjectDefinition {
     name: string;
@@ -44,15 +41,6 @@ interface DemoLibraryList {
     librarylist?: string[];
 }
 
-interface SourceFile {
-    library: string;
-    name: string;
-    relativePath: string;
-    kind: AnalysisFileKind;
-    language?: string;
-    content: string;
-}
-
 interface InternalGraph {
     nodes: Map<string, AnalysisObjectNode>;
     edges: Map<string, DependencyEdge>;
@@ -75,14 +63,6 @@ function objectNameFromFile(fileName: string) {
     return fileName.replace(/\.(sqlrpgle|rpgle|rpg|clle|cl|cobol|cbl|dds|dspf|pf|lf|sql|ddl|table|file)$/i, '').toUpperCase();
 }
 
-function toRelativePath(value: string) {
-    return value.split(path.sep).join('/');
-}
-
-function fileKindForNode(fileName: string) {
-    return classifyAnalysisFile(fileName);
-}
-
 function objectTypeForSourceFile(sourceFile: SourceFile): AnalysisObjectType {
     if (sourceFile.kind === 'database') {
         return '*FILE';
@@ -96,96 +76,6 @@ async function readJson<T>(filePath: string, fallback: T): Promise<T> {
     } catch {
         return fallback;
     }
-}
-
-async function walkDirectory(
-    directoryPath: string,
-    relativePath: string,
-    library?: string
-): Promise<AnalysisFileNode[]> {
-    const entries = await readdir(directoryPath, { withFileTypes: true });
-    const sortedEntries = entries.sort((left, right) => {
-        if (left.isDirectory() !== right.isDirectory()) {
-            return left.isDirectory() ? -1 : 1;
-        }
-        return left.name.localeCompare(right.name);
-    });
-    const nodes: AnalysisFileNode[] = [];
-
-    for (const entry of sortedEntries) {
-        if (entry.name.startsWith('.')) {
-            continue;
-        }
-
-        const childRelativePath = relativePath
-            ? `${relativePath}/${entry.name}`
-            : entry.name;
-        const childPath = path.join(directoryPath, entry.name);
-
-        if (entry.isDirectory()) {
-            const childLibrary = library || (['user-libraries', 'userlib'].includes(relativePath.toLowerCase())
-                ? normalizeName(entry.name)
-                : library);
-            nodes.push({
-                id: `directory:${childRelativePath}`,
-                name: entry.name,
-                relativePath: childRelativePath,
-                kind: 'directory',
-                library: childLibrary,
-                children: await walkDirectory(childPath, childRelativePath, childLibrary)
-            });
-            continue;
-        }
-
-        const fileKind = fileKindForNode(entry.name);
-        nodes.push({
-            id: `file:${childRelativePath}`,
-            name: entry.name,
-            relativePath: childRelativePath,
-            kind: fileKind.kind,
-            library,
-            language: fileKind.language,
-            analyzable: fileKind.analyzable
-        });
-    }
-
-    return nodes;
-}
-
-async function collectSourceFiles(directoryPath: string, library: string, relativePath = ''): Promise<SourceFile[]> {
-    const entries = await readdir(directoryPath, { withFileTypes: true });
-    const files: SourceFile[] = [];
-
-    for (const entry of entries) {
-        if (entry.name.startsWith('.')) {
-            continue;
-        }
-
-        const childPath = path.join(directoryPath, entry.name);
-        const childRelativePath = relativePath
-            ? `${relativePath}/${entry.name}`
-            : entry.name;
-        if (entry.isDirectory()) {
-            files.push(...await collectSourceFiles(childPath, library, childRelativePath));
-            continue;
-        }
-
-        const fileKind = fileKindForNode(entry.name);
-        if (!fileKind.analyzable || fileKind.kind === 'metadata') {
-            continue;
-        }
-
-        files.push({
-            library,
-            name: entry.name,
-            relativePath: toRelativePath(childRelativePath),
-            kind: fileKind.kind,
-            language: fileKind.language,
-            content: await readFile(childPath, 'utf8')
-        });
-    }
-
-    return files;
 }
 
 function createNode(definition: DemoObjectDefinition, library: string): AnalysisObjectNode {
@@ -237,23 +127,11 @@ export interface ObjectAnalysisProvider {
 export class DemoObjectAnalysisService implements ObjectAnalysisProvider {
     constructor(private readonly rootPath: string) {}
 
-    private async getLibraryRoot() {
-        for (const directoryName of ['userlib', 'user-libraries']) {
-            const nestedRoot = path.join(this.rootPath, directoryName);
-            try {
-                if ((await stat(nestedRoot)).isDirectory()) {
-                    return { path: nestedRoot, prefix: directoryName };
-                }
-            } catch {
-                // The selected local directory may use a flat library layout.
-            }
-        }
-
-        return { path: this.rootPath, prefix: '' };
-    }
-
     private async getLibraryList(): Promise<ObjectAnalysisLibraryListInfo> {
-        for (const fileName of ['setup.json', 'settings.json', 'library-list.json']) {
+        const entries = await readdir(this.rootPath, { withFileTypes: true });
+        for (const name of ['setup.json', 'settings.json', 'library-list.json']) {
+            const fileName = entries.find((entry) => entry.isFile() && entry.name.toLowerCase() === name)?.name;
+            if (!fileName) continue;
             const candidate = await readJson<DemoLibraryList>(
                 path.join(this.rootPath, fileName),
                 {}
@@ -275,46 +153,25 @@ export class DemoObjectAnalysisService implements ObjectAnalysisProvider {
         return { masterLibrary: 'DEMO', libraries: [], source: 'detected' };
     }
 
-    private async getLibraryManifests(libraries: string[], libraryRoot: string) {
-        return Promise.all(libraries.map(async (library) => readJson<DemoLibraryManifest>(
-            path.join(libraryRoot, library, 'objects.json'),
-            { library, objects: [] }
-        )));
+    private async getLibraryManifests(libraries: LocalSourceLibrary[]) {
+        return Promise.all(libraries.map(async (library) => {
+            const entries = await readdir(library.path, { withFileTypes: true });
+            const fileName = entries.find((entry) => entry.isFile() && entry.name.toLowerCase() === 'objects.json')?.name;
+            const manifest = fileName
+                ? await readJson<DemoLibraryManifest>(path.join(library.path, fileName), { library: library.name, objects: [] })
+                : { library: library.name, objects: [] };
+            return { ...manifest, library: library.name };
+        }));
     }
 
     private async getAvailableLibraries() {
-        const libraryRoot = await this.getLibraryRoot();
-        const list = await this.getLibraryList();
-        const configured = list.libraries.map(normalizeName);
-        if (configured.length) {
-            return { list, libraries: Array.from(new Set(configured)), libraryRoot };
-        }
-
-        // A user may choose one library folder instead of its master root.
-        // Treat that folder as the complete local scope rather than mistaking
-        // source-file folders for library names. Folder names are intentionally
-        // not prescribed: IBM i source files are identified by their members
-        // and extensions, not by a required local directory convention.
-        const selectedLibraryName = path.basename(this.rootPath);
-        const selectedEntries = await readdir(this.rootPath, { withFileTypes: true }).catch(() => []);
-        const looksLikeLibrary = selectedEntries.some((entry) => (
-            entry.name.toLowerCase() === 'objects.json'
-            || entry.isDirectory()
-        ));
-        if (!libraryRoot.prefix && looksLikeLibrary && selectedLibraryName) {
-            return {
-                list: { ...list, libraries: [selectedLibraryName] },
-                libraries: [normalizeName(selectedLibraryName)],
-                libraryRoot: { path: path.dirname(this.rootPath), prefix: '' }
-            };
-        }
-
-        const entries = await readdir(libraryRoot.path, { withFileTypes: true });
-        return {
-            list,
-            libraries: entries.filter((entry) => entry.isDirectory()).map((entry) => normalizeName(entry.name)),
-            libraryRoot
-        };
+        const [list, physicalLibraries] = await Promise.all([
+            this.getLibraryList(), discoverLocalLibraries(this.rootPath)
+        ]);
+        const libraries = list.source === 'setup-file'
+            ? list.libraries
+            : physicalLibraries.map((library) => library.name);
+        return { list, libraries, physicalLibraries };
     }
 
     /** Returns the configured or inferred libraries for the selected local root. */
@@ -345,7 +202,9 @@ export class DemoObjectAnalysisService implements ObjectAnalysisProvider {
             throw new Error(`IBM i library names must be 1–10 letters or numbers: ${invalidLibraries.join(', ')}.`);
         }
 
-        const setupPath = path.join(this.rootPath, 'setup.json');
+        const entries = await readdir(this.rootPath, { withFileTypes: true });
+        const fileName = entries.find((entry) => entry.isFile() && entry.name.toLowerCase() === 'setup.json')?.name || 'setup.json';
+        const setupPath = path.join(this.rootPath, fileName);
         const existing = await readJson<Record<string, unknown>>(setupPath, {});
         const current = await this.getLibraryList();
         const setup = {
@@ -356,28 +215,21 @@ export class DemoObjectAnalysisService implements ObjectAnalysisProvider {
             libraryList: libraries
         };
         await writeFile(setupPath, `${JSON.stringify(setup, null, 2)}\n`, 'utf8');
-        return { fileName: 'setup.json', libraries };
+        return { fileName, libraries };
     }
 
     async getWorkspace(candidate?: Partial<ObjectAnalysisSettings>): Promise<ObjectAnalysisWorkspace> {
         const settings = normalizeObjectAnalysisSettings(candidate || DEFAULT_OBJECT_ANALYSIS_SETTINGS);
-        const { list, libraries, libraryRoot } = await this.getAvailableLibraries();
-        const scanLibraries = settings.libraryList.filter((library) => libraries.includes(library));
-        const missingLibraries = settings.libraryList.filter((library) => !libraries.includes(library));
-        if (missingLibraries.length) {
-            throw new Error(`These libraries were not found in the selected local directory: ${missingLibraries.join(', ')}.`);
-        }
-        if (!scanLibraries.length) {
-            throw new Error('No configured libraries were found in the selected local directory.');
-        }
-        const manifests = await this.getLibraryManifests(scanLibraries, libraryRoot.path);
+        const { list, physicalLibraries } = await this.getAvailableLibraries();
+        const browseLibraries = physicalLibraries;
+        const manifests = await this.getLibraryManifests(browseLibraries);
         const librarySummaries: ObjectAnalysisWorkspace['libraries'] = [];
         let sourceFileCount = 0;
         let databaseFileCount = 0;
 
-        for (const library of scanLibraries) {
-            const libraryPath = path.join(libraryRoot.path, library);
-            const files = await collectSourceFiles(libraryPath, library);
+        for (const sourceLibrary of browseLibraries) {
+            const library = sourceLibrary.name;
+            const files = await collectSourceFiles(sourceLibrary.path, library);
             const sourceFiles = files.filter((file) => file.kind !== 'database').length;
             const databaseFiles = files.filter((file) => file.kind === 'database').length;
             const manifest = manifests.find((entry) => normalizeName(entry.library) === library);
@@ -385,11 +237,11 @@ export class DemoObjectAnalysisService implements ObjectAnalysisProvider {
             databaseFileCount += databaseFiles;
             librarySummaries.push({
                 name: library,
-                relativePath: libraryRoot.prefix ? `${libraryRoot.prefix}/${library}` : library,
+                relativePath: sourceLibrary.relativePath,
                 sourceFiles,
                 databaseFiles,
                 objectCount: manifest?.objects?.length || 0,
-                selected: true
+                selected: settings.libraryList.includes(library)
             });
         }
 
@@ -405,21 +257,17 @@ export class DemoObjectAnalysisService implements ObjectAnalysisProvider {
                 name: path.basename(this.rootPath),
                 relativePath: '',
                 kind: 'directory',
-                children: scanLibraries.length
-                    ? libraryRoot.prefix
-                        ? [{
-                            id: `directory:${libraryRoot.prefix}`,
-                            name: libraryRoot.prefix,
-                            relativePath: libraryRoot.prefix,
-                            kind: 'directory',
-                            children: await Promise.all(scanLibraries.map((library) => (
-                                walkDirectory(path.join(libraryRoot.path, library), `${libraryRoot.prefix}/${library}`, library)
-                            ))).then((groups) => groups.flat())
-                        }]
-                        : await Promise.all(scanLibraries.map((library) => (
-                            walkDirectory(path.join(libraryRoot.path, library), library, library)
-                        ))).then((groups) => groups.flat())
-                    : []
+                children: (await Promise.all(browseLibraries.map(async (library) => {
+                    const children = await walkDirectory(library.path, library.relativePath, library.name);
+                    return library.relativePath ? [{
+                        id: `directory:${library.relativePath}`,
+                        name: path.basename(library.path),
+                        relativePath: library.relativePath,
+                        kind: 'directory' as const,
+                        library: library.name,
+                        children
+                    }] : children;
+                }))).flat()
             },
             sourceFileCount,
             databaseFileCount
@@ -430,21 +278,11 @@ export class DemoObjectAnalysisService implements ObjectAnalysisProvider {
         request: AnalyzeObjectRequest,
         candidate?: Partial<ObjectAnalysisSettings>
     ) {
-        const settings = normalizeObjectAnalysisSettings(candidate || DEFAULT_OBJECT_ANALYSIS_SETTINGS);
-        const { libraries, libraryRoot } = await this.getAvailableLibraries();
-        const scanLibraries = settings.libraryList.filter((library) => libraries.includes(library));
+        const libraries = await discoverLocalLibraries(this.rootPath);
+        const library = libraries.find((entry) => entry.name === normalizeName(request.library));
         const requestLibrary = normalizeName(request.library);
-        if (!scanLibraries.includes(requestLibrary)) {
-            throw new Error(`${requestLibrary} is outside the configured analysis library list.`);
-        }
-
-        const files = await collectSourceFiles(path.join(libraryRoot.path, requestLibrary), requestLibrary);
-        const relativePathParts = request.relativePath.split('/').filter(Boolean);
-        const libraryIndex = relativePathParts.findIndex((part) => normalizeName(part) === requestLibrary);
-        const normalizedPath = toRelativePath(libraryIndex >= 0
-            ? relativePathParts.slice(libraryIndex + 1).join('/')
-            : request.relativePath);
-        const selected = files.find((file) => toRelativePath(file.relativePath) === normalizedPath);
+        const files = library ? await collectSourceFiles(library.path, library.name) : [];
+        const selected = library && selectLocalSource(files, library, request.relativePath);
         if (!selected) {
             throw new Error(`Source text was not found for ${requestLibrary}/${path.basename(request.relativePath)}.`);
         }
@@ -456,23 +294,24 @@ export class DemoObjectAnalysisService implements ObjectAnalysisProvider {
         candidate?: Partial<ObjectAnalysisSettings>
     ): Promise<ObjectAnalysisResult> {
         const settings = normalizeObjectAnalysisSettings(candidate || DEFAULT_OBJECT_ANALYSIS_SETTINGS);
-        const { libraries, libraryRoot } = await this.getAvailableLibraries();
-        const scanLibraries = settings.libraryList.filter((library) => libraries.includes(library));
-        const missingLibraries = settings.libraryList.filter((library) => !libraries.includes(library));
-        if (missingLibraries.length) {
-            throw new Error(`These libraries were not found in the selected local directory: ${missingLibraries.join(', ')}.`);
-        }
-        if (!scanLibraries.length) {
-            throw new Error('No configured libraries were found in the selected local directory.');
-        }
+        const physicalLibraries = await discoverLocalLibraries(this.rootPath);
+        const scanLibraries = settings.libraryList;
         const requestLibrary = normalizeName(request.library);
-        if (!scanLibraries.includes(requestLibrary)) {
-            throw new Error(`${requestLibrary} is outside the configured analysis library list.`);
+        const sourceLibrary = physicalLibraries.find((library) => library.name === requestLibrary);
+        if (!sourceLibrary) {
+            throw new Error(`Source library ${requestLibrary} was not found in the selected local directory.`);
         }
-        const manifests = await this.getLibraryManifests(scanLibraries, libraryRoot.path);
-        const sourceFiles = (await Promise.all(scanLibraries.map(async (library) => (
-            collectSourceFiles(path.join(libraryRoot.path, library), library)
+        const analysisLibraries = physicalLibraries.filter((library) => (
+            scanLibraries.includes(library.name) || library.name === requestLibrary
+        ));
+        const manifests = await this.getLibraryManifests(analysisLibraries);
+        const sourceFiles = (await Promise.all(analysisLibraries.map((library) => (
+            collectSourceFiles(library.path, library.name)
         )))).flat();
+        const selectedSource = selectLocalSource(sourceFiles, sourceLibrary, request.relativePath);
+        if (!selectedSource) {
+            throw new Error(`Source text was not found for ${requestLibrary}/${path.basename(request.relativePath)}.`);
+        }
         const graph: InternalGraph = { nodes: new Map(), edges: new Map() };
         const definitions: Array<DemoObjectDefinition & { library: string }> = [];
 
@@ -520,29 +359,21 @@ export class DemoObjectAnalysisService implements ObjectAnalysisProvider {
         ) => {
             const name = normalizeName(rawName);
             const library = rawLibrary ? normalizeName(rawLibrary) : undefined;
-            const exactMatch = definitions.find((definition) => (
-                normalizeName(definition.name) === name
-                && (!library || definition.library === library)
-                && (rawType === '*UNKNOWN' || normalizeType(definition.type) === rawType)
-            ));
-            if (exactMatch) {
-                return exactMatch;
+            const lookupLibraries = library ? [library] : scanLibraries;
+            for (const lookupLibrary of lookupLibraries) {
+                const match = definitions.find((definition) => (
+                    definition.library === lookupLibrary
+                    && normalizeName(definition.name) === name
+                    && (rawType === '*UNKNOWN' || normalizeType(definition.type) === rawType)
+                ));
+                if (match) return match;
             }
-
-            // Unqualified RPG references often rely on the IBM i library list.
-            // If the source's current library did not contain the object, use a
-            // matching object from the configured scan scope before marking it
-            // unresolved. Ambiguous matches can be made explicit by the live
-            // provider later when it has QSYS2 library-list metadata.
-            return definitions.find((definition) => (
-                normalizeName(definition.name) === name
-                && (rawType === '*UNKNOWN' || normalizeType(definition.type) === rawType)
-            ));
+            return undefined;
         };
 
         const ensureNode = (
             rawName: string,
-            rawLibrary: string,
+            rawLibrary: string | undefined,
             rawType: AnalysisObjectType,
             status: AnalysisObjectNode['status'] = 'known'
         ) => {
@@ -554,10 +385,11 @@ export class DemoObjectAnalysisService implements ObjectAnalysisProvider {
                 return node;
             }
 
+            const unresolvedLibrary = rawLibrary || '*LIBL';
             const node: AnalysisObjectNode = {
-                id: objectId(rawLibrary, rawName, rawType),
+                id: objectId(unresolvedLibrary, rawName, rawType),
                 name: normalizeName(rawName),
-                library: normalizeName(rawLibrary),
+                library: normalizeName(unresolvedLibrary),
                 type: rawType,
                 status,
                 attributes: {}
@@ -589,8 +421,7 @@ export class DemoObjectAnalysisService implements ObjectAnalysisProvider {
             parsed.references.forEach((reference) => {
                 const to = ensureNode(
                     reference.targetName,
-                    reference.targetLibrary
-                        || (['*SRVPGM', '*MODULE'].includes(reference.targetType) ? '' : definition.library),
+                    reference.targetLibrary === '*LIBL' ? undefined : reference.targetLibrary,
                     reference.targetType,
                     'unresolved'
                 );
@@ -606,15 +437,6 @@ export class DemoObjectAnalysisService implements ObjectAnalysisProvider {
 
         const requestName = normalizeName(request.objectName || objectNameFromFile(path.basename(request.relativePath)));
         const requestedDefinition = findDefinition(requestName, requestLibrary, request.objectType || '*UNKNOWN');
-        const selectedSource = sourceFiles.find((file) => (
-            file.library === requestLibrary
-            && toRelativePath(file.relativePath) === toRelativePath(
-                request.relativePath
-                    .split('/')
-                    .slice((request.relativePath.split('/').findIndex((part) => normalizeName(part) === requestLibrary)) + 1)
-                    .join('/')
-            )
-        ));
         const inferredType: AnalysisObjectType = selectedSource?.language === 'RPGLE'
             ? '*PGM'
             : selectedSource?.language === 'CLLE'
@@ -625,9 +447,7 @@ export class DemoObjectAnalysisService implements ObjectAnalysisProvider {
         const root = requestedDefinition
             ? ensureNode(requestedDefinition.name, requestedDefinition.library, normalizeType(requestedDefinition.type))
             : ensureNode(requestName, requestLibrary, inferredType, selectedSource ? 'known' : 'unresolved');
-        if (selectedSource && !root.sourcePath) {
-            root.sourcePath = selectedSource.relativePath;
-        }
+        root.sourcePath = selectedSource.relativePath;
         if (root.type === '*PGM' && !root.sourcePath) {
             root.status = 'unresolved';
         }

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createPollFailureAlert, evaluateAlertRules } from './alert-workflow';
-import type { AlertSettings } from './alert-model';
+import type { AlertSettings, MonitorAlert } from './alert-model';
 import type { ActiveJobRecord } from '../../services/ibmi';
 import { createAlertStateStore } from '../../main/state/alert-state';
 
@@ -152,6 +152,34 @@ describe('alert workflow evaluation', () => {
 
         expect(later.alerts[0]?.timeline.filter((entry) => entry.action === 'system_cleared')).toHaveLength(1);
         expect(later.alerts[0]?.resolvedAt).toBe('2026-08-23T12:01:00.000Z');
+    });
+
+    it('preserves the original evidence snapshot across later polls', () => {
+        const first = evaluateAlertRules([createJob({ STATUS: 'MSGW' })], {
+            activeAlerts: [], dismissedAlertIds: new Set(), workflowStateByAlertId: {}, settings,
+            timestamp: '2026-08-23T12:00:00.000Z', notify: vi.fn()
+        });
+        const evidence = {
+            version: 1,
+            capturedAt: '2026-08-23T12:00:00.000Z',
+            source: 'ibmi',
+            trigger: { status: 'captured', collectedAt: '2026-08-23T12:00:00.000Z', source: 'monitoring-poll', recordCount: 1, records: [] },
+            job: { status: 'captured', collectedAt: '2026-08-23T12:00:00.000Z', source: 'ibmi', recordCount: 1, records: [] },
+            jobLog: { status: 'captured', collectedAt: '2026-08-23T12:00:00.000Z', source: 'ibmi', recordCount: 1, records: [] },
+            messages: { status: 'missing', collectedAt: '2026-08-23T12:00:00.000Z', source: 'ibmi', recordCount: 0, records: [] },
+            queue: { status: 'captured', collectedAt: '2026-08-23T12:00:00.000Z', source: 'ibmi', recordCount: 1, records: [] },
+            subsystem: { status: 'captured', collectedAt: '2026-08-23T12:00:00.000Z', source: 'ibmi', recordCount: 1, records: [] }
+        } as NonNullable<MonitorAlert['evidence']>;
+        const refreshed = evaluateAlertRules([createJob({ STATUS: 'MSGW' })], {
+            activeAlerts: [{ ...first.alerts[0], evidence }],
+            dismissedAlertIds: new Set(),
+            workflowStateByAlertId: first.workflowStateByAlertId,
+            settings,
+            timestamp: '2026-08-23T12:01:00.000Z',
+            notify: vi.fn()
+        });
+
+        expect(refreshed.alerts[0]?.evidence).toBe(evidence);
     });
 
     it('starts a fresh occurrence when an automatically resolved alert returns', () => {

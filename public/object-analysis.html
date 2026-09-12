@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -48,7 +48,7 @@
                             <span id="analysis-scope-badge" class="analysis-scope-badge">3 libraries active</span>
                             <i class="bi bi-chevron-down" aria-hidden="true"></i>
                         </summary>
-                        <p class="stat-note mb-2">Choose where to read from. The ordered list below controls every analysis action.</p>
+                        <p class="stat-note mb-2">Choose your source location. The ordered library list controls object lookup.</p>
                         <div class="analysis-source-switch" role="group" aria-label="Analysis source">
                             <button type="button" class="analysis-source-option" data-analysis-source="local">
                                 <i class="bi bi-folder2-open" aria-hidden="true"></i>
@@ -146,7 +146,7 @@
                 </aside>
 
                 <section class="analysis-content" aria-live="polite">
-                    <div id="analysis-status" class="analysis-status" hidden></div>
+                    <div id="analysis-status" class="analysis-status" role="status" aria-live="polite" hidden></div>
 
                     <section id="analysis-empty" class="surface-card analysis-empty">
                         <div class="analysis-empty-icon"><i class="bi bi-diagram-3" aria-hidden="true"></i></div>
@@ -168,6 +168,9 @@
                             </button>
                             <button id="run-object-analysis" type="button" class="btn btn-primary-strong" disabled>
                                 <i class="bi bi-play-fill me-2"></i>Analyze object
+                            </button>
+                            <button id="generate-compile-plan" type="button" class="btn btn-outline-ink" disabled>
+                                <i class="bi bi-terminal me-2"></i>Compile plan
                             </button>
                         </div>
                     </section>
@@ -202,11 +205,17 @@
                                 <p id="analysis-report-storage" class="analysis-report-storage mb-0"></p>
                             </div>
                             <div class="analysis-result-actions">
+                                <button id="load-object-source-result" type="button" class="btn btn-outline-ink btn-sm">
+                                    <i class="bi bi-file-earmark-code me-2"></i>View source
+                                </button>
                                 <button id="analyze-business-logic" type="button" class="btn btn-outline-ink btn-sm">
                                     <i class="bi bi-stars me-2"></i>Explain with IBMEye AI
                                 </button>
                                 <button id="approve-object-analysis" type="button" class="btn btn-primary-strong btn-sm">
                                     <i class="bi bi-check2-circle me-2"></i>Approve &amp; map report
+                                </button>
+                                <button id="generate-compile-plan-result" type="button" class="btn btn-outline-ink btn-sm" disabled>
+                                    <i class="bi bi-terminal me-2"></i>Compile plan
                                 </button>
                                 <button id="download-analysis-report" type="button" class="btn btn-outline-ink btn-sm" disabled>
                                     <i class="bi bi-download me-2"></i>Download report
@@ -243,6 +252,7 @@
                             <div id="analysis-program-flow" class="analysis-program-flow"></div>
                         </details>
 
+
                         <details id="analysis-ai-section" class="surface-card analysis-section" hidden>
                             <summary><span><i class="bi bi-stars me-2"></i>Business logic · IBMEye AI</span><span id="analysis-ai-meta" class="table-caption">Not run</span></summary>
                             <div id="analysis-ai-content" class="analysis-ai-content"></div>
@@ -270,9 +280,24 @@
                             <div id="analysis-conversion-plan" class="analysis-conversion-plan"></div>
                         </details>
 
-                        <details class="surface-card analysis-section analysis-dependency-tree-section">
-                            <summary><span><i class="bi bi-diagram-3 me-2"></i>Dependency tree</span><span class="table-caption">Follow the execution path</span></summary>
-                            <div id="analysis-dependency-tree" class="analysis-dependency-tree" aria-live="polite"></div>
+                        <details id="analysis-compile-section" class="surface-card analysis-section" hidden>
+                            <summary><span><i class="bi bi-terminal me-2"></i>Compile plan</span><span id="analysis-compile-count" class="table-caption">0 steps</span></summary>
+                            <div class="analysis-compile-storage" id="analysis-compile-storage"></div>
+                            <div id="analysis-compile-plan" class="analysis-compile-plan"></div>
+                            <div class="analysis-compile-script-shell">
+                                <div class="analysis-compile-script-header">
+                                    <strong>Generated CL commands</strong>
+                                    <button id="copy-compile-cl" type="button" class="btn btn-outline-ink btn-sm" disabled>
+                                        <i class="bi bi-clipboard me-2"></i>Copy CL
+                                    </button>
+                                </div>
+                                <pre id="analysis-compile-cl" class="analysis-compile-cl" tabindex="0"></pre>
+                            </div>
+                        </details>
+
+                        <details id="analysis-call-graph-section" class="surface-card analysis-section analysis-call-graph-section" open>
+                            <summary><span><i class="bi bi-diagram-3 me-2"></i>Call graph</span><span id="analysis-call-graph-count" class="table-caption">0 links</span></summary>
+                            <div id="analysis-call-graph" class="analysis-call-graph" aria-live="polite"></div>
                         </details>
 
                         <details class="surface-card analysis-section">
@@ -287,7 +312,7 @@
             <footer class="app-footer surface-card">
                 <div class="app-footer-meta">
                     <span class="app-version-label">iMonitor Object Analysis</span>
-                    <p class="app-footer-copy mb-0">Local analysis reads the chosen directory. IBM i analysis reads only the libraries in your active scope.</p>
+                    <p class="app-footer-copy mb-0">Sources come from your selected directory or IBM i source library. The ordered library list controls object resolution.</p>
                 </div>
             </footer>
         </section>

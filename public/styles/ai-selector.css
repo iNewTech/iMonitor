@@ -1,0 +1,88 @@
+/* Compact provider/model control shared by the main composer and floating chat. */
+.ai-model-picker {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    height: 34px;
+    padding: 2px 6px 2px 10px;
+    border: 1px solid color-mix(in srgb, var(--ink) 13%, var(--border));
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--surface) 94%, var(--accent-soft));
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9), 0 5px 14px rgba(18, 26, 34, 0.045);
+}
+
+.ai-model-picker-icon {
+    display: inline-grid;
+    width: 20px;
+    height: 20px;
+    flex: 0 0 auto;
+    place-items: center;
+    color: var(--accent-deep);
+    font-size: 0.82rem;
+}
+
+.ai-model-picker-divider {
+    color: color-mix(in srgb, var(--muted) 68%, transparent);
+    font-weight: 800;
+}
+
+.ai-model-picker .ai-toolbar-select,
+.ai-model-picker .ibmeyeai-widget-select {
+    width: auto;
+    max-width: 148px;
+    min-height: 28px;
+    height: 28px;
+    padding: 2px 22px 2px 5px;
+    border: 0;
+    border-radius: 999px;
+    outline: 0;
+    background-color: transparent;
+    box-shadow: none;
+    color: var(--ink);
+    font-size: 0.76rem;
+    font-weight: 750;
+    line-height: 1;
+}
+
+.ai-model-picker .ai-toolbar-select:focus-visible,
+.ai-model-picker .ibmeyeai-widget-select:focus-visible {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.ai-model-picker #ai-provider-quick,
+.ai-model-picker #ibmeyeai-widget-provider {
+    max-width: 112px;
+}
+
+.ai-model-picker #ai-model-quick,
+.ai-model-picker #ibmeyeai-widget-model {
+    max-width: 132px;
+}
+
+.ai-model-picker select:disabled {
+    color: var(--muted);
+    opacity: 0.72;
+}
+
+.ai-model-picker-widget {
+    width: 100%;
+    justify-content: center;
+    padding-right: 8px;
+}
+
+.ai-model-picker-widget .ai-model-picker-icon {
+    margin-right: 2px;
+}
+
+@media (max-width: 900px) {
+    .superpanel-ai-slot .ai-model-picker {
+        display: none;
+    }
+}
+
+@media (max-width: 460px) {
+    .ai-model-picker .ai-toolbar-select,
+    .ai-model-picker .ibmeyeai-widget-select {
+        max-width: 108px;
+    }
+}
