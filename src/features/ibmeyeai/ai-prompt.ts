@@ -5,6 +5,7 @@ interface BuildAiPromptInput {
     context: string;
     conversation?: AiAssistantMessage[];
     replyStyle?: string;
+    scope?: 'monitor' | 'job';
 }
 
 /**
@@ -25,10 +26,17 @@ export function buildAiAssistantPrompt(input: BuildAiPromptInput): AiAssistantMe
                 'Prioritize operator impact, likely cause, and next best action.',
                 'Correlate alerts that affect the same job into one incident, cite the evidence, and distinguish facts from recommendations.',
                 'Do not claim that you executed any IBM i action.',
+                ...(input.scope === 'job'
+                    ? [
+                        'This is a selected-job helper. Answer only about the selected IBM i job and its linked incident, evidence, history, and safe next actions.',
+                        'Do not use or infer information about other jobs, the whole system, or unrelated topics.',
+                        'For an unrelated question, reply exactly: I can only help with the selected IBM i job and its linked incident.'
+                    ]
+                    : []),
                 input.replyStyle?.trim() || ''
             ].join(' ')
         },
-        ...conversation,
+        ...(input.scope === 'job' ? [] : conversation),
         {
             role: 'user',
             content: `Context:\n${input.context}\n\nQuestion:\n${input.question.trim()}`

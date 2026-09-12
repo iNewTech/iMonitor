@@ -176,6 +176,7 @@ test('AI actions reveal and focus AI tab, reject duplicate requests and recover 
     await page.locator('#task-ai-resolve').dispatchEvent('click');
     await expect.poll(() => calls(app, 'ask-ai-assistant')).toHaveLength(1);
     expect(JSON.stringify(await calls(app, 'ask-ai-assistant'))).toContain('Explain this alert');
+    expect(JSON.stringify(await calls(app, 'ask-ai-assistant'))).toContain('"scope":"job"');
     await release(app, 'ask-ai-assistant');
     await expect(page.locator('#task-ai-status')).toHaveText('Unavailable');
     await expect(page.locator('#task-ai-content')).toContainText('Provider unavailable.');

@@ -26,7 +26,7 @@ Operator evidence stays separate from encrypted developer diagnostics. Incident 
 
 ## Actions and AI
 
-Task windows offer issue explanation and resolution guidance with the configured AI provider. These are recommendations. IBM i operations follow the main-process action planner, entitlement checks, and confirmation flow. Unsupported actions remain unavailable. AI does not autonomously execute recovery commands.
+Task windows offer issue explanation and resolution guidance with the configured AI provider. These helpers use a job-scoped context containing only the selected job, its linked incident, captured evidence, status history, and matching operator entries. Requests outside that job are declined. These are recommendations. IBM i operations follow the main-process action planner, entitlement checks, and confirmation flow. Unsupported actions remain unavailable. AI does not autonomously execute recovery commands.
 
 Task actions report failures without dropping the selected job. The backend owns external ticket creation so opening or refreshing a task cannot duplicate a ClickUp request from the renderer.
 

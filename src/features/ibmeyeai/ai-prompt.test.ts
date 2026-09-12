@@ -38,4 +38,18 @@ describe('ai-prompt', () => {
             'turn-7'
         ]);
     });
+
+    it('locks job helpers to the selected job and drops unrelated conversation', () => {
+        const messages = buildAiAssistantPrompt({
+            question: 'What should I do next?',
+            context: 'Selected job: QINTER/SELECTED',
+            conversation: [{ role: 'user', content: 'Tell me about another job.' }],
+            scope: 'job'
+        });
+
+        expect(messages[0]?.content).toContain('selected-job helper');
+        expect(messages[0]?.content).toContain('I can only help with the selected IBM i job');
+        expect(messages).toHaveLength(2);
+        expect(messages[1]?.content).not.toContain('another job');
+    });
 });

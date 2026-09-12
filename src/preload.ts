@@ -647,6 +647,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         selectedJobName?: string;
         conversation?: AiAssistantMessage[];
         additionalContext?: string;
+        scope?: 'monitor' | 'job';
     }) => ipcRenderer.invoke('ask-ai-assistant', payload) as Promise<{
         success: boolean;
         reply?: string;

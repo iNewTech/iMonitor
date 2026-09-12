@@ -7,6 +7,7 @@ import {
     getJobTitle,
     toNumber
 } from '../monitoring/monitoring-model';
+import type { JobStatusHistoryEntry } from '../monitoring/monitoring-model';
 import type { AiAssistantSettings } from './ai-model';
 import { buildIncidentCorrelations } from './incident-correlation';
 
@@ -36,6 +37,8 @@ export interface BuildAiAssistantContextInput {
     monitoringHistory: MonitoringSnapshot[];
     activityLog: ActivityLogLike[];
     selectedJob?: ActiveJobRecord | null;
+    selectedJobHistory?: JobStatusHistoryEntry[];
+    scope?: 'monitor' | 'job';
     highCpuThreshold?: number;
 }
 
@@ -74,6 +77,34 @@ export function buildAiAssistantContext(input: BuildAiAssistantContextInput) {
             `Selected job SQL: ${selectedJob.SQL_STATEMENT_TEXT ? collapseWhitespace(selectedJob.SQL_STATEMENT_TEXT).slice(0, 320) : 'No SQL captured.'}`
         ]
         : ['Selected job: none'];
+
+    if (input.scope === 'job') {
+        const selectedJobHistory = (input.selectedJobHistory ?? [])
+            .slice(-input.settings.historyLimit)
+            .map((entry) => `${entry.timestamp} status=${entry.status} (${entry.label})`);
+
+        return [
+            `${input.appName} job assistant context`,
+            'Scope: selected IBM i job only.',
+            'Use only the selected job, its linked incident, its captured evidence, and its status history.',
+            'Do not answer questions about other jobs, the whole system, or unrelated topics.',
+            'If the question is outside this job scope, reply that you can only help with the selected IBM i job.',
+            `Monitor mode: ${input.monitorMode}`,
+            `Connection: ${connectionLabel}`,
+            `Timestamp: ${new Date().toISOString()}`,
+            '',
+            ...selectedJobSummary,
+            '',
+            'Linked incidents for the selected job:',
+            ...(alerts.length ? alerts : ['None']),
+            '',
+            'Selected job status history:',
+            ...(selectedJobHistory.length ? selectedJobHistory : ['None']),
+            '',
+            'Job-related operator evidence:',
+            ...(activity.length ? activity : ['None'])
+        ].join('\n');
+    }
 
     return [
         `${input.appName} AI context`,

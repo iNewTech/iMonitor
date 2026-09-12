@@ -285,7 +285,7 @@ function updateControls() {
         button.disabled = mutationBlocked || !available?.enabled;
     });
     document.querySelectorAll('.task-alert-ai, #task-ai-summary, #task-ai-resolve').forEach((button) => {
-        button.disabled = pending.has('ai') || !selectedJobName;
+        button.disabled = pending.has('ai') || !stateFresh || !latestPayload?.job || !selectedJobName;
     });
     document.querySelectorAll('#task-load-log, #task-load-messages').forEach((button) => {
         button.disabled = pending.has('details') || !selectedJobName;
@@ -382,6 +382,7 @@ function runWorkflow(action) {
 }
 
 function askAi(kind) {
+    if (!stateFresh || !latestPayload?.job || !selectedJobName) return;
     setTab('ai');
     $('task-tab-ai').focus();
     return runRequest('ai', async () => {
@@ -394,7 +395,11 @@ function askAi(kind) {
             : alert
                 ? (kind === 'explain' ? buildAlertExplanationPrompt(alert) : buildAlertNextActionsPrompt(alert))
                 : `Explain how to resolve the current IBM i job condition for ${selectedJobName}.`;
-        const result = requireSuccess(await window.electronAPI.askAiAssistant({ message, selectedJobName }), 'AI analysis failed.');
+        const result = requireSuccess(await window.electronAPI.askAiAssistant({
+            message,
+            selectedJobName,
+            scope: 'job'
+        }), 'AI analysis failed.');
         aiStatus.textContent = 'Ready';
         aiContent.innerHTML = renderAiReportMarkdown(result.reply || 'No response returned.');
     }, (error) => {

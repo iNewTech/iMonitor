@@ -9,6 +9,7 @@ import type {
     AiAssistantMessage,
     AiAssistantSettings
 } from '../../features/ibmeyeai/ai-model';
+import type { JobStatusHistoryEntry } from '../../features/monitoring/monitoring-model';
 import { createAiProviderRegistry } from './ibmeyeai/providers';
 import type { ActivityLogEntry, MonitorMode } from '../types';
 
@@ -26,6 +27,7 @@ interface AiRuntimeDependencies {
     getJob: (jobName: string) => ActiveJobRecord | undefined;
     getActiveAlerts: () => MonitorAlert[];
     getMonitoringHistory: () => MonitoringSnapshot[];
+    getJobStatusHistory?: (jobName: string) => JobStatusHistoryEntry[];
     getActivityLog: () => ActivityLogEntry[];
     getHighCpuThreshold?: () => number;
     recordActivity: (entry: Omit<ActivityLogEntry, 'id' | 'timestamp'>) => void;
@@ -50,6 +52,7 @@ export function createAiRuntime(dependencies: AiRuntimeDependencies) {
         selectedJobName?: string;
         conversation?: AiAssistantMessage[];
         additionalContext?: string;
+        scope?: 'monitor' | 'job';
     }) {
         const settings = dependencies.getSettings();
         const availability = await getAiAvailability();
@@ -79,28 +82,61 @@ export function createAiRuntime(dependencies: AiRuntimeDependencies) {
             };
         }
 
-        const selectedJob = payload.selectedJobName
-            ? dependencies.getJob(payload.selectedJobName) ?? null
+        const isJobScoped = payload.scope === 'job';
+        const requestedJobName = String(payload.selectedJobName ?? '').trim();
+        if (isJobScoped && !requestedJobName) {
+            return {
+                success: false,
+                availability,
+                error: 'Select a job before using the job AI helper.'
+            };
+        }
+
+        const selectedJob = requestedJobName
+            ? dependencies.getJob(requestedJobName) ?? null
             : null;
+        if (isJobScoped && !selectedJob) {
+            return {
+                success: false,
+                availability,
+                error: 'The selected job is no longer available. Refresh the task and try again.'
+            };
+        }
+
+        const allJobs = dependencies.getLatestJobs();
+        const allAlerts = dependencies.getActiveAlerts();
+        const allActivity = dependencies.getActivityLog();
+        const scopedJobs = isJobScoped && selectedJob ? [selectedJob] : allJobs;
+        const scopedAlerts = isJobScoped
+            ? allAlerts.filter((alert) => alert.jobName === requestedJobName)
+            : allAlerts;
+        const scopedActivity = isJobScoped && requestedJobName
+            ? allActivity.filter((entry) => isJobRelatedActivity(entry, requestedJobName))
+            : allActivity;
         const context = buildAiAssistantContext({
             appName: dependencies.appName,
             connection: dependencies.getConnection(),
             monitorMode: dependencies.getMonitorMode(),
             settings,
-            latestJobs: dependencies.getLatestJobs(),
-            alerts: dependencies.getActiveAlerts(),
-            monitoringHistory: dependencies.getMonitoringHistory(),
-            activityLog: dependencies.getActivityLog(),
+            latestJobs: scopedJobs,
+            alerts: scopedAlerts,
+            monitoringHistory: isJobScoped ? [] : dependencies.getMonitoringHistory(),
+            activityLog: scopedActivity,
             selectedJob,
+            selectedJobHistory: isJobScoped && requestedJobName
+                ? dependencies.getJobStatusHistory?.(requestedJobName)
+                : undefined,
+            scope: payload.scope,
             highCpuThreshold: dependencies.getHighCpuThreshold?.()
         });
-        const enrichedContext = payload.additionalContext?.trim()
+        const enrichedContext = !isJobScoped && payload.additionalContext?.trim()
             ? `${context}\n\n${payload.additionalContext.trim()}`
             : context;
         const messages = buildAiAssistantPrompt({
             question: payload.message,
             context: enrichedContext,
-            conversation: payload.conversation,
+            conversation: isJobScoped ? undefined : payload.conversation,
+            scope: payload.scope,
             replyStyle: settings.replyStyle
         });
 
@@ -156,4 +192,10 @@ export function createAiRuntime(dependencies: AiRuntimeDependencies) {
         askAssistant,
         analyzeAlert
     };
+}
+
+function isJobRelatedActivity(entry: ActivityLogEntry, jobName: string) {
+    const needle = jobName.toLowerCase();
+    return [entry.message, entry.detail, entry.sql]
+        .some((value) => String(value ?? '').toLowerCase().includes(needle));
 }

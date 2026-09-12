@@ -31,7 +31,7 @@ async function launchTestApp(availableModels = ['review-model']): Promise<{
     // renderer/preload paths stay intact; no model or network service is needed.
     await electronApp.firstWindow();
     await electronApp.evaluate(({ ipcMain }, models) => {
-        const state = { requests: [] as Array<{ message: string; selectedJobName?: string }> };
+        const state = { requests: [] as Array<{ message: string; selectedJobName?: string; scope?: string }> };
         (globalThis as unknown as { providerReview: typeof state }).providerReview = state;
         ipcMain.removeHandler('get-ai-settings');
         ipcMain.handle('get-ai-settings', () => ({
@@ -74,7 +74,7 @@ async function openDemoMonitor(page: Page) {
 
 async function aiRequests(app: ElectronApplication) {
     return app.evaluate(() => (globalThis as unknown as {
-        providerReview: { requests: Array<{ message: string; selectedJobName?: string }> }
+        providerReview: { requests: Array<{ message: string; selectedJobName?: string; scope?: string }> }
     }).providerReview.requests);
 }
 
@@ -153,6 +153,7 @@ test('sends presets from the compact composer and exposes incident and job AI in
         const taskRequests = (await aiRequests(app.electronApp)).slice(2);
         expect(taskRequests).toHaveLength(3);
         expect(taskRequests.map((request) => request.selectedJobName)).toEqual([jobName, jobName, jobName]);
+        expect(taskRequests.map((request) => request.scope)).toEqual(['job', 'job', 'job']);
         expect(taskRequests[0].message).toContain('Explain this alert');
         expect(taskRequests[1].message).toContain('next best operator actions');
         expect(taskRequests[2].message).toContain(`health summary for ${jobName}`);

@@ -777,6 +777,7 @@ const aiRuntime = createAiRuntime({
     getJob: (jobName) => monitoringState.getJob(jobName),
     getActiveAlerts: () => alertState.getActiveAlerts(),
     getMonitoringHistory: () => monitoringState.getMonitoringHistory(),
+    getJobStatusHistory: (jobName) => monitoringState.getJobStatusHistory(jobName),
     getActivityLog: () => loggingRuntime.getActivityLog(),
     getHighCpuThreshold: () => getAlertSettings().highCpuThreshold,
     recordActivity: loggingRuntime.recordActivity

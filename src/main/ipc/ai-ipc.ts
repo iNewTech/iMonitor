@@ -17,6 +17,7 @@ interface RegisterAiIpcDependencies {
         selectedJobName?: string;
         conversation?: AiAssistantMessage[];
         additionalContext?: string;
+        scope?: 'monitor' | 'job';
     }) => Promise<{
         success: boolean;
         reply?: string;

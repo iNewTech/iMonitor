@@ -71,6 +71,8 @@ Reports start in draft. Approval persists the current result with source identit
 
 Incident evidence is collected by `src/features/alerts/incident-evidence.ts` after alert creation. The collector uses the existing IBM i or demo job context, job log, and message services, runs them in parallel under a bounded budget, caps each source at 100 records, redacts secret-shaped keys and values, and records explicit source status. The trigger job snapshot is retained separately from later refreshes and normalized before it enters the incident ledger. Evidence is passed into the AI context and displayed in the alert and task views; it remains read-only.
 
+Task-window AI helpers pass `scope: 'job'` through preload and IPC. The main process verifies that the selected job is still present, filters alerts and operator activity to that job, includes only its status history, omits global monitoring history and arbitrary conversation context, and instructs the provider to decline unrelated questions. The main ActionBoard composer remains monitor-scoped.
+
 The initial RPG parser recognizes common declarations, calls, files, SQL, and runtime resources. It is not a complete RPG/COBOL/CL compiler. Local catalogs help resolve references but do not prove runtime execution. Live metadata collection depends on available IBM i services and permissions.
 
 The call graph keeps actual recorded `from`/`to` call and binding relationships between executable objects. It does not turn source ordering into a chain, include tables/queues as calls, or infer procedure calls from declarations. Confidence and evidence remain visible.
