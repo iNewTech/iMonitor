@@ -365,6 +365,31 @@ interface BusinessServiceSettingsPayload {
     }>;
 }
 
+interface ResolutionMemoryEntryPayload {
+    id: string;
+    procedureKey: string;
+    version: number;
+    status: 'draft' | 'approved' | 'retired';
+    systemId: string;
+    serviceName?: string;
+    incidentKind: string;
+    incidentFingerprint?: string;
+    jobPattern?: string;
+    title: string;
+    symptoms: string[];
+    evidenceRefs: string[];
+    failedAttempts: string[];
+    successfulAction: string;
+    verifiedOutcome: string;
+    environment: { systemLabel?: string; jobType?: string; subsystem?: string };
+    reviewer?: string;
+    createdAt: string;
+    approvedAt?: string;
+    retiredAt?: string;
+    reviewDueAt?: string;
+    supersedesId?: string;
+}
+
 interface ResourceGraphPayload {
     success: boolean;
     error?: string;
@@ -983,6 +1008,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     saveBusinessServiceSettings: (settings: Partial<BusinessServiceSettingsPayload>) => (
         ipcRenderer.invoke('save-business-service-settings', settings) as Promise<BusinessServiceSettingsPayload>
     ),
+    getResolutionMemory: () => ipcRenderer.invoke('get-resolution-memory') as Promise<{ success: boolean; entries: ResolutionMemoryEntryPayload[]; error?: string }>,
+    saveResolutionMemoryDraft: (jobName: string) => ipcRenderer.invoke('save-resolution-memory-draft', jobName) as Promise<{ success: boolean; entry?: ResolutionMemoryEntryPayload; entries?: ResolutionMemoryEntryPayload[]; error?: string }>,
+    approveResolutionMemory: (entryId: string) => ipcRenderer.invoke('approve-resolution-memory', entryId) as Promise<{ success: boolean; entry?: ResolutionMemoryEntryPayload; entries?: ResolutionMemoryEntryPayload[]; error?: string }>,
+    retireResolutionMemory: (entryId: string) => ipcRenderer.invoke('retire-resolution-memory', entryId) as Promise<{ success: boolean; entry?: ResolutionMemoryEntryPayload; entries?: ResolutionMemoryEntryPayload[]; error?: string }>,
+    exportResolutionMemory: () => ipcRenderer.invoke('export-resolution-memory') as Promise<{ success: boolean; export?: unknown; error?: string }>,
     saveAlertSettings: (settings: Partial<AlertSettings>) => (
         ipcRenderer.invoke('save-alert-settings', settings) as Promise<AlertSettings>
     ),

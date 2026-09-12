@@ -55,6 +55,9 @@ const aiOutput = $('task-ai-output');
 const aiStatus = $('task-ai-status');
 const aiContent = $('task-ai-content');
 const detailsOutput = $('task-details-output');
+const memoryList = $('task-memory-list');
+const memoryStatus = $('task-memory-status');
+const memorySave = $('task-memory-save');
 const handoffFields = {
     recipient: $('task-handoff-recipient'),
     responseTarget: $('task-handoff-response-target'),
@@ -62,6 +65,7 @@ const handoffFields = {
     pendingChecks: $('task-handoff-pending-checks')
 };
 let handoffDraftKey = '';
+let resolutionMemoryEntries = [];
 
 function getJobKey(job) {
     return String(job?.JOB_NAME || job?.SUBSYSTEM_JOB || '').trim();
@@ -332,6 +336,37 @@ function renderResponseWorkspace(response) {
         : 'No handoff';
 }
 
+function renderResolutionMemory() {
+    if (!memoryList) return;
+    const alert = findLinkedAlert();
+    const jobName = getJobKey(latestPayload?.job) || selectedJobName;
+    const entries = resolutionMemoryEntries.filter((entry) => (
+        entry.incidentKind === alert?.kind
+        && (!entry.jobPattern || matchesWildcard(jobName, entry.jobPattern))
+    ));
+    memoryList.innerHTML = entries.length ? entries.map((entry) => `
+        <article class="resolution-memory-item" data-memory-id="${escapeHtml(entry.id)}">
+            <div><strong>${escapeHtml(entry.title)}</strong><small>${escapeHtml(formatWorkflowLabel(entry.status))} · v${escapeHtml(String(entry.version))}${entry.reviewer ? ` · ${escapeHtml(entry.reviewer)}` : ''}</small></div>
+            <div class="resolution-memory-item-actions">
+                ${entry.status === 'draft' ? '<button type="button" class="btn btn-outline-ink btn-sm" data-memory-action="approve">Approve</button>' : ''}
+                ${entry.status === 'approved' ? '<button type="button" class="btn btn-outline-danger btn-sm" data-memory-action="retire">Retire</button>' : ''}
+            </div>
+        </article>`).join('') : '<p class="stat-note mb-2">No saved procedure matches this incident yet.</p>';
+    if (memoryStatus) memoryStatus.textContent = entries.length ? `${entries.length} matching entr${entries.length === 1 ? 'y' : 'ies'}` : 'No match';
+}
+
+async function refreshResolutionMemory() {
+    if (!selectedJobName || !window.electronAPI.getResolutionMemory) return;
+    const result = requireSuccess(await window.electronAPI.getResolutionMemory(), 'Unable to load resolution memory.');
+    resolutionMemoryEntries = Array.isArray(result.entries) ? result.entries : [];
+    renderResolutionMemory();
+}
+
+function matchesWildcard(value, pattern) {
+    const escaped = String(pattern).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '.*');
+    return new RegExp(`^${escaped}$`, 'i').test(String(value));
+}
+
 function getHandoffDraft() {
     const value = (field) => field?.value.trim() || 'None recorded.';
     return {
@@ -402,6 +437,7 @@ function renderTask() {
     renderIncidentEvidence(alert);
 
     renderResponseWorkspace(latestPayload.response);
+    renderResolutionMemory();
     renderIncidentActions(alert);
     renderOperatorActions(jobActions, null, latestPayload.actions);
     if (!actionFeedback) {
@@ -445,6 +481,7 @@ function updateControls() {
     $('task-accept-handoff').disabled = mutationBlocked
         || handoff?.status !== 'pending'
         || handoff.toOperator?.toLowerCase() !== currentOperatorName.toLowerCase();
+    if (memorySave) memorySave.disabled = pending.has('memory') || mutationBlocked || !findLinkedAlert();
     document.querySelectorAll('#task-load-log, #task-load-messages, #task-load-graph').forEach((button) => {
         button.disabled = pending.has('details') || !selectedJobName;
     });
@@ -499,6 +536,7 @@ function loadTask() {
         currentOperatorName = String(flags?.operatorName || '').trim() || 'local-operator';
         stateFresh = true;
         renderTask();
+        void refreshResolutionMemory().catch(() => undefined);
         syncState.innerHTML = `Updated ${formatTimestamp(new Date())}`;
     })().catch((error) => {
         if (revision !== stateRevision) return;
@@ -711,14 +749,42 @@ $('task-load-log').addEventListener('click', () => void loadDetails('log'));
 $('task-load-messages').addEventListener('click', () => void loadDetails('messages'));
 $('task-load-graph').addEventListener('click', () => void loadDetails('graph'));
 $('task-refresh').addEventListener('click', () => void loadTask());
+memorySave?.addEventListener('click', () => void runRequest('memory', async () => {
+    memoryStatus.textContent = 'Saving draft…';
+    requireSuccess(await window.electronAPI.saveResolutionMemoryDraft(selectedJobName), 'Unable to save resolution draft.');
+    await refreshResolutionMemory();
+}, (error) => {
+    memoryStatus.textContent = errorMessage(error, 'Unable to save resolution draft.');
+}));
+memoryList?.addEventListener('click', (event) => {
+    const button = event.target instanceof Element ? event.target.closest('[data-memory-action]') : null;
+    const item = button?.closest('[data-memory-id]');
+    if (!button || !item) return;
+    const entryId = item.dataset.memoryId;
+    const action = button.dataset.memoryAction;
+    if (!entryId || !action) return;
+    if (action === 'retire' && !window.confirm('Retire this approved procedure?')) return;
+    void runRequest('memory', async () => {
+        memoryStatus.textContent = action === 'approve' ? 'Approving…' : 'Retiring…';
+        const result = action === 'approve'
+            ? await window.electronAPI.approveResolutionMemory(entryId)
+            : await window.electronAPI.retireResolutionMemory(entryId);
+        requireSuccess(result, 'Unable to update resolution memory.');
+        await refreshResolutionMemory();
+    }, (error) => {
+        memoryStatus.textContent = errorMessage(error, 'Unable to update resolution memory.');
+    });
+});
 
 window.electronAPI.onAlertsUpdated((alerts) => {
     alertsRevision += 1;
     latestAlerts = Array.isArray(alerts) ? alerts : [];
     renderTask();
+    void refreshResolutionMemory().catch(() => undefined);
 });
 
 void loadTask();
+void refreshResolutionMemory().catch(() => undefined);
 const refreshTimer = window.setInterval(() => {
     if (!pending.has('mutation')) void loadTask();
 }, 7000);

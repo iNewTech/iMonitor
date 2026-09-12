@@ -13,6 +13,7 @@ iMonitor uses a simple Free/Premium feature boundary. The application keeps Prem
 - Timestamped incident evidence for the trigger job, job log, messages, queue, and subsystem, with visible missing or permission statuses.
 - Evidence-backed resource relationships in the job Details tab, with compact flow and accessible table views for incidents, jobs, queues, subsystems, message waits, and lock owners.
 - Customer-owned business service mappings with deterministic precedence, owner, timezone-aware operating window, and deadline-risk context in the task response.
+- Customer-scoped Resolution Memory turns an incident investigation into a draft procedure. Operators can explicitly approve, retire, retrieve, and export versioned knowledge for the connected system; it is never added to a shared pool by default.
 - Compact AI composer with provider/model availability checks.
 - Job queues remain in their own section below the main workspace.
 - Client-controlled background collector for read-only monitoring, per-system local snapshots, retention, inventory, health, and confirmed purge.

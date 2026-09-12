@@ -71,6 +71,7 @@ import type { IntegrationDeliveryStatus } from '../features/integrations/deliver
 import { normalizeSupportAccessGrants, type SupportAccessGrants } from '../features/action-board/support-access';
 import { DEFAULT_COLLECTOR_SETTINGS, normalizeCollectorSettings, type CollectorSettings } from '../features/collector/collector-model';
 import { DEFAULT_BUSINESS_SERVICE_SETTINGS, normalizeBusinessServiceSettings, type BusinessServiceSettings } from '../features/action-board/business-service-mapping';
+import { DEFAULT_RESOLUTION_MEMORY, normalizeResolutionMemory, type ResolutionMemoryStore } from '../features/action-board/resolution-memory';
 
 export interface StoreSchema {
     connections: StoredConnection[];
@@ -93,6 +94,7 @@ export interface StoreSchema {
     objectAnalysisSettings: ObjectAnalysisSettings;
     collectorSettings: CollectorSettings;
     businessServiceSettings: BusinessServiceSettings;
+    resolutionMemory: ResolutionMemoryStore;
     themeId: ThemeId;
     developmentPlan: Plan;
 }
@@ -133,6 +135,7 @@ export function createAppStore() {
             objectAnalysisSettings: DEFAULT_OBJECT_ANALYSIS_SETTINGS,
             collectorSettings: DEFAULT_COLLECTOR_SETTINGS,
             businessServiceSettings: DEFAULT_BUSINESS_SERVICE_SETTINGS,
+            resolutionMemory: DEFAULT_RESOLUTION_MEMORY,
             themeId: DEFAULT_THEME_ID,
             developmentPlan: 'premium'
         }
@@ -153,6 +156,23 @@ export function getNormalizedBusinessServiceSettings(store: AppStore) {
 export function saveBusinessServiceSettings(store: AppStore, candidate?: Partial<BusinessServiceSettings>) {
     const normalized = normalizeBusinessServiceSettings(candidate);
     store.set('businessServiceSettings', normalized);
+    return normalized;
+}
+
+/** Loads and normalizes customer-owned resolution memory. */
+export function getNormalizedResolutionMemory(store: AppStore) {
+    const storedMemory = store.get('resolutionMemory');
+    const normalized = normalizeResolutionMemory(storedMemory);
+    if (JSON.stringify(storedMemory) !== JSON.stringify(normalized)) {
+        store.set('resolutionMemory', normalized);
+    }
+    return normalized;
+}
+
+/** Persists the bounded resolution memory store. */
+export function saveResolutionMemory(store: AppStore, candidate?: Partial<ResolutionMemoryStore>) {
+    const normalized = normalizeResolutionMemory(candidate);
+    store.set('resolutionMemory', normalized);
     return normalized;
 }
 

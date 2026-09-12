@@ -107,6 +107,7 @@ import { registerJiraIpc } from './main/ipc/jira-ipc';
 import { registerSmsIpc } from './main/ipc/sms-ipc';
 import { registerSupportIpc } from './main/ipc/support-ipc';
 import { registerSupportAccessIpc } from './main/ipc/support-access-ipc';
+import { registerResolutionMemoryIpc } from './main/ipc/resolution-memory-ipc';
 import { createAiRuntime } from './main/runtime/ai-runtime';
 import { createEmailNotificationRuntime } from './main/runtime/email-notification-runtime';
 import { createClickUpRuntime } from './main/runtime/clickup-runtime';
@@ -158,7 +159,9 @@ import {
     getNormalizedSupportAccessGrants,
     getNormalizedCollectorSettings,
     getNormalizedBusinessServiceSettings,
-    saveBusinessServiceSettings
+    saveBusinessServiceSettings,
+    getNormalizedResolutionMemory,
+    saveResolutionMemory
 } from './main/store';
 import type { CollectorSettings } from './features/collector/collector-model';
 import { registerCollectorIpc } from './main/ipc/collector-ipc';
@@ -1801,6 +1804,19 @@ registerJobsIpc({
     },
     recordActivity: loggingRuntime.recordActivity,
     sendToWindow: windowRuntime.sendToWindow
+});
+
+registerResolutionMemoryIpc({
+    getMemory: () => getNormalizedResolutionMemory(store),
+    saveMemory: (memory) => saveResolutionMemory(store, memory),
+    getJob: (jobName) => monitoringState.getJob(jobName),
+    getAlert: (jobName) => alertState.getActiveAlerts().find((alert) => alert.jobName === jobName)
+        || Object.values(alertState.getIncidentLedger()).find((alert) => alert.jobName === jobName),
+    getSystemId: getCurrentSystemId,
+    getSystemLabel: () => connectionState.getState().currentConnection?.name,
+    getOperatorName: getCurrentOperatorName,
+    authorizeAction: authorizeCurrentOperatorAction,
+    recordActivity: loggingRuntime.recordActivity
 });
 
 app.whenReady().then(() => {

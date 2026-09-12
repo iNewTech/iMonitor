@@ -26,6 +26,8 @@ The background collector is composed from `background-collector-runtime.ts`, `co
 
 `src/features/action-board/business-service-mapping.ts` is the customer-owned mapping boundary. It resolves a job to one explicit service using system, alert-kind, resource, queue, subsystem, and specificity precedence, then evaluates the configured timezone-aware schedule and response deadline. Settings are persisted through the alert settings IPC; the task response consumes the result without changing technical alert detection or action authority.
 
+`src/features/action-board/resolution-memory.ts` is the customer-scoped knowledge boundary. It captures an incident's observed symptoms and evidence references as a draft, requires explicit approval before retrieval can use it, retains reviewer and environment metadata, supports retirement and scoped export, and matches approved entries only by system, incident kind, and job pattern. The store is local to the customer and is never a direct command source for IBM i actions.
+
 ## Shared incident boundary
 
 `src/features/alerts/shared-incident-service.ts` defines the customer-controlled collaboration contract used by future unattended collection and delegated support clients. It carries versioned incident events scoped by organisation and IBM i system, merges duplicate or out-of-order events deterministically, keeps a local read cache, tracks pending writes, and exposes online, offline, and stale states. The service accepts an adapter rather than choosing a transport, so a customer-owned service or shared store can be added without making the desktop process the long-term authority. Retention and export operate on the same versioned cache.
