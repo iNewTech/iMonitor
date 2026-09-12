@@ -16,6 +16,8 @@ A shared monitoring runtime polls jobs and updates monitoring/alert state. After
 
 Task refreshes are serialized, stale snapshots are ignored, and action feedback survives later refreshes. Background updates preserve the selected task tab. Explicit workflow and job actions are separate from read-only inspection.
 
+The background collector is composed from `background-collector-runtime.ts`, `collection-runtime.ts`, and the existing monitoring runtime. It reconnects to a client-selected saved profile, starts the same authoritative read-only poll and incident preparation path, writes JSONL snapshots per system, exposes health and inventory through IPC, and keeps the main window optional. OS-login startup uses Electron's login item with a hidden window; closing the window leaves collection running while the app process remains active. Credential loss, connection gaps, and write failures are reported as degraded health. No corrective action is scheduled by this path.
+
 ## Shared incident boundary
 
 `src/features/alerts/shared-incident-service.ts` defines the customer-controlled collaboration contract used by future unattended collection and delegated support clients. It carries versioned incident events scoped by organisation and IBM i system, merges duplicate or out-of-order events deterministically, keeps a local read cache, tracks pending writes, and exposes online, offline, and stale states. The service accepts an adapter rather than choosing a transport, so a customer-owned service or shared store can be added without making the desktop process the long-term authority. Retention and export operate on the same versioned cache.
@@ -55,6 +57,7 @@ Keep a feature's styles with its existing module. Do not append unrelated fixes 
 - Credentials: protected by the platform's credential/encryption support.
 - Analysis artifacts: beneath the chosen source root, with application-storage fallback for reports when necessary.
 - Monitoring/history and developer diagnostics: separate runtime-owned stores; raw developer diagnostics remain outside the renderer bridge.
+- Background collection: local `imonitor-collection/<system>/monitoring/*.jsonl` snapshots plus a tamper-evident purge audit; credentials remain in protected app storage.
 - Widget: summary JSON written by the widget runtime for the native macOS extension.
 
 This is a desktop architecture. Shared multi-operator authorization across machines, server-side coordination, and fully autonomous recovery remain separate product work.

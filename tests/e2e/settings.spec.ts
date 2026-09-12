@@ -197,6 +197,28 @@ test('opens the dedicated settings page and switches AI provider setup', async (
     }
 });
 
+test('configures the read-only background collector and shows its local inventory', async () => {
+    const app = await launchTestApp();
+
+    try {
+        await app.page.locator('#connect').click();
+        await expect(app.page.getByRole('heading', { name: 'iMonitor ActionBoard', exact: true })).toBeVisible();
+        await app.page.locator('#open-settings').click();
+        await app.page.getByTestId('settings-page-alerts').click();
+
+        await expect(app.page.locator('#settings-collector-summary-status')).toHaveText('Off');
+        await app.page.locator('#settings-collector-connection').selectOption('demo-connection');
+        await app.page.locator('#settings-collector-enabled').check();
+        await app.page.locator('#settings-collector-form button[type="submit"]').click();
+
+        await expect(app.page.locator('#settings-collector-summary-status')).toHaveText('Running');
+        await expect(app.page.locator('#settings-collector-inventory')).toHaveText(/\d+ records/);
+        await expect(app.page.locator('#settings-collector-status')).toContainText('Collecting read-only monitoring data');
+    } finally {
+        await app.cleanup();
+    }
+});
+
 test('shows the Slack configuration as a Premium preview on the Free plan', async () => {
     const app = await launchTestApp({ forceFree: true });
 

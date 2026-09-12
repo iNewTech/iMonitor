@@ -11,6 +11,7 @@ iMonitor uses a simple Free/Premium feature boundary. The application keeps Prem
 - Timestamped incident evidence for the trigger job, job log, messages, queue, and subsystem, with visible missing or permission statuses.
 - Compact AI composer with provider/model availability checks.
 - Job queues remain in their own section below the main workspace.
+- Client-controlled background collector for read-only monitoring, per-system local snapshots, retention, inventory, health, and confirmed purge.
 - Local and IBM i source analysis, evidence-based call graphs, approved reports mapped to source programs, and saved compile plans. Compile commands are never run automatically.
 - A macOS WidgetKit scaffold is available under `macos-widget/`; signing and native installation remain separate from the Electron app.
 

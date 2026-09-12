@@ -7,6 +7,7 @@ import { initSmsSettings } from './settings/sms.js';
 import { initJiraSettings } from './settings/jira.js';
 import { initAlertSettings } from './settings/alerts.js';
 import { initSupportAccessSettings } from './settings/support-access.js';
+import { initCollectorSettings } from './settings/collector.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const backButton = document.getElementById('settings-back');
@@ -242,6 +243,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         root: document,
         navStatus: navSupportStatus
     });
+    const collectorSettings = initCollectorSettings({ root: document });
 
     const premiumFeaturePanels = new Map([
         ['settings-clickup-panel', 'clickup-integration'],
@@ -368,7 +370,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         smsSettings.refresh(),
         jiraSettings.refresh(),
         alertSettings.refresh(),
-        supportAccessSettings.refresh()
+        supportAccessSettings.refresh(),
+        collectorSettings.refresh()
     ]);
 
     applyPremiumPreview(entitlements);

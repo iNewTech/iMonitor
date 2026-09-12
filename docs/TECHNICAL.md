@@ -26,6 +26,8 @@ Build checks TypeScript **and** parses every JavaScript module in `public/`, inc
 | `src/main/runtime/` | Monitoring, analysis, sessions, AI, notifications, integrations, support |
 | `src/main/state/` | Shared in-memory connection, monitoring, and alert state |
 | `src/main/window/` | Main and standalone job windows |
+| `src/main/runtime/collection-runtime.ts` | Per-system poll storage, inventory, retention, and audited purge |
+| `src/main/runtime/background-collector-runtime.ts` | Collector lifecycle, reconnect, health, and OS-login startup |
 | `src/features/` | Domain models, validation, parsers, action planning, persistence |
 | `src/services/` | IBM i, demo database, local/live analysis providers |
 | `src/preload.ts` | Renderer-facing API contract |
@@ -68,6 +70,18 @@ The source browser lists discovered members independently of the object list. Th
 Verify the artifact paths displayed by the app: local reports use the source directory when writable; reports can fall back to app storage, and remote build artifacts use app storage. `report-storage.ts` defines report/mapping formats. Compile output is produced by `compile-plan.ts`.
 
 Reports start in draft. Approval persists the current result with source identity and hash mapping. Adding an AI explanation requires approval of the updated result. Compile generation is separate; there is no automatic execution path.
+
+## Background collector storage
+
+`collection-runtime.ts` writes one JSONL record for each successful read-only monitoring poll under the application data directory:
+
+```text
+imonitor-collection/
+  <system-id>/monitoring/<UTC-date>.jsonl
+  purge-audit.jsonl
+```
+
+Records include the system identity, safe connection metadata, timestamp, interval, and the active-job snapshot. Inventory reports counts, bytes, dates, categories, and systems. Retention removes records older than the configured period; the storage limit removes the oldest system records until the limit is met. Purge rewrites affected files atomically and appends a hash-linked audit record. The IPC purge handler requires explicit confirmation. The background runtime reconnects with bounded retry and starts the existing monitor loop; it does not run job or queue mutations.
 
 ## Integration delivery
 

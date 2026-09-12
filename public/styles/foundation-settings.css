@@ -586,6 +586,45 @@ body.app-body::before {
     position: relative;
 }
 
+.settings-collector-disclosure {
+    margin-top: 18px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--bg-soft) 70%, var(--surface));
+}
+
+.settings-collector-disclosure > summary {
+    padding: 16px 18px;
+    cursor: pointer;
+}
+
+.settings-collector-body {
+    padding: 0 18px 18px;
+}
+
+.settings-field-grid-three {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.settings-collector-status-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.settings-collector-status-row .stat-note {
+    flex: 1 1 280px;
+}
+
+@media (max-width: 800px) {
+    .settings-field-grid-three {
+        grid-template-columns: 1fr;
+    }
+}
+
 .settings-card-tools {
     justify-content: flex-end;
 }

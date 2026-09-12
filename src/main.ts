@@ -109,6 +109,8 @@ import { createQueueTriageRuntime } from './main/runtime/queue-triage-runtime';
 import { createObjectAnalysisRuntime } from './main/runtime/object-analysis-runtime';
 import { createWidgetSummaryRuntime } from './main/runtime/widget-summary-runtime';
 import { createLoggingRuntime } from './main/runtime/logging-runtime';
+import { createCollectionRuntime } from './main/runtime/collection-runtime';
+import { createBackgroundCollectorRuntime } from './main/runtime/background-collector-runtime';
 import { createSessionRuntime } from './main/runtime/session-runtime';
 import { createSlackRuntime } from './main/runtime/slack-runtime';
 import { createJiraRuntime } from './main/runtime/jira-runtime';
@@ -147,8 +149,11 @@ import {
     getNormalizedObjectAnalysisSettings,
     getNormalizedQueueTriageResults,
     setObjectAnalysisSettings,
-    getNormalizedSupportAccessGrants
+    getNormalizedSupportAccessGrants,
+    getNormalizedCollectorSettings
 } from './main/store';
+import type { CollectorSettings } from './features/collector/collector-model';
+import { registerCollectorIpc } from './main/ipc/collector-ipc';
 import { createWindowRuntime } from './main/window/window-runtime';
 import { protectPassword, revealPassword } from './utils/password-store';
 import { getDemoDatabasePath } from './utils/demo-system';
@@ -558,6 +563,10 @@ const windowRuntime = createWindowRuntime({
     preloadPath: path.join(__dirname, 'preload.js'),
     isDevelopment: process.env.NODE_ENV === 'development',
     iconPath: resolveAppIconPath(),
+    shouldShowWindow: () => !(
+        app.getLoginItemSettings().wasOpenedAtLogin
+        && getNormalizedCollectorSettings(store).enabled
+    ),
     onClosed: () => {
         sessionRuntime.handleWindowClosed();
     }
@@ -713,6 +722,8 @@ const loggingRuntime = createLoggingRuntime({
     toNumber: (value) => toNumber(value as string | number | null | undefined),
     maxActivityEntries: MAX_ACTIVITY_LOG_ENTRIES
 });
+
+const collectionRuntime = createCollectionRuntime(() => app.getPath('userData'));
 
 const widgetSummaryRuntime = createWidgetSummaryRuntime({
     userDataPath: app.getPath('userData'),
@@ -1202,6 +1213,20 @@ const monitoringRuntime = createMonitoringRuntime({
     sendToWindow: windowRuntime.sendToWindow,
     notify: notifyOperators,
     persistPoll: loggingRuntime.persistPoll,
+    persistCollection: (jobs, timestamp, intervalMs) => {
+        const state = connectionState.getState();
+        const connection = state.currentConnection;
+        if (!connection) return;
+        return collectionRuntime.appendPoll(jobs, timestamp, intervalMs, {
+            systemId: connection.id,
+            systemLabel: connection.name,
+            host: connection.host,
+            user: connection.user,
+            mode: monitoringState.getMonitorMode()
+        }).then(async () => {
+            await collectionRuntime.enforceRetention(getNormalizedCollectorSettings(store));
+        });
+    },
     persistWidgetSummary: (jobs, timestamp) => {
         widgetSummaryRuntime.writeSummary(jobs, alertState.getActiveAlerts(), timestamp).catch((error) => {
             loggingRuntime.recordActivity({
@@ -1231,6 +1256,7 @@ sessionRuntime = createSessionRuntime({
     onServiceLogEntry: (entry: ServiceLogEntry) => {
         loggingRuntime.recordActivity(entry);
     },
+    shouldKeepSessionAlive: () => getNormalizedCollectorSettings(store).enabled,
     notifyDisconnect: async () => {
         if (!getAlertSettings().watchDisconnects) {
             return;
@@ -1270,6 +1296,20 @@ sessionRuntime = createSessionRuntime({
     }
 });
 
+const backgroundCollectorRuntime = createBackgroundCollectorRuntime({
+    getSettings: () => getNormalizedCollectorSettings(store),
+    saveSettings: (settings: CollectorSettings) => store.set('collectorSettings', settings),
+    getConnectionId: () => getCurrentSystemId(),
+    connectSavedConnection: (id) => sessionRuntime.connectSavedConnection(id),
+    startMonitoring: (intervalMs) => monitoringRuntime.startMonitoring(intervalMs),
+    stopMonitoring: (recordStop) => monitoringRuntime.stopMonitoring(recordStop),
+    isMonitoringActive: () => monitoringState.getMonitoringState().active,
+    setLoginItemSettings: (enabled) => app.setLoginItemSettings({ openAtLogin: enabled, openAsHidden: true }),
+    collectionRuntime,
+    recordActivity: loggingRuntime.recordActivity,
+    sendToWindow: windowRuntime.sendToWindow
+});
+
 registerConnectionIpc({
     getConnectionState: () => sessionRuntime.getConnectionState(),
     getMonitoringState: () => sessionRuntime.getMonitoringState(),
@@ -1283,6 +1323,13 @@ registerConnectionIpc({
     connectToSystem: (config) => sessionRuntime.connectToSystem(config),
     getSystemStatus: () => monitoringRuntime.getSystemStatus(),
     disconnect: () => sessionRuntime.disconnect()
+});
+
+registerCollectorIpc({
+    getSettings: () => getNormalizedCollectorSettings(store),
+    applySettings: (settings) => backgroundCollectorRuntime.applySettings(settings),
+    getStatus: backgroundCollectorRuntime.getStatus,
+    collectionRuntime
 });
 
 registerNavigationIpc({
@@ -1689,6 +1736,7 @@ app.whenReady().then(() => {
 
     sessionRuntime.migrateStoredConnections();
     windowRuntime.createWindow();
+    void backgroundCollectorRuntime.startIfConfigured();
     loggingRuntime.recordActivity({
         area: 'navigation',
         level: 'info',
@@ -1700,11 +1748,20 @@ app.whenReady().then(() => {
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
             windowRuntime.createWindow();
+            if (connectionState.getState().isConnected) {
+                windowRuntime.loadMonitorPage();
+            }
+            return;
         }
+        windowRuntime.getWindow()?.show();
+        windowRuntime.getWindow()?.focus();
     });
 });
 
 app.on('window-all-closed', () => {
+    if (getNormalizedCollectorSettings(store).enabled) {
+        return;
+    }
     if (process.platform !== 'darwin') {
         app.quit();
     }

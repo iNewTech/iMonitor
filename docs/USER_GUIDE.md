@@ -19,6 +19,8 @@ The ActionBoard shows the live system in one work area:
 - **Job queues** stays separate so waiting work can be inspected without hiding the active-job feed.
 - Open a job to work in its own task window. The main board continues monitoring while task windows are open.
 
+To keep monitoring available when the dashboard is closed, open **Settings → Alerts → Background collector**. Enable collection, choose a saved profile, set the polling interval, and choose whether iMonitor starts with the computer. The collector stores read-only poll snapshots locally for each system and shows its last successful write, record count, storage size, retention period, and any connection or write issue. Use **Purge all records** only after reviewing the confirmation; purge is permanent and does not remove saved credentials.
+
 ## Work an incident
 
 The task window keeps the selected job in context:

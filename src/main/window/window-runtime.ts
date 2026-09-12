@@ -6,6 +6,7 @@ interface WindowRuntimeDependencies {
     isDevelopment: boolean;
     onClosed: () => void;
     iconPath?: string;
+    shouldShowWindow?: () => boolean;
 }
 
 /**
@@ -88,6 +89,7 @@ export function createWindowRuntime(dependencies: WindowRuntimeDependencies) {
             mainWindow = new BrowserWindow({
                 width: 1280,
                 height: 860,
+                show: dependencies.shouldShowWindow?.() !== false,
                 icon: dependencies.iconPath,
                 webPreferences: {
                     nodeIntegration: false,

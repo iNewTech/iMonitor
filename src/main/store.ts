@@ -69,6 +69,7 @@ import {
 import { normalizeQueueTriageResults, type QueueTriageResult } from '../features/action-board/queue-triage';
 import type { IntegrationDeliveryStatus } from '../features/integrations/delivery';
 import { normalizeSupportAccessGrants, type SupportAccessGrants } from '../features/action-board/support-access';
+import { DEFAULT_COLLECTOR_SETTINGS, normalizeCollectorSettings, type CollectorSettings } from '../features/collector/collector-model';
 
 export interface StoreSchema {
     connections: StoredConnection[];
@@ -89,6 +90,7 @@ export interface StoreSchema {
     incidentLedger: IncidentLedger;
     queueTriageResults: Record<string, QueueTriageResult>;
     objectAnalysisSettings: ObjectAnalysisSettings;
+    collectorSettings: CollectorSettings;
     themeId: ThemeId;
     developmentPlan: Plan;
 }
@@ -127,10 +129,21 @@ export function createAppStore() {
             incidentLedger: {},
             queueTriageResults: {},
             objectAnalysisSettings: DEFAULT_OBJECT_ANALYSIS_SETTINGS,
+            collectorSettings: DEFAULT_COLLECTOR_SETTINGS,
             themeId: DEFAULT_THEME_ID,
             developmentPlan: 'premium'
         }
     }) as AppStore;
+}
+
+/** Loads and normalizes the client-owned background collector settings. */
+export function getNormalizedCollectorSettings(store: AppStore) {
+    const storedSettings = store.get('collectorSettings');
+    const normalized = normalizeCollectorSettings(storedSettings);
+    if (JSON.stringify(storedSettings) !== JSON.stringify(normalized)) {
+        store.set('collectorSettings', normalized);
+    }
+    return normalized;
 }
 
 /** Loads and normalizes the client-owned support access grants. */

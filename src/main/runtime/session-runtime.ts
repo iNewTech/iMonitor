@@ -54,6 +54,7 @@ interface SessionRuntimeDependencies {
     createIbmiService: (onLogEntry: (entry: ServiceLogEntry) => void) => Db;
     onServiceLogEntry: (entry: ServiceLogEntry) => void;
     notifyDisconnect: () => void | Promise<void>;
+    shouldKeepSessionAlive?: () => boolean;
 }
 
 /**
@@ -217,6 +218,109 @@ export function createSessionRuntime(dependencies: SessionRuntimeDependencies) {
         } finally {
             testService.close();
         }
+    };
+
+    const connectToSystem = async (config: DaemonServer & { id?: string; name?: string; mode?: MonitorMode }) => {
+        try {
+            if (isDemoRequest(config)) {
+                const demoAvailability = getDemoAvailability(app.isPackaged);
+                if (!demoAvailability.enabled) {
+                    return {
+                        success: false,
+                        error: 'Demo mode is unavailable in this build.',
+                        detail: demoAvailability.reason
+                    };
+                }
+
+                dependencies.emitConnectionAction('Launching demo system.');
+                if (dependencies.monitoringState.clearMonitoringTimer()) {
+                    dependencies.recordActivity({ area: 'monitoring', level: 'warning', message: 'Stopped the previous monitoring loop before switching systems.' });
+                }
+
+                ibmiService?.close();
+                ibmiService = null;
+                dependencies.clearRuntimeMonitoringState();
+                dependencies.monitoringState.setMonitorMode('dummy');
+                dependencies.connectionState.setCurrentConnection({
+                    id: DEMO_CONNECTION_ID,
+                    name: config.name?.trim() || 'iMonitor Demo System',
+                    host: 'dummy.local',
+                    user: demoOperatorName,
+                    encryptedPassword: '',
+                    port: DEFAULT_PORT
+                });
+
+                dependencies.recordActivity({
+                    area: 'connection',
+                    level: 'success',
+                    message: 'Connected to the iMonitor demo system.',
+                    detail: 'Using the local SQLite demo database with IBM i-shaped job, message, log, queue, and subsystem tables.'
+                });
+                dependencies.emitConnectionAction('Demo system ready.');
+                return { success: true, port: DEFAULT_PORT };
+            }
+
+            dependencies.emitConnectionAction('Checking Mapepire service.');
+            const requestedPort = config.port ?? DEFAULT_PORT;
+            const mapepireSetup = await ensureMapepireAvailable({
+                host: config.host,
+                user: config.user,
+                password: config.password,
+                sshPort: 22,
+                preferredPort: requestedPort
+            }, (status) => dependencies.emitConnectionAction(status.message, status.detail));
+            const connectionConfig: DaemonServer = { ...config, port: mapepireSetup.port, rejectUnauthorized: true };
+
+            dependencies.emitConnectionAction(`Opening iMonitor session on port ${connectionConfig.port}.`);
+            dependencies.recordActivity({ area: 'connection', level: 'info', message: 'Opening iMonitor system session.', detail: describeConnectionTarget(connectionConfig) });
+            const nextService = dependencies.createIbmiService(dependencies.onServiceLogEntry);
+            await nextService.connect(connectionConfig);
+
+            if (dependencies.monitoringState.clearMonitoringTimer()) {
+                dependencies.recordActivity({ area: 'monitoring', level: 'warning', message: 'Stopped the previous monitoring loop before switching systems.' });
+            }
+            ibmiService?.close();
+            ibmiService = nextService;
+            dependencies.clearRuntimeMonitoringState();
+            dependencies.monitoringState.setMonitorMode('live');
+            dependencies.connectionState.setCurrentConnection({
+                id: getStableSessionId(config),
+                name: config.name?.trim() || `${config.host}:${connectionConfig.port}`,
+                host: config.host,
+                user: config.user,
+                encryptedPassword: '',
+                port: connectionConfig.port
+            });
+            dependencies.recordActivity({ area: 'connection', level: 'success', message: 'Connected to remote IBM i system.', detail: 'Monitoring will start automatically when the dashboard opens.' });
+            dependencies.emitConnectionAction('Connection ready.');
+            return { success: true, port: connectionConfig.port };
+        } catch (error: unknown) {
+            dependencies.connectionState.clear();
+            dependencies.clearRuntimeMonitoringState();
+            const connectionError = buildConnectionErrorPayload(error, {
+                host: config.host,
+                user: config.user,
+                port: config.port ?? DEFAULT_PORT
+            });
+            dependencies.recordActivity({ area: 'connection', level: 'error', message: 'Remote system connection failed.', detail: connectionError.detail });
+            dependencies.emitConnectionAction(connectionError.summary, connectionError.detail);
+            return { success: false, error: connectionError.summary, detail: connectionError.detail };
+        }
+    };
+
+    const connectSavedConnection = async (id: string) => {
+        const stored = dependencies.store.get('connections').find((connection) => connection.id === id);
+        if (!stored) return { success: false, error: 'Saved background collector profile was not found.' };
+        const password = decryptStoredPassword(stored.encryptedPassword);
+        if (!password) return { success: false, error: 'The saved profile password is unavailable. Re-enter it before enabling background collection.' };
+        return connectToSystem({
+            id: stored.id,
+            name: stored.name,
+            host: stored.host,
+            user: stored.user,
+            password,
+            port: stored.port ?? DEFAULT_PORT
+        });
     };
 
     return {
@@ -467,130 +571,8 @@ export function createSessionRuntime(dependencies: SessionRuntimeDependencies) {
                 };
             }
         },
-        async connectToSystem(config: DaemonServer & { name?: string; mode?: MonitorMode }) {
-            try {
-                if (isDemoRequest(config)) {
-                    const demoAvailability = getDemoAvailability(app.isPackaged);
-                    if (!demoAvailability.enabled) {
-                        return {
-                            success: false,
-                            error: 'Demo mode is unavailable in this build.',
-                            detail: demoAvailability.reason
-                        };
-                    }
-
-                    dependencies.emitConnectionAction('Launching demo system.');
-                    if (dependencies.monitoringState.clearMonitoringTimer()) {
-                        dependencies.recordActivity({
-                            area: 'monitoring',
-                            level: 'warning',
-                            message: 'Stopped the previous monitoring loop before switching systems.'
-                        });
-                    }
-
-                    ibmiService?.close();
-                    ibmiService = null;
-                    dependencies.clearRuntimeMonitoringState();
-                    dependencies.monitoringState.setMonitorMode('dummy');
-                    dependencies.connectionState.setCurrentConnection({
-                        id: DEMO_CONNECTION_ID,
-                        name: config.name?.trim() || 'iMonitor Demo System',
-                        host: 'dummy.local',
-                        user: demoOperatorName,
-                        encryptedPassword: '',
-                        port: DEFAULT_PORT
-                    });
-
-                    dependencies.recordActivity({
-                        area: 'connection',
-                        level: 'success',
-                        message: 'Connected to the iMonitor demo system.',
-                        detail: 'Using the local SQLite demo database with IBM i-shaped job, message, log, queue, and subsystem tables.'
-                    });
-                    dependencies.emitConnectionAction('Demo system ready.');
-                    return { success: true, port: DEFAULT_PORT };
-                }
-
-                dependencies.emitConnectionAction('Checking Mapepire service.');
-                const requestedPort = config.port ?? DEFAULT_PORT;
-                const mapepireSetup = await ensureMapepireAvailable({
-                    host: config.host,
-                    user: config.user,
-                    password: config.password,
-                    sshPort: 22,
-                    preferredPort: requestedPort
-                }, (status) => {
-                    dependencies.emitConnectionAction(status.message, status.detail);
-                });
-
-                const connectionConfig: DaemonServer = {
-                    ...config,
-                    port: mapepireSetup.port,
-                    rejectUnauthorized: true
-                };
-
-                dependencies.emitConnectionAction(`Opening iMonitor session on port ${connectionConfig.port}.`);
-                dependencies.recordActivity({
-                    area: 'connection',
-                    level: 'info',
-                    message: 'Opening iMonitor system session.',
-                    detail: describeConnectionTarget(connectionConfig)
-                });
-
-                const nextService = dependencies.createIbmiService(dependencies.onServiceLogEntry);
-                await nextService.connect(connectionConfig);
-
-                if (dependencies.monitoringState.clearMonitoringTimer()) {
-                    dependencies.recordActivity({
-                        area: 'monitoring',
-                        level: 'warning',
-                        message: 'Stopped the previous monitoring loop before switching systems.'
-                    });
-                }
-
-                ibmiService?.close();
-                ibmiService = nextService;
-                dependencies.clearRuntimeMonitoringState();
-                dependencies.monitoringState.setMonitorMode('live');
-                dependencies.connectionState.setCurrentConnection({
-                    id: getStableSessionId(config),
-                    name: config.name?.trim() || `${config.host}:${connectionConfig.port}`,
-                    host: config.host,
-                    user: config.user,
-                    encryptedPassword: '',
-                    port: connectionConfig.port
-                });
-
-                dependencies.recordActivity({
-                    area: 'connection',
-                    level: 'success',
-                    message: 'Connected to remote IBM i system.',
-                    detail: 'Monitoring will start automatically when the dashboard opens.'
-                });
-                dependencies.emitConnectionAction('Connection ready.');
-                return { success: true, port: connectionConfig.port };
-            } catch (error: unknown) {
-                dependencies.connectionState.clear();
-                dependencies.clearRuntimeMonitoringState();
-                const connectionError = buildConnectionErrorPayload(error, {
-                    host: config.host,
-                    user: config.user,
-                    port: config.port ?? DEFAULT_PORT
-                });
-                dependencies.recordActivity({
-                    area: 'connection',
-                    level: 'error',
-                    message: 'Remote system connection failed.',
-                    detail: connectionError.detail
-                });
-                dependencies.emitConnectionAction(connectionError.summary, connectionError.detail);
-                return {
-                    success: false,
-                    error: connectionError.summary,
-                    detail: connectionError.detail
-                };
-            }
-        },
+        connectToSystem,
+        connectSavedConnection,
         async getSystemStatus(): Promise<QueryResult<ActiveJobRecord>> {
             if (dependencies.monitoringState.getMonitorMode() === 'dummy') {
                 throw new Error('Demo mode status must be served by monitoring runtime.');
@@ -675,6 +657,9 @@ export function createSessionRuntime(dependencies: SessionRuntimeDependencies) {
             }
         },
         handleWindowClosed() {
+            if (dependencies.shouldKeepSessionAlive?.()) {
+                return;
+            }
             dependencies.monitoringState.clearMonitoringTimer();
             if (ibmiService) {
                 ibmiService.close();

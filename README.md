@@ -36,6 +36,10 @@ Settings contains provider setup, notification rules, and integrations. IBMEye s
 - **Email:** SMTP notifications.
 - **SMS:** a configured compatible HTTP provider.
 
+## Background collection
+
+Settings can keep read-only monitoring running after the dashboard window is closed. Choose a saved IBM i profile, set a polling interval, and optionally start iMonitor quietly at OS login. Poll snapshots are stored locally per system under the application data directory, with a visible record count, storage limit, retention period, health status, and confirmed purge action. Background collection never executes corrective IBM i actions without an operator.
+
 Test delivery controls send real external messages or create work items. Local tests use isolated stores and mock external integrations.
 
 ## Object analysis

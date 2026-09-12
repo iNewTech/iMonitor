@@ -28,6 +28,39 @@ interface MonitoringState {
     interval: number;
 }
 
+interface CollectorSettings {
+    enabled: boolean;
+    startWithSystem: boolean;
+    connectionId: string;
+    intervalMs: number;
+    retentionDays: number;
+    maxStorageMb: number;
+}
+
+interface CollectionInventory {
+    rootPath: string;
+    recordCount: number;
+    byteCount: number;
+    oldestAt: string | null;
+    newestAt: string | null;
+    files: number;
+    categories: Record<string, number>;
+    systems: Record<string, number>;
+}
+
+interface CollectorStatus {
+    state: 'disabled' | 'stopped' | 'starting' | 'running' | 'degraded';
+    settings: CollectorSettings;
+    health: {
+        collectorStartedAt: string | null;
+        lastSuccessfulPollAt: string | null;
+        lastSuccessfulWriteAt: string | null;
+        consecutiveWriteFailures: number;
+        lastError: string | null;
+    };
+    lastError: string | null;
+}
+
 interface AlertSettings {
     desktopNotifications: boolean;
     watchHighCpu: boolean;
@@ -736,6 +769,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
         error?: string;
     }>,
     getMonitoringState: () => ipcRenderer.invoke('get-monitoring-state') as Promise<MonitoringState>,
+    getCollectorSettings: () => ipcRenderer.invoke('get-collector-settings') as Promise<CollectorSettings>,
+    saveCollectorSettings: (settings: Partial<CollectorSettings>) => (
+        ipcRenderer.invoke('save-collector-settings', settings) as Promise<CollectorStatus>
+    ),
+    getCollectorStatus: () => ipcRenderer.invoke('get-collector-status') as Promise<CollectorStatus>,
+    getCollectionInventory: () => ipcRenderer.invoke('get-collection-inventory') as Promise<CollectionInventory>,
+    previewCollectionPurge: () => ipcRenderer.invoke('preview-collection-purge') as Promise<CollectionInventory & { matchingRecordCount: number; matchingByteCount: number }>,
+    purgeCollection: (confirmed: boolean) => ipcRenderer.invoke('purge-collection', { query: {}, confirmed }) as Promise<{
+        success: boolean;
+        error?: string;
+        summary?: CollectionInventory & { matchingRecordCount: number; matchingByteCount: number };
+    }>,
     contactSupport: () => ipcRenderer.invoke('contact-support') as Promise<{
         success: boolean;
         mailtoUrl?: string;
@@ -1055,5 +1100,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     onDeploymentStatus: (callback: (status: DeploymentStatus) => void) => {
         ipcRenderer.on('deployment-status', (_event, status) => callback(status));
+    },
+    onCollectorStatusUpdated: (callback: (status: CollectorStatus) => void) => {
+        ipcRenderer.on('collector-status-updated', (_event, status) => callback(status));
     }
 });

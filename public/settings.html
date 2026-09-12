@@ -143,6 +143,28 @@
                             <div class="settings-actions"><button type="submit" class="btn btn-primary-strong"><i class="bi bi-bell me-2"></i>Save Alert Settings</button></div>
                             <p id="settings-alert-status" class="stat-note mb-0">Alert settings are loading.</p>
                         </form>
+                        <details id="settings-collector-panel" class="settings-collector-disclosure" open>
+                            <summary class="email-settings-summary">
+                                <span><strong><i class="bi bi-database-check me-2" aria-hidden="true"></i>Background collector</strong><small>Keep read-only monitoring and incident evidence available when this window is closed.</small></span>
+                                <span class="email-settings-summary-meta"><span id="settings-collector-summary-status" class="settings-inline-status">Off</span><i class="bi bi-chevron-down"></i></span>
+                            </summary>
+                            <div class="settings-collector-body">
+                                <form id="settings-collector-form" class="settings-form-grid">
+                                    <label class="toggle-row"><span><strong>Keep collecting in the background</strong><small>Only read-only monitoring runs automatically. Corrective actions always need an operator.</small></span><input type="checkbox" id="settings-collector-enabled"></label>
+                                    <div class="settings-field-grid settings-field-grid-two">
+                                        <label class="control-select"><span class="control-label">Saved IBM i profile</span><select id="settings-collector-connection" class="form-select"><option value="">Choose a saved profile</option></select></label>
+                                        <label class="toggle-row"><span><strong>Start with this computer</strong><small>Launch quietly at OS login.</small></span><input type="checkbox" id="settings-collector-startup"></label>
+                                    </div>
+                                    <div class="settings-field-grid settings-field-grid-three">
+                                        <label class="control-select"><span class="control-label">Polling interval</span><div class="input-group"><input id="settings-collector-interval" type="number" class="form-control" min="1" max="3600"><span class="input-group-text">seconds</span></div></label>
+                                        <label class="control-select"><span class="control-label">Keep records for</span><div class="input-group"><input id="settings-collector-retention" type="number" class="form-control" min="1" max="3650"><span class="input-group-text">days</span></div></label>
+                                        <label class="control-select"><span class="control-label">Storage limit</span><div class="input-group"><input id="settings-collector-storage" type="number" class="form-control" min="1" max="102400"><span class="input-group-text">MB</span></div></label>
+                                    </div>
+                                    <div class="settings-collector-status-row"><span id="settings-collector-status" class="stat-note mb-0">Collector status is loading.</span><span id="settings-collector-inventory" class="settings-provider-chip">No records</span><button type="button" id="settings-collector-refresh" class="btn btn-outline-ink btn-sm" title="Refresh collection status"><i class="bi bi-arrow-repeat" aria-hidden="true"></i></button><button type="button" id="settings-collector-purge" class="btn btn-outline-danger btn-sm">Purge all records</button></div>
+                                    <div class="settings-actions"><button type="submit" class="btn btn-primary-strong"><i class="bi bi-save2 me-2" aria-hidden="true"></i>Save collector settings</button></div>
+                                </form>
+                            </div>
+                        </details>
                     </div>
                 </details>
 
