@@ -98,6 +98,103 @@
     border-color: color-mix(in srgb, var(--success) 22%, var(--border));
 }
 
+.problem-management-panel {
+    border-color: color-mix(in srgb, var(--warning) 28%, var(--border));
+}
+
+.problem-match,
+.problem-record-list {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.problem-match {
+    padding: 8px 10px;
+    border: 1px dashed color-mix(in srgb, var(--warning) 45%, var(--border));
+    border-radius: 9px;
+    background: color-mix(in srgb, var(--warning) 8%, var(--surface));
+}
+
+.problem-match small,
+.problem-record small {
+    color: var(--muted);
+}
+
+.problem-record {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--surface-elevated);
+}
+
+.problem-record > div:first-child {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+.problem-form {
+    display: grid;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.problem-form label,
+.problem-ticket-grid label {
+    display: grid;
+    gap: 4px;
+    color: var(--muted-strong);
+    font-size: .76rem;
+    font-weight: 800;
+}
+
+.problem-form textarea,
+.problem-form input,
+.problem-form select {
+    width: 100%;
+    min-height: 34px;
+    padding: 7px 9px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-elevated);
+    color: var(--text-strong);
+    font: inherit;
+    font-size: .82rem;
+    font-weight: 500;
+}
+
+.problem-form textarea {
+    min-height: 56px;
+    resize: vertical;
+}
+
+.problem-ticket-grid {
+    display: grid;
+    grid-template-columns: minmax(120px, .8fr) minmax(100px, .8fr) minmax(180px, 1.4fr);
+    gap: 8px;
+}
+
+.problem-field-wide {
+    grid-column: auto;
+}
+
+.problem-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+@media (max-width: 640px) {
+    .problem-ticket-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 .resolution-memory-list {
     display: grid;
     gap: 6px;

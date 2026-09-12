@@ -458,6 +458,45 @@ interface ResolutionMemoryEntryPayload {
     supersedesId?: string;
 }
 
+interface ProblemRecordPayload {
+    schema: 'imonitor-problem-record';
+    version: 1;
+    id: string;
+    systemId: string;
+    systemLabel?: string;
+    status: 'candidate' | 'confirmed' | 'resolved' | 'reopened';
+    title: string;
+    incidentKind: string;
+    jobPattern: string;
+    environment: { jobType?: string; subsystem?: string };
+    occurrences: Array<{
+        incidentId: string;
+        occurrence: number;
+        jobName: string;
+        title: string;
+        kind: string;
+        fingerprint?: string;
+        timestamp: string;
+        evidence: string[];
+        environment: { jobType?: string; subsystem?: string };
+    }>;
+    rootCause?: string;
+    workaround?: string;
+    linkedTicket?: { provider: string; key: string; url?: string };
+    createdAt: string;
+    updatedAt: string;
+    confirmedBy?: string;
+    confirmedAt?: string;
+    resolvedBy?: string;
+    resolvedAt?: string;
+}
+
+interface ProblemMatchPayload {
+    recordId: string;
+    score: number;
+    reasons: string[];
+}
+
 interface ResourceGraphPayload {
     success: boolean;
     error?: string;
@@ -1082,6 +1121,34 @@ contextBridge.exposeInMainWorld('electronAPI', {
     approveResolutionMemory: (entryId: string) => ipcRenderer.invoke('approve-resolution-memory', entryId) as Promise<{ success: boolean; entry?: ResolutionMemoryEntryPayload; entries?: ResolutionMemoryEntryPayload[]; error?: string }>,
     retireResolutionMemory: (entryId: string) => ipcRenderer.invoke('retire-resolution-memory', entryId) as Promise<{ success: boolean; entry?: ResolutionMemoryEntryPayload; entries?: ResolutionMemoryEntryPayload[]; error?: string }>,
     exportResolutionMemory: () => ipcRenderer.invoke('export-resolution-memory') as Promise<{ success: boolean; export?: unknown; error?: string }>,
+    getProblemWorkspace: (jobName: string) => ipcRenderer.invoke('get-problem-workspace', jobName) as Promise<{
+        success: boolean;
+        records: ProblemRecordPayload[];
+        matches: ProblemMatchPayload[];
+        currentOccurrence?: ProblemRecordPayload['occurrences'][number] | null;
+        recurringSignal?: boolean;
+        error?: string;
+    }>,
+    createProblemCandidate: (jobName: string) => ipcRenderer.invoke('create-problem-candidate', { jobName }) as Promise<{
+        success: boolean; record?: ProblemRecordPayload; records?: ProblemRecordPayload[]; error?: string;
+    }>,
+    recordProblemOccurrence: (jobName: string, problemId: string) => ipcRenderer.invoke('record-problem-occurrence', { jobName, problemId }) as Promise<{
+        success: boolean; record?: ProblemRecordPayload; records?: ProblemRecordPayload[]; error?: string;
+    }>,
+    confirmProblemRecord: (payload: {
+        jobName: string;
+        problemId: string;
+        rootCause: string;
+        workaround: string;
+        ticketProvider?: 'clickup' | 'jira' | 'vendor' | 'github' | 'other';
+        ticketKey?: string;
+        ticketUrl?: string;
+    }) => ipcRenderer.invoke('confirm-problem-record', payload) as Promise<{
+        success: boolean; record?: ProblemRecordPayload; records?: ProblemRecordPayload[]; error?: string;
+    }>,
+    resolveProblemRecord: (jobName: string, problemId: string) => ipcRenderer.invoke('resolve-problem-record', { jobName, problemId }) as Promise<{
+        success: boolean; record?: ProblemRecordPayload; records?: ProblemRecordPayload[]; error?: string;
+    }>,
     saveAlertSettings: (settings: Partial<AlertSettings>) => (
         ipcRenderer.invoke('save-alert-settings', settings) as Promise<AlertSettings>
     ),

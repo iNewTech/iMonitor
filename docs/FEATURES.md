@@ -11,6 +11,7 @@ iMonitor uses a simple Free/Premium feature boundary. The application keeps Prem
 - Explainable routing recommendations match active support grants to incident skills, system scope, permission, availability, and support windows, with an SLA state beside the suggested owner.
 - Versioned scenario policies cover message waits, lock waits, high CPU, and monitoring disconnects with required evidence, safe checks, verification criteria, and escalation guidance.
 - Guarded runbook execution advances through persisted check, approved action, and independent verification checkpoints; stale evidence, unsupported actions, and unresolved recovery stop the runbook explicitly.
+- L3 known-error workspace groups compatible recurring incidents with explainable matches, captures root cause/workaround/ticket evidence, and reopens resolved problems when a later occurrence is recorded.
 - Job AI helpers grounded to the selected job, linked incident evidence, and matching approved procedures only. Responses separate observed facts, interpretation, missing evidence, and suggested checks with stable references.
 - Timestamped incident evidence for the trigger job, job log, messages, queue, and subsystem, with visible missing or permission statuses.
 - Evidence-backed resource relationships in the job Details tab, with compact flow and accessible table views for incidents, jobs, queues, subsystems, message waits, and lock owners.

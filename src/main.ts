@@ -109,6 +109,7 @@ import { registerSupportIpc } from './main/ipc/support-ipc';
 import { registerSupportAccessIpc } from './main/ipc/support-access-ipc';
 import { registerResolutionMemoryIpc } from './main/ipc/resolution-memory-ipc';
 import { registerRunbookIpc } from './main/ipc/runbook-ipc';
+import { registerProblemManagementIpc } from './main/ipc/problem-management-ipc';
 import { createAiRuntime } from './main/runtime/ai-runtime';
 import { createEmailNotificationRuntime } from './main/runtime/email-notification-runtime';
 import { createClickUpRuntime } from './main/runtime/clickup-runtime';
@@ -164,7 +165,9 @@ import {
     getNormalizedResolutionMemory,
     saveResolutionMemory,
     getNormalizedRunbookExecutions,
-    saveRunbookExecutions
+    saveRunbookExecutions,
+    getNormalizedProblemManagement,
+    saveProblemManagement
 } from './main/store';
 import type { CollectorSettings } from './features/collector/collector-model';
 import { registerCollectorIpc } from './main/ipc/collector-ipc';
@@ -1829,6 +1832,19 @@ registerJobsIpc({
 registerResolutionMemoryIpc({
     getMemory: () => getNormalizedResolutionMemory(store),
     saveMemory: (memory) => saveResolutionMemory(store, memory),
+    getJob: (jobName) => monitoringState.getJob(jobName),
+    getAlert: (jobName) => alertState.getActiveAlerts().find((alert) => alert.jobName === jobName)
+        || Object.values(alertState.getIncidentLedger()).find((alert) => alert.jobName === jobName),
+    getSystemId: getCurrentSystemId,
+    getSystemLabel: () => connectionState.getState().currentConnection?.name,
+    getOperatorName: getCurrentOperatorName,
+    authorizeAction: authorizeCurrentOperatorAction,
+    recordActivity: loggingRuntime.recordActivity
+});
+
+registerProblemManagementIpc({
+    getProblems: () => getNormalizedProblemManagement(store),
+    saveProblems: (problems) => saveProblemManagement(store, problems),
     getJob: (jobName) => monitoringState.getJob(jobName),
     getAlert: (jobName) => alertState.getActiveAlerts().find((alert) => alert.jobName === jobName)
         || Object.values(alertState.getIncidentLedger()).find((alert) => alert.jobName === jobName),

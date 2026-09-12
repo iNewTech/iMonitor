@@ -144,6 +144,34 @@
                     <div id="task-memory-list" class="resolution-memory-list" aria-live="polite"></div>
                     <button id="task-memory-save" type="button" class="btn btn-outline-ink btn-sm">Save resolution draft</button>
                 </section>
+                <section id="task-problem-panel" class="job-detail-section problem-management-panel" aria-labelledby="task-problem-title" hidden>
+                    <div class="history-card-header">
+                        <div>
+                            <p class="eyebrow mb-1">L3 workspace</p>
+                            <h2 id="task-problem-title" class="section-title">Known problem &amp; recurrence</h2>
+                        </div>
+                        <span id="task-problem-status" class="table-caption">No record</span>
+                    </div>
+                    <p class="stat-note mb-2">Group only the same system, job, condition, and runtime shape. Confirm the evidence before treating it as a known error.</p>
+                    <div id="task-problem-match" class="problem-match" aria-live="polite"></div>
+                    <div id="task-problem-records" class="problem-record-list" aria-live="polite"></div>
+                    <div id="task-problem-form" class="problem-form" hidden>
+                        <label>Root cause<textarea id="task-problem-root-cause" rows="2" placeholder="What was confirmed?"></textarea></label>
+                        <label>Workaround / fix<textarea id="task-problem-workaround" rows="2" placeholder="What should support do next time?"></textarea></label>
+                        <div class="problem-ticket-grid">
+                            <label>Linked ticket<select id="task-problem-ticket-provider"><option value="">No ticket</option><option value="clickup">ClickUp</option><option value="jira">Jira</option><option value="vendor">Vendor</option><option value="github">GitHub</option><option value="other">Other</option></select></label>
+                            <label>Ticket key<input id="task-problem-ticket-key" type="text" placeholder="OPS-42"></label>
+                            <label class="problem-field-wide">Ticket URL<input id="task-problem-ticket-url" type="url" placeholder="https://..."></label>
+                        </div>
+                    </div>
+                    <div class="problem-actions">
+                        <button id="task-problem-track" type="button" class="btn btn-outline-ink btn-sm">Track candidate</button>
+                        <button id="task-problem-occurrence" type="button" class="btn btn-outline-ink btn-sm" hidden>Add recurrence</button>
+                        <button id="task-problem-confirm" type="button" class="btn btn-primary-strong btn-sm" hidden>Confirm known problem</button>
+                        <button id="task-problem-resolve" type="button" class="btn btn-outline-ink btn-sm" hidden>Mark fix verified</button>
+                    </div>
+                    <p id="task-problem-note" class="stat-note mt-2 mb-0" role="status"></p>
+                </section>
                 <section class="job-detail-section handoff-panel" aria-labelledby="task-handoff-title">
                     <div class="history-card-header">
                         <div>

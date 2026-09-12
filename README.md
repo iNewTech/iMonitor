@@ -24,6 +24,8 @@ Common incident scenarios show a versioned runbook policy with required evidence
 
 Supported runbooks can be started from a job task and advanced one checkpoint at a time. Each execution stores its operator, evidence version, step outcome, and recovery verification; a blocked or uncertain verification pauses or escalates the runbook instead of retrying a production mutation.
 
+The L3 workspace groups recurring incidents only when the system, job, condition, and runtime shape agree. An operator can confirm the known problem, record the root cause, workaround, and linked ticket, then mark the fix verified. A later occurrence reopens the record for review instead of silently treating it as solved.
+
 Resource relationships are evidence-backed and timestamped. The graph is bounded, marks stale snapshots, and includes an accessible relationship table; it never invents missing links.
 
 Settings can map a job, resource, queue, or subsystem to a customer-defined business service and owner. The task response shows the configured deadline and expected operating window; unmatched impact stays unknown.

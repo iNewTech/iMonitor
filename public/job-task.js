@@ -66,6 +66,21 @@ const detailsOutput = $('task-details-output');
 const memoryList = $('task-memory-list');
 const memoryStatus = $('task-memory-status');
 const memorySave = $('task-memory-save');
+const problemPanel = $('task-problem-panel');
+const problemStatus = $('task-problem-status');
+const problemMatch = $('task-problem-match');
+const problemRecords = $('task-problem-records');
+const problemForm = $('task-problem-form');
+const problemRootCause = $('task-problem-root-cause');
+const problemWorkaround = $('task-problem-workaround');
+const problemTicketProvider = $('task-problem-ticket-provider');
+const problemTicketKey = $('task-problem-ticket-key');
+const problemTicketUrl = $('task-problem-ticket-url');
+const problemTrack = $('task-problem-track');
+const problemOccurrence = $('task-problem-occurrence');
+const problemConfirm = $('task-problem-confirm');
+const problemResolve = $('task-problem-resolve');
+const problemNote = $('task-problem-note');
 const handoffFields = {
     recipient: $('task-handoff-recipient'),
     responseTarget: $('task-handoff-response-target'),
@@ -75,6 +90,9 @@ const handoffFields = {
 let handoffDraftKey = '';
 let resolutionMemoryEntries = [];
 let runbookData = { definition: null, execution: null };
+let problemWorkspace = { records: [], matches: [], currentOccurrence: null, recurringSignal: false };
+let selectedProblemId = '';
+let problemFormRecordId = '';
 
 function getJobKey(job) {
     return String(job?.JOB_NAME || job?.SUBSYSTEM_JOB || '').trim();
@@ -423,6 +441,100 @@ async function refreshResolutionMemory() {
     renderResolutionMemory();
 }
 
+function renderProblemWorkspace() {
+    const alert = findLinkedAlert();
+    if (!problemPanel || !problemRecords || !alert) {
+        if (problemPanel) problemPanel.hidden = true;
+        return;
+    }
+    problemPanel.hidden = false;
+    const match = problemWorkspace.matches[0];
+    const matchedRecords = problemWorkspace.records.filter((record) => problemWorkspace.matches.some((item) => item.recordId === record.id));
+    if (!matchedRecords.some((record) => record.id === selectedProblemId)) selectedProblemId = matchedRecords[0]?.id || '';
+    const selected = problemWorkspace.records.find((record) => record.id === selectedProblemId);
+    problemStatus.textContent = selected
+        ? `${formatWorkflowLabel(selected.status)} · ${selected.occurrences.length} occurrence${selected.occurrences.length === 1 ? '' : 's'}`
+        : problemWorkspace.recurringSignal ? 'Recurring signal' : 'No record';
+    problemMatch.innerHTML = match
+        ? `<strong>Potential match · ${escapeHtml(String(match.score))}/100</strong><small>${escapeHtml(match.reasons.slice(0, 4).join(' '))}</small>`
+        : `<strong>No known problem linked</strong><small>${problemWorkspace.recurringSignal ? 'This condition has recurred. Track it for L3 review.' : 'Track the incident only when the operator has evidence it may recur.'}</small>`;
+    problemRecords.innerHTML = matchedRecords.length
+        ? matchedRecords.slice(0, 3).map((record) => `<button type="button" class="problem-record text-start${record.id === selectedProblemId ? ' is-selected' : ''}" data-problem-id="${escapeHtml(record.id)}">
+            <span><strong>${escapeHtml(record.title)}</strong><small>${escapeHtml(formatWorkflowLabel(record.status))} · ${record.occurrences.length} occurrence${record.occurrences.length === 1 ? '' : 's'}</small></span><span aria-hidden="true">›</span>
+        </button>`).join('')
+        : '<p class="stat-note mb-2">No tracked problem matches this incident.</p>';
+    problemForm.hidden = !selected;
+    if (selected && problemFormRecordId !== selected.id) {
+        problemFormRecordId = selected.id;
+        problemRootCause.value = selected.rootCause || '';
+        problemWorkaround.value = selected.workaround || '';
+        problemTicketProvider.value = selected.linkedTicket?.provider || '';
+        problemTicketKey.value = selected.linkedTicket?.key || '';
+        problemTicketUrl.value = selected.linkedTicket?.url || '';
+    }
+    problemTrack.hidden = Boolean(match) || pending.has('problem');
+    problemOccurrence.hidden = !selected || pending.has('problem');
+    problemConfirm.hidden = !selected || pending.has('problem') || selected.status === 'confirmed' || selected.status === 'resolved';
+    problemResolve.hidden = !selected || pending.has('problem') || !['confirmed', 'reopened'].includes(selected.status);
+}
+
+async function loadProblemWorkspace() {
+    if (!selectedJobName || typeof window.electronAPI.getProblemWorkspace !== 'function') return;
+    try {
+        const result = await window.electronAPI.getProblemWorkspace(selectedJobName);
+        if (result?.success) {
+            problemWorkspace = {
+                records: Array.isArray(result.records) ? result.records : [],
+                matches: Array.isArray(result.matches) ? result.matches : [],
+                currentOccurrence: result.currentOccurrence || null,
+                recurringSignal: Boolean(result.recurringSignal)
+            };
+        }
+    } catch {
+        problemWorkspace = { records: [], matches: [], currentOccurrence: null, recurringSignal: false };
+    }
+    renderProblemWorkspace();
+}
+
+function applyProblemResult(result) {
+    problemWorkspace.records = Array.isArray(result.records) ? result.records : problemWorkspace.records;
+    if (result.record?.id) selectedProblemId = result.record.id;
+    problemFormRecordId = '';
+    renderProblemWorkspace();
+}
+
+function problemMutation(message, operation) {
+    return runRequest('problem', async () => {
+        problemNote.textContent = message;
+        const result = requireSuccess(await operation(), 'Unable to update the L3 problem record.');
+        applyProblemResult(result);
+        await loadProblemWorkspace();
+        problemNote.textContent = result.record?.status === 'reopened'
+            ? 'A later occurrence reopened this problem for review.'
+            : 'L3 problem record updated.';
+    }, (error) => {
+        problemNote.textContent = errorMessage(error, 'Unable to update the L3 problem record.');
+    });
+}
+
+function confirmProblemRecord() {
+    const rootCause = problemRootCause?.value.trim();
+    const workaround = problemWorkaround?.value.trim();
+    if (!selectedProblemId || !rootCause || !workaround) {
+        problemNote.textContent = 'Add the confirmed root cause and workaround first.';
+        return;
+    }
+    return problemMutation('Confirming known problem…', () => window.electronAPI.confirmProblemRecord({
+        jobName: selectedJobName,
+        problemId: selectedProblemId,
+        rootCause,
+        workaround,
+        ticketProvider: problemTicketProvider.value || undefined,
+        ticketKey: problemTicketKey.value.trim() || undefined,
+        ticketUrl: problemTicketUrl.value.trim() || undefined
+    }));
+}
+
 function matchesWildcard(value, pattern) {
     const escaped = String(pattern).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '.*');
     return new RegExp(`^${escaped}$`, 'i').test(String(value));
@@ -500,6 +612,7 @@ function renderTask() {
     renderResponseWorkspace(latestPayload.response);
     renderRunbook();
     renderResolutionMemory();
+    renderProblemWorkspace();
     renderIncidentActions(alert);
     renderOperatorActions(jobActions, null, latestPayload.actions);
     if (!actionFeedback) {
@@ -549,6 +662,9 @@ function updateControls() {
         const execution = runbookData.execution;
         runbookStepButton.disabled = pending.has('runbook') || !execution || !['running', 'paused'].includes(execution.status);
     }
+    [problemTrack, problemOccurrence, problemConfirm, problemResolve].forEach((button) => {
+        if (button) button.disabled = pending.has('problem') || !stateFresh || !latestPayload?.job;
+    });
     document.querySelectorAll('#task-load-log, #task-load-messages, #task-load-graph').forEach((button) => {
         button.disabled = pending.has('details') || !selectedJobName;
     });
@@ -598,9 +714,10 @@ function loadTask() {
         if (failure) throw failure.reason;
         const [payload, alerts, flags] = results.map((result) => result.value);
         latestPayload = payload;
-        await loadRunbookData();
         // A pushed alert update is newer than the refresh's alert snapshot.
         if (alertVersion === alertsRevision) latestAlerts = Array.isArray(alerts) ? alerts : [];
+        await loadRunbookData();
+        await loadProblemWorkspace();
         currentOperatorName = String(flags?.operatorName || '').trim() || 'local-operator';
         stateFresh = true;
         renderTask();
@@ -850,6 +967,21 @@ $('task-request-handoff').addEventListener('click', () => void requestHandoff())
 $('task-accept-handoff').addEventListener('click', () => void acceptHandoff());
 $('task-runbook-start')?.addEventListener('click', () => void startRunbook());
 $('task-runbook-step')?.addEventListener('click', () => void runCurrentRunbookStep());
+$('task-problem-track')?.addEventListener('click', () => void problemMutation('Tracking incident as an L3 candidate…', () => window.electronAPI.createProblemCandidate(selectedJobName)));
+$('task-problem-occurrence')?.addEventListener('click', () => void problemMutation('Recording recurrence…', () => window.electronAPI.recordProblemOccurrence(selectedJobName, selectedProblemId)));
+$('task-problem-confirm')?.addEventListener('click', () => void confirmProblemRecord());
+$('task-problem-resolve')?.addEventListener('click', () => {
+    if (!selectedProblemId || !window.confirm('Mark the recorded fix as verified?')) return;
+    void problemMutation('Marking fix verified…', () => window.electronAPI.resolveProblemRecord(selectedJobName, selectedProblemId));
+});
+$('task-problem-records')?.addEventListener('click', (event) => {
+    const button = event.target instanceof Element ? event.target.closest('[data-problem-id]') : null;
+    const id = button?.getAttribute('data-problem-id');
+    if (!id) return;
+    selectedProblemId = id;
+    problemFormRecordId = '';
+    renderProblemWorkspace();
+});
 $('task-load-log').addEventListener('click', () => void loadDetails('log'));
 $('task-load-messages').addEventListener('click', () => void loadDetails('messages'));
 $('task-load-graph').addEventListener('click', () => void loadDetails('graph'));

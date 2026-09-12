@@ -73,6 +73,7 @@ import { DEFAULT_COLLECTOR_SETTINGS, normalizeCollectorSettings, type CollectorS
 import { DEFAULT_BUSINESS_SERVICE_SETTINGS, normalizeBusinessServiceSettings, type BusinessServiceSettings } from '../features/action-board/business-service-mapping';
 import { DEFAULT_RESOLUTION_MEMORY, normalizeResolutionMemory, type ResolutionMemoryStore } from '../features/action-board/resolution-memory';
 import { DEFAULT_RUNBOOK_EXECUTIONS, normalizeRunbookExecutions, type RunbookExecutionStore } from '../features/action-board/runbook-execution';
+import { DEFAULT_PROBLEM_MANAGEMENT, normalizeProblemManagement, type ProblemManagementStore } from '../features/action-board/problem-management';
 
 export interface StoreSchema {
     connections: StoredConnection[];
@@ -97,6 +98,7 @@ export interface StoreSchema {
     businessServiceSettings: BusinessServiceSettings;
     resolutionMemory: ResolutionMemoryStore;
     runbookExecutions: RunbookExecutionStore;
+    problemManagement: ProblemManagementStore;
     themeId: ThemeId;
     developmentPlan: Plan;
 }
@@ -139,6 +141,7 @@ export function createAppStore() {
             businessServiceSettings: DEFAULT_BUSINESS_SERVICE_SETTINGS,
             resolutionMemory: DEFAULT_RESOLUTION_MEMORY,
             runbookExecutions: DEFAULT_RUNBOOK_EXECUTIONS,
+            problemManagement: DEFAULT_PROBLEM_MANAGEMENT,
             themeId: DEFAULT_THEME_ID,
             developmentPlan: 'premium'
         }
@@ -193,6 +196,23 @@ export function getNormalizedRunbookExecutions(store: AppStore) {
 export function saveRunbookExecutions(store: AppStore, candidate?: Partial<RunbookExecutionStore>) {
     const normalized = normalizeRunbookExecutions(candidate);
     store.set('runbookExecutions', normalized);
+    return normalized;
+}
+
+/** Loads and normalizes the bounded L3 problem workspace. */
+export function getNormalizedProblemManagement(store: AppStore) {
+    const storedProblems = store.get('problemManagement');
+    const normalized = normalizeProblemManagement(storedProblems);
+    if (JSON.stringify(storedProblems) !== JSON.stringify(normalized)) {
+        store.set('problemManagement', normalized);
+    }
+    return normalized;
+}
+
+/** Persists customer-scoped recurring-problem records. */
+export function saveProblemManagement(store: AppStore, candidate?: Partial<ProblemManagementStore>) {
+    const normalized = normalizeProblemManagement(candidate);
+    store.set('problemManagement', normalized);
     return normalized;
 }
 

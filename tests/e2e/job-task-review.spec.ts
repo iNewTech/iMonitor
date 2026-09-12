@@ -95,6 +95,16 @@ const test = base.extend<{ task: TestHandle }>({
                 'ask-ai-assistant': { value: { success: true, reply: '## Evidence\nReview the job log.' } },
                 'get-job-log': { value: { success: true, records: [] } },
                 'get-job-messages': { value: { success: true, records: [] } },
+                'get-problem-workspace': { value: {
+                    success: true,
+                    records: [{ schema: 'imonitor-problem-record', version: 1, id: 'problem-1', systemId: 'test-system', status: 'candidate', title: 'Recurring high CPU', incidentKind: 'highCpu', jobPattern: jobName, environment: { jobType: 'BATCH', subsystem: 'QBATCH' }, occurrences: [{ incidentId: 'review-alert', occurrence: 1, jobName, title: 'CPU threshold exceeded', kind: 'highCpu', timestamp: '2026-09-11T10:00:00Z', evidence: ['CPU reached 95%.'], environment: { jobType: 'BATCH', subsystem: 'QBATCH' } }], createdAt: '2026-09-11T10:00:00Z', updatedAt: '2026-09-11T10:00:00Z' }],
+                    matches: [{ recordId: 'problem-1', score: 100, reasons: ['Same IBM i system.', 'Same job and condition.', 'The incident fingerprint matches a previous occurrence.'] }],
+                    recurringSignal: false
+                } },
+                'confirm-problem-record': { value: { success: true } },
+                'record-problem-occurrence': { value: { success: true } },
+                'create-problem-candidate': { value: { success: true } },
+                'resolve-problem-record': { value: { success: true } },
                 'open-external-url': { value: { success: true } },
                 'create-incident-handoff': { value: { success: true, handoff: {
                     schema: 'imonitor-incident-handoff', version: 1, id: 'handoff-1', incidentId: 'review-alert',
@@ -169,6 +179,19 @@ test('Actions shows the response brief and keeps handoff routing compact', async
     await expect(page.locator('#task-handoff-questions')).toHaveCount(0);
     await expect(page.locator('#task-copy-handoff, #task-download-handoff')).toHaveCount(0);
     await expect(page.locator('#task-refresh-shift-summary, #task-shift-summary')).toHaveCount(0);
+});
+
+test('L3 workspace explains a problem match and captures confirmation evidence', async ({ task: { app, page } }) => {
+    await page.getByRole('tab', { name: 'Actions', exact: true }).click();
+    await expect(page.locator('#task-problem-panel')).toBeVisible();
+    await expect(page.locator('#task-problem-status')).toContainText('Candidate');
+    await expect(page.locator('#task-problem-match')).toContainText('Potential match');
+    await page.locator('#task-problem-root-cause').fill('A runaway batch step keeps CPU above the threshold.');
+    await page.locator('#task-problem-workaround').fill('Pause the workload and review the batch step before restart.');
+    await configure(app, { 'confirm-problem-record': { value: { success: true, record: { status: 'confirmed', id: 'problem-1' }, records: [] } } });
+    await page.locator('#task-problem-confirm').click();
+    await expect(page.locator('#task-problem-note')).toHaveText('L3 problem record updated.');
+    expect(JSON.stringify(await calls(app, 'confirm-problem-record'))).toContain('runaway batch step');
 });
 
 test('sends and accepts a persisted incident handoff', async ({ task: { app, page } }) => {
