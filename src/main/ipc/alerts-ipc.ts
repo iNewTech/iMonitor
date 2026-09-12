@@ -67,13 +67,20 @@ interface RegisterAlertsIpcDependencies {
  */
 export function registerAlertsIpc(dependencies: RegisterAlertsIpcDependencies) {
     const actionLeases = createActionLeaseStore();
-    ipcMain.handle('get-active-alerts', () => dependencies.getActiveAlerts());
+    const authorizeRead = () => dependencies.authorizeAction('read', dependencies.getCurrentSystemId());
+    ipcMain.handle('get-active-alerts', () => authorizeRead().allowed ? dependencies.getActiveAlerts() : []);
     ipcMain.handle('get-shift-handoff-summary', () => ({
         success: true,
-        summary: buildShiftHandoffSummary(dependencies.getActiveAlerts() as MonitorAlert[])
+        summary: authorizeRead().allowed
+            ? buildShiftHandoffSummary(dependencies.getActiveAlerts() as MonitorAlert[])
+            : ''
     }));
 
     ipcMain.handle('recheck-alert', async (_event, alertId: string) => {
+        const authorization = authorizeRead();
+        if (!authorization.allowed) {
+            return { success: false, status: 'unavailable' as const, error: authorization.reason || 'The operator cannot inspect alerts.' };
+        }
         try {
             const result = await dependencies.recheckAlert(alertId);
             return {
@@ -91,6 +98,10 @@ export function registerAlertsIpc(dependencies: RegisterAlertsIpcDependencies) {
     });
 
     ipcMain.handle('get-system-messages', async () => {
+        const authorization = authorizeRead();
+        if (!authorization.allowed) {
+            return { success: false, records: [], error: authorization.reason || 'The operator cannot inspect system messages.' };
+        }
         try {
             return { success: true, records: await dependencies.getSystemMessages() };
         } catch (error) {

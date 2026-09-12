@@ -77,6 +77,7 @@ import {
     type AuthorizationResult,
     type ProtectedAction
 } from './features/action-board/operator-access';
+import { authorizeSupportAccess, isClientOwner } from './features/action-board/support-access';
 import {
     normalizeJobQueueRecord,
     normalizeQueuedJobRecord,
@@ -98,6 +99,7 @@ import { registerSlackIpc } from './main/ipc/slack-ipc';
 import { registerJiraIpc } from './main/ipc/jira-ipc';
 import { registerSmsIpc } from './main/ipc/sms-ipc';
 import { registerSupportIpc } from './main/ipc/support-ipc';
+import { registerSupportAccessIpc } from './main/ipc/support-access-ipc';
 import { createAiRuntime } from './main/runtime/ai-runtime';
 import { createEmailNotificationRuntime } from './main/runtime/email-notification-runtime';
 import { createClickUpRuntime } from './main/runtime/clickup-runtime';
@@ -143,7 +145,8 @@ import {
     setStoredSmsNotificationSettingsForUser,
     getNormalizedObjectAnalysisSettings,
     getNormalizedQueueTriageResults,
-    setObjectAnalysisSettings
+    setObjectAnalysisSettings,
+    getNormalizedSupportAccessGrants
 } from './main/store';
 import { createWindowRuntime } from './main/window/window-runtime';
 import { protectPassword, revealPassword } from './utils/password-store';
@@ -162,6 +165,7 @@ const SUPPORT_EMAIL = 'gajendertyagi.tyagi@gmail.com';
 const SUPPORT_DIAGNOSTICS_PUBLIC_KEY = process.env.IMONITOR_SUPPORT_PUBLIC_KEY?.trim() || '';
 const LOCAL_OPERATOR_NAME = os.userInfo().username?.trim() || 'local-operator';
 const DEMO_OPERATOR_NAME = 'GajenderT';
+const OPERATOR_OVERRIDE = process.env.IMONITOR_OPERATOR_ID?.trim() || '';
 const developmentBuild = !app.isPackaged || process.env.NODE_ENV === 'development';
 const expectedDevelopmentLicenseKey = process.env.IMONITOR_DEV_LICENSE_KEY?.trim() || DEVELOPMENT_LICENSE_KEY;
 let activatedDevelopmentLicenseKey = '';
@@ -293,6 +297,10 @@ function getThemeId() {
 }
 
 function getCurrentOperatorName() {
+    if (OPERATOR_OVERRIDE) {
+        return OPERATOR_OVERRIDE;
+    }
+
     const currentConnection = connectionState.getState().currentConnection;
     const isDemoSession = monitoringState.getMonitorMode() === 'dummy'
         || currentConnection?.host === 'dummy.local'
@@ -303,13 +311,31 @@ function getCurrentOperatorName() {
         : LOCAL_OPERATOR_NAME;
 }
 
+function getClientOwnerName() {
+    const currentConnection = connectionState.getState().currentConnection;
+    const demo = monitoringState.getMonitorMode() === 'dummy'
+        || currentConnection?.host === 'dummy.local'
+        || currentConnection?.user === DEMO_OPERATOR_NAME;
+    return demo ? DEMO_OPERATOR_NAME : LOCAL_OPERATOR_NAME;
+}
+
 function getCurrentSystemId() {
     return connectionState.getState().currentConnection?.id;
 }
 
 function authorizeCurrentOperatorAction(action: ProtectedAction, systemId: string | undefined): AuthorizationResult {
     const currentSystemId = getCurrentSystemId();
-    const session = createLocalOperatorSession(getCurrentOperatorName(), {
+    const operator = getCurrentOperatorName();
+    if (!isClientOwner(operator, getClientOwnerName())) {
+        return authorizeSupportAccess(
+            getNormalizedSupportAccessGrants(store),
+            operator,
+            action,
+            systemId
+        );
+    }
+
+    const session = createLocalOperatorSession(operator, {
         organizationId: 'local',
         allowedSystemIds: currentSystemId ? [currentSystemId] : []
     });
@@ -1228,6 +1254,14 @@ registerSupportIpc({
     sendSupportDiagnostics: () => supportRuntime.sendSupportDiagnostics()
 });
 
+registerSupportAccessIpc({
+    getGrants: () => getNormalizedSupportAccessGrants(store),
+    saveGrants: (grants) => store.set('supportAccessGrants', grants),
+    getCurrentOperatorName,
+    getClientOwnerName,
+    recordActivity: loggingRuntime.recordActivity
+});
+
 registerEntitlementsIpc({
     getEntitlements,
     activateDevelopmentLicense: (key) => {
@@ -1263,7 +1297,9 @@ registerAiIpc({
     getAiSettings: getAiAssistantSettings,
     saveAiSettings: (settings) => saveAiAssistantSettings(settings),
     getAiAvailability: () => aiRuntime.getAiAvailability(),
-    askAssistant: (payload) => aiRuntime.askAssistant(payload)
+    askAssistant: (payload) => aiRuntime.askAssistant(payload),
+    authorizeAction: (action, systemId) => authorizeCurrentOperatorAction(action, systemId),
+    getCurrentSystemId
 });
 
 registerClickUpIpc({

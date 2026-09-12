@@ -68,6 +68,7 @@ import {
 } from '../features/object-analysis/model';
 import { normalizeQueueTriageResults, type QueueTriageResult } from '../features/action-board/queue-triage';
 import type { IntegrationDeliveryStatus } from '../features/integrations/delivery';
+import { normalizeSupportAccessGrants, type SupportAccessGrants } from '../features/action-board/support-access';
 
 export interface StoreSchema {
     connections: StoredConnection[];
@@ -84,6 +85,7 @@ export interface StoreSchema {
     smsNotificationSettings: StoredSmsNotificationSettings;
     alertWorkflowState: Record<string, StoredAlertWorkflowState>;
     integrationDeliveryStatus: Record<string, IntegrationDeliveryStatus>;
+    supportAccessGrants: SupportAccessGrants;
     incidentLedger: IncidentLedger;
     queueTriageResults: Record<string, QueueTriageResult>;
     objectAnalysisSettings: ObjectAnalysisSettings;
@@ -121,6 +123,7 @@ export function createAppStore() {
             smsNotificationSettings: DEFAULT_STORED_SMS_NOTIFICATION_SETTINGS,
             alertWorkflowState: {},
             integrationDeliveryStatus: {},
+            supportAccessGrants: {},
             incidentLedger: {},
             queueTriageResults: {},
             objectAnalysisSettings: DEFAULT_OBJECT_ANALYSIS_SETTINGS,
@@ -128,6 +131,16 @@ export function createAppStore() {
             developmentPlan: 'premium'
         }
     }) as AppStore;
+}
+
+/** Loads and normalizes the client-owned support access grants. */
+export function getNormalizedSupportAccessGrants(store: AppStore) {
+    const storedGrants = store.get('supportAccessGrants');
+    const normalized = normalizeSupportAccessGrants(storedGrants);
+    if (JSON.stringify(storedGrants) !== JSON.stringify(normalized)) {
+        store.set('supportAccessGrants', normalized);
+    }
+    return normalized;
 }
 
 /** Loads and normalizes the persisted read-only queue triage evidence. */

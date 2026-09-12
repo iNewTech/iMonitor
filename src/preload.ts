@@ -90,6 +90,24 @@ interface JiraSettings {
     issueType: string;
 }
 
+type SupportAccessPermission = 'read' | 'investigate' | 'execute';
+type SupportAccessStatus = 'pending' | 'active' | 'revoked' | 'expired';
+
+interface SupportAccessGrant {
+    id: string;
+    organizationId: string;
+    operatorId: string;
+    displayName: string;
+    systemIds: string[];
+    permissions: SupportAccessPermission[];
+    createdBy: string;
+    createdAt: string;
+    expiresAt: string;
+    status: SupportAccessStatus;
+    acceptedAt?: string;
+    revokedAt?: string;
+}
+
 interface IncidentHandoff {
     schema: 'imonitor-incident-handoff';
     version: 1;
@@ -869,6 +887,33 @@ contextBridge.exposeInMainWorld('electronAPI', {
             error?: string;
         }>
     ),
+    getSupportAccessGrants: () => ipcRenderer.invoke('get-support-access-grants') as Promise<{
+        success: boolean;
+        grants: SupportAccessGrant[];
+        error?: string;
+    }>,
+    createSupportAccessGrant: (payload: {
+        organizationId?: string;
+        operatorId: string;
+        displayName: string;
+        systemIds: string[];
+        permissions: SupportAccessPermission[];
+        expiresAt: string;
+    }) => ipcRenderer.invoke('create-support-access-grant', payload) as Promise<{
+        success: boolean;
+        grant?: SupportAccessGrant;
+        error?: string;
+    }>,
+    acceptSupportAccessGrant: (grantId: string) => ipcRenderer.invoke('accept-support-access-grant', grantId) as Promise<{
+        success: boolean;
+        grant?: SupportAccessGrant;
+        error?: string;
+    }>,
+    revokeSupportAccessGrant: (grantId: string) => ipcRenderer.invoke('revoke-support-access-grant', grantId) as Promise<{
+        success: boolean;
+        grant?: SupportAccessGrant;
+        error?: string;
+    }>,
     deployMapepire: (config: {
         host: string;
         user: string;

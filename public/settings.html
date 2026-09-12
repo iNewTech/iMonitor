@@ -52,6 +52,11 @@
                         <span class="settings-page-tab-copy"><strong>Integrations</strong><small id="settings-nav-integration-status">Apps &amp; channels</small></span>
                         <i class="bi bi-arrow-right settings-page-tab-arrow" aria-hidden="true"></i>
                     </button>
+                    <button type="button" class="settings-page-tab" data-settings-page="support" data-testid="settings-page-support">
+                        <span class="settings-page-tab-icon"><i class="bi bi-person-lock" aria-hidden="true"></i></span>
+                        <span class="settings-page-tab-copy"><strong>Support access</strong><small id="settings-nav-support-status">Client controlled</small></span>
+                        <i class="bi bi-arrow-right settings-page-tab-arrow" aria-hidden="true"></i>
+                    </button>
                 </nav>
             </header>
 
@@ -221,6 +226,70 @@
                         </form>
                     </div>
                 </details>
+
+                <section id="settings-support-access" data-settings-view="support" class="surface-card settings-support-access settings-view-surface" aria-labelledby="settings-support-access-title">
+                    <header class="settings-catalog-header">
+                        <div class="settings-heading-lockup">
+                            <span class="settings-heading-icon settings-support-access-icon"><i class="bi bi-person-lock" aria-hidden="true"></i></span>
+                            <div>
+                                <p class="eyebrow mb-2">Client control</p>
+                                <h2 id="settings-support-access-title" class="settings-catalog-title">Support access</h2>
+                                <p class="panel-copy mb-0">Invite named internal or outsourced support people with only the systems and permissions they need.</p>
+                            </div>
+                        </div>
+                        <span id="settings-support-access-summary" class="settings-catalog-count">Loading</span>
+                    </header>
+                    <div class="support-access-layout">
+                        <form id="settings-support-access-form" class="support-access-form">
+                            <div class="support-access-form-heading">
+                                <div>
+                                    <h3>Invite support</h3>
+                                    <p>Use the person’s authenticated operator ID. Never share an IBM i administrator password.</p>
+                                </div>
+                                <span class="settings-provider-chip"><i class="bi bi-shield-check me-1" aria-hidden="true"></i>Scoped</span>
+                            </div>
+                            <div class="settings-field-grid settings-field-grid-two">
+                                <label class="control-select">
+                                    <span class="control-label">Support person</span>
+                                    <input id="settings-support-display-name" type="text" class="form-control" required placeholder="Priya Shah">
+                                </label>
+                                <label class="control-select">
+                                    <span class="control-label">Operator ID</span>
+                                    <input id="settings-support-operator-id" type="text" class="form-control" required placeholder="priya.shah or email">
+                                </label>
+                            </div>
+                            <label class="control-select">
+                                <span class="control-label">IBM i systems</span>
+                                <input id="settings-support-systems" type="text" class="form-control" required placeholder="system-a, system-b">
+                                <span class="form-footnote">Enter exact system IDs separated by commas. Access never includes every system automatically.</span>
+                            </label>
+                            <fieldset class="support-access-permissions">
+                                <legend class="control-label">Permissions</legend>
+                                <label class="toggle-row"><span><strong>Read</strong><small>View jobs, alerts, logs, and evidence.</small></span><input type="checkbox" name="support-permission" value="read" checked></label>
+                                <label class="toggle-row"><span><strong>Investigate</strong><small>Use AI context, incident workflow, and handoff.</small></span><input type="checkbox" name="support-permission" value="investigate"></label>
+                                <label class="toggle-row"><span><strong>Execute</strong><small>Run approved job and queue actions.</small></span><input type="checkbox" name="support-permission" value="execute"></label>
+                            </fieldset>
+                            <label class="control-select">
+                                <span class="control-label">Access expires</span>
+                                <input id="settings-support-expires" type="datetime-local" class="form-control" required>
+                            </label>
+                            <div class="settings-actions">
+                                <button type="submit" class="btn btn-primary-strong"><i class="bi bi-person-plus me-2" aria-hidden="true"></i>Create invitation</button>
+                            </div>
+                            <p id="settings-support-access-status" class="stat-note mb-0" aria-live="polite">Support access is loading.</p>
+                        </form>
+                        <section class="support-access-grants" aria-labelledby="settings-support-grants-title">
+                            <header class="support-access-grants-header">
+                                <div>
+                                    <h3 id="settings-support-grants-title">Access grants</h3>
+                                    <p>Revocation applies immediately to future reads and actions.</p>
+                                </div>
+                                <button id="settings-support-access-refresh" type="button" class="btn btn-outline-ink btn-sm" title="Refresh support access"><i class="bi bi-arrow-repeat" aria-hidden="true"></i></button>
+                            </header>
+                            <div id="settings-support-access-list" class="support-access-list" aria-live="polite"></div>
+                        </section>
+                    </div>
+                </section>
 
                 <section id="settings-integration-catalog" data-settings-view="integrations" class="surface-card settings-integration-catalog settings-view-surface" data-ready="false" aria-labelledby="settings-integrations-title">
                     <header class="settings-catalog-header">

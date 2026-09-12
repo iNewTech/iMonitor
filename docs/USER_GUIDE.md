@@ -33,7 +33,13 @@ Claiming work assigns it to the current named operator. Configured ClickUp workf
 
 When the current operator needs another person, use **Send handoff** in the task window. Choose the recipient, add the reason and pending checks, and optionally set a response target. The current owner remains accountable while the handoff is pending. The recipient opens the same incident and selects **Accept handoff**; only then does ownership move to that operator. The timeline records both the request and acceptance. **Refresh shift summary** prepares an editable brief for all open incidents, which can be copied or exported. If a linked ClickUp task has comment sync enabled, the handoff state and reason are added to that task, and the accepted recipient is added as a ClickUp assignee when the member can be matched.
 
-Only the current named operator on the active IBM i connection can change workflow or run a job/queue action. iMonitor rejects a stale incident update, a request for another system, a duplicate request that is still running, and a replay of a completed request. IBM i permissions are checked again when a command is executed.
+Only the client owner or a named support operator with an active grant for the connected IBM i system can change workflow or run a job/queue action. iMonitor rejects a stale incident update, a request for another system, a duplicate request that is still running, and a replay of a completed request. IBM i permissions are checked again when a command is executed.
+
+## Grant support access
+
+Open **Settings → Support access** to invite an internal or outsourced specialist. Enter the person’s authenticated operator ID, the exact IBM i system IDs they may use, the permissions they need, and an expiry time. **Read** allows inspection, **Investigate** adds AI and incident workflow, and **Execute** adds approved job and queue actions. The invitation must be accepted by that operator before it becomes active. The client owner can revoke it at any time; revocation blocks future data access and actions, while an already-running command is allowed to finish and is reported honestly. No shared IBM i administrator password is stored or sent.
+
+This release stores and enforces grants in the desktop application. Cross-machine outsourced access needs the future authenticated shared service, which will provide the remote operator identity and customer boundary.
 
 Queue actions show a confirmation and command preview. iMonitor checks the exact queue or queued job again immediately before execution, prevents duplicate in-flight actions, and reads the system again afterward. The result is reported as **recovered**, **still blocked**, **failed**, or **unknown**. A successful command submission alone is not shown as recovery.
 

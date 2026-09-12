@@ -395,6 +395,58 @@ body.settings-body .app-shell {
     }
 }
 
+/* Client controlled support access stays compact beside the grant list. */
+.settings-page-nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.settings-support-access { display: grid; gap: 26px; }
+.settings-support-access-icon { --settings-card-accent: #27877c; }
+.support-access-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.support-access-form,
+.support-access-grants { display: grid; gap: 16px; min-width: 0; padding: 20px; border: 1px solid var(--border); border-radius: var(--radius-md); background: color-mix(in srgb, var(--accent-soft) 28%, var(--surface)); }
+.support-access-form-heading,
+.support-access-grants-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.support-access-form-heading h3,
+.support-access-grants-header h3 { margin: 0; color: var(--ink); font-size: 1.1rem; }
+.support-access-form-heading p,
+.support-access-grants-header p { margin: 5px 0 0; color: var(--muted); font-size: .8rem; line-height: 1.45; }
+.support-access-form-heading p { max-width: 42ch; }
+.support-access-permissions { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; }
+.support-access-permissions legend { float: none; width: auto; margin-bottom: 2px; }
+.support-access-permissions .toggle-row { align-items: flex-start; }
+.support-access-permissions .toggle-row span { display: grid; gap: 2px; }
+.support-access-permissions .toggle-row small { color: var(--muted); font-size: .76rem; font-weight: 500; }
+.support-access-list { display: grid; gap: 10px; }
+.support-access-grant { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
+.support-access-grant-main { min-width: 0; }
+.support-access-grant-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.support-access-grant-heading strong { color: var(--ink); font-size: .92rem; }
+.support-access-status { padding: 3px 8px; border-radius: 999px; color: var(--accent-deep); background: var(--accent-soft); font-size: .68rem; font-weight: 800; }
+.support-access-status[data-state="revoked"],
+.support-access-status[data-state="expired"] { color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, var(--surface)); }
+.support-access-status[data-state="pending"] { color: #96601f; background: #fff0d3; }
+.support-access-grant-id,
+.support-access-grant-scope { margin: 4px 0 0; overflow-wrap: anywhere; color: var(--muted); font-size: .76rem; }
+.support-access-grant-scope { margin-top: 6px; }
+.support-access-grant-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 8px; }
+.btn-outline-danger { border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--border)); color: var(--danger); background: var(--surface); }
+.btn-outline-danger:hover, .btn-outline-danger:focus-visible { border-color: var(--danger); color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, var(--surface)); }
+.support-access-empty { display: grid; gap: 5px; place-items: center; min-height: 190px; padding: 20px; border: 1px dashed var(--border); border-radius: 14px; color: var(--muted); text-align: center; }
+.support-access-empty i { color: var(--accent); font-size: 1.4rem; }
+.support-access-empty strong { color: var(--ink); font-size: .9rem; }
+.support-access-empty span { font-size: .78rem; }
+
+@media (max-width: 1100px) {
+    .settings-page-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .support-access-layout { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 680px) {
+    .settings-page-nav { grid-template-columns: 1fr; }
+    .support-access-form,
+    .support-access-grants { padding: 16px; }
+    .support-access-grant { flex-direction: column; }
+    .support-access-grant-actions { width: 100%; }
+}
+
 /* Compact Codex-style AI selector controls */
 .superpanel-ai-slot .ai-composer-controls {
     gap: 6px;

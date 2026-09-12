@@ -6,6 +6,7 @@ import { initSlackSettings } from './settings/slack.js';
 import { initSmsSettings } from './settings/sms.js';
 import { initJiraSettings } from './settings/jira.js';
 import { initAlertSettings } from './settings/alerts.js';
+import { initSupportAccessSettings } from './settings/support-access.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const backButton = document.getElementById('settings-back');
@@ -16,6 +17,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const navAlertStatus = document.getElementById('settings-nav-alert-status');
     const navAiStatus = document.getElementById('settings-nav-ai-status');
     const navIntegrationStatus = document.getElementById('settings-nav-integration-status');
+    const navSupportStatus = document.getElementById('settings-nav-support-status');
     const clickUpUser = document.getElementById('settings-clickup-user');
     const integrationCatalog = document.getElementById('settings-integration-catalog');
     const installedIntegrations = document.getElementById('settings-installed-integrations');
@@ -208,6 +210,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             ? 'settings-alert-panel'
             : view === 'ai'
                 ? 'settings-ai-panel'
+                : view === 'support'
+                    ? 'settings-support-access'
                 : 'settings-integration-catalog';
         const destination = document.getElementById(destinationId);
         if (destination instanceof HTMLDetailsElement) {
@@ -233,6 +237,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     const alertSettings = initAlertSettings({
         root: document
+    });
+    const supportAccessSettings = initSupportAccessSettings({
+        root: document,
+        navStatus: navSupportStatus
     });
 
     const premiumFeaturePanels = new Map([
@@ -359,7 +367,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         slackSettings.refresh(),
         smsSettings.refresh(),
         jiraSettings.refresh(),
-        alertSettings.refresh()
+        alertSettings.refresh(),
+        supportAccessSettings.refresh()
     ]);
 
     applyPremiumPreview(entitlements);

@@ -74,7 +74,9 @@ interface RegisterJobsIpcDependencies {
  */
 export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
     const actionLeases = createActionLeaseStore();
+    const authorizeRead = () => dependencies.authorizeAction('read', dependencies.getCurrentSystemId());
     ipcMain.handle('get-job-details', (_event, jobName: string) => {
+        if (!authorizeRead().allowed) return null;
         const job = dependencies.getJob(jobName);
         if (!job) {
             return null;
@@ -91,6 +93,8 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
     });
 
     ipcMain.handle('get-job-context', async (_event, jobName: string) => {
+        const authorization = authorizeRead();
+        if (!authorization.allowed) return { success: false, error: authorization.reason || 'The operator cannot inspect jobs.' };
         if (!dependencies.getJob(jobName)) {
             return { success: false, error: 'The selected job is no longer available.' };
         }
@@ -106,6 +110,8 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
     });
 
     ipcMain.handle('get-job-log', async (_event, jobName: string) => {
+        const authorization = authorizeRead();
+        if (!authorization.allowed) return { success: false, records: [], error: authorization.reason || 'The operator cannot inspect job logs.' };
         if (!dependencies.getJob(jobName)) {
             return { success: false, error: 'The selected job is no longer available.', records: [] };
         }
@@ -122,6 +128,8 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
     });
 
     ipcMain.handle('get-job-messages', async (_event, jobName: string) => {
+        const authorization = authorizeRead();
+        if (!authorization.allowed) return { success: false, records: [], error: authorization.reason || 'The operator cannot inspect job messages.' };
         if (!dependencies.getJob(jobName)) {
             return { success: false, error: 'The selected job is no longer available.', records: [] };
         }
@@ -138,6 +146,8 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
     });
 
     ipcMain.handle('get-job-queues', async (_event, options: JobQueueQuery = {}) => {
+        const authorization = authorizeRead();
+        if (!authorization.allowed) return { success: false, data: [], hasMore: false, nextCursor: null, error: authorization.reason || 'The operator cannot inspect job queues.' };
         try {
             return { success: true, ...(await dependencies.getJobQueues(options)) };
         } catch (error) {
@@ -155,6 +165,8 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
         queueName?: string;
         queueLibrary?: string;
     } = {}) => {
+        const authorization = authorizeRead();
+        if (!authorization.allowed) return { success: false, queue: null, subsystem: null, error: authorization.reason || 'The operator cannot inspect job queues.' };
         const queueName = typeof payload.queueName === 'string' ? payload.queueName.trim() : '';
         const queueLibrary = typeof payload.queueLibrary === 'string' ? payload.queueLibrary.trim() : 'QGPL';
         if (!queueName || !queueLibrary || queueName.includes('..') || queueLibrary.includes('..')) {
@@ -174,6 +186,8 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
     });
 
     ipcMain.handle('get-queued-jobs', async (_event, options: QueuedJobQuery = {}) => {
+        const authorization = authorizeRead();
+        if (!authorization.allowed) return { success: false, data: [], hasMore: false, nextCursor: null, error: authorization.reason || 'The operator cannot inspect queued jobs.' };
         try {
             return { success: true, ...(await dependencies.getQueuedJobs(options)) };
         } catch (error) {
@@ -189,7 +203,7 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
 
     ipcMain.handle('get-queue-triage', () => ({
         success: true,
-        results: dependencies.getQueueTriage()
+        results: authorizeRead().allowed ? dependencies.getQueueTriage() : []
     }));
 
     ipcMain.handle('run-job-action', async (_event, payload: {
@@ -234,6 +248,10 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
         }
 
         try {
+            const latestAuthorization = dependencies.authorizeAction('job-action', dependencies.getCurrentSystemId());
+            if (!latestAuthorization.allowed) {
+                return { success: false, error: latestAuthorization.reason || 'Support access changed before the job action could run.' };
+            }
             await dependencies.runOperatorCommand(plan.command, payload, dependencies.isLiveMonitorMode());
             dependencies.recordActionAudit(createActionAuditEntry({
                 operator: dependencies.getOperatorName(),
@@ -340,6 +358,10 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
                 if (payload.kind === 'holdQueue' && currentStatus === 'HELD') {
                     return { success: false, error: 'The queue is already held; refresh before trying again.' };
                 }
+            }
+            const latestAuthorization = dependencies.authorizeAction('queue-action', dependencies.getCurrentSystemId());
+            if (!latestAuthorization.allowed) {
+                return { success: false, error: latestAuthorization.reason || 'Support access changed before the queue action could run.' };
             }
             await dependencies.runJobQueueCommand(
                 plan.command,

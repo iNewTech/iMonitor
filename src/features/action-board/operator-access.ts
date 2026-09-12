@@ -1,4 +1,4 @@
-export type ProtectedAction = 'incident-workflow' | 'incident-handoff' | 'job-action' | 'queue-action';
+export type ProtectedAction = 'read' | 'incident-workflow' | 'incident-handoff' | 'job-action' | 'queue-action';
 
 export interface OperatorAccessSession {
     sessionId: string;
@@ -23,7 +23,7 @@ interface LocalSessionOptions {
     expiresAt?: string;
 }
 
-const ALL_ACTIONS: ProtectedAction[] = ['incident-workflow', 'incident-handoff', 'job-action', 'queue-action'];
+const ALL_ACTIONS: ProtectedAction[] = ['read', 'incident-workflow', 'incident-handoff', 'job-action', 'queue-action'];
 
 /** Creates the main-process session used until delegated identity is added. */
 export function createLocalOperatorSession(operatorId: string, options: LocalSessionOptions = {}): OperatorAccessSession {

@@ -5,6 +5,7 @@ import type {
     AiAssistantMessage,
     AiAssistantSettings
 } from '../../features/ibmeyeai/ai-model';
+import type { AuthorizationResult } from '../../features/action-board/operator-access';
 
 interface RegisterAiIpcDependencies {
     requireProviderAccess: (provider?: string) => void;
@@ -24,6 +25,8 @@ interface RegisterAiIpcDependencies {
         availability?: AiAssistantAvailability;
         error?: string;
     }>;
+    authorizeAction: (action: 'read', systemId: string | undefined) => AuthorizationResult;
+    getCurrentSystemId: () => string | undefined;
 }
 
 /**
@@ -39,6 +42,13 @@ export function registerAiIpc(dependencies: RegisterAiIpcDependencies) {
     ipcMain.handle('get-ai-availability', () => dependencies.getAiAvailability());
     ipcMain.handle('ask-ai-assistant', (_event, payload) => {
         dependencies.requireProviderAccess();
+        const authorization = dependencies.authorizeAction('read', dependencies.getCurrentSystemId());
+        if (!authorization.allowed) {
+            return {
+                success: false,
+                error: authorization.reason || 'The operator is not allowed to use this AI context.'
+            };
+        }
         return dependencies.askAssistant(payload);
     });
 }

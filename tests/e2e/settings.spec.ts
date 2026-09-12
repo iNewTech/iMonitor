@@ -233,3 +233,38 @@ test('shows the Slack configuration as a Premium preview on the Free plan', asyn
         await app.cleanup();
     }
 });
+
+test('creates and revokes a scoped support access invitation', async () => {
+    const app = await launchTestApp();
+
+    try {
+        await app.page.locator('#connect').click();
+        await expect(app.page.getByRole('heading', { name: 'iMonitor ActionBoard', exact: true })).toBeVisible();
+        await app.page.locator('#open-settings').click();
+        await app.page.getByTestId('settings-page-support').click();
+        await expect(app.page.getByRole('heading', { name: 'Support access', exact: true })).toBeVisible();
+        await expect(app.page.locator('#settings-support-access-list')).toContainText('No support grants yet');
+
+        await app.page.locator('#settings-support-display-name').fill('Support Specialist');
+        await app.page.locator('#settings-support-operator-id').fill('support-specialist');
+        await app.page.locator('#settings-support-systems').fill('demo-connection');
+        await app.page.locator('#settings-support-expires').fill('2030-01-01T12:00');
+        await app.page.locator('#settings-support-access-form').evaluate((form: HTMLFormElement) => form.requestSubmit());
+
+        await expect(app.page.locator('#settings-support-access-status')).toHaveText(
+            'Invitation created. The named operator must accept it before access starts.'
+        );
+        const grant = app.page.locator('.support-access-grant');
+        await expect(grant).toContainText('Support Specialist');
+        await expect(grant).toContainText('Pending');
+        await expect(grant).toContainText('demo-connection');
+        await expect(grant).toContainText('read');
+
+        await grant.getByRole('button', { name: 'Revoke', exact: true }).click();
+        await expect(app.page.locator('#settings-support-access-status')).toHaveText('Support access revoked.');
+        await expect(grant.locator('.support-access-status')).toHaveText('Revoked');
+        await expect.poll(async () => (await app.page.evaluate(() => window.electronAPI.getSupportAccessGrants())).grants[0]?.status).toBe('revoked');
+    } finally {
+        await app.cleanup();
+    }
+});
