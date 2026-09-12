@@ -3,6 +3,7 @@ import { describeStatus, getJobTitle, toNumber } from '../monitoring/monitoring-
 import type { JobStatusHistoryEntry } from '../monitoring/monitoring-model';
 import type { MonitorAlert } from './alert-model';
 import type { IncidentHandoff } from './incident-handoff';
+import type { RoutingRecommendation } from '../action-board/incident-routing';
 
 export type IncidentResponseStep = 'respond' | 'investigate' | 'resolve';
 
@@ -31,6 +32,7 @@ export interface IncidentResponseSnapshot {
     unresolvedQuestions: string[];
     escalationReason: string;
     handoff?: IncidentHandoff;
+    routing?: RoutingRecommendation;
 }
 
 interface IncidentResponseInput {
@@ -38,6 +40,7 @@ interface IncidentResponseInput {
     alert?: MonitorAlert | null;
     statusHistory: JobStatusHistoryEntry[];
     operatorName?: string;
+    routing?: RoutingRecommendation;
 }
 
 const EVIDENCE_SOURCES = [
@@ -80,7 +83,8 @@ export function buildIncidentResponseSnapshot(input: IncidentResponseInput): Inc
         unsuccessfulAttempts: getUnsuccessfulAttempts(activeAlert),
         unresolvedQuestions: getUnresolvedQuestions(activeAlert, job),
         escalationReason: getEscalationReason(activeAlert, job, input.operatorName),
-        handoff: activeAlert?.handoff
+        handoff: activeAlert?.handoff,
+        routing: input.routing
     };
 }
 

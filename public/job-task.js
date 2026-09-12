@@ -301,6 +301,14 @@ function renderResponseWorkspace(response) {
     $('task-response-evidence').innerHTML = (snapshot.evidence || []).map((item) => (
         `<span class="response-evidence-item is-${escapeHtml(item.status || 'unavailable')}"><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(String(item.status || 'unavailable').replace(/-/g, ' '))} · ${Number(item.recordCount || 0)}</small></span>`
     )).join('');
+    const routing = snapshot.routing;
+    const sla = routing?.sla;
+    const slaLabel = sla?.state === 'overdue' ? 'Overdue' : sla?.state === 'at_risk' ? 'At risk' : 'On track';
+    $('task-routing-summary').textContent = routing
+        ? routing.recommendedOperator
+            ? `Suggested owner: ${routing.recommendedOperator.displayName} · ${slaLabel} (${sla.minutesRemaining} min left). Claim still requires acceptance.`
+            : `No eligible operator · ${slaLabel}. ${routing.escalationReasons?.[0] || 'Review routing and hand off manually.'}`
+        : 'Routing recommendation unavailable.';
 
     const nextKey = `${snapshot.incidentKey}:${snapshot.status}:${handoff?.id || 'none'}:${handoff?.status || 'none'}`;
     if (nextKey !== handoffDraftKey) {

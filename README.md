@@ -13,6 +13,8 @@ The product flow is **Connect → Monitor → Detect → Explain with AI → App
 - **Mark Work Done** records the operator's progress. Monitoring must confirm recovery before the incident is cleared.
 - Inspect queued work in the separate **Job queues** panel before Support.
 
+Task Actions recommend an eligible support operator by incident skill, IBM i scope, permission, availability, access expiry, and support window. The view shows the response SLA and escalation reason; claiming or accepting work is still an explicit operator action.
+
 Polling supports preset intervals and a custom interval in seconds. Job rows show incident context and the assigned operator when available; a running job can still have a high-CPU incident.
 
 Each incident row can show a compact technical priority badge. Related signals for the same job are correlated within a five-minute window, and the task window explains the grouping and score factors before an operator acts.

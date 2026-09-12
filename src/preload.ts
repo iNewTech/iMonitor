@@ -290,6 +290,27 @@ interface JobDetailsPayload {
         unresolvedQuestions: string[];
         escalationReason: string;
         handoff?: IncidentHandoff;
+        routing?: {
+            rule: {
+                id: string;
+                incidentKinds: Array<'highCpu' | 'messageWait' | 'lockWait' | 'delayWait' | 'dequeueWait' | 'pollFailure'>;
+                minimumSeverity: 'critical' | 'warning';
+                requiredSkills: string[];
+                slaMinutes: number;
+                priority: number;
+            };
+            recommendedOperator?: { operatorId: string; displayName: string };
+            eligibleOperatorCount: number;
+            sla: {
+                state: 'on_track' | 'at_risk' | 'overdue';
+                startedAt: string;
+                dueAt: string;
+                minutesRemaining: number;
+                targetMinutes: number;
+            };
+            reasons: string[];
+            escalationReasons: string[];
+        };
     } | null;
     guidance: {
         severity: 'info' | 'warning' | 'critical';

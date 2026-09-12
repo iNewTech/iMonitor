@@ -8,6 +8,7 @@ iMonitor uses a simple Free/Premium feature boundary. The application keeps Prem
 - Deterministic incident correlation groups related signals for the same job within a five-minute window and shows a priority score with the reasons behind it.
 - Separate job task windows with workflow actions, AI guidance, and history.
 - Respond, Investigate, and Resolve brief with impact, owner, next check, evidence, and a compact L2/L3 handoff workflow.
+- Explainable routing recommendations match active support grants to incident skills, system scope, permission, availability, and support windows, with an SLA state beside the suggested owner.
 - Job AI helpers grounded to the selected job and its linked incident only.
 - Timestamped incident evidence for the trigger job, job log, messages, queue, and subsystem, with visible missing or permission statuses.
 - Compact AI composer with provider/model availability checks.

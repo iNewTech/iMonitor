@@ -116,6 +116,7 @@ test('launches the demo monitor and renders live incidents in active jobs', asyn
         await expect(task.locator('#task-issue-state')).toHaveText('CRITICAL | New');
         await task.getByRole('tab', { name: 'Actions', exact: true }).click();
         await expect(task.getByTestId('incident-correlation-summary')).toContainText(/Priority \d+\/100/);
+        await expect(task.locator('#task-routing-summary')).toContainText('Suggested owner:');
         await task.getByRole('tab', { name: 'Overview', exact: true }).click();
         await expect(task.locator('[data-testid="task-evidence-captured"]')).toBeVisible();
         await expect(task.locator('[data-testid="task-evidence-captured"]')).toContainText('Job log');

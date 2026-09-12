@@ -13,6 +13,7 @@
 - Added renderer syntax/import validation to builds and expanded domain and Electron regression coverage.
 - Added bounded, redacted incident evidence capture with durable source status in alerts, task windows, and AI context.
 - Added deterministic incident correlation, explainable technical priority scoring, and compact priority explanations in job rows and task windows.
+- Added explainable incident routing recommendations with support-grant checks, required skills, timezone-aware support windows, and SLA state in task windows.
 - Updated architecture, technical, feature, and alert-workflow documentation.
 
 - Renamed the main monitor workspace to `iMonitor ActionBoard`.

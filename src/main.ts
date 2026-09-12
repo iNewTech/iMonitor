@@ -78,7 +78,12 @@ import {
     type AuthorizationResult,
     type ProtectedAction
 } from './features/action-board/operator-access';
-import { authorizeSupportAccess, isClientOwner } from './features/action-board/support-access';
+import { authorizeSupportAccess, isClientOwner, listSupportAccessGrants } from './features/action-board/support-access';
+import {
+    ALWAYS_ON_SUPPORT_WINDOW,
+    buildRoutingRecommendation,
+    type RoutingOperator
+} from './features/action-board/incident-routing';
 import {
     normalizeJobQueueRecord,
     normalizeQueuedJobRecord,
@@ -327,6 +332,48 @@ function getClientOwnerName() {
 
 function getCurrentSystemId() {
     return connectionState.getState().currentConnection?.id;
+}
+
+function getRoutingSkills(permissions: string[]) {
+    const skills = ['ibmi-monitoring'];
+    if (permissions.includes('investigate') || permissions.includes('execute')) {
+        skills.push('incident-response', 'message-response', 'lock-investigation', 'performance', 'ibmi-operations');
+    }
+    if (permissions.includes('execute')) skills.push('job-control');
+    return skills;
+}
+
+function getIncidentRoutingOperators(systemId: string): RoutingOperator[] {
+    const grants = listSupportAccessGrants(getNormalizedSupportAccessGrants(store));
+    const currentOperator = getCurrentOperatorName();
+    const owner = isClientOwner(currentOperator, getClientOwnerName());
+    const currentGrant = grants.find((grant) => grant.status === 'active' && grant.operatorId === currentOperator && grant.systemIds.includes(systemId));
+    const operators: RoutingOperator[] = owner || currentGrant
+        ? [{
+            operatorId: currentOperator,
+            displayName: owner ? currentOperator : currentGrant!.displayName,
+            systemIds: owner ? ['*'] : currentGrant!.systemIds,
+            permissions: owner ? ['read', 'investigate', 'execute'] : currentGrant!.permissions,
+            skills: getRoutingSkills(owner ? ['read', 'investigate', 'execute'] : currentGrant!.permissions),
+            availability: 'available',
+            supportWindow: ALWAYS_ON_SUPPORT_WINDOW,
+            expiresAt: currentGrant?.expiresAt
+        }]
+        : [];
+
+    grants.filter((grant) => grant.status === 'active' && grant.operatorId !== currentOperator).forEach((grant) => {
+        operators.push({
+            operatorId: grant.operatorId,
+            displayName: grant.displayName,
+            systemIds: grant.systemIds,
+            permissions: grant.permissions,
+            skills: getRoutingSkills(grant.permissions),
+            availability: 'available',
+            supportWindow: ALWAYS_ON_SUPPORT_WINDOW,
+            expiresAt: grant.expiresAt
+        });
+    });
+    return operators;
 }
 
 function authorizeCurrentOperatorAction(action: ProtectedAction, systemId: string | undefined): AuthorizationResult {
@@ -1559,11 +1606,22 @@ registerJobsIpc({
         const job = monitoringState.getJob(jobName);
         if (!job) return null;
         const alert = alertState.getActiveAlerts().find((candidate) => candidate.jobName === jobName);
+        const systemId = getCurrentSystemId();
+        const routing = alert && systemId
+            ? buildRoutingRecommendation({
+                alert,
+                systemId,
+                now: new Date().toISOString(),
+                operators: getIncidentRoutingOperators(systemId),
+                preferredOperatorId: getCurrentOperatorName()
+            })
+            : undefined;
         return buildIncidentResponseSnapshot({
             job,
             alert,
             statusHistory: monitoringState.getJobStatusHistory(jobName),
-            operatorName: getCurrentOperatorName()
+            operatorName: getCurrentOperatorName(),
+            routing
         });
     },
     getJobContext: async (jobName) => {

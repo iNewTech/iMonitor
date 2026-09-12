@@ -36,6 +36,8 @@ Claiming work assigns it to the current named operator. Configured ClickUp workf
 
 When the current operator needs another person, use **Send handoff** in the task window. Choose the recipient, add the reason and pending checks, and optionally set a response target. The current owner remains accountable while the handoff is pending. The recipient opens the same incident and selects **Accept handoff**; only then does ownership move to that operator. The timeline records both the request and acceptance. Handoff context stays inside the incident workflow and is synchronized through configured integrations.
 
+The Actions view also shows a routing recommendation for an active incident. It checks active support access, IBM i system scope, incident skills, availability, support window, and the response SLA. The recommendation is guidance only: the receiving operator must still accept or claim the work. If access is expired, no operator matches, or the SLA is overdue, the view explains why the incident should be escalated.
+
 Only the client owner or a named support operator with an active grant for the connected IBM i system can change workflow or run a job/queue action. iMonitor rejects a stale incident update, a request for another system, a duplicate request that is still running, and a replay of a completed request. IBM i permissions are checked again when a command is executed.
 
 ## Grant support access
