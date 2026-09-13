@@ -301,17 +301,17 @@ test('manages approved Skills and MCP capabilities from the settings workspace',
         await app.page.locator('#open-settings').click();
         await app.page.getByTestId('settings-page-skills').click();
         await expect(app.page.locator('#settings-mcp-installed-skills .settings-mcp-card')).toHaveCount(1);
-        await expect(app.page.locator('#settings-mcp-available-skills .settings-mcp-card')).toHaveCount(1);
+        await expect(app.page.locator('#settings-mcp-available-skills .settings-mcp-card')).toHaveCount(2);
         await expect(app.page.locator('#settings-mcp-available-connections .settings-mcp-card')).toHaveCount(1);
-        await expect(app.page.locator('#settings-mcp-summary')).toHaveText('1 installed · 2 available');
+        await expect(app.page.locator('#settings-mcp-summary')).toHaveText('1 installed · 3 available');
 
-        await app.page.locator('#settings-mcp-available-skills [data-mcp-action="inspect"]').click();
+        await app.page.locator('#settings-mcp-available-skills [data-mcp-action="inspect"][data-mcp-id="ibmi-runbook-review"]').click();
         await expect(app.page.locator('#settings-mcp-dialog')).toBeVisible();
         await expect(app.page.locator('#settings-mcp-dialog-title')).toHaveText('IBM i Runbook Review');
         await expect(app.page.locator('#settings-mcp-install')).toBeVisible();
         await app.page.locator('#settings-mcp-install').click();
         await expect(app.page.locator('#settings-mcp-installed-skills')).toContainText('IBM i Runbook Review');
-        await expect(app.page.locator('#settings-mcp-summary')).toHaveText('2 installed · 1 available');
+        await expect(app.page.locator('#settings-mcp-summary')).toHaveText('2 installed · 2 available');
 
         await app.page.locator('#settings-mcp-toggle').click();
         await expect(app.page.locator('#settings-mcp-dialog-health')).toContainText('unknown');
@@ -320,6 +320,14 @@ test('manages approved Skills and MCP capabilities from the settings workspace',
         await expect(app.page.locator('#settings-mcp-read-test')).toBeVisible();
         await app.page.locator('#settings-mcp-read').click();
         await expect(app.page.locator('#settings-mcp-read-preview')).toContainText('scope');
+
+        await app.page.locator('#settings-mcp-close').click();
+        await app.page.locator('#settings-mcp-available-skills [data-mcp-action="inspect"][data-mcp-id="ibmi-job-control"]').click();
+        await expect(app.page.locator('#settings-mcp-dialog-title')).toHaveText('IBM i Job Control');
+        await expect(app.page.locator('#settings-mcp-dialog-capabilities')).toContainText('Write tools require explicit approval');
+        await app.page.locator('#settings-mcp-install').click();
+        await expect(app.page.locator('#settings-mcp-installed-skills')).toContainText('IBM i Job Control');
+        await expect(app.page.locator('#settings-mcp-summary')).toHaveText('3 installed · 1 available');
 
         await app.page.setViewportSize({ width: 560, height: 700 });
         expect(await app.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

@@ -1,5 +1,7 @@
 import { ipcMain } from 'electron/main';
+import { createActionAuditEntry } from '../../features/action-board/action-audit';
 import { authorizeKnowledgeRead, type KnowledgeAccessContext } from '../../features/knowledge/knowledge-access';
+import { createMcpActionGateway, type McpActionContext, type McpActionExecutionRequest, type McpActionRequest, type McpActionResult, type McpActionVerification } from '../../features/mcp/mcp-actions';
 import { readMcpResource, type McpResourceDependencies, type McpResourceRequest, type McpResourceResponse } from '../../features/mcp/mcp-resources';
 import {
     checkMcpCapability,
@@ -23,7 +25,11 @@ export interface McpIpcDependencies {
     saveRegistry: (candidate: unknown) => McpRegistryState;
     getAccessContext: () => KnowledgeAccessContext;
     getResourceItems: McpResourceDependencies['getItems'];
+    getActionContext: (jobName: string) => Promise<McpActionContext> | McpActionContext;
+    executeMcpAction: (request: McpActionExecutionRequest) => Promise<{ output?: string }>;
+    verifyMcpAction: (request: McpActionExecutionRequest) => Promise<McpActionVerification>;
     recordActivity: (entry: ActivityEntry) => void;
+    recordActionAudit?: (entry: ReturnType<typeof createActionAuditEntry>) => void;
 }
 
 type RegistryResponse = ReturnType<typeof getMcpRegistryView> & { success: boolean; error?: string };
@@ -51,6 +57,36 @@ function operatorId(dependencies: McpIpcDependencies) {
 
 /** Registers operator-only registry management; AI IPC never calls these handlers. */
 export function registerMcpIpc(dependencies: McpIpcDependencies) {
+    const actionGateway = createMcpActionGateway({
+        getAccessContext: dependencies.getAccessContext,
+        getActionContext: dependencies.getActionContext,
+        execute: dependencies.executeMcpAction,
+        verify: dependencies.verifyMcpAction
+    });
+
+    const recordAction = (result: McpActionResult, phase: string, jobName: string, tool: string) => {
+        const preview = result.preview;
+        const verification = result.verification;
+        const detail = [
+            `phase=${phase}`,
+            preview ? `skill=${preview.capabilityId}@${preview.skillVersion}` : undefined,
+            `tool=${tool}`,
+            preview ? `scope=${preview.scope.customerScope}/${preview.scope.systemScope}` : undefined,
+            preview ? `inputHash=${preview.inputHash}` : undefined,
+            preview ? `approval=${preview.approval.status}` : 'approval=pending',
+            preview ? `state=${preview.state}` : undefined,
+            verification ? `verification=${verification.status}` : undefined,
+            result.error ? `error=${result.error}` : undefined
+        ].filter(Boolean).join(' | ');
+        dependencies.recordActionAudit?.(createActionAuditEntry({
+            operator: preview?.scope.operatorId || dependencies.getAccessContext().operatorId,
+            jobName: preview?.jobName || jobName || 'MCP action',
+            action: `mcp:${tool}`,
+            result: result.success ? 'success' : 'failure',
+            detail
+        }));
+    };
+
     ipcMain.handle('get-mcp-registry', () => {
         const access = denied(dependencies);
         return access || success(dependencies);
@@ -138,6 +174,45 @@ export function registerMcpIpc(dependencies: McpIpcDependencies) {
         if (access) return { success: false, requestId: 'mcp-read-denied', items: [], error: access.error };
         const result = await readMcpResource(dependencies.getRegistry(), dependencies.getAccessContext(), request, { getItems: dependencies.getResourceItems });
         dependencies.recordActivity({ area: 'monitoring', level: result.success ? 'info' : 'warning', message: result.success ? 'MCP read-only resource tested.' : 'MCP read-only resource test failed.', detail: result.success ? `${request.kind}=${request.name}` : result.error });
+        return result;
+    });
+
+    ipcMain.handle('get-mcp-action-catalog', async (_event, jobName: unknown) => {
+        const name = typeof jobName === 'string' ? jobName.trim() : '';
+        const access = authorizeKnowledgeRead(dependencies.getAccessContext(), 'read');
+        if (!access.allowed) return { success: false, actions: [], error: access.reason || 'The operator cannot inspect MCP actions.' };
+        try {
+            await dependencies.getActionContext(name);
+            return { success: true, actions: actionGateway.list(dependencies.getRegistry(), name) };
+        } catch (error) {
+            return { success: false, actions: [], error: error instanceof Error ? error.message : 'Unable to load MCP actions.' };
+        }
+    });
+
+    ipcMain.handle('preview-mcp-action', async (_event, payload: unknown) => {
+        const input = payload && typeof payload === 'object' && !Array.isArray(payload) ? payload as Record<string, unknown> : {};
+        const request: McpActionRequest = {
+            capabilityId: String(input.capabilityId || ''),
+            tool: String(input.tool || ''),
+            jobName: String(input.jobName || ''),
+            input: input.input && typeof input.input === 'object' && !Array.isArray(input.input) ? input.input as Record<string, unknown> : {},
+            timeoutMs: Number(input.timeoutMs) || undefined
+        };
+        const access = authorizeKnowledgeRead(dependencies.getAccessContext(), 'execute');
+        if (!access.allowed) return { success: false, error: access.reason || 'The operator cannot request MCP actions.' };
+        const result = await actionGateway.preview(dependencies.getRegistry(), request);
+        recordAction(result, 'preview', request.jobName, request.tool);
+        return result;
+    });
+
+    ipcMain.handle('run-mcp-action', async (_event, payload: unknown) => {
+        const input = payload && typeof payload === 'object' && !Array.isArray(payload) ? payload as Record<string, unknown> : {};
+        const previewId = typeof input.previewId === 'string' ? input.previewId : '';
+        const approved = input.approved === true;
+        const access = authorizeKnowledgeRead(dependencies.getAccessContext(), 'execute');
+        if (!access.allowed) return { success: false, error: access.reason || 'The operator cannot execute MCP actions.' };
+        const result = await actionGateway.approveAndExecute(dependencies.getRegistry(), previewId, approved);
+        recordAction(result, 'execute', result.preview?.jobName || '', result.preview?.tool || 'unknown');
         return result;
     });
 }

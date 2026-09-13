@@ -89,6 +89,15 @@ const test = base.extend<{ task: TestHandle }>({
                 'get-job-details': { value: payload }, 'get-active-alerts': { value: [alert] },
                 'get-app-flags': { value: { operatorName: 'reviewer' } },
                 'get-entitlements': { value: { features: {} } },
+                'get-mcp-action-catalog': { value: { success: true, actions: [
+                    { capabilityId: 'ibmi-job-control', capabilityName: 'IBM i Job Control', skillVersion: '1.0.0', tool: 'hold-job', label: 'Hold job', jobName, effect: 'Hold the selected IBM i job.', riskClass: 'medium', requiredPermissions: ['execute'], evidenceRequirements: ['current job identity', 'current job status'], verificationRule: 'The next monitoring poll must show the requested hold state.', available: true }
+                ] } },
+                'preview-mcp-action': { value: { success: true, preview: {
+                    schema: 'imonitor-mcp-action-preview', version: 1, previewId: 'mcp-preview-1', capabilityId: 'ibmi-job-control', capabilityName: 'IBM i Job Control', skillVersion: '1.0.0', tool: 'hold-job', operatorAction: 'holdJob', jobName, scope: { customerScope: 'customer-a', systemScope: 'system-a', operatorId: 'reviewer' }, effect: 'Hold the selected IBM i job.', riskClass: 'medium', requiredPermissions: ['execute'], evidenceRequirements: ['current job identity', 'current job status'], evidence: { capturedAt: '2026-09-11T10:00:00Z', current: true, summary: 'Current job evidence.' }, inputHash: 'hash', verificationRule: 'The next monitoring poll must show the requested hold state.', outputSchema: 'Action result and verification.', state: 'awaiting-approval', createdAt: '2026-09-11T10:00:00Z', expiresAt: '2026-09-11T10:02:00Z', approval: { required: true, status: 'pending' }
+                } } },
+                'run-mcp-action': { value: { success: true, preview: {
+                    schema: 'imonitor-mcp-action-preview', version: 1, previewId: 'mcp-preview-1', capabilityId: 'ibmi-job-control', capabilityName: 'IBM i Job Control', skillVersion: '1.0.0', tool: 'hold-job', operatorAction: 'holdJob', jobName, scope: { customerScope: 'customer-a', systemScope: 'system-a', operatorId: 'reviewer' }, effect: 'Hold the selected IBM i job.', riskClass: 'medium', requiredPermissions: ['execute'], evidenceRequirements: ['current job identity', 'current job status'], evidence: { capturedAt: '2026-09-11T10:00:00Z', current: true, summary: 'Current job evidence.' }, inputHash: 'hash', verificationRule: 'The next monitoring poll must show the requested hold state.', outputSchema: 'Action result and verification.', state: 'recovered', createdAt: '2026-09-11T10:00:00Z', expiresAt: '2026-09-11T10:02:00Z', approval: { required: true, status: 'approved' }
+                }, verification: { status: 'recovered', summary: 'The next monitoring read verified the hold.', evidence: ['Job status: HELD'] } } },
                 'update-alert-workflow': { value: { success: true } },
                 'create-clickup-task-for-alert': { value: { success: true } },
                 'run-job-action': { value: { success: true, message: 'Job held.' } },
@@ -214,6 +223,23 @@ test('Overview shows the response brief and keeps handoff routing compact', asyn
     await expect(page.locator('#task-handoff-questions')).toHaveCount(0);
     await expect(page.locator('#task-copy-handoff, #task-download-handoff')).toHaveCount(0);
     await expect(page.locator('#task-refresh-shift-summary, #task-shift-summary')).toHaveCount(0);
+});
+
+test('previews and runs an approved MCP action inside the selected job task', async ({ task: { app, page } }) => {
+    const holdTool = page.locator('#task-mcp-action-list [data-mcp-tool="hold-job"]');
+    await expect(page.locator('#task-mcp-actions')).toBeVisible();
+    await expect(holdTool).toContainText('medium risk');
+    await holdTool.click();
+    await expect(page.locator('#task-mcp-action-preview')).toBeVisible();
+    await expect(page.locator('#task-mcp-action-preview')).toContainText('Hold the selected IBM i job.');
+    await expect(page.locator('#task-mcp-action-preview')).toContainText('Verify: The next monitoring poll must show the requested hold state.');
+    await expect(page.locator('#task-mcp-action-run')).toBeEnabled();
+    expect(await calls(app, 'run-mcp-action')).toHaveLength(0);
+
+    page.once('dialog', (dialog) => dialog.accept());
+    await page.locator('#task-mcp-action-run').click();
+    await expect.poll(() => calls(app, 'run-mcp-action')).toHaveLength(1);
+    await expect(page.locator('#task-mcp-action-note')).toHaveText('The next monitoring read verified the hold.');
 });
 
 test('L3 workspace explains a problem match and captures confirmation evidence', async ({ task: { app, page } }) => {

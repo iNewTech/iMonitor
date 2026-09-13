@@ -1007,6 +1007,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
         truncated?: boolean;
         error?: string;
     }>,
+    getMcpActionCatalog: (jobName: string) => ipcRenderer.invoke('get-mcp-action-catalog', jobName) as Promise<{
+        success: boolean;
+        actions: Array<Record<string, unknown>>;
+        error?: string;
+    }>,
+    previewMcpAction: (payload: { capabilityId: string; tool: string; jobName: string; input?: Record<string, unknown>; timeoutMs?: number }) => ipcRenderer.invoke('preview-mcp-action', payload) as Promise<{
+        success: boolean;
+        preview?: Record<string, unknown>;
+        error?: string;
+    }>,
+    runMcpAction: (payload: { previewId: string; approved: boolean }) => ipcRenderer.invoke('run-mcp-action', payload) as Promise<{
+        success: boolean;
+        preview?: Record<string, unknown>;
+        verification?: Record<string, unknown>;
+        error?: string;
+    }>,
     openJobTaskWindow: (jobName: string) => ipcRenderer.invoke('open-job-task-window', jobName) as Promise<{ success: boolean; }>,
     openExternalUrl: (target: string) => ipcRenderer.invoke('open-external-url', target) as Promise<{ success: boolean; }>,
 

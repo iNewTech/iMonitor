@@ -88,6 +88,7 @@ export function initMcpSkillsSettings({ root = document, navStatus } = {}) {
         const chips = makeElement('div', 'settings-mcp-card-chips');
         chips.append(makeChip(text(manifest.capabilityClass, 'unknown')));
         chips.append(makeChip(text(manifest.transport, 'unknown')));
+        if (Array.isArray(manifest.actionTools) && manifest.actionTools.length) chips.append(makeChip(`${manifest.actionTools.length} approval-gated write tools`));
         if (!available) chips.append(makeChip(text(item.status, 'unknown'), `is-${text(item.status, 'unknown')}`));
         content.append(chips);
         const action = makeElement('button', 'btn btn-outline-ink btn-sm', available ? 'Inspect' : 'Manage');
@@ -148,9 +149,13 @@ export function initMcpSkillsSettings({ root = document, navStatus } = {}) {
                 ...(Array.isArray(manifest.resources) ? manifest.resources.map((value) => `resource: ${value}`) : []),
                 ...(Array.isArray(manifest.prompts) ? manifest.prompts.map((value) => `prompt: ${value}`) : [])
             ];
+            const actionTools = Array.isArray(manifest.actionTools) ? manifest.actionTools : [];
             const permissions = Array.isArray(manifest.requiredPermissions) ? manifest.requiredPermissions.join(', ') : 'unknown';
             const evidence = Array.isArray(manifest.evidenceRequirements) ? manifest.evidenceRequirements.join(', ') : 'none declared';
-            dialogCapabilities.textContent = `${capabilities.length ? `Instructions and capabilities: ${capabilities.join(' · ')}` : 'Read-only capability with no direct action tools.'} · Permissions: ${permissions} · Evidence: ${evidence}`;
+            const writes = actionTools.length
+                ? `Write tools require explicit approval in the selected Job Task: ${actionTools.map((action) => `${text(action.label, action.tool)} (${text(action.riskClass, 'risk unknown')})`).join(' · ')}`
+                : 'Read-only capability with no direct action tools.';
+            dialogCapabilities.textContent = `${capabilities.length ? `Instructions and capabilities: ${capabilities.join(' · ')}` : 'No read resources or prompts declared.'} · Permissions: ${permissions} · Evidence: ${evidence}. ${writes}`;
         }
         if (readTestPanel && readName) {
             readName.replaceChildren();

@@ -108,6 +108,8 @@ Only the selected category is shown. Category changes keep unsaved form values i
 
 In **Skills & MCP**, installed and approved available capabilities are shown in separate lists. Select a capability to inspect its version, owner, provider, transport, scopes, permissions, capabilities, status, and health. Select **Install** for an approved available capability; new installs start disabled. Enable it only after reviewing the detail, then run **Safe read-only test**. An enabled local capability also shows a **Read-only preview** where you can choose a resource or prompt and optionally enter a job scope; the preview shows bounded results with scope, source, freshness, and redaction details. Remote connections must use an HTTPS endpoint. You can disable or revoke an installed capability from the same detail window; revocation cannot be undone from the app. These controls are operator actions and are never performed by AI.
 
+**IBM i Job Control** is the first write-capable MCP skill. After installing and enabling it, open a job’s task window to see its available action tools. Select an action to preview the exact job, effect, risk, required permission, current evidence, and verification rule. The preview does not run a command. Select **Approve & run** only after checking the target and effect; iMonitor performs a fresh authorization and evidence check before execution, keeps one short lease for the selected job/action, and records the result without storing raw input in the audit detail. The action is accepted only when a separate monitoring read verifies the expected state. A failed verification, timeout, cancellation, stale observation, revoked capability, changed operator scope, or unavailable permission is shown as failed or unknown and requires investigation or handoff. No MCP write action runs automatically.
+
 ### Object analysis
 
 Object analysis is a separate workspace for RPG or database source. It explains source evidence, dependencies, business logic, program flow, call graph, and conversion readiness.
@@ -234,6 +236,8 @@ Available operations depend on the job state, plan, IBM i permission, incident t
 - **Inspect Locks**
 
 The action may be unavailable because the plan, permission, evidence, or current state does not allow it. A confirmation and command preview appear before a production mutation. Read the target carefully and confirm only when you intend to run it.
+
+When a customer-approved MCP action skill is enabled, its action tools appear in the same selected Job Task under the MCP action area. Use the preview there to review the declared effect, risk class, evidence, and verification rule. **Approve & run** is the only execution path. If the preview expires or the job, system, customer, operator, or evidence changes, create a new preview. The existing IBM i action controls and the MCP gateway share the same command and verification boundary.
 
 ### Step 9: Verify the result
 

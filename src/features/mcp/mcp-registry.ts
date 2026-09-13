@@ -6,6 +6,21 @@ export type McpCapabilityClass = 'read-only' | 'action';
 export type McpApprovalClass = 'client' | 'operator' | 'system';
 export type McpCapabilityStatus = 'enabled' | 'disabled' | 'revoked';
 export type McpHealthState = 'unknown' | 'ready' | 'failed' | 'revoked';
+export type McpActionRiskClass = 'low' | 'medium' | 'high' | 'critical';
+export type McpOperatorActionKind = 'holdJob' | 'releaseJob' | 'endJob' | 'replyMessage';
+
+export interface McpActionDefinition {
+    tool: string;
+    label: string;
+    operatorAction: McpOperatorActionKind;
+    effect: string;
+    riskClass: McpActionRiskClass;
+    requiredPermissions: string[];
+    evidenceRequirements: string[];
+    inputSchema: string;
+    outputSchema: string;
+    verificationRule: string;
+}
 
 export interface McpManifest {
     kind: McpCapabilityKind;
@@ -20,6 +35,7 @@ export interface McpManifest {
     requiredPermissions: string[];
     approvalClass: McpApprovalClass;
     tools: string[];
+    actionTools: McpActionDefinition[];
     resources: string[];
     prompts: string[];
     schemas: Record<string, string>;
@@ -102,6 +118,38 @@ function schemas(value: unknown, errors: string[]) {
     return result;
 }
 
+function actionTools(value: unknown, errors: string[]) {
+    if (value === undefined) return [] as McpActionDefinition[];
+    if (!Array.isArray(value)) {
+        errors.push('actionTools must be a list of action definitions.');
+        return [] as McpActionDefinition[];
+    }
+    const risks: McpActionRiskClass[] = ['low', 'medium', 'high', 'critical'];
+    const actions: McpOperatorActionKind[] = ['holdJob', 'releaseJob', 'endJob', 'replyMessage'];
+    return value.slice(0, 50).flatMap((item, index) => {
+        const action = item && typeof item === 'object' && !Array.isArray(item) ? item as Record<string, unknown> : {};
+        const itemErrors: string[] = [];
+        const tool = text(action.tool, `actionTools[${index}].tool`, 120, itemErrors);
+        const label = text(action.label, `actionTools[${index}].label`, 160, itemErrors);
+        const operatorAction = action.operatorAction as McpOperatorActionKind;
+        const riskClass = action.riskClass as McpActionRiskClass;
+        if (!actions.includes(operatorAction)) itemErrors.push(`actionTools[${index}].operatorAction is invalid.`);
+        if (!risks.includes(riskClass)) itemErrors.push(`actionTools[${index}].riskClass is invalid.`);
+        const requiredPermissions = list(action.requiredPermissions, `actionTools[${index}].requiredPermissions`, 10, itemErrors, true);
+        if (!requiredPermissions.includes('execute')) itemErrors.push(`actionTools[${index}].requiredPermissions must include execute.`);
+        const evidenceRequirements = list(action.evidenceRequirements, `actionTools[${index}].evidenceRequirements`, 20, itemErrors, true);
+        const effect = text(action.effect, `actionTools[${index}].effect`, 240, itemErrors);
+        const inputSchema = text(action.inputSchema, `actionTools[${index}].inputSchema`, 2_000, itemErrors);
+        const outputSchema = text(action.outputSchema, `actionTools[${index}].outputSchema`, 2_000, itemErrors);
+        const verificationRule = text(action.verificationRule, `actionTools[${index}].verificationRule`, 500, itemErrors);
+        if (itemErrors.length) {
+            errors.push(...itemErrors);
+            return [];
+        }
+        return [{ tool, label, operatorAction, effect, riskClass, requiredPermissions, evidenceRequirements, inputSchema, outputSchema, verificationRule }];
+    });
+}
+
 /** Validates a complete manifest before it can be installed or enabled. */
 export function validateMcpManifest(candidate: unknown): McpValidationResult<McpManifest> {
     const errors: string[] = [];
@@ -126,6 +174,11 @@ export function validateMcpManifest(candidate: unknown): McpValidationResult<Mcp
     const requiredPermissions = list(value.requiredPermissions, 'requiredPermissions', 10, errors, true);
     if (requiredPermissions.some((permission) => !PERMISSIONS.includes(permission))) errors.push('requiredPermissions contains an unsupported permission.');
     const tools = list(value.tools, 'tools', 50, errors);
+    const actionDefinitions = actionTools(value.actionTools, errors);
+    if (capabilityClass === 'action' && !requiredPermissions.includes('execute')) errors.push('action capabilities must require execute permission.');
+    if (capabilityClass === 'action' && !actionDefinitions.length) errors.push('action capabilities must declare at least one action tool.');
+    if (actionDefinitions.some((action) => !tools.includes(action.tool))) errors.push('actionTools must also be listed in tools.');
+    if (capabilityClass === 'read-only' && actionDefinitions.length) errors.push('read-only capabilities cannot declare action tools.');
     const resources = list(value.resources, 'resources', 50, errors);
     const prompts = list(value.prompts, 'prompts', 50, errors);
     const evidenceRequirements = list(value.evidenceRequirements, 'evidenceRequirements', 50, errors);
@@ -143,7 +196,7 @@ export function validateMcpManifest(candidate: unknown): McpValidationResult<Mcp
         errors: [],
         value: {
             kind, id, name, version, owner, provider, transport, scopes, capabilityClass,
-            requiredPermissions, approvalClass, tools, resources, prompts, schemas: schemaMap,
+            requiredPermissions, approvalClass, tools, actionTools: actionDefinitions, resources, prompts, schemas: schemaMap,
             evidenceRequirements, limits: { maxCallsPerMinute, maxResults }, enabled: Boolean(value.enabled)
         }
     };
@@ -153,24 +206,35 @@ const BUILT_IN_MANIFESTS: McpManifest[] = [
     {
         kind: 'skill', id: 'ibmi-monitoring', name: 'IBM i Monitoring', version: '1.0.0', owner: 'iMonitor', provider: 'iMonitor', transport: 'local',
         scopes: ['customer', 'system', 'jobs'], capabilityClass: 'read-only', requiredPermissions: ['read'], approvalClass: 'system',
-        tools: [], resources: ['ibmi://jobs/current', 'ibmi://incidents/current'], prompts: ['job-health-summary'], schemas: { 'job-query': 'qualified job and system scope' },
+        tools: [], actionTools: [], resources: ['ibmi://jobs/current', 'ibmi://incidents/current'], prompts: ['job-health-summary'], schemas: { 'job-query': 'qualified job and system scope' },
         evidenceRequirements: ['current polling snapshot'], limits: { maxCallsPerMinute: 120, maxResults: 100 }, enabled: true
     },
     {
         kind: 'skill', id: 'ibmi-runbook-review', name: 'IBM i Runbook Review', version: '1.0.0', owner: 'iMonitor', provider: 'iMonitor', transport: 'local',
         scopes: ['customer', 'system', 'job'], capabilityClass: 'read-only', requiredPermissions: ['read', 'investigate'], approvalClass: 'client',
-        tools: [], resources: ['imonitor://runbooks/approved', 'imonitor://resolution-memory/approved'], prompts: ['incident-review', 'resolution-review'], schemas: { 'incident-query': 'job, incident, and system scope' },
+        tools: [], actionTools: [], resources: ['imonitor://runbooks/approved', 'imonitor://resolution-memory/approved'], prompts: ['incident-review', 'resolution-review'], schemas: { 'incident-query': 'job, incident, and system scope' },
         evidenceRequirements: ['selected job identity', 'current incident evidence'], limits: { maxCallsPerMinute: 60, maxResults: 50 }, enabled: false
     },
     {
         kind: 'mcp-connection', id: 'imonitor-local-mcp', name: 'iMonitor Local MCP', version: '1.0.0', owner: 'iMonitor', provider: 'iMonitor', transport: 'local',
         scopes: ['customer', 'system'], capabilityClass: 'read-only', requiredPermissions: ['read'], approvalClass: 'operator',
-        tools: [], resources: ['imonitor://knowledge'], prompts: ['support-context'], schemas: { 'support-query': 'system and job scope' },
+        tools: [], actionTools: [], resources: ['imonitor://knowledge'], prompts: ['support-context'], schemas: { 'support-query': 'system and job scope' },
         evidenceRequirements: ['authenticated operator'], limits: { maxCallsPerMinute: 60, maxResults: 50 }, enabled: false
+    },
+    {
+        kind: 'skill', id: 'ibmi-job-control', name: 'IBM i Job Control', version: '1.0.0', owner: 'iMonitor', provider: 'iMonitor', transport: 'local',
+        scopes: ['customer', 'system', 'job'], capabilityClass: 'action', requiredPermissions: ['read', 'investigate', 'execute'], approvalClass: 'operator',
+        tools: ['hold-job', 'release-job', 'end-job', 'reply-message'], actionTools: [
+            { tool: 'hold-job', label: 'Hold job', operatorAction: 'holdJob', effect: 'Hold the selected IBM i job.', riskClass: 'medium', requiredPermissions: ['execute'], evidenceRequirements: ['current job identity', 'current job status'], inputSchema: 'No additional input.', outputSchema: 'Action result and verification.', verificationRule: 'The next monitoring poll must show the requested hold state.' },
+            { tool: 'release-job', label: 'Release job', operatorAction: 'releaseJob', effect: 'Release the selected IBM i job.', riskClass: 'medium', requiredPermissions: ['execute'], evidenceRequirements: ['current job identity', 'current job status'], inputSchema: 'No additional input.', outputSchema: 'Action result and verification.', verificationRule: 'The next monitoring poll must show the requested running state.' },
+            { tool: 'end-job', label: 'End job', operatorAction: 'endJob', effect: 'End the selected IBM i job with a controlled end by default.', riskClass: 'high', requiredPermissions: ['execute'], evidenceRequirements: ['current job identity', 'current job status'], inputSchema: 'endOption: controlled or immediate.', outputSchema: 'Action result and verification.', verificationRule: 'The next monitoring poll must confirm that the job ended.' },
+            { tool: 'reply-message', label: 'Reply to message wait', operatorAction: 'replyMessage', effect: 'Send the approved reply to the selected IBM i message wait.', riskClass: 'high', requiredPermissions: ['investigate', 'execute'], evidenceRequirements: ['current job identity', 'current inquiry message'], inputSchema: 'messageKey, messageQueue, and replyText.', outputSchema: 'Action result and verification.', verificationRule: 'The next monitoring poll must confirm that the message wait changed.' }
+        ], resources: [], prompts: [], schemas: { 'job-action': 'job-scoped approved action input' },
+        evidenceRequirements: ['current job identity', 'current job status'], limits: { maxCallsPerMinute: 30, maxResults: 10 }, enabled: false
     }
 ];
 
-export const MCP_AVAILABLE_MANIFESTS = BUILT_IN_MANIFESTS.map((manifest) => ({ ...manifest, scopes: [...manifest.scopes], requiredPermissions: [...manifest.requiredPermissions], tools: [...manifest.tools], resources: [...manifest.resources], prompts: [...manifest.prompts], evidenceRequirements: [...manifest.evidenceRequirements], schemas: { ...manifest.schemas }, limits: { ...manifest.limits } }));
+export const MCP_AVAILABLE_MANIFESTS = BUILT_IN_MANIFESTS.map((manifest) => ({ ...manifest, scopes: [...manifest.scopes], requiredPermissions: [...manifest.requiredPermissions], tools: [...manifest.tools], actionTools: manifest.actionTools.map((action) => ({ ...action, requiredPermissions: [...action.requiredPermissions], evidenceRequirements: [...action.evidenceRequirements] })), resources: [...manifest.resources], prompts: [...manifest.prompts], evidenceRequirements: [...manifest.evidenceRequirements], schemas: { ...manifest.schemas }, limits: { ...manifest.limits } }));
 
 export const DEFAULT_MCP_REGISTRY: McpRegistryState = {
     schemaVersion: 1,
@@ -270,8 +334,20 @@ export function checkMcpCapability(state: McpRegistryState, id: string, now: str
 
 export function getMcpRegistryView(state: McpRegistryState): McpRegistryView {
     const installedIds = new Set(state.records.map((record) => record.manifest.id));
+    const copyManifest = (manifest: McpManifest): McpManifest => ({
+        ...manifest,
+        scopes: [...manifest.scopes],
+        requiredPermissions: [...manifest.requiredPermissions],
+        tools: [...manifest.tools],
+        actionTools: manifest.actionTools.map((action) => ({ ...action, requiredPermissions: [...action.requiredPermissions], evidenceRequirements: [...action.evidenceRequirements] })),
+        resources: [...manifest.resources],
+        prompts: [...manifest.prompts],
+        evidenceRequirements: [...manifest.evidenceRequirements],
+        schemas: { ...manifest.schemas },
+        limits: { ...manifest.limits }
+    });
     return {
-        installed: state.records.map((record) => ({ ...record, manifest: { ...record.manifest }, configuration: { ...record.configuration }, health: { ...record.health }, activity: { ...record.activity } })),
-        available: MCP_AVAILABLE_MANIFESTS.filter((manifest) => !installedIds.has(manifest.id)).map((manifest) => ({ ...manifest, scopes: [...manifest.scopes], requiredPermissions: [...manifest.requiredPermissions], tools: [...manifest.tools], resources: [...manifest.resources], prompts: [...manifest.prompts], evidenceRequirements: [...manifest.evidenceRequirements], schemas: { ...manifest.schemas }, limits: { ...manifest.limits } }))
+        installed: state.records.map((record) => ({ ...record, manifest: copyManifest(record.manifest), configuration: { ...record.configuration }, health: { ...record.health }, activity: { ...record.activity } })),
+        available: MCP_AVAILABLE_MANIFESTS.filter((manifest) => !installedIds.has(manifest.id)).map(copyManifest)
     };
 }

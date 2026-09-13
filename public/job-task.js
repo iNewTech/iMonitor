@@ -58,6 +58,15 @@ const diskIo = $('task-disk-io');
 const incidentActions = $('task-incident-actions');
 const jobActions = $('task-job-actions');
 const actionNote = $('task-action-note');
+const mcpActionSection = $('task-mcp-actions');
+const mcpActionList = $('task-mcp-action-list');
+const mcpActionState = $('task-mcp-action-state');
+const mcpActionInputWrap = $('task-mcp-action-input-wrap');
+const mcpActionInput = $('task-mcp-action-input');
+const mcpActionPreviewOutput = $('task-mcp-action-preview');
+const mcpActionRun = $('task-mcp-action-run');
+const mcpActionCancel = $('task-mcp-action-cancel');
+const mcpActionNote = $('task-mcp-action-note');
 const runbookSection = $('task-runbook-section');
 const runbookStatus = $('task-runbook-status');
 const runbookSummary = $('task-runbook-summary');
@@ -107,6 +116,9 @@ const handoffFields = {
 let handoffDraftKey = '';
 let resolutionMemoryEntries = [];
 let runbookData = { definition: null, execution: null };
+let mcpActionCatalog = [];
+let mcpActionSelection = null;
+let mcpActionPreview = null;
 let problemWorkspace = { records: [], matches: [], currentOccurrence: null, recurringSignal: false };
 let selectedProblemId = '';
 let problemFormRecordId = '';
@@ -460,6 +472,82 @@ async function loadRunbookData() {
     }
 }
 
+function renderMcpActions() {
+    if (!mcpActionSection || !mcpActionList) return;
+    mcpActionSection.hidden = !mcpActionCatalog.length;
+    mcpActionList.innerHTML = mcpActionCatalog.map((action) => `<button type="button" class="btn btn-outline-ink btn-sm task-mcp-action-button" data-mcp-capability="${escapeHtml(action.capabilityId)}" data-mcp-tool="${escapeHtml(action.tool)}" ${action.available ? '' : 'disabled'} title="${escapeHtml(action.reason || action.effect)}">${escapeHtml(action.label)}<small>${escapeHtml(action.available ? `${action.riskClass} risk · preview` : action.reason || 'Unavailable')}</small></button>`).join('');
+    if (mcpActionState) mcpActionState.textContent = mcpActionPreview?.state ? String(mcpActionPreview.state).replace(/-/g, ' ') : 'Preview required';
+    if (mcpActionInputWrap) mcpActionInputWrap.hidden = mcpActionSelection?.tool !== 'end-job' && mcpActionSelection?.tool !== 'reply-message';
+    if (mcpActionPreviewOutput) {
+        mcpActionPreviewOutput.hidden = !mcpActionPreview;
+        if (mcpActionPreview) {
+            mcpActionPreviewOutput.innerHTML = `<strong>${escapeHtml(mcpActionPreview.effect || 'Controlled action')}</strong><span>${escapeHtml(mcpActionPreview.riskClass || 'unknown')} risk · ${escapeHtml(mcpActionPreview.scope?.operatorId || 'operator')} · ${escapeHtml(mcpActionPreview.scope?.systemScope || 'system')}</span><small>Evidence: ${escapeHtml(mcpActionPreview.evidence?.summary || 'current job evidence')} · Verify: ${escapeHtml(mcpActionPreview.verificationRule || 'next monitoring poll')}</small>`;
+        }
+    }
+    if (mcpActionRun) mcpActionRun.disabled = !mcpActionPreview || pending.has('mcp-action') || mcpActionPreview.state !== 'awaiting-approval' || !stateFresh;
+    if (mcpActionCancel) mcpActionCancel.hidden = !mcpActionPreview;
+}
+
+async function loadMcpActions() {
+    if (!selectedJobName || typeof window.electronAPI.getMcpActionCatalog !== 'function') {
+        mcpActionCatalog = [];
+        renderMcpActions();
+        return;
+    }
+    try {
+        const result = await window.electronAPI.getMcpActionCatalog(selectedJobName);
+        mcpActionCatalog = result?.success && Array.isArray(result.actions) ? result.actions : [];
+    } catch {
+        mcpActionCatalog = [];
+    }
+    mcpActionSelection = null;
+    mcpActionPreview = null;
+    renderMcpActions();
+}
+
+function previewMcpAction(capabilityId, tool) {
+    const action = mcpActionCatalog.find((item) => item.capabilityId === capabilityId && item.tool === tool);
+    if (!action || !action.available || typeof window.electronAPI.previewMcpAction !== 'function') return;
+    let input = {};
+    if (mcpActionInput?.value.trim()) {
+        try {
+            input = JSON.parse(mcpActionInput.value);
+        } catch {
+            if (mcpActionNote) mcpActionNote.textContent = 'Action input must be valid JSON.';
+            return;
+        }
+    }
+    mcpActionSelection = action;
+    return runRequest('mcp-action', async () => {
+        if (mcpActionNote) mcpActionNote.textContent = 'Checking current evidence and permissions…';
+        const result = requireSuccess(await window.electronAPI.previewMcpAction({ capabilityId, tool, jobName: selectedJobName, input, timeoutMs: 5000 }), 'Unable to create the action preview.');
+        mcpActionPreview = result.preview;
+        if (mcpActionNote) mcpActionNote.textContent = 'Review the effect, risk, scope, and evidence before approving.';
+        renderMcpActions();
+    }, (error) => {
+        mcpActionPreview = null;
+        if (mcpActionNote) mcpActionNote.textContent = errorMessage(error, 'Unable to create the action preview.');
+        renderMcpActions();
+    });
+}
+
+function runMcpAction() {
+    if (!mcpActionPreview || typeof window.electronAPI.runMcpAction !== 'function') return;
+    if (!window.confirm(`${mcpActionPreview.effect} This will run for ${selectedJobName}. Continue?`)) return;
+    return runRequest('mcp-action', async () => {
+        if (mcpActionNote) mcpActionNote.textContent = 'Running through the controlled gateway…';
+        const result = await window.electronAPI.runMcpAction({ previewId: mcpActionPreview.previewId, approved: true });
+        mcpActionPreview = result?.preview || mcpActionPreview;
+        renderMcpActions();
+        if (!result?.success) throw new Error(result?.error || 'The action needs verification.');
+        if (mcpActionNote) mcpActionNote.textContent = result.verification?.summary || 'Action recovered and verified.';
+        await loadTask();
+    }, (error) => {
+        if (mcpActionNote) mcpActionNote.textContent = errorMessage(error, 'The action needs verification.');
+        renderMcpActions();
+    });
+}
+
 function renderResolutionMemory() {
     if (!memoryList) return;
     const alert = findLinkedAlert();
@@ -704,6 +792,7 @@ function renderTask() {
     renderProblemWorkspace();
     renderIncidentActions(alert);
     renderOperatorActions(jobActions, null, latestPayload.actions);
+    renderMcpActions();
     if (!actionFeedback) {
         const blocked = (latestPayload.actions || []).filter((action) => !action.enabled && action.reason);
         actionNote.textContent = blocked.length
@@ -755,6 +844,7 @@ function updateControls() {
         if (button) button.disabled = pending.has('problem') || !stateFresh || !latestPayload?.job;
     });
     if (replayRun) replayRun.disabled = pending.has('replay') || !replayScenario?.value || !replayResponse?.value;
+    if (mcpActionRun) mcpActionRun.disabled = !mcpActionPreview || pending.has('mcp-action') || mcpActionPreview.state !== 'awaiting-approval' || !stateFresh;
     document.querySelectorAll('#task-load-log, #task-load-messages, #task-load-graph').forEach((button) => {
         button.disabled = pending.has('details') || !selectedJobName;
     });
@@ -797,15 +887,21 @@ function loadTask() {
         const results = await Promise.allSettled([
             window.electronAPI.getJobDetails(selectedJobName),
             window.electronAPI.getActiveAlerts(),
-            window.electronAPI.getAppFlags()
+            window.electronAPI.getAppFlags(),
+            typeof window.electronAPI.getMcpActionCatalog === 'function'
+                ? window.electronAPI.getMcpActionCatalog(selectedJobName)
+                : Promise.resolve({ success: false, actions: [] })
         ]);
         if (revision !== stateRevision) return;
         const failure = results.find((result) => result.status === 'rejected');
         if (failure) throw failure.reason;
-        const [payload, alerts, flags] = results.map((result) => result.value);
+        const [payload, alerts, flags, mcpActions] = results.map((result) => result.value);
         latestPayload = payload;
         // A pushed alert update is newer than the refresh's alert snapshot.
         if (alertVersion === alertsRevision) latestAlerts = Array.isArray(alerts) ? alerts : [];
+        mcpActionCatalog = mcpActions?.success && Array.isArray(mcpActions.actions) ? mcpActions.actions : [];
+        mcpActionPreview = null;
+        mcpActionSelection = null;
         await loadRunbookData();
         await loadProblemWorkspace();
         currentOperatorName = String(flags?.operatorName || '').trim() || 'local-operator';
@@ -1052,6 +1148,20 @@ jobActions.addEventListener('click', (event) => {
     }), (error) => {
         actionNote.textContent = actionFeedback = errorMessage(error, 'Action failed.');
     });
+});
+
+mcpActionList?.addEventListener('click', (event) => {
+    const button = event.target instanceof Element ? event.target.closest('[data-mcp-tool]') : null;
+    if (!button || button.disabled) return;
+    void previewMcpAction(button.dataset.mcpCapability || '', button.dataset.mcpTool || '');
+});
+mcpActionRun?.addEventListener('click', () => void runMcpAction());
+mcpActionCancel?.addEventListener('click', () => {
+    mcpActionSelection = null;
+    mcpActionPreview = null;
+    if (mcpActionInput) mcpActionInput.value = '';
+    if (mcpActionNote) mcpActionNote.textContent = '';
+    renderMcpActions();
 });
 
 $('task-ai-summary').addEventListener('click', () => void askAi('summary'));

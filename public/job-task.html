@@ -216,6 +216,24 @@
                     <div id="task-job-actions" class="task-safe-actions"></div>
                     <p id="task-action-note" class="stat-note mt-2 mb-0 text-break" role="status">Actions load from the selected job state.</p>
                 </section>
+                <section id="task-mcp-actions" class="job-detail-section task-mcp-action-section" aria-labelledby="task-mcp-actions-title" hidden>
+                    <div class="history-card-header">
+                        <div>
+                            <p class="eyebrow mb-1">Controlled MCP actions</p>
+                            <h2 id="task-mcp-actions-title" class="section-title">Approved tools for this job</h2>
+                        </div>
+                        <span id="task-mcp-action-state" class="table-caption">Preview required</span>
+                    </div>
+                    <p class="stat-note mb-2">Every write tool uses the same job scope, permission check, confirmation, lease, and verification path.</p>
+                    <div id="task-mcp-action-list" class="task-mcp-action-list"></div>
+                    <label id="task-mcp-action-input-wrap" class="task-mcp-action-input" hidden>Optional action input <textarea id="task-mcp-action-input" rows="2" placeholder='{"endOption":"controlled"}'></textarea></label>
+                    <div id="task-mcp-action-preview" class="task-mcp-action-preview" hidden></div>
+                    <div class="task-mcp-action-controls">
+                        <button id="task-mcp-action-run" type="button" class="btn btn-primary-strong btn-sm" disabled>Approve &amp; run</button>
+                        <button id="task-mcp-action-cancel" type="button" class="btn btn-outline-ink btn-sm" hidden>Clear preview</button>
+                    </div>
+                    <p id="task-mcp-action-note" class="stat-note mt-2 mb-0" role="status"></p>
+                </section>
             </section>
 
             <section class="task-overview-section" id="task-panel-ai" data-task-section="ai" aria-label="AI helper" tabindex="-1">

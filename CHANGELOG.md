@@ -16,6 +16,7 @@
 - Added a versioned deterministic knowledge regression harness with golden IBM i support scenarios, retrieval recall/precision proxies, citation and uncertainty checks, scope isolation, latency/context metrics, and sanitized comparison artifacts (#49, AIAB-09, Project 8).
 - Added a customer-controlled Skills and MCP registry with validated manifests, scoped operator-only install/configure/health/enable/disable/revoke controls, separate installed/available Settings lists, and safe read-only checks (#50, AIAB-10, Project 8).
 - Added bounded, scoped read-only MCP resource and prompt previews for current jobs, incident evidence, verified runbooks, and approved Resolution Memory with provenance, freshness, redaction, timeout, and cancellation handling (#51, AIAB-11, Project 8).
+- Added the controlled MCP action gateway for approved IBM i Job Control tools, with declared risk/effect/evidence contracts, job-scoped previews, explicit approval, fresh authorization, replay/lease protection, bounded cancellation, independent verification, sanitized audit records, and selected-task UI (#52, AIAB-12, Project 8).
 - Refined job tasks into compact independent windows with only Overview/History tabs, contextual actions and AI, expandable technical details, saved theme inheritance, and per-job window reuse (#59, UI-03, Project 8).
 - Show the compact live activity overview above jobs by default after connecting; retain live chart updates while collapsed (#58, UI-02, Project 8).
 

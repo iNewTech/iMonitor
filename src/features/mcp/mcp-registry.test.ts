@@ -24,7 +24,7 @@ describe('MCP skills registry', () => {
     it('shows installed and available capabilities with their scope and health metadata', () => {
         const view = getMcpRegistryView(DEFAULT_MCP_REGISTRY);
         expect(view.installed[0]).toMatchObject({ manifest: { id: 'ibmi-monitoring', scopes: ['customer', 'system', 'jobs'] }, status: 'enabled' });
-        expect(view.available.map((manifest) => manifest.id)).toEqual(['ibmi-runbook-review', 'imonitor-local-mcp']);
+        expect(view.available.map((manifest) => manifest.id)).toEqual(['ibmi-runbook-review', 'imonitor-local-mcp', 'ibmi-job-control']);
     });
 
     it('requires an explicit enable before a safe read-only check succeeds', () => {

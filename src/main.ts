@@ -84,6 +84,7 @@ import { toKnowledgeGrantSnapshot, type KnowledgeAccessContext } from './feature
 import { createKnowledgeStore } from './features/knowledge/knowledge-store';
 import { createKnowledgeIndexGateway, createLocalKnowledgeIndexAdapter, getKnowledgeIndexCatalog, normalizeKnowledgeIndexSettings, toStoredKnowledgeIndexSettings, type KnowledgeIndexSettings } from './features/knowledge/knowledge-index';
 import type { McpResourceDependencies, McpResourceItem } from './features/mcp/mcp-resources';
+import type { McpActionContext, McpActionExecutionRequest, McpActionVerification } from './features/mcp/mcp-actions';
 import {
     ALWAYS_ON_SUPPORT_WINDOW,
     buildRoutingRecommendation,
@@ -740,6 +741,65 @@ function getMcpResourceItems(request: McpResourceInput): McpResourceItem[] {
     }
 
     return [];
+}
+
+function getMcpActionContext(jobName: string): McpActionContext {
+    const job = monitoringState.getJob(jobName);
+    if (!job) throw new Error('The selected job is no longer available.');
+    const history = monitoringState.getMonitoringHistory();
+    const lastSnapshot = history[history.length - 1];
+    const alert = alertState.getActiveAlerts().find((candidate) => candidate.jobName === jobName);
+    const capturedAt = lastSnapshot?.timestamp || alert?.evidence?.capturedAt || alert?.lastSeenAt || new Date().toISOString();
+    return {
+        evidence: {
+            capturedAt,
+            current: Boolean(lastSnapshot || alert?.evidence),
+            summary: alert ? `${alert.title} · ${alert.workflowStatus}` : `Current job status: ${job.STATUS || 'UNKNOWN'}`
+        }
+    };
+}
+
+async function executeMcpAction(request: McpActionExecutionRequest) {
+    const input = request.input;
+    const plan = buildOperatorActionPlan({
+        kind: request.operatorAction,
+        jobName: request.jobName,
+        replyText: typeof input.replyText === 'string' ? input.replyText : undefined,
+        messageKey: typeof input.messageKey === 'string' ? input.messageKey : undefined,
+        messageQueue: typeof input.messageQueue === 'string' ? input.messageQueue : undefined,
+        endOption: input.endOption === 'immediate' ? 'immediate' : 'controlled'
+    });
+    if (plan.executionType === 'blocked' || !plan.command) throw new Error(plan.reason || 'The selected MCP action is not available.');
+    const live = monitoringState.getMonitorMode() === 'live';
+    if (!live) {
+        loggingRuntime.recordActivity({ area: 'monitoring', level: 'success', message: `Simulated MCP action: ${request.operatorAction}.`, detail: `${getCurrentOperatorName()} | ${request.jobName} | ${plan.command}` });
+        return { output: `Prepared ${plan.command}` };
+    }
+    const service = sessionRuntime.getCurrentService();
+    if (!service) throw new Error('Not connected to IBM i');
+    await service.executeClCommand(plan.command);
+    loggingRuntime.recordActivity({ area: 'monitoring', level: 'success', message: `MCP action completed: ${request.operatorAction}.`, detail: `${getCurrentOperatorName()} | ${request.jobName} | ${plan.command}` });
+    await monitoringRuntime.publishSystemStatus();
+    return { output: `Executed ${plan.command}` };
+}
+
+async function verifyMcpAction(request: McpActionExecutionRequest): Promise<McpActionVerification> {
+    const job = monitoringState.getJob(request.jobName);
+    const observedAt = new Date().toISOString();
+    if (!job) return { status: 'unknown', summary: 'The job was not returned after the action; verify its state from the next poll.', evidence: ['Job: unavailable after action'] };
+    const status = String(job.STATUS || 'UNKNOWN').trim().toUpperCase();
+    const recovered = request.operatorAction === 'endJob'
+        ? ['END', 'EOJ'].includes(status)
+        : request.operatorAction === 'holdJob'
+            ? ['HLD', 'HELD'].includes(status)
+            : request.operatorAction === 'releaseJob'
+                ? ['RUN', 'RUNNING', 'ACTIVE'].includes(status)
+                : status !== 'MSGW';
+    return {
+        status: recovered ? 'recovered' : 'unknown',
+        summary: recovered ? `The next monitoring read shows ${request.operatorAction} completed.` : `The next monitoring read still shows ${status}; verify before taking another action.`,
+        evidence: [`Job status: ${status}`, `Observed at: ${observedAt}`]
+    };
 }
 
 const windowRuntime = createWindowRuntime({
@@ -1592,7 +1652,18 @@ registerMcpIpc({
     saveRegistry: (candidate) => saveMcpRegistry(store, candidate),
     getAccessContext: getKnowledgeAccessContext,
     getResourceItems: getMcpResourceItems,
-    recordActivity: loggingRuntime.recordActivity
+    getActionContext: getMcpActionContext,
+    executeMcpAction: executeMcpAction,
+    verifyMcpAction: verifyMcpAction,
+    recordActivity: loggingRuntime.recordActivity,
+    recordActionAudit: (entry) => {
+        loggingRuntime.recordActivity({
+            area: 'monitoring',
+            level: entry.result === 'success' ? 'success' : 'error',
+            message: `MCP action ${entry.result}: ${entry.action}.`,
+            detail: [`operator=${entry.operator}`, `job=${entry.jobName}`, entry.detail].filter(Boolean).join(' | ')
+        });
+    }
 });
 
 registerNavigationIpc({
