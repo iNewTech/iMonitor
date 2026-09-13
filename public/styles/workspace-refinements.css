@@ -618,6 +618,18 @@ body.job-task-body:is([data-theme="night-console"], [data-theme="copper-nocturne
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
+.ai-citation-strip-wrap { display: grid; gap: 8px; }
+.ai-citation-strip { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ai-citation-label { color: var(--muted); font-size: .78rem; font-weight: 700; }
+.ai-citation-chip { max-width: min(260px, 100%); overflow: hidden; padding: 5px 9px; border: 1px solid rgba(15, 108, 92, .22); border-radius: 999px; background: rgba(255, 255, 255, .62); color: var(--ink); font-size: .78rem; text-overflow: ellipsis; white-space: nowrap; }
+.ai-citation-chip:hover, .ai-citation-chip:focus-visible { border-color: var(--accent); background: rgba(15, 108, 92, .08); }
+.ai-citation-dialog { width: min(560px, calc(100vw - 32px)); max-width: 100%; padding: 18px; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); color: var(--ink); box-shadow: 0 24px 80px #0004; }
+.ai-citation-dialog::backdrop { background: #17211e66; backdrop-filter: blur(3px); }
+.ai-citation-dialog-header { display: flex; justify-content: flex-end; }
+.ai-citation-detail-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; color: var(--muted); font-size: .78rem; }
+.ai-citation-detail-meta span { padding: 4px 8px; border: 1px solid var(--border); border-radius: 999px; }
+.ai-citation-excerpt { margin: 0 0 12px; padding: 12px; border-left: 3px solid var(--accent); border-radius: 8px; background: var(--bg-soft); color: var(--ink); white-space: pre-wrap; }
+
 .task-workflow-actions .job-task-action-summary {
     display: flex;
     align-items: center;

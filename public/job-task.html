@@ -240,7 +240,15 @@
                             <span id="task-ai-status" class="table-caption" role="status">Ready</span>
                         </div>
                         <div id="task-ai-content" class="ai-report-content"></div>
+                        <div id="task-ai-citations" class="ai-citation-strip-wrap" hidden></div>
                     </div>
+                    <dialog id="task-ai-citation-dialog" class="ai-citation-dialog" aria-labelledby="task-ai-citation-dialog-title">
+                        <div class="ai-citation-dialog-header">
+                            <h2 id="task-ai-citation-dialog-title" class="visually-hidden">Evidence source</h2>
+                            <button id="task-ai-citation-close" type="button" class="btn btn-outline-ink btn-sm" aria-label="Close evidence source">Close</button>
+                        </div>
+                        <div id="task-ai-citation-detail"></div>
+                    </dialog>
                 </section>
             </section>
 

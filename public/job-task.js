@@ -11,6 +11,7 @@ import {
     buildSelectedJobHealthPrompt
 } from './monitor/ibmeyeai/action-prompts.js';
 import { renderAiReportMarkdown } from './monitor/ibmeyeai/render.js';
+import { normalizeAiCitations, renderAiCitationChips, renderAiCitationDetail } from './monitor/ibmeyeai/citations.js';
 import { applyTheme } from './connection/shared.js';
 
 void window.electronAPI.getThemeSettings?.().then((settings) => {
@@ -69,6 +70,10 @@ const statusHistory = $('task-status-history');
 const aiOutput = $('task-ai-output');
 const aiStatus = $('task-ai-status');
 const aiContent = $('task-ai-content');
+const aiCitations = $('task-ai-citations');
+const aiCitationDialog = $('task-ai-citation-dialog');
+const aiCitationDetail = $('task-ai-citation-detail');
+const aiCitationClose = $('task-ai-citation-close');
 const detailsOutput = $('task-details-output');
 const memoryList = $('task-memory-list');
 const memoryStatus = $('task-memory-status');
@@ -106,6 +111,20 @@ let problemWorkspace = { records: [], matches: [], currentOccurrence: null, recu
 let selectedProblemId = '';
 let problemFormRecordId = '';
 let replayScenarios = [];
+let currentAiCitations = [];
+let currentAiCitationScope = null;
+
+function renderAiCitations(result) {
+    const contextPack = result?.contextPack;
+    currentAiCitations = normalizeAiCitations(
+        contextPack?.citations || result?.citations,
+        contextPack?.relevanceReasons || result?.relevanceReasons
+    );
+    currentAiCitationScope = contextPack?.scope || result?.scope || null;
+    if (!aiCitations) return;
+    aiCitations.hidden = currentAiCitations.length === 0;
+    aiCitations.innerHTML = renderAiCitationChips(currentAiCitations);
+}
 
 function getJobKey(job) {
     return String(job?.JOB_NAME || job?.SUBSYSTEM_JOB || '').trim();
@@ -917,6 +936,7 @@ function askAi(kind) {
         aiOutput.hidden = false;
         aiStatus.textContent = 'Thinking';
         aiContent.innerHTML = '<p class="ai-report-pending">Preparing analysis...</p>';
+        renderAiCitations(null);
         const message = kind === 'summary'
             ? buildSelectedJobHealthPrompt(selectedJobName)
             : alert
@@ -929,9 +949,11 @@ function askAi(kind) {
         }), 'AI analysis failed.');
         aiStatus.textContent = 'Ready';
         aiContent.innerHTML = renderAiReportMarkdown(result.reply || 'No response returned.');
+        renderAiCitations(result);
     }, (error) => {
         aiStatus.textContent = 'Unavailable';
         aiContent.innerHTML = `<p class="ai-report-error">${escapeHtml(errorMessage(error, 'AI analysis failed.'))}</p>`;
+        renderAiCitations(null);
     });
 }
 
@@ -1028,6 +1050,14 @@ jobActions.addEventListener('click', (event) => {
 
 $('task-ai-summary').addEventListener('click', () => void askAi('summary'));
 $('task-ai-resolve').addEventListener('click', () => void askAi('resolve'));
+aiCitations?.addEventListener('click', (event) => {
+    const button = event.target instanceof Element ? event.target.closest('[data-ai-citation-id]') : null;
+    const citation = currentAiCitations.find((item) => item.id === button?.getAttribute('data-ai-citation-id'));
+    if (!citation || !aiCitationDialog || !aiCitationDetail) return;
+    aiCitationDetail.innerHTML = renderAiCitationDetail(citation, currentAiCitationScope);
+    if (typeof aiCitationDialog.showModal === 'function') aiCitationDialog.showModal();
+});
+aiCitationClose?.addEventListener('click', () => aiCitationDialog?.close());
 $('task-request-handoff').addEventListener('click', () => void requestHandoff());
 $('task-accept-handoff').addEventListener('click', () => void acceptHandoff());
 $('task-runbook-start')?.addEventListener('click', () => void startRunbook());

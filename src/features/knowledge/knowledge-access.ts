@@ -3,6 +3,9 @@ import {
     validateKnowledgeRecord,
     validateKnowledgeSourceRef,
     type ContextPack,
+    type ContextPackBudget,
+    type ContextPackRelevanceReason,
+    type ContextPackScope,
     type KnowledgeRecord
 } from './knowledge-contract';
 import type { SupportAccessGrant, SupportAccessPermission, SupportAccessStatus } from '../action-board/support-access';
@@ -271,7 +274,7 @@ export function filterKnowledgeRecords(
     return { decision, records, excluded, audit };
 }
 
-function safeCitation(record: KnowledgeRecord, citation: unknown) {
+function safeCitation(record: KnowledgeRecord, citation: unknown, now: string) {
     if (!isRecord(citation) || text(citation.recordId, 240) !== record.id) return undefined;
     const sourceRef = validateKnowledgeSourceRef(citation.sourceRef);
     if (!sourceRef.valid || !sourceRef.value) return undefined;
@@ -282,20 +285,22 @@ function safeCitation(record: KnowledgeRecord, citation: unknown) {
     const excerpt = typeof citation.excerpt === 'string' && !SECRET_MARKER.test(citation.excerpt)
         ? citation.excerpt.trim().slice(0, 500) || undefined
         : undefined;
+    const computedStatus = getKnowledgeFreshness(record, now);
     return {
         id: text(citation.id, 240) || `citation:${record.id}`,
         recordId: record.id,
         label,
         sourceRef: sourceRef.value,
-        status: getKnowledgeFreshness(record),
+        sourceType: record.sourceType,
+        status: citation.status === 'stale' ? 'stale' : computedStatus,
         excerpt,
         observedAt: record.observedAt
     };
 }
 
-function freshness(records: KnowledgeRecord[]): ContextPack['freshness'] {
+function freshness(records: KnowledgeRecord[], citations: ContextPack['citations'] = []): ContextPack['freshness'] {
     if (!records.length) return 'unknown';
-    const statuses = records.map((record) => getKnowledgeFreshness(record));
+    const statuses = records.map((record) => citations.find((citation) => citation.recordId === record.id)?.status || getKnowledgeFreshness(record));
     const stale = statuses.filter((status) => status === 'stale').length;
     if (!stale) return 'current';
     if (stale === statuses.length) return 'stale';
@@ -306,10 +311,17 @@ function freshness(records: KnowledgeRecord[]): ContextPack['freshness'] {
 export function filterContextPack(pack: ContextPack, input: ReadContextInput, requiredPermission = 'read'): ContextPack {
     const scoped = filterKnowledgeRecords(pack.records, input, requiredPermission);
     const visibleIds = new Set(scoped.records.map((record) => record.id));
-    const citations = pack.citations
-        .map((citation) => {
-            const record = scoped.records.find((candidate) => candidate.id === citation.recordId);
-            return record ? safeCitation(record, citation) : undefined;
+    const current = nowFor(input);
+    const citations = scoped.records
+        .map((record) => {
+            const supplied = pack.citations.find((citation) => citation.recordId === record.id);
+            return safeCitation(record, supplied || {
+                id: `citation:${record.id}`,
+                recordId: record.id,
+                label: record.title,
+                sourceRef: record.sourceRef,
+                status: record.status
+            }, current);
         })
         .filter((citation): citation is NonNullable<typeof citation> => Boolean(citation));
     const adapterExclusions = Array.isArray(pack.excluded)
@@ -320,17 +332,45 @@ export function filterContextPack(pack: ContextPack, input: ReadContextInput, re
     const allExcluded = Array.from(new Map(
         [...scoped.excluded, ...adapterExclusions].map((item) => [`${item.recordId}:${item.reason}`, item])
     ).values());
+    const sourceScope = (isRecord(pack.scope) ? pack.scope : {}) as Record<string, unknown>;
+    const scope: ContextPackScope = {
+        customerScope: text(input && isRecord(input) ? input.customerScope : '', 160),
+        systemScope: text(input && isRecord(input) ? input.systemScope : '', 160),
+        operatorId: text(input && isRecord(input) ? input.operatorId : '', 160) || undefined,
+        qualifiedJob: text(sourceScope.qualifiedJob, 240) || undefined,
+        incidentId: text(sourceScope.incidentId, 240) || undefined
+    };
+    const budget = isRecord(pack.budget) ? {
+        maxCharacters: Math.max(0, Math.min(Number(pack.budget.maxCharacters) || 0, 100_000)),
+        characters: Math.max(0, Math.min(Number(pack.budget.characters) || 0, 100_000)),
+        estimatedTokens: Math.max(0, Math.min(Number(pack.budget.estimatedTokens) || 0, 25_000)),
+        recordCount: Math.max(0, Math.min(Number(pack.budget.recordCount) || 0, 100))
+    } satisfies ContextPackBudget : undefined;
+    const relevanceReasons = Array.isArray(pack.relevanceReasons)
+        ? pack.relevanceReasons
+            .filter((item): item is ContextPackRelevanceReason => isRecord(item) && visibleIds.has(text(item.recordId, 240)))
+            .map((item) => ({
+                recordId: text(item.recordId, 240),
+                reasons: Array.from(new Set((Array.isArray(item.reasons) ? item.reasons : [])
+                    .filter((reason): reason is string => typeof reason === 'string')
+                    .map((reason) => reason.trim().slice(0, 240)).filter(Boolean))).slice(0, 8),
+                source: ['lexical', 'semantic', 'hybrid'].includes(String(item.source)) ? item.source : 'lexical'
+            }))
+        : undefined;
     return {
         schemaVersion: pack.schemaVersion,
         generatedAt: pack.generatedAt,
         records: scoped.records,
         citations,
         excluded: allExcluded,
-        freshness: freshness(scoped.records),
+        freshness: freshness(scoped.records, citations),
         missingEvidence: Array.from(new Set((Array.isArray(pack.missingEvidence) ? pack.missingEvidence : [])
             .filter((item): item is string => typeof item === 'string')
             .map((item) => item.trim().slice(0, 240))
-            .filter(Boolean))).slice(0, 100)
+            .filter(Boolean))).slice(0, 100),
+        scope,
+        budget,
+        relevanceReasons
     };
 }
 

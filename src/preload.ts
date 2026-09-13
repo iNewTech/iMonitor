@@ -1076,6 +1076,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }) => ipcRenderer.invoke('ask-ai-assistant', payload) as Promise<{
         success: boolean;
         reply?: string;
+        citations?: Array<Record<string, unknown>>;
+        contextPack?: {
+            scope?: Record<string, unknown>;
+            citations?: Array<Record<string, unknown>>;
+            relevanceReasons?: Array<Record<string, unknown>>;
+            freshness?: string;
+            missingEvidence?: string[];
+        };
         availability?: AiAssistantAvailability;
         validation?: { valid: boolean; missingSections: string[]; redacted: boolean };
         error?: string;

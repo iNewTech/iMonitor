@@ -305,6 +305,35 @@ test('AI actions reveal and focus the helper section, reject duplicate requests 
     await expect(page.locator('#task-ai-content')).toContainText('Check the log.');
 });
 
+test('shows compact cited sources and an unavailable-source state on demand', async ({ task: { app, page } }) => {
+    await configure(app, { 'ask-ai-assistant': { value: {
+        success: true,
+        reply: '## Observed facts\nThe selected job is waiting.\n## Interpretation\nThe cause is not confirmed.\n## Missing evidence\nThe current owner is unknown.\n## Suggested checks\nInspect the lock owner.',
+        contextPack: {
+            scope: { customerScope: 'customer-a', systemScope: 'system-a', qualifiedJob: jobName },
+            citations: [
+                { id: 'citation:job', recordId: 'job-1', label: 'Current job snapshot', status: 'current', observedAt: '2026-09-11T10:00:00Z', excerpt: 'Job is waiting on a lock.', sourceRef: { kind: 'job', id: jobName, locator: `job://${jobName}` } },
+                { id: 'citation:gone', recordId: 'gone-1', label: 'Deleted runbook', status: 'unavailable', observedAt: '2026-09-01T10:00:00Z', sourceRef: { kind: 'file', id: 'gone-1', locator: 'local://deleted.md' } }
+            ],
+            relevanceReasons: [
+                { recordId: 'job-1', reasons: ['Exact identifier: REVIEWJOB', 'Matches active IBM i system'], source: 'lexical' }
+            ]
+        }
+    } } });
+    await page.getByRole('button', { name: 'How To Resolve', exact: true }).click();
+    await expect(page.locator('#task-ai-citations')).toBeVisible();
+    await expect(page.locator('.ai-citation-chip')).toHaveCount(2);
+    await page.locator('.ai-citation-chip').first().click();
+    await expect(page.locator('#task-ai-citation-dialog')).toBeVisible();
+    await expect(page.locator('#task-ai-citation-detail')).toContainText('Current job snapshot');
+    await expect(page.locator('#task-ai-citation-detail')).toContainText('Job is waiting on a lock.');
+    await expect(page.locator('#task-ai-citation-detail')).toContainText('Why this source:');
+    await page.locator('#task-ai-citation-close').click();
+    await page.locator('.ai-citation-chip').nth(1).click();
+    await expect(page.locator('#task-ai-citation-detail')).toContainText('Source excerpt unavailable');
+    await page.locator('#task-ai-citation-close').click();
+});
+
 test('refresh batches cannot overlap or replace newer pushed alerts and retry after initial failure', async ({ task: { app, page } }) => {
     await configure(app, { 'get-job-details': { error: 'Connection unavailable.' } });
     await page.reload();

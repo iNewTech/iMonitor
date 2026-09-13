@@ -100,9 +100,31 @@ export interface KnowledgeCitation {
     recordId: string;
     label: string;
     sourceRef: KnowledgeSourceRef;
+    sourceType?: KnowledgeSourceType;
     status: KnowledgeStatus;
     excerpt?: string;
     observedAt?: string;
+}
+
+export interface ContextPackScope {
+    customerScope: string;
+    systemScope: string;
+    operatorId?: string;
+    qualifiedJob?: string;
+    incidentId?: string;
+}
+
+export interface ContextPackBudget {
+    maxCharacters: number;
+    characters: number;
+    estimatedTokens: number;
+    recordCount: number;
+}
+
+export interface ContextPackRelevanceReason {
+    recordId: string;
+    reasons: string[];
+    source: 'lexical' | 'semantic' | 'hybrid';
 }
 
 export interface ContextPack {
@@ -113,6 +135,9 @@ export interface ContextPack {
     excluded: Array<{ recordId: string; reason: string }>;
     freshness: 'current' | 'mixed' | 'stale' | 'unknown';
     missingEvidence: string[];
+    scope?: ContextPackScope;
+    budget?: ContextPackBudget;
+    relevanceReasons?: ContextPackRelevanceReason[];
 }
 
 export interface ContractValidation<T> {
