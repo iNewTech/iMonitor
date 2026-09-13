@@ -6,7 +6,7 @@ The sketch is a design reference with illustrative data and local interactions. 
 
 ## Shared design rules
 
-- Main navigation contains **ActionBoard, Knowledge, Settings**. Independent job windows do not repeat that navigation.
+- Connected main screens contain **ActionBoard, Knowledge, Settings** navigation. Connect has no workspace navigation; Settings and Knowledge require an active connection. Independent job windows do not repeat that navigation.
 - The daily workspace contains one health strip, one jobs toolbar/table, and an AI composer. Show details, configuration, and explanations only when requested.
 - Use quiet surfaces, subtle separators, restrained teal accents, readable text, and compact controls. Show a label with each status color. Use both comfortable and compact density without shrinking text to fit.
 - Keep native window controls once, with no decorative duplicate traffic lights. Maintain spacing between real sections; avoid large empty banners or nested cards.
@@ -29,7 +29,7 @@ The sketch is a design reference with illustrative data and local interactions. 
 
 ### 1. Connect
 
-UI-01 (#57) delivers this bounded form, shared destination navigation, profile edit identity fix, retry states, and per-profile board draft restoration. [Validation and screenshots](design/ui57/README.md) record the implementation.
+UI-01 (#57) delivers this bounded form, destination navigation after connecting, profile edit identity fix, retry states, and per-profile board draft restoration. [Validation and screenshots](design/ui57/README.md) record the implementation.
 
 The form stays near 450 CSS px on a large desktop and reflows within smaller windows. Show the selected saved system, operator, and **Connect & monitor**. Edit reveals existing connection fields; Add another system opens the new-profile flow. With no profiles, show that flow immediately. Keep profile rename/delete, connection failure/retry, protected credentials, version, entitlement, theme, and pre-connection Support accessible through compact controls.
 
@@ -98,7 +98,7 @@ For each screen ticket and each feature that changes it:
 - Exercise polling during typing, multiple task windows, reconnect with the same profile, owner/history persistence, ticket creation idempotency, handoff acceptance, and recovery verification with isolated fixtures.
 - Test Add knowledge, review/retire, source citations, skill enable/disable/revoke, connection configuration, storage/purge preview, and denied/approved action flows in the owning feature ticket.
 - Capture before/after screenshots against the saved sketch and attach focused test evidence. Run the full suite at the shared-UI milestone and the final feature milestone. Use live IBM i/client evidence separately for deployment claims.
-- Update user and developer docs as behavior ships. Close a ticket only after implementation, review, appropriate tests, documentation, and ticket-referenced commit/tag/push are recorded. Project 8 Done means the ticket acceptance criteria are met, not that a client deployment occurred.
+- Update user and developer docs as behavior ships. Project 8 follows **Todo → In Progress → UAT → Done**. Move tested, reviewed, documented and committed/tagged/pushed work to UAT with an acceptance checklist. Keep the issue open until the user accepts UAT; then move it to Done and close it. Automated demo tests support UAT but do not replace user acceptance or prove client deployment.
 
 ## Approval record
 

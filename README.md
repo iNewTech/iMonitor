@@ -6,7 +6,7 @@ The product flow is **Connect → Monitor → Detect → Explain with AI → App
 
 ## Operator workflow
 
-- Connect through Mapepire using a saved system profile. Edit or Add another system reveals the compact connection form; renaming preserves the profile identity.
+- Connect through Mapepire using a saved system profile. ActionBoard, Knowledge, and Settings become available after connecting; the Connect screen keeps only profile controls, theme, plan, and Support. Edit or Add another system reveals the compact connection form; renaming preserves the profile identity.
 - Scan active jobs, filter by subsystem/status, or use **Focus next** to inspect a priority job.
 - Open a job in its own task window. Multiple job windows can stay open together.
 - In **Details**, load an observed resource call graph for the selected job, including linked incidents, queues, subsystems, message waits, and lock owners when IBM i evidence provides them.

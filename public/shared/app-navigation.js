@@ -1,5 +1,6 @@
-/** The same three destinations on each main screen; navigation never disconnects monitoring. */
-export async function initAppNavigation({ canLeave = () => true } = {}) {
+/** Connected workspaces share navigation; Connect only initializes its disclosure menus. */
+export function initAppNavigation() {
+    initAppMenus();
     const nav = document.querySelector('[data-app-nav]');
     if (!nav) return;
     const current = nav.dataset.appNav;
@@ -12,10 +13,6 @@ export async function initAppNavigation({ canLeave = () => true } = {}) {
     nav.addEventListener('click', async event => {
         const button = event.target.closest('[data-app-destination]');
         if (!button || button.getAttribute('aria-current')) return;
-        if (!canLeave()) {
-            status.textContent = 'Save or cancel your profile changes before switching workspaces.';
-            status.hidden = false; return;
-        }
         if (document.getElementById('ai-assistant-input')?.disabled) {
             status.textContent = 'Wait for the AI reply before switching workspaces.';
             status.hidden = false; return;
@@ -32,7 +29,10 @@ export async function initAppNavigation({ canLeave = () => true } = {}) {
             status.textContent = 'Unable to open that workspace. Try again.'; status.hidden = false;
         } finally { button.disabled = false; }
     });
-    // Disclosure menus share predictable outside-click and keyboard dismissal.
+}
+
+/** Keep theme, plan and Support menus usable before a system connection. */
+export function initAppMenus() {
     const menus = '.theme-menu, .plan-panel, .support-menu';
     document.addEventListener('click', event => {
         document.querySelectorAll(menus).forEach(menu => { if (!menu.contains(event.target)) menu.open = false; });

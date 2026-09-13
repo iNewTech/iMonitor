@@ -201,7 +201,7 @@ The preview must show the target job, command family, current evidence, expected
 
 The user-approved [UI design contract](UI_DESIGN.md) and [seven-screen sketch](design/approved-ui.html) define the target layout. Existing features retain contextual entry points as the screens are simplified.
 
-- Main navigation is ActionBoard, Knowledge, Settings. Connect is compact and profile-first.
+- Connected workspaces use ActionBoard, Knowledge, Settings navigation. Connect is compact and profile-first, with no workspace buttons; Settings and Knowledge require an active connection.
 - The board has a slim health strip, one job list with actual conditions and owners, and a compact AI dock. Job queues stay collapsed before Support.
 - Independent job windows have Overview and History. Technical details expand; AI conversation is an in-window state. Additional actions are contextual.
 - The textarea uses the full width and grows with input. Attachments sit bottom-left; small provider/model selection and Send sit bottom-right. Unavailable models cannot be selected.
@@ -241,6 +241,10 @@ The draft was reviewed against the current iMonitor architecture, the L1/L2/L3 o
 7. **Autonomy:** fully automatic recovery stays future scope until retrieval quality, runbook coverage, permissions, recovery verification, and rollback evidence meet a separate release gate.
 8. **Code shape:** add small feature modules around the existing main-process boundaries. Do not create a framework or split every function into its own file.
 9. **Approved UI:** follow the seven-screen reference in `UI_DESIGN.md`. Shared layout work lands first, while each feature owns the UI and tests in its assigned screen. The accepted Overview/History task layout and controls beneath a full-width composer supersede the initial UI draft.
+
+## Ticket delivery workflow
+
+Project 8 follows **Todo → In Progress → UAT → Done**. Each ticket includes implementation, review, appropriate tests, updated user/developer docs, and an issue/Project-8-referenced commit and tag pushed before UAT. Keep the issue open in UAT with test evidence and a manual acceptance checklist. Move to Done and close only after user acceptance. Return reported defects to In Progress, then UAT after correction. Live client deployment remains a separate validation record.
 
 ## Definition of done for the program
 

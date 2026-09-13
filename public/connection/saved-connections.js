@@ -177,14 +177,5 @@ export function initSavedProfiles(elements) {
         } catch (error) { showAlert(elements.connectionForm, error.message || 'Unable to delete profile.'); }
         finally { setBusy(false); }
     });
-    const canLeave = () => {
-        if (busy) return false;
-        if (fields.hidden) return true;
-        const data = getData();
-        const original = connections.find(item => item.id === editingId);
-        return original
-            ? ['name', 'host', 'port', 'user', 'password'].every(key => String(data[key] ?? '') === String(original[key] ?? ''))
-            : ![data.name, data.host, data.user, data.password].some(Boolean);
-    };
-    return { load, getData, setBusy, reveal, canLeave };
+    return { load, getData, setBusy, reveal };
 }

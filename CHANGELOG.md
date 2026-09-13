@@ -4,6 +4,8 @@
 
 ### 2026-09-13
 
+- Removed workspace navigation from Connect and blocked Settings/Knowledge routes until connected (#57, UI-01, Project 8). Profile controls, theme, plan and Support remain available before connection.
+- Added the explicit UAT stage before Done for Project 8; completed implementation awaits user acceptance.
 - Added the compact Connect screen and shared ActionBoard/Knowledge/Settings navigation (#57, UI-01, Project 8).
 - Fixed saved-profile rename identity and retained board drafts across destination navigation; protected unfinished edits and added profile loading retries.
 

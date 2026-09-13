@@ -15,13 +15,16 @@ function setup(connected: boolean) {
 }
 beforeEach(() => handlers.clear());
 describe('main workspace navigation', () => {
-    it('keeps the board behind an active connection', async () => {
+    it.each(['monitor', 'settings', 'knowledge'])('blocks %s without an active connection, including direct IPC calls', async (page) => {
         const deps = setup(false);
-        await expect(handlers.get('navigate-to-monitor')!()).rejects.toThrow('Not connected');
+        await expect(handlers.get(`navigate-to-${page}`)!()).rejects.toThrow('Not connected');
         expect(deps.loadMonitorPage).not.toHaveBeenCalled();
+        expect(deps.loadSettingsPage).not.toHaveBeenCalled();
+        expect(deps.loadKnowledgePage).not.toHaveBeenCalled();
+        expect(deps.recordActivity).not.toHaveBeenCalled();
     });
-    it('allows pre-connection settings and local code entry through Knowledge', async () => {
-        const deps = setup(false);
+    it('opens Settings and Knowledge after connecting and records the navigation', async () => {
+        const deps = setup(true);
         await handlers.get('navigate-to-knowledge')!();
         await handlers.get('navigate-to-settings')!();
         expect(deps.loadKnowledgePage).toHaveBeenCalledOnce();
@@ -35,5 +38,10 @@ describe('main workspace navigation', () => {
         await handlers.get('navigate-to-monitor')!();
         expect(deps.loadMonitorPage).toHaveBeenCalledOnce();
         expect(deps.loadConnectionPage).not.toHaveBeenCalled();
+    });
+    it('keeps Connect accessible without a system session', async () => {
+        const deps = setup(false);
+        await handlers.get('navigate-to-connection')!();
+        expect(deps.loadConnectionPage).toHaveBeenCalledOnce();
     });
 });

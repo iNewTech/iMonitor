@@ -36,3 +36,7 @@ Knowledge, Connect redesign, Settings categories and the simplified two-tab job 
 - Tests isolate storage, use demo IBM i data, and mock external services where needed; existing confirmation, persistence and permission tests remain enabled.
 
 The source of the board is `public/monitor.html`. Workspace state lives in `public/monitor/board-workspace.js`; keyed rows and current-condition rendering in `public/monitor/job-rows.js`; the layout in `public/styles/board-workspace.css`. AI behavior stays in the existing `public/monitor/ibmeyeai` modules.
+
+## Current acceptance status
+
+Implementation and automated test evidence are recorded above. #58 is open in **UAT**, pending user acceptance before Done. This stage does not imply client deployment.

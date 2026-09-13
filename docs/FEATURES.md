@@ -4,7 +4,7 @@ iMonitor uses a simple Free/Premium feature boundary. The application keeps Prem
 
 ## Current experience
 
-- Compact saved-system Connect flow with protected credentials, in-place profile rename, load/connection retry, and first-use setup. Shared ActionBoard/Knowledge/Settings navigation preserves monitoring and the board draft within the window session. Knowledge provides Analyze code while the retrieval library is planned.
+- Compact saved-system Connect flow with protected credentials, in-place profile rename, load/connection retry, and first-use setup. After connecting, shared ActionBoard/Knowledge/Settings navigation preserves monitoring and the board draft within the window session. Knowledge provides Analyze code while the retrieval library is planned.
 
 - One active-job workspace with filters, issue labels, owner names, and priority focus.
 - Deterministic incident correlation groups related signals for the same job within a five-minute window and shows a priority score with the reasons behind it.

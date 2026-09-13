@@ -48,7 +48,7 @@ Start with the **Demo connection** if you are learning the screens. Demo data is
 5. Select **Save Profile** if you want to reuse it.
 6. Select **Connect & Monitor**.
 
-**Edit** lets you rename the profile or update its connection details. **Update Profile** keeps the same profile identity; it does not create a second system. **Cancel** restores the saved values. **Delete** removes the selected local profile. Save or cancel unfinished profile edits before switching workspaces. If profiles fail to load, select **Retry loading profiles**; a connection failure leaves your entries available for retry.
+**Edit** lets you rename the profile or update its connection details. **Update Profile** keeps the same profile identity; it does not create a second system. **Cancel** restores the saved values. **Delete** removes the selected local profile. If profiles fail to load, select **Retry loading profiles**; a connection failure leaves your entries available for retry.
 
 Profiles are stored locally on this computer. The password is protected by the operating system secure-storage facility. Do not send a profile or password in a ticket, chat message, screenshot, or AI prompt.
 
@@ -62,7 +62,7 @@ After a disconnect, select the same saved profile and reconnect. Reconnection re
 
 ### Connect screen
 
-This is where you select or create IBM i profiles. The form stays compact on a large screen. Plan, theme, version, and pre-connection Support remain available. The shared navigation opens ActionBoard, Knowledge, or Settings; ActionBoard returns to Connect until a system is connected.
+This is where you select or create IBM i profiles. The form stays compact on a large screen. Plan, theme, version, and pre-connection Support remain available. Workspace navigation appears only after connecting. ActionBoard, Knowledge, and Settings require an active IBM i connection; disconnecting returns you to Connect.
 
 ### Knowledge
 

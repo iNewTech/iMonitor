@@ -10,8 +10,8 @@ Actual Electron renderings with an isolated demo profile: [1440 desktop](connect
 
 - One 450px form, saved-system default, Edit/Add reveals credentials; first use opens setup.
 - Profile updates include their existing ID. Renaming no longer creates a duplicate request. Real encryption and on-disk persistence are retained.
-- Profile load retry, connection retry, invalid ports, cancellation, and background profile refresh preserve input. Navigation protects unfinished edits.
-- Shared ActionBoard/Knowledge/Settings navigation keeps the connection, monitoring, task windows, board selection/filter state, and unsent board draft. Drafts are profile/operator scoped and limited to the window session; no profile credentials go into browser storage.
+- Profile load retry, connection retry, invalid ports, cancellation, and background profile refresh preserve input. Connect has no workspace navigation that can discard unfinished edits.
+- After connecting, shared ActionBoard/Knowledge/Settings navigation keeps the connection, monitoring, task windows, board selection/filter state, and unsent board draft. Drafts are profile/operator scoped and limited to the window session; no profile credentials go into browser storage.
 - Knowledge is a clearly labelled placeholder with Analyze code, retaining the source browser, call graph, compile plan, and reports. The existing board menu also keeps Object analysis. Document search, ingestion and RAG are separate feature tickets.
 - Native job-window redesign and Settings categories remain #59 and #60.
 
@@ -21,6 +21,6 @@ Actual Electron renderings with an isolated demo profile: [1440 desktop](connect
 
 The save scenario stubs only the IBM i network transport while keeping main-process validation, duplicate checks, encryption, save IPC and the local store real. Other scenarios use disposable app stores and demo jobs. No client connection, real external delivery or deployment is claimed.
 
-Focused unit checks cover navigation's active-connection boundary and audit entry, alongside the existing profile helpers. The full build, unit and Electron suite results are recorded on the issue before closure.
+Focused unit checks cover the active-connection boundary for ActionBoard, Settings and Knowledge and their audit entries. Electron acceptance checks call the routes directly before connection and after disconnect, then verify normal connected navigation. Theme, plan and Support menu dismissal remains available without workspace navigation. The full build, unit and Electron suite results are recorded on the issue before closure.
 
-Final validation: TypeScript build and all 44 renderer modules passed. The full unit suite passed **404 tests across 85 files**. The complete Electron suite passed **57 scenarios** including the four new operator acceptance cases. Code review, screenshot review, automated UAT and documentation are complete; live client UAT and deployment are not claimed.
+Final validation: TypeScript build and all 44 renderer modules passed. The full unit suite passed **407 tests across 85 files**. The complete Electron suite passed **58 scenarios** including five Connect acceptance cases. These are automated acceptance checks. User UAT is pending; the issue stays open in UAT until accepted. Live client deployment is not claimed.

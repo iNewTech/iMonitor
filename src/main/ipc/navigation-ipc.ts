@@ -1,5 +1,4 @@
 import { ipcMain } from 'electron/main';
-import type { StoredConnection } from '../../utils/connections';
 
 interface RegisterNavigationIpcDependencies {
     canOpenMonitor: () => boolean;
@@ -47,6 +46,9 @@ export function registerNavigationIpc(dependencies: RegisterNavigationIpcDepende
     });
 
     ipcMain.handle('navigate-to-settings', async () => {
+        if (!dependencies.canOpenMonitor()) {
+            throw new Error('Not connected to IBM i');
+        }
         dependencies.loadSettingsPage();
         dependencies.recordActivity({
             area: 'navigation',
@@ -57,6 +59,9 @@ export function registerNavigationIpc(dependencies: RegisterNavigationIpcDepende
     });
 
     ipcMain.handle('navigate-to-knowledge', async () => {
+        if (!dependencies.canOpenMonitor()) {
+            throw new Error('Not connected to IBM i');
+        }
         dependencies.loadKnowledgePage();
         dependencies.recordActivity({ area: 'navigation', level: 'info', message: 'Opened the Knowledge workspace.' });
         return { success: true };

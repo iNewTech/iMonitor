@@ -2,7 +2,7 @@ import { applyTheme } from './shared.js';
 import { getConnectionPageModel } from './layout.js';
 import { showAlert, setConnectionAction } from './feedback.js';
 import { initSavedProfiles } from './saved-connections.js';
-import { initAppNavigation } from '../shared/app-navigation.js';
+import { initAppMenus } from '../shared/app-navigation.js';
 import { initSupportPanel } from '../shared/support.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const profiles = initSavedProfiles(elements);
-    void initAppNavigation({ canLeave: profiles.canLeave });
+    initAppMenus();
     let availableThemes = [];
 
     function renderThemeSettings(settings) {

@@ -251,7 +251,9 @@ test('shows the Slack configuration as a Premium preview on the Free plan', asyn
     const app = await launchTestApp({ forceFree: true });
 
     try {
-        await app.page.evaluate(() => window.electronAPI.navigateToSettings());
+        await expect(app.page.locator('#saved-connections')).toHaveValue('demo-connection');
+        await app.page.locator('#connect').click();
+        await app.page.locator('#open-settings').click();
         await expect(app.page.getByRole('heading', { name: 'Set up your operator workspace', exact: true })).toBeVisible();
         await expect(app.page.locator('[data-premium-feature]').first()).not.toHaveAttribute('hidden', '');
 

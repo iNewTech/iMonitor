@@ -26,7 +26,7 @@ test('bounds Connect, reveals fields on request and retains theme/Support at nat
     const { app, page } = shell;
     await expect(page.locator('#connection-fields')).toBeHidden();
     await expect(page.locator('#saved-hint')).toContainText('dummy');
-    await expect(page.locator('[data-app-nav] button')).toHaveText(['ActionBoard', 'Knowledge', 'Settings']);
+    await expect(page.locator('[data-app-nav], [data-app-destination]')).toHaveCount(0);
     for (const size of [[1440, 900], [1024, 768], [560, 600]]) {
         await app.evaluate(({ BrowserWindow }, [w, h]) => BrowserWindow.getAllWindows()[0].setSize(w, h), size);
         expect((await page.locator('.connection-layout').boundingBox())!.width).toBeLessThanOrEqual(450);
@@ -47,8 +47,6 @@ test('bounds Connect, reveals fields on request and retains theme/Support at nat
     await expect(page.locator('#connection-fields')).toBeVisible();
     await expect(page.locator('#password')).toHaveAttribute('type', 'password');
     await page.locator('#connection-name').fill('Unfinished rename');
-    await page.locator('[data-app-destination="settings"]').click();
-    await expect(page.locator('.navigation-error')).toContainText('Save or cancel');
     await expect(page.locator('#connection-name')).toHaveValue('Unfinished rename');
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.send('connections-updated', []));
     await expect(page.locator('#connection-name')).toHaveValue('Unfinished rename');
@@ -59,6 +57,33 @@ test('bounds Connect, reveals fields on request and retains theme/Support at nat
     await expect(page.locator('#support-send-diagnostics')).toBeVisible();
     await page.locator('#support-send-diagnostics').press('Escape');
     await expect(page.locator('#support-menu')).not.toHaveAttribute('open');
+});
+
+test('blocks disconnected workspace routes, allows them after connecting, and blocks them again after disconnect', async ({ shell }) => {
+    const { page } = shell;
+    const blockedRoutes = async () => {
+        for (const method of ['navigateToMonitor', 'navigateToSettings', 'navigateToKnowledge'] as const) {
+            const error = await page.evaluate(async (method) => {
+                try { await window.electronAPI[method](); return ''; }
+                catch (error) { return String(error); }
+            }, method);
+            expect(error).toContain('Not connected to IBM i');
+            await expect(page.locator('#connect')).toBeVisible();
+            await expect(page.locator('[data-app-destination]')).toHaveCount(0);
+        }
+    };
+    await blockedRoutes();
+    await page.locator('#connect').click();
+    await expect(page.locator('[data-app-nav] button')).toHaveText(['ActionBoard', 'Knowledge', 'Settings']);
+    await page.locator('[data-app-destination="settings"]').click();
+    await expect(page.locator('[data-app-destination="settings"]')).toHaveAttribute('aria-current', 'page');
+    await page.locator('[data-app-destination="knowledge"]').click();
+    await expect(page.locator('.knowledge-placeholder')).toBeVisible();
+    await page.locator('[data-app-destination="board"]').click();
+    await expect(page.locator('.job-row').first()).toBeVisible();
+    await page.evaluate(() => window.electronAPI.disconnect());
+    await expect(page.locator('#connect')).toBeVisible();
+    await blockedRoutes();
 });
 
 test('renames the same encrypted profile, restores it after reload, and opens first-use setup after delete', async ({ shell }) => {
