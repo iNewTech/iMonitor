@@ -480,6 +480,62 @@
     border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
 }
 
+.task-action-planner {
+    display: grid;
+    gap: 7px;
+    margin: 0 0 9px;
+    padding: 9px 10px;
+    border: 1px solid color-mix(in srgb, var(--accent) 26%, var(--border));
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--accent-soft) 18%, var(--surface));
+}
+
+.task-action-planner-header,
+.task-action-planner-row-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.task-action-planner-primary {
+    margin: 0;
+    color: var(--text-strong);
+    font-size: .95rem;
+}
+
+.task-action-planner-details {
+    border-top: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+    padding-top: 6px;
+}
+
+.task-action-planner-details summary {
+    cursor: pointer;
+    color: var(--muted-strong);
+    font-size: .76rem;
+    font-weight: 800;
+}
+
+.task-action-planner-list {
+    display: grid;
+    gap: 6px;
+    margin-top: 7px;
+}
+
+.task-action-planner-row {
+    display: grid;
+    gap: 2px;
+    padding: 7px 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--surface-elevated) 78%, transparent);
+}
+
+.task-action-planner-row-heading strong { color: var(--text-strong); font-size: .8rem; }
+.task-action-planner-row-heading span,
+.task-action-planner-row small { color: var(--muted); font-size: .7rem; }
+
 .task-mcp-action-list,
 .task-mcp-action-controls {
     display: flex;

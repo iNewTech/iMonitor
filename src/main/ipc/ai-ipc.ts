@@ -9,6 +9,7 @@ import type { AuthorizationResult } from '../../features/action-board/operator-a
 import type { ContextPack, SupportContext } from '../../features/knowledge/knowledge-contract';
 import type { KnowledgeIndexHealth } from '../../features/knowledge/knowledge-index';
 import type { GroundedReplyValidation } from '../../features/ibmeyeai/grounded-guidance';
+import type { ActionPlannerSnapshot } from '../../features/action-board/action-planner';
 
 interface RegisterAiIpcDependencies {
     requireProviderAccess: (provider?: string) => void;
@@ -28,6 +29,7 @@ interface RegisterAiIpcDependencies {
         supportContext?: SupportContext;
         retrievalHealth?: KnowledgeIndexHealth;
         contextPack?: ContextPack;
+        actionPlanner?: ActionPlannerSnapshot;
         validation?: GroundedReplyValidation;
         availability?: AiAssistantAvailability;
         error?: string;

@@ -3,6 +3,8 @@ import type { ActiveJobRecord, JobMessageRecord, JobQueueRecord, PagedResult, Qu
 import type { JobStatusHistoryEntry } from '../../features/monitoring/monitoring-model';
 import type { IncidentResponseSnapshot } from '../../features/alerts/incident-response';
 import type { OperatorActionKind } from '../../features/action-board/operator-actions';
+import { buildActionPlannerSnapshot, type ActionPlannerSnapshot } from '../../features/action-board/action-planner';
+import type { OperatorActionAvailability } from '../../features/action-board/operator-actions';
 import { createActionAuditEntry } from '../../features/action-board/action-audit';
 import {
     buildJobQueueActionPlan,
@@ -48,7 +50,7 @@ interface RegisterJobsIpcDependencies {
     ) => Promise<void>;
     buildWaitReason: (job: ActiveJobRecord) => string;
     buildJobRootCauseGuidance: (job: ActiveJobRecord) => unknown;
-    getAvailableOperatorActions: (job: ActiveJobRecord) => unknown[];
+    getAvailableOperatorActions: (job: ActiveJobRecord) => OperatorActionAvailability[];
     getAlertSettings: () => { highCpuThreshold: number };
     buildOperatorActionPlan: (payload: {
         kind: OperatorActionKind;
@@ -86,14 +88,23 @@ export function registerJobsIpc(dependencies: RegisterJobsIpcDependencies) {
             return null;
         }
 
+        const response = dependencies.getIncidentResponse(jobName);
+        const actions = dependencies.getAvailableOperatorActions(job);
+        const actionPlanner: ActionPlannerSnapshot = buildActionPlannerSnapshot({
+            job,
+            operatorActions: actions,
+            incident: response ? { id: response.incidentKey, title: response.incidentTitle, status: response.status, owner: response.owner === 'Unassigned' ? '' : response.owner } : undefined,
+            runbook: response?.runbook
+        });
         return {
             job,
             statusHistory: dependencies.getJobStatusHistory(jobName),
-            response: dependencies.getIncidentResponse(jobName),
+            response,
             runbook: dependencies.getRunbook(jobName),
             waitReason: dependencies.buildWaitReason(job),
             guidance: dependencies.buildJobRootCauseGuidance(job),
-            actions: dependencies.getAvailableOperatorActions(job)
+            actions,
+            actionPlanner
         };
     });
 

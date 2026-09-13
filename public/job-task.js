@@ -67,6 +67,11 @@ const mcpActionPreviewOutput = $('task-mcp-action-preview');
 const mcpActionRun = $('task-mcp-action-run');
 const mcpActionCancel = $('task-mcp-action-cancel');
 const mcpActionNote = $('task-mcp-action-note');
+const actionPlannerSection = $('task-action-planner');
+const actionPlannerPrimary = $('task-action-planner-title');
+const actionPlannerReason = $('task-action-planner-reason');
+const actionPlannerMeta = $('task-action-planner-meta');
+const actionPlannerList = $('task-action-planner-list');
 const runbookSection = $('task-runbook-section');
 const runbookStatus = $('task-runbook-status');
 const runbookSummary = $('task-runbook-summary');
@@ -119,6 +124,7 @@ let runbookData = { definition: null, execution: null };
 let mcpActionCatalog = [];
 let mcpActionSelection = null;
 let mcpActionPreview = null;
+let aiActionPlanner = null;
 let problemWorkspace = { records: [], matches: [], currentOccurrence: null, recurringSignal: false };
 let selectedProblemId = '';
 let problemFormRecordId = '';
@@ -488,6 +494,55 @@ function renderMcpActions() {
     if (mcpActionCancel) mcpActionCancel.hidden = !mcpActionPreview;
 }
 
+function mergedActionPlanner() {
+    const base = aiActionPlanner || latestPayload?.actionPlanner;
+    const proposals = [];
+    const seen = new Set();
+    const add = (proposal) => {
+        if (!proposal?.id || seen.has(proposal.id)) return;
+        seen.add(proposal.id);
+        proposals.push(proposal);
+    };
+    (base?.proposals || []).forEach(add);
+    mcpActionCatalog.map((action) => action.proposal).filter(Boolean).forEach(add);
+    if (!base && !proposals.length) return null;
+    return {
+        ...(base || {}),
+        jobName: base?.jobName || selectedJobName,
+        primary: base?.primary || null,
+        proposals,
+        escalationReasons: base?.escalationReasons || []
+    };
+}
+
+function renderActionPlanner() {
+    if (!actionPlannerSection || !actionPlannerPrimary || !actionPlannerReason || !actionPlannerList) return;
+    const planner = mergedActionPlanner();
+    const proposals = planner?.proposals || [];
+    actionPlannerSection.hidden = !planner || (!planner.primary && !proposals.length);
+    if (actionPlannerSection.hidden) return;
+
+    const primary = planner.primary;
+    actionPlannerPrimary.textContent = primary?.label || 'Review evidence';
+    actionPlannerReason.textContent = primary?.reason || 'Review the available evidence before choosing an operation.';
+    if (actionPlannerMeta) {
+        actionPlannerMeta.textContent = `${proposals.length} proposal${proposals.length === 1 ? '' : 's'} · ${planner.jobName || selectedJobName}`;
+    }
+    actionPlannerList.innerHTML = proposals.length
+        ? proposals.map((proposal) => {
+            const state = String(proposal.state || 'advisory').replace(/[-_]/g, ' ');
+            const sources = Array.isArray(proposal.sources) ? proposal.sources.join(' · ') : '';
+            const required = Array.isArray(proposal.requiredPermissions) ? proposal.requiredPermissions.join(', ') : 'review';
+            return `<article class="task-action-planner-row">
+                <div class="task-action-planner-row-heading"><strong>${escapeHtml(proposal.label || 'Review proposal')}</strong><span>${escapeHtml(state)} · ${escapeHtml(proposal.riskClass || 'unknown')} risk</span></div>
+                <small>${escapeHtml(proposal.effect || proposal.rationale || '')}</small>
+                <small>Sources: ${escapeHtml(sources || 'operator')} · Requires: ${escapeHtml(required)}</small>
+                <small>Verify: ${escapeHtml(proposal.verificationRule || 'Confirm the next monitoring state.')}</small>
+            </article>`;
+        }).join('')
+        : '<p class="stat-note mb-0">No action proposal is available for this job.</p>';
+}
+
 async function loadMcpActions() {
     if (!selectedJobName || typeof window.electronAPI.getMcpActionCatalog !== 'function') {
         mcpActionCatalog = [];
@@ -791,6 +846,7 @@ function renderTask() {
     renderResolutionMemory();
     renderProblemWorkspace();
     renderIncidentActions(alert);
+    renderActionPlanner();
     renderOperatorActions(jobActions, null, latestPayload.actions);
     renderMcpActions();
     if (!actionFeedback) {
@@ -902,6 +958,7 @@ function loadTask() {
         mcpActionCatalog = mcpActions?.success && Array.isArray(mcpActions.actions) ? mcpActions.actions : [];
         mcpActionPreview = null;
         mcpActionSelection = null;
+        aiActionPlanner = null;
         await loadRunbookData();
         await loadProblemWorkspace();
         currentOperatorName = String(flags?.operatorName || '').trim() || 'local-operator';
@@ -1049,9 +1106,11 @@ function askAi(kind) {
             selectedJobName,
             scope: 'job'
         }), 'AI analysis failed.');
+        if (result.actionPlanner) aiActionPlanner = result.actionPlanner;
         aiStatus.textContent = 'Ready';
         aiContent.innerHTML = renderAiReportMarkdown(result.reply || 'No response returned.');
         renderAiCitations(result);
+        renderActionPlanner();
     }, (error) => {
         aiStatus.textContent = 'Unavailable';
         aiContent.innerHTML = `<p class="ai-report-error">${escapeHtml(errorMessage(error, 'AI analysis failed.'))}</p>`;

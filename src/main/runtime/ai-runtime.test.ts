@@ -189,6 +189,7 @@ describe('ai-runtime', () => {
         });
 
         expect(result.success).toBe(true);
+        expect(result.actionPlanner?.primary?.kind).toBe('claim');
     });
 
     it('adds scoped retrieved knowledge and citations to the selected-job prompt', async () => {

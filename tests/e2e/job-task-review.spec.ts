@@ -23,7 +23,16 @@ const payload = {
         { kind: 'holdJob', label: 'Hold Job', enabled: true },
         { kind: 'endJob', label: 'End Job', enabled: true, dangerous: true },
         { kind: 'replyMessage', label: 'Reply to MSGW', enabled: false, reason: 'No message is waiting.' }
-    ]
+    ],
+    actionPlanner: {
+        schema: 'imonitor-action-planner', version: 1, jobName,
+        primary: { kind: 'claim', label: 'Claim work', reason: 'Assign this incident to the logged-in operator before changing the job.' },
+        proposals: [
+            { schema: 'imonitor-action-proposal', version: 1, id: 'operator:holdJob', sources: ['operator'], actionKind: 'holdJob', label: 'Hold Job', jobName, state: 'ready', rationale: 'Available from the current job state.', effect: 'Hold the selected IBM i job.', riskClass: 'medium', requiredPermissions: ['execute'], evidenceRequirements: ['current job identity'], verificationRule: 'The next monitoring poll must show the requested hold state.', citations: [] },
+            { schema: 'imonitor-action-proposal', version: 1, id: 'operator:endJob', sources: ['operator'], actionKind: 'endJob', label: 'End Job', jobName, state: 'ready', rationale: 'Available from the current job state.', effect: 'End the selected IBM i job.', riskClass: 'high', requiredPermissions: ['execute'], evidenceRequirements: ['current job identity'], verificationRule: 'The next monitoring poll must confirm that the job ended.', citations: [] }
+        ],
+        escalationReasons: []
+    }
 };
 
 type Reply = { value?: unknown; error?: string; hold?: boolean };
@@ -223,6 +232,16 @@ test('Overview shows the response brief and keeps handoff routing compact', asyn
     await expect(page.locator('#task-handoff-questions')).toHaveCount(0);
     await expect(page.locator('#task-copy-handoff, #task-download-handoff')).toHaveCount(0);
     await expect(page.locator('#task-refresh-shift-summary, #task-shift-summary')).toHaveCount(0);
+});
+
+test('shows one grounded next best action with compact proposal context', async ({ task: { page } }) => {
+    await expect(page.locator('#task-action-planner')).toBeVisible();
+    await expect(page.locator('#task-action-planner-title')).toHaveText('Claim work');
+    await expect(page.locator('#task-action-planner-meta')).toContainText('2 proposals');
+    await page.locator('#task-action-planner-details > summary').click();
+    await expect(page.locator('#task-action-planner-list')).toContainText('Hold Job');
+    await expect(page.locator('#task-action-planner-list')).toContainText('medium risk');
+    await expect(page.locator('#task-action-planner-list')).toContainText('The next monitoring poll must show the requested hold state.');
 });
 
 test('previews and runs an approved MCP action inside the selected job task', async ({ task: { app, page } }) => {

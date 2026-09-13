@@ -1334,6 +1334,18 @@ const aiRuntime = createAiRuntime({
     getHighCpuThreshold: () => getAlertSettings().highCpuThreshold,
     getCurrentSystemId,
     getResolutionMemory: () => getNormalizedResolutionMemory(store),
+    getAvailableOperatorActions: (job) => {
+        const actions = getAvailableOperatorActions(job);
+        if (hasEntitlement(getEntitlements(), 'job-actions')) {
+            return actions;
+        }
+
+        return actions.map((action) => ({
+            ...action,
+            enabled: false,
+            reason: 'IBM i job actions require Premium.'
+        }));
+    },
     getKnowledgeAccessContext,
     getKnowledgeIndexGateway: () => knowledgeIndexGateway,
     recordActivity: loggingRuntime.recordActivity

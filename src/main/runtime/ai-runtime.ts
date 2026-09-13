@@ -5,6 +5,9 @@ import { buildAiAssistantContext } from '../../features/ibmeyeai/ai-context';
 import { buildAiAssistantPrompt } from '../../features/ibmeyeai/ai-prompt';
 import { buildAlertDiagnosticPrompt } from '../../features/ibmeyeai/alert-diagnostic';
 import { findApplicableResolutions, type ResolutionMemoryStore } from '../../features/action-board/resolution-memory';
+import { buildActionPlannerSnapshot, type ActionPlannerSnapshot } from '../../features/action-board/action-planner';
+import { getAvailableOperatorActions } from '../../features/action-board/operator-actions';
+import { getRunbookPolicy } from '../../features/action-board/runbook-policy';
 import { JOB_REPLY_SECTIONS, validateGroundedReply, type GroundedReplyValidation } from '../../features/ibmeyeai/grounded-guidance';
 import type {
     AiAssistantAvailability,
@@ -37,6 +40,7 @@ interface AiRuntimeDependencies {
     getHighCpuThreshold?: () => number;
     getCurrentSystemId?: () => string | undefined;
     getResolutionMemory?: () => ResolutionMemoryStore;
+    getAvailableOperatorActions?: typeof getAvailableOperatorActions;
     getKnowledgeAccessContext?: () => KnowledgeAccessContext;
     getKnowledgeIndexGateway?: () => Pick<KnowledgeIndexGateway, 'search' | 'health'>;
     recordActivity: (entry: Omit<ActivityLogEntry, 'id' | 'timestamp'>) => void;
@@ -130,6 +134,20 @@ export function createAiRuntime(dependencies: AiRuntimeDependencies) {
                 alert: linkedAlert
             }, dependencies.getResolutionMemory())
             : [];
+        const actionPlanner: ActionPlannerSnapshot | undefined = isJobScoped && selectedJob
+            ? buildActionPlannerSnapshot({
+                job: selectedJob,
+                operatorActions: (dependencies.getAvailableOperatorActions || getAvailableOperatorActions)(selectedJob),
+                incident: linkedAlert ? {
+                    id: linkedAlert.incidentId || linkedAlert.id,
+                    title: linkedAlert.title,
+                    status: linkedAlert.workflowStatus,
+                    owner: linkedAlert.owner || ''
+                } : undefined,
+                runbook: getRunbookPolicy(linkedAlert?.kind),
+                ragResolutions: approvedResolutions
+            })
+            : undefined;
         let groundedKnowledge: JobKnowledgeContextResult | undefined;
         if (isJobScoped && selectedJob && dependencies.getKnowledgeAccessContext && dependencies.getKnowledgeIndexGateway) {
             groundedKnowledge = await retrieveJobKnowledgeContext({
@@ -196,7 +214,8 @@ export function createAiRuntime(dependencies: AiRuntimeDependencies) {
                 validation,
                 supportContext: groundedKnowledge?.supportContext,
                 contextPack: groundedKnowledge?.contextPack,
-                retrievalHealth: groundedKnowledge?.retrievalHealth
+                retrievalHealth: groundedKnowledge?.retrievalHealth,
+                actionPlanner
             };
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);

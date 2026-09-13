@@ -34,6 +34,7 @@ iMonitor uses a simple Free/Premium feature boundary. The application keeps Prem
 - Knowledge quality is checked by a versioned deterministic golden suite covering MSGW, LCKW, high CPU, queue waits, disconnects, recurring problems, unknowns, stale/conflicting evidence, and prompt-injection text. The suite records retrieval recall/precision proxies, citation coverage, uncertainty/refusal correctness, scope violations, latency, context size, and sanitized comparison artifacts (#49, AIAB-09, Project 8).
 - Knowledge provides a compact library with source search, Needs review filtering, add-source validation, source details and version history, delete, index refresh, and a secondary Analyze code entry. It groups chunks into one source row so operational context stays easy to scan.
 - MCP action capabilities expose approved IBM i job operations through the selected Job Task. The action catalog shows risk, effect, required evidence, and availability; preview, explicit operator approval, fresh scope/evidence checks, a short action lease, cancellation/deadline handling, independent verification, and an audit record are required before a command can run.
+- The ActionBoard planner combines current operator actions, versioned runbooks, approved Resolution Memory, and MCP proposals into one job-scoped recommendation. It shows effect, risk, permissions, evidence, verification, citations, and escalation state while keeping RAG advisory and production execution behind the existing approval gateway (#53, AIAB-13, Project 8).
 
 ## Free plan
 

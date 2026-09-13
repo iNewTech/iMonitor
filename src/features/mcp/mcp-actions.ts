@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { authorizeKnowledgeRead, type KnowledgeAccessContext } from '../knowledge/knowledge-access';
 import { createActionLeaseStore } from '../action-board/action-leases';
+import { buildMcpActionProposal } from '../action-board/action-planner';
 import type { McpActionDefinition, McpCapabilityRecord, McpOperatorActionKind, McpRegistryState } from './mcp-registry';
 
 export const MCP_ACTION_LIMITS = {
@@ -254,7 +255,13 @@ export function createMcpActionGateway(dependencies: GatewayDependencies) {
                     tool: definition.tool, label: definition.label, jobName, effect: definition.effect,
                     riskClass: definition.riskClass, requiredPermissions: definition.requiredPermissions.slice(),
                     evidenceRequirements: definition.evidenceRequirements.slice(), verificationRule: definition.verificationRule,
-                    available: !reason, reason: reason || undefined
+                    available: !reason, reason: reason || undefined,
+                    proposal: buildMcpActionProposal({
+                        capabilityId: record.manifest.id, capabilityName: record.manifest.name, skillVersion: record.manifest.version,
+                        tool: definition.tool, label: definition.label, jobName, effect: definition.effect, riskClass: definition.riskClass,
+                        requiredPermissions: definition.requiredPermissions, evidenceRequirements: definition.evidenceRequirements,
+                        verificationRule: definition.verificationRule, available: !reason, reason: reason || undefined
+                    })
                 };
             }));
         },
