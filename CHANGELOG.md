@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Added scoped AI + ActionBoard observability for RAG/MCP health, redacted metrics, audit continuity, retention, export, purge, and index rebuild controls (#55, AIAB-15, Project 8).
+- Added the Project 8 AI + ActionBoard release record with automated evidence boundaries, pilot scenarios, UAT fields, deployment smoke, rollback, and documentation links (#56, AIAB-16, Project 8).
 
 ### 2026-09-14
 
