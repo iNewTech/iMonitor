@@ -43,6 +43,12 @@ export function initMcpSkillsSettings({ root = document, navStatus } = {}) {
     const dialogHealth = byId(root, 'settings-mcp-dialog-health');
     const endpointField = byId(root, 'settings-mcp-endpoint-field');
     const endpoint = byId(root, 'settings-mcp-endpoint');
+    const readTestPanel = byId(root, 'settings-mcp-read-test');
+    const readName = byId(root, 'settings-mcp-read-name');
+    const readJob = byId(root, 'settings-mcp-read-job');
+    const readInput = byId(root, 'settings-mcp-read-input');
+    const readButton = byId(root, 'settings-mcp-read');
+    const readPreview = byId(root, 'settings-mcp-read-preview');
     const installButton = byId(root, 'settings-mcp-install');
     const testButton = byId(root, 'settings-mcp-test');
     const toggleButton = byId(root, 'settings-mcp-toggle');
@@ -146,6 +152,24 @@ export function initMcpSkillsSettings({ root = document, navStatus } = {}) {
             const evidence = Array.isArray(manifest.evidenceRequirements) ? manifest.evidenceRequirements.join(', ') : 'none declared';
             dialogCapabilities.textContent = `${capabilities.length ? `Instructions and capabilities: ${capabilities.join(' · ')}` : 'Read-only capability with no direct action tools.'} · Permissions: ${permissions} · Evidence: ${evidence}`;
         }
+        if (readTestPanel && readName) {
+            readName.replaceChildren();
+            const options = [
+                ...(Array.isArray(manifest.resources) ? manifest.resources.map((value) => ({ kind: 'resource', name: value })) : []),
+                ...(Array.isArray(manifest.prompts) ? manifest.prompts.map((value) => ({ kind: 'prompt', name: value })) : [])
+            ];
+            options.forEach((optionValue) => {
+                const option = document.createElement('option');
+                option.value = `${optionValue.kind}:${optionValue.name}`;
+                option.dataset.kind = optionValue.kind;
+                option.dataset.name = optionValue.name;
+                option.textContent = `${optionValue.kind === 'prompt' ? 'Prompt' : 'Resource'} · ${optionValue.name}`;
+                readName.append(option);
+            });
+            const canRead = installed && selected.item.status === 'enabled' && manifest.transport === 'local' && options.length > 0;
+            readTestPanel.hidden = !canRead;
+            if (readButton) readButton.disabled = !canRead;
+        }
         if (endpointField) endpointField.hidden = manifest.transport === 'local';
         if (endpoint) {
             endpoint.value = text(selected.item.configuration?.endpoint);
@@ -232,6 +256,35 @@ export function initMcpSkillsSettings({ root = document, navStatus } = {}) {
         if (await run(() => window.electronAPI.testMcpCapability(itemId(selected.item)), 'Safe read-only test completed.')) {
             selected = { item: findCapability(itemId(selected.item), false), available: false };
             renderDialog();
+        }
+    });
+    readButton?.addEventListener('click', async () => {
+        if (!selected || selected.available || !window.electronAPI?.readMcpResource || !readName || !readPreview) return;
+        const option = readName.selectedOptions[0];
+        if (!option) return;
+        readButton.disabled = true;
+        readPreview.textContent = 'Reading scoped evidence…';
+        try {
+            const response = await window.electronAPI.readMcpResource({
+                capabilityId: itemId(selected.item),
+                kind: option.dataset.kind === 'prompt' ? 'prompt' : 'resource',
+                name: option.dataset.name || '',
+                input: text(readInput?.value),
+                jobName: text(readJob?.value) || undefined,
+                timeoutMs: 1200
+            });
+            if (!response.success) {
+                readPreview.textContent = `Read failed: ${text(response.error, 'The read was not available.')}`;
+                setStatus(text(response.error, 'Read-only preview failed.'), true);
+            } else {
+                readPreview.textContent = JSON.stringify({ scope: response.scope, truncated: response.truncated, items: response.items }, null, 2);
+                setStatus('Read-only preview completed.');
+            }
+        } catch (error) {
+            readPreview.textContent = `Read failed: ${error instanceof Error ? error.message : 'The read was not available.'}`;
+            setStatus(error instanceof Error ? error.message : 'Read-only preview failed.', true);
+        } finally {
+            readButton.disabled = false;
         }
     });
     revokeButton?.addEventListener('click', async () => {

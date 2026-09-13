@@ -317,6 +317,9 @@ test('manages approved Skills and MCP capabilities from the settings workspace',
         await expect(app.page.locator('#settings-mcp-dialog-health')).toContainText('unknown');
         await app.page.locator('#settings-mcp-test').click();
         await expect(app.page.locator('#settings-mcp-dialog-health')).toContainText('ready');
+        await expect(app.page.locator('#settings-mcp-read-test')).toBeVisible();
+        await app.page.locator('#settings-mcp-read').click();
+        await expect(app.page.locator('#settings-mcp-read-preview')).toContainText('scope');
 
         await app.page.setViewportSize({ width: 560, height: 700 });
         expect(await app.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

@@ -106,7 +106,7 @@ Settings is organized into seven compact categories:
 
 Only the selected category is shown. Category changes keep unsaved form values in the current page session; save a form before leaving the app if you want the change to persist.
 
-In **Skills & MCP**, installed and approved available capabilities are shown in separate lists. Select a capability to inspect its version, owner, provider, transport, scopes, permissions, capabilities, status, and health. Select **Install** for an approved available capability; new installs start disabled. Enable it only after reviewing the detail, then run **Safe read-only test**. Remote connections must use an HTTPS endpoint. You can disable or revoke an installed capability from the same detail window; revocation cannot be undone from the app. These controls are operator actions and are never performed by AI.
+In **Skills & MCP**, installed and approved available capabilities are shown in separate lists. Select a capability to inspect its version, owner, provider, transport, scopes, permissions, capabilities, status, and health. Select **Install** for an approved available capability; new installs start disabled. Enable it only after reviewing the detail, then run **Safe read-only test**. An enabled local capability also shows a **Read-only preview** where you can choose a resource or prompt and optionally enter a job scope; the preview shows bounded results with scope, source, freshness, and redaction details. Remote connections must use an HTTPS endpoint. You can disable or revoke an installed capability from the same detail window; revocation cannot be undone from the app. These controls are operator actions and are never performed by AI.
 
 ### Object analysis
 

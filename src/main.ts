@@ -83,6 +83,7 @@ import { authorizeSupportAccess, getEffectiveSupportAccessGrant, isClientOwner, 
 import { toKnowledgeGrantSnapshot, type KnowledgeAccessContext } from './features/knowledge/knowledge-access';
 import { createKnowledgeStore } from './features/knowledge/knowledge-store';
 import { createKnowledgeIndexGateway, createLocalKnowledgeIndexAdapter, getKnowledgeIndexCatalog, normalizeKnowledgeIndexSettings, toStoredKnowledgeIndexSettings, type KnowledgeIndexSettings } from './features/knowledge/knowledge-index';
+import type { McpResourceDependencies, McpResourceItem } from './features/mcp/mcp-resources';
 import {
     ALWAYS_ON_SUPPORT_WINDOW,
     buildRoutingRecommendation,
@@ -641,6 +642,104 @@ function getRunbookPolicyForJob(jobName: string) {
         systemId: getCurrentSystemId(),
         businessServiceSettings: getNormalizedBusinessServiceSettings(store)
     }).runbook;
+}
+
+type McpResourceInput = Parameters<McpResourceDependencies['getItems']>[0];
+
+function getMcpResourceItems(request: McpResourceInput): McpResourceItem[] {
+    const now = new Date().toISOString();
+    const jobName = request.jobName?.trim();
+    const promptResource: Record<string, string> = {
+        'job-health-summary': 'ibmi://jobs/current',
+        'incident-review': 'imonitor://runbooks/approved',
+        'resolution-review': 'imonitor://resolution-memory/approved'
+    };
+    const name = request.kind === 'prompt' ? promptResource[request.name] || request.name : request.name;
+    const source = (id: string, title: string, content: unknown, observedAt: string, kind: McpResourceItem['sourceRef']['kind']): McpResourceItem => ({
+        id, title, content: JSON.stringify(content), observedAt, sourceRef: { kind, id, locator: `imonitor://${request.scope.systemScope}/${encodeURIComponent(id)}` }
+    });
+
+    if (name === 'ibmi://jobs/current') {
+        return monitoringState.getLatestJobs()
+            .filter((job) => !jobName || String(job.JOB_NAME || job.SUBSYSTEM_JOB || '').trim() === jobName)
+            .slice(0, 100)
+            .map((job) => {
+                const id = String(job.JOB_NAME || job.SUBSYSTEM_JOB || 'job').trim();
+                return source(id, `Current job ${id}`, {
+                    qualifiedName: id,
+                    jobNumber: job.JOB_NUMBER,
+                    user: job.JOB_USER || job.CURRENT_USER,
+                    subsystem: job.SUBSYSTEM,
+                    status: job.STATUS,
+                    cpu: job.CPU,
+                    cpuTime: job.CPU_TIME,
+                    function: job.FUNCTION_NAME,
+                    databaseLockWaits: job.DATABASE_LOCK_WAITS,
+                    nonDatabaseLockWaits: job.NON_DATABASE_LOCK_WAITS,
+                    messageReply: job.MESSAGE_REPLY
+                }, now, 'job');
+            });
+    }
+
+    if (name === 'ibmi://incidents/current') {
+        return alertState.getActiveAlerts()
+            .filter((alert) => !jobName || alert.jobName === jobName)
+            .slice(0, 100)
+            .map((alert) => {
+                const evidence = Object.fromEntries(Object.entries(alert.evidence || {}).map(([key, value]) => [key, {
+                    status: value.status,
+                    recordCount: value.recordCount,
+                    collectedAt: value.collectedAt,
+                    detail: value.detail
+                }]));
+                const id = String(alert.incidentId || alert.id).trim();
+                return source(id, alert.title, {
+                    incidentId: id,
+                    kind: alert.kind,
+                    severity: alert.severity,
+                    lifecyclePhase: alert.lifecyclePhase,
+                    workflowStatus: alert.workflowStatus,
+                    jobName: alert.jobName,
+                    message: alert.message,
+                    detail: alert.detail,
+                    owner: alert.owner,
+                    evidence,
+                    lastSeenAt: alert.lastSeenAt || alert.timestamp
+                }, alert.lastSeenAt || alert.timestamp, 'incident');
+            });
+    }
+
+    if (name === 'imonitor://runbooks/approved') {
+        const alerts = alertState.getActiveAlerts().filter((alert) => !jobName || alert.jobName === jobName);
+        return alerts.flatMap((alert) => {
+            const policy = alert.jobName ? getRunbookPolicyForJob(alert.jobName) : undefined;
+            if (!policy) return [];
+            return [source(policy.id, policy.title, { status: 'approved', policy }, alert.lastSeenAt || alert.timestamp, 'record')];
+        }).slice(0, 50);
+    }
+
+    if (name === 'imonitor://resolution-memory/approved') {
+        return getNormalizedResolutionMemory(store).entries
+            .filter((entry) => entry.status === 'approved' && (entry.systemId === request.scope.systemScope || entry.systemId === '*'))
+            .filter((entry) => !jobName || !entry.jobPattern || entry.jobPattern === jobName)
+            .slice(0, 50)
+            .map((entry) => source(entry.id, entry.title, {
+                status: entry.status,
+                version: entry.version,
+                systemId: entry.systemId,
+                incidentKind: entry.incidentKind,
+                jobPattern: entry.jobPattern,
+                symptoms: entry.symptoms,
+                evidenceRefs: entry.evidenceRefs,
+                successfulAction: entry.successfulAction,
+                verifiedOutcome: entry.verifiedOutcome,
+                environment: entry.environment,
+                reviewer: entry.reviewer,
+                approvedAt: entry.approvedAt
+            }, entry.approvedAt || entry.createdAt, 'record'));
+    }
+
+    return [];
 }
 
 const windowRuntime = createWindowRuntime({
@@ -1492,6 +1591,7 @@ registerMcpIpc({
     getRegistry: () => getNormalizedMcpRegistry(store),
     saveRegistry: (candidate) => saveMcpRegistry(store, candidate),
     getAccessContext: getKnowledgeAccessContext,
+    getResourceItems: getMcpResourceItems,
     recordActivity: loggingRuntime.recordActivity
 });
 

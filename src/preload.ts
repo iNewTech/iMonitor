@@ -997,6 +997,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
         available?: Array<Record<string, unknown>>;
         error?: string;
     }>,
+    readMcpResource: (payload: { capabilityId: string; kind: 'resource' | 'prompt'; name: string; input?: string; jobName?: string; timeoutMs?: number }) => ipcRenderer.invoke('read-mcp-resource', payload) as Promise<{
+        success: boolean;
+        requestId: string;
+        kind?: 'resource' | 'prompt';
+        name?: string;
+        items: Array<Record<string, unknown>>;
+        scope?: { customerScope: string; systemScope: string; jobName?: string };
+        truncated?: boolean;
+        error?: string;
+    }>,
     openJobTaskWindow: (jobName: string) => ipcRenderer.invoke('open-job-task-window', jobName) as Promise<{ success: boolean; }>,
     openExternalUrl: (target: string) => ipcRenderer.invoke('open-external-url', target) as Promise<{ success: boolean; }>,
 

@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron/main';
 import { authorizeKnowledgeRead, type KnowledgeAccessContext } from '../../features/knowledge/knowledge-access';
+import { readMcpResource, type McpResourceDependencies, type McpResourceRequest, type McpResourceResponse } from '../../features/mcp/mcp-resources';
 import {
     checkMcpCapability,
     configureMcpCapability,
@@ -21,6 +22,7 @@ export interface McpIpcDependencies {
     getRegistry: () => McpRegistryState;
     saveRegistry: (candidate: unknown) => McpRegistryState;
     getAccessContext: () => KnowledgeAccessContext;
+    getResourceItems: McpResourceDependencies['getItems'];
     recordActivity: (entry: ActivityEntry) => void;
 }
 
@@ -120,5 +122,22 @@ export function registerMcpIpc(dependencies: McpIpcDependencies) {
         } catch (error) {
             return failure(dependencies, error);
         }
+    });
+
+    ipcMain.handle('read-mcp-resource', async (_event, payload: unknown): Promise<McpResourceResponse> => {
+        const input = payload && typeof payload === 'object' ? payload as Record<string, unknown> : {};
+        const request: McpResourceRequest = {
+            capabilityId: String(input.capabilityId || ''),
+            kind: input.kind === 'prompt' ? 'prompt' : 'resource',
+            name: String(input.name || ''),
+            input: typeof input.input === 'string' ? input.input : undefined,
+            jobName: typeof input.jobName === 'string' ? input.jobName : undefined,
+            timeoutMs: Number(input.timeoutMs) || undefined
+        };
+        const access = denied(dependencies);
+        if (access) return { success: false, requestId: 'mcp-read-denied', items: [], error: access.error };
+        const result = await readMcpResource(dependencies.getRegistry(), dependencies.getAccessContext(), request, { getItems: dependencies.getResourceItems });
+        dependencies.recordActivity({ area: 'monitoring', level: result.success ? 'info' : 'warning', message: result.success ? 'MCP read-only resource tested.' : 'MCP read-only resource test failed.', detail: result.success ? `${request.kind}=${request.name}` : result.error });
+        return result;
     });
 }

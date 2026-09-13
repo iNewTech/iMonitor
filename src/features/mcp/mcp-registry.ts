@@ -153,13 +153,13 @@ const BUILT_IN_MANIFESTS: McpManifest[] = [
     {
         kind: 'skill', id: 'ibmi-monitoring', name: 'IBM i Monitoring', version: '1.0.0', owner: 'iMonitor', provider: 'iMonitor', transport: 'local',
         scopes: ['customer', 'system', 'jobs'], capabilityClass: 'read-only', requiredPermissions: ['read'], approvalClass: 'system',
-        tools: [], resources: ['ibmi://jobs', 'ibmi://alerts'], prompts: ['job-health-summary'], schemas: { 'job-query': 'qualified job and system scope' },
+        tools: [], resources: ['ibmi://jobs/current', 'ibmi://incidents/current'], prompts: ['job-health-summary'], schemas: { 'job-query': 'qualified job and system scope' },
         evidenceRequirements: ['current polling snapshot'], limits: { maxCallsPerMinute: 120, maxResults: 100 }, enabled: true
     },
     {
         kind: 'skill', id: 'ibmi-runbook-review', name: 'IBM i Runbook Review', version: '1.0.0', owner: 'iMonitor', provider: 'iMonitor', transport: 'local',
         scopes: ['customer', 'system', 'job'], capabilityClass: 'read-only', requiredPermissions: ['read', 'investigate'], approvalClass: 'client',
-        tools: [], resources: ['ibmi://runbooks', 'ibmi://resolutions'], prompts: ['incident-review'], schemas: { 'incident-query': 'job, incident, and system scope' },
+        tools: [], resources: ['imonitor://runbooks/approved', 'imonitor://resolution-memory/approved'], prompts: ['incident-review', 'resolution-review'], schemas: { 'incident-query': 'job, incident, and system scope' },
         evidenceRequirements: ['selected job identity', 'current incident evidence'], limits: { maxCallsPerMinute: 60, maxResults: 50 }, enabled: false
     },
     {
