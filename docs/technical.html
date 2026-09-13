@@ -87,44 +87,35 @@ npm run docs:serve</pre>
                     <h2>Current source layout</h2>
                     <pre class="docs-code">src/
   features/
-    alerts/
-      alert-model.ts
-      alert-operator-workflow.ts
-      alert-workflow.ts
-    demo/
-      demo-runtime.ts
-    guidance/
-      root-cause-guidance.ts
-    history/
-      history-model.ts
-    monitoring/
-      monitoring-model.ts
-    action-board/
-      operator-actions.ts
-    theme/
-      theme-model.ts
-  services/
-    ibmi.ts
-  utils/
-    connections.ts
-    crypto.ts
-    demo-system.ts
-    mapepire-deploy.ts
-    password-store.ts
-  main.ts
-  preload.ts
+    alerts/             incident identity, evidence, workflow, handoff
+    action-board/       routing, access, memory, problems, runbooks, replay
+    history/            timeline and support outcome models
+    ibmeyeai/           scoped context, providers, correlation, guidance
+    monitoring/         job polling and filtering models
+    collector/          background collection settings and storage rules
+  main/
+    ipc/                privileged request boundaries
+    runtime/            monitoring, AI, integrations, collection, logging
+    state/              connection and alert state
+    window/             main and standalone task windows
+  main.ts               composition and lifecycle
+  preload.ts            safe renderer API bridge
+  services/             IBM i, demo, and object-analysis providers
 
 public/
-  index.html
+  monitor/              ActionBoard feature modules
+  object-analysis/      source actions, report view, and call graph
+  job-task.js           standalone task workflow
   monitor.html
-  renderer.js
-  monitor.js
-  styles.css
+  object-analysis.html
+  styles/               ordered feature stylesheets
+  styles.css            import manifest
 
 docs/
-  index.html
-  technical.html
-  api/</pre>
+  index.html            documentation hub
+  technical.html        curated technical guide
+  *_RELEASE_GATE.md     phase evidence records
+  api/                  generated TypeDoc reference</pre>
                 </section>
 
                 <section id="ownership" class="docs-section">
@@ -195,8 +186,8 @@ docs/
                             <p>`src/features/guidance/root-cause-guidance.ts` explains waits, high CPU, and monitoring failures for operators.</p>
                         </div>
                         <div class="docs-block">
-                            <h3>Current gap</h3>
-                            <p>Real `MSGW` reply still needs safe IBM i message-level context in the job detail path.</p>
+                            <h3>Release evidence</h3>
+                            <p>P1 through P4 candidates have automated evidence records; live IBM i UAT and deployment evidence remain in the phase gate documents.</p>
                         </div>
                     </div>
                 </section>
@@ -212,13 +203,13 @@ docs/
                 </section>
 
                 <section id="next" class="docs-section">
-                    <h2>Next refactor targets</h2>
+                    <h2>Current maintenance focus</h2>
                     <ol class="docs-steps">
-                        <li>Split `src/main.ts` into focused areas for store, IPC, and runtime orchestration.</li>
-                        <li>Move renderer page logic into clearer renderer feature modules.</li>
-                        <li>Reduce global mutable state in the main process.</li>
-                        <li>Keep demo generation and production monitoring decoupled.</li>
-                        <li>Extend job detail fetches with IBM i message-level context for real `MSGW` replies.</li>
+                        <li>Keep Project 7 as the delivery source of truth and preserve ticket-tagged commits.</li>
+                        <li>Complete named pilot and live IBM i UAT records before marking a phase Deployed.</li>
+                        <li>Keep customer scope, operator authority, redaction, and AI approval boundaries intact.</li>
+                        <li>Regenerate TypeDoc after exported API changes and keep the curated guides aligned.</li>
+                        <li>Use the current feature modules for new work instead of growing page or composition files.</li>
                     </ol>
                 </section>
             </main>
@@ -234,7 +225,7 @@ docs/
                         <li><a href="#docs-model">Documentation model</a></li>
                         <li><a href="#foundations">Feature foundations</a></li>
                         <li><a href="#boundaries">Important boundaries</a></li>
-                        <li><a href="#next">Next refactor targets</a></li>
+                        <li><a href="#next">Current maintenance focus</a></li>
                     </ul>
                 </section>
 
@@ -244,13 +235,17 @@ docs/
                         <a href="index.html">Docs home</a>
                         <a href="api/index.html">API docs</a>
                         <a href="api/documents/ARCHITECTURE.html">Architecture</a>
+                        <a href="PILOT_VALIDATION.md">Pilot validation</a>
+                        <a href="P2_RELEASE_GATE.md">P2 gate</a>
+                        <a href="P3_RELEASE_GATE.md">P3 gate</a>
+                        <a href="P4_RELEASE_GATE.md">P4 gate</a>
                     </div>
                 </section>
             </aside>
         </div>
 
         <footer class="docs-footer">
-            This page reflects the current technical guide as of August 23, 2026.
+            This page reflects the current technical guide as of September 13, 2026.
         </footer>
     </div>
 

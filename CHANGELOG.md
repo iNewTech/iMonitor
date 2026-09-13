@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### 2026-09-13
+
+- Added customer-scoped support outcome reporting with stage definitions, unknown samples, previous-window comparison, AI availability, and JSON export.
+- Added a pilot validation and compatibility record for exact client, IBM i release/PTF, authority, scale, provider, integration, defect, and approval evidence.
+- Added P2, P3, and P4 release-gate records with candidate, automated-test, UAT, review, deployment, smoke, and rollback checklists.
+- Added recurring-problem management, sanitized incident replay training, and verified runbook checkpoint execution to the ActionBoard roadmap documentation.
+- Kept autonomous production recovery as future research; current production mutations remain authenticated, approved, and independently verified.
+
 - Split analysis rendering, request coordination, source discovery, and main-process analysis setup into focused modules.
 - Organized styles by feature behind an ordered import manifest and reused shared monitor formatters.
 - Fixed source discovery for common IBM i export layouts, preserved disk casing, and excluded generated analysis output.

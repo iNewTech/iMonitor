@@ -1,9 +1,10 @@
 # iMonitor Implementation Backlog
 
-Last updated: August 23, 2026
+Last updated: September 13, 2026
 
-This file is the working feature queue for iMonitor and its IBMEye alert module.
-It is the source of truth for remaining feature work, refactors, and testing expectations.
+This file is retained as historical pre-Project-7 refactor context for iMonitor and its IBMEye alert module.
+Project 7 is the source of truth for current feature work, delivery status, evidence, and release gates.
+The statuses and queue below describe the earlier planning snapshot; do not use them to schedule current work.
 
 ## Delivery Rules
 
@@ -28,7 +29,7 @@ Code expectations:
 - keep comments minimal and useful
 - keep demo-only code isolated from production paths
 
-## Status Key
+## Historical status key
 
 - `todo`
 - `in-progress`
