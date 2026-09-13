@@ -119,7 +119,6 @@ test('launches the demo monitor and renders live incidents in active jobs', asyn
         await expect(task.locator('#task-issue-title')).toHaveText(incident.title);
         await expect(task.locator('#task-issue-summary')).toHaveText(incident.message);
         await expect(task.locator('#task-issue-state')).toHaveText('CRITICAL | New');
-        await task.getByRole('tab', { name: 'Actions', exact: true }).click();
         await expect(task.locator('#task-response-business')).toHaveText('Order processing');
         await expect(task.locator('#task-response-business-summary')).toContainText('Finance operations');
         await expect(task.getByTestId('incident-correlation-summary')).toContainText(/Priority \d+\/100/);
@@ -136,7 +135,7 @@ test('launches the demo monitor and renders live incidents in active jobs', asyn
         await expect(task.locator('.resolution-memory-item')).toContainText('Draft');
         await task.locator('.resolution-memory-item [data-memory-action="approve"]').click();
         await expect(task.locator('.resolution-memory-item')).toContainText('Approved');
-        await task.getByRole('tab', { name: 'Details', exact: true }).click();
+        await task.locator('#task-panel-details > summary').click();
         await task.locator('#task-load-graph').click();
         await expect(task.getByTestId('task-resource-graph')).toContainText('Observed resource relationships');
         await expect(task.getByTestId('task-resource-graph')).toContainText('uses queue');
@@ -195,7 +194,6 @@ test('prioritizes incident jobs and opens the next task from the active jobs boa
         await expect(task.locator('#task-status')).toHaveText(/MSGW|LCKW/);
         const jobName = await task.locator('#task-qualified-job').innerText();
         await expect(incidentRow(app.page, jobName)).toBeVisible();
-        await task.getByRole('tab', { name: 'Actions', exact: true }).click();
         await expect(task.getByRole('button', { name: 'Claim Work', exact: true })).toBeEnabled();
     } finally {
         await app.cleanup();
@@ -231,9 +229,8 @@ test('keeps duplicate properties out and loads job logs only when requested', as
         await expect(task.getByRole('heading', { name: 'Current or last SQL statement', exact: true })).toHaveCount(0);
         await expect(task.locator('#load-job-context')).toHaveCount(0);
         await expect(task.locator('#job-context-output')).toHaveCount(0);
-        await task.getByRole('tab', { name: 'Details', exact: true }).click();
+        await task.locator('#task-panel-details > summary').click();
         await expect(task.locator('#task-details-output')).toBeEmpty();
-        await task.getByRole('tab', { name: 'AI helper', exact: true }).click();
         await expect(task.locator('#task-ai-output')).toBeHidden();
         await expect(task.locator('#task-ai-summary')).toBeEnabled();
         await task.locator('#task-ai-summary').click();
@@ -241,7 +238,6 @@ test('keeps duplicate properties out and loads job logs only when requested', as
         await expect(task.locator('#task-ai-status')).toHaveText('Ready');
         await expect(task.locator('#task-ai-content')).toContainText('Mock job analysis: inspect the job log.');
         await expect(app.page.locator('#ibmeyeai-widget')).toHaveAttribute('data-open', 'false');
-        await task.getByRole('tab', { name: 'Details', exact: true }).click();
         await expect(task.locator('#task-details-output')).toBeEmpty();
         await task.locator('#task-load-log').click();
         await expect(task.locator('#task-details-output')).toContainText('Recent job log');
@@ -256,7 +252,6 @@ test('requires confirmation before running an IBM i job action', async () => {
     try {
         await openDemoMonitor(app.page);
         const task = await openTaskWindow(app, () => app.page.locator('.job-row').first().click());
-        await task.getByRole('tab', { name: 'Actions', exact: true }).click();
         const jobName = await task.locator('#task-qualified-job').innerText();
         const originalNote = await task.locator('#task-action-note').innerText();
         let dismissed = false;
@@ -299,7 +294,6 @@ test('supports acknowledge, claim, note, work done, and return-to-queue in the a
         expect(operator).toBeTruthy();
         const row = incidentRow(app.page, jobName);
         const task = await openTaskWindow(app, () => row.click());
-        await task.getByRole('tab', { name: 'Actions', exact: true }).click();
         await task.getByRole('button', { name: 'Acknowledge', exact: true }).click();
         await expect.poll(() => readIncident(app.page, alertId)).toMatchObject({ workflowStatus: 'acknowledged' });
         await expect(task.getByRole('button', { name: 'Acknowledge', exact: true })).toHaveCount(0);
@@ -324,7 +318,7 @@ test('supports acknowledge, claim, note, work done, and return-to-queue in the a
         await task.getByRole('tab', { name: 'History', exact: true }).click();
         await expect(task.locator('#task-incident-history')).toContainText('Note added');
         await expect(task.locator('#task-incident-history')).toContainText(note);
-        await task.getByRole('tab', { name: 'Actions', exact: true }).click();
+        await task.getByRole('tab', { name: 'Overview', exact: true }).click();
         await task.getByRole('button', { name: 'Mark Work Done', exact: true }).click();
         await expect.poll(() => readIncident(app.page, alertId)).toMatchObject({ workflowStatus: 'work_done', owner: operator });
         await task.getByRole('tab', { name: 'History', exact: true }).click();
@@ -335,7 +329,7 @@ test('supports acknowledge, claim, note, work done, and return-to-queue in the a
         await expect(history.locator('.alert-timeline-entry strong')).toHaveText([
             'Work marked done', 'Note added', 'Work claimed', 'Acknowledged', 'Alert created'
         ]);
-        await task.getByRole('tab', { name: 'Actions', exact: true }).click();
+        await task.getByRole('tab', { name: 'Overview', exact: true }).click();
         await task.getByRole('button', { name: 'Remove Claim', exact: true }).click();
         await expect.poll(async () => {
             const updated = await readIncident(app.page, alertId);
@@ -363,7 +357,6 @@ test('updates the active job owner badge immediately after claiming and releasin
         expect(operator).toBeTruthy();
         const row = incidentRow(app.page, incident.jobName!);
         const task = await openTaskWindow(app, () => row.click());
-        await task.getByRole('tab', { name: 'Actions', exact: true }).click();
         await task.getByRole('button', { name: 'Claim Work', exact: true }).click();
         await expect.poll(() => readIncident(app.page, incident.id)).toMatchObject({ workflowStatus: 'claimed', owner: operator });
         await expect(row.locator('.job-owner-chip')).toHaveText(operator!);

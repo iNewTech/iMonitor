@@ -43,11 +43,11 @@ Search, status/subsystem filters, My work, Focus next, owner, and polling contro
 
 ### 3. Job task
 
-Use one independent window per qualified job identity. Opening another job creates another window; reopening the same job focuses it. Begin around 680 CSS px of content, subject to platform limits. Use Overview and History as the only persistent tabs. The header identifies the system and job; Overview explains the issue, owner, support stage, configured impact or Unknown, freshness, and next check.
+Use one independent window per qualified job identity. Opening another job creates another window; reopening the same job focuses it. The native window starts at 720×680 so the content area is roughly 680 CSS px after platform chrome, with a 560×460 minimum. Use Overview and History as the only persistent tabs. The header identifies the system and job; Overview explains the issue, owner, support stage, configured impact or Unknown, freshness, and next check.
 
 Show **Claim work** when unassigned. After claiming, the primary action becomes the applicable investigation step. **Explain & resolve** opens the conversation within the same window. Place Handoff, linked ticket, Mark work done, Remove claim, and eligible job operations under More or a compact responsive row. High-impact operations still show a specific preview/confirmation. During handoff, the original operator remains responsible until the recipient accepts. Monitoring-confirmed recovery controls issue removal.
 
-Keep notes and all history events. Technical details expand. Resource graphs, runbook execution, Resolution Memory, recurring-problem work, and replay training remain reachable contextually. Each migrated capability must have a tested entry point. Polling, reconnect, and switching views must not erase work in progress.
+Keep notes and all history events. Technical details expand on demand, while the workflow, AI helper, runbook, Resolution Memory, recurring-problem, replay, and handoff areas remain contextual Overview sections. Resource graphs and job evidence stay reachable from Technical details. Each migrated capability must have a tested entry point. Polling, reconnect, and switching views must not erase work in progress.
 
 ### 4. AI & evidence
 

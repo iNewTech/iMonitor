@@ -22,10 +22,7 @@
 
         <nav class="job-task-tabs" role="tablist" aria-label="Job task sections">
             <button type="button" class="job-task-tab is-active" id="task-tab-overview" role="tab" aria-controls="task-panel-overview" aria-selected="true" tabindex="0" data-task-tab="overview">Overview</button>
-            <button type="button" class="job-task-tab" id="task-tab-actions" role="tab" aria-controls="task-panel-actions" aria-selected="false" tabindex="-1" data-task-tab="actions">Actions</button>
-            <button type="button" class="job-task-tab" id="task-tab-ai" role="tab" aria-controls="task-panel-ai" aria-selected="false" tabindex="-1" data-task-tab="ai">AI helper</button>
             <button type="button" class="job-task-tab" id="task-tab-history" role="tab" aria-controls="task-panel-history" aria-selected="false" tabindex="-1" data-task-tab="history">History</button>
-            <button type="button" class="job-task-tab" id="task-tab-details" role="tab" aria-controls="task-panel-details" aria-selected="false" tabindex="-1" data-task-tab="details">Details</button>
         </nav>
 
         <section id="task-empty" class="activity-log-empty" role="status">
@@ -68,7 +65,7 @@
                 </section>
             </section>
 
-            <section class="job-task-panel" id="task-panel-actions" role="tabpanel" aria-labelledby="task-tab-actions" tabindex="0" data-task-panel="actions" hidden>
+            <section class="task-overview-section" id="task-panel-actions" data-task-section="actions" aria-label="Job actions">
                 <section class="job-detail-section">
                     <div class="history-card-header">
                         <div>
@@ -221,7 +218,7 @@
                 </section>
             </section>
 
-            <section class="job-task-panel" id="task-panel-ai" role="tabpanel" aria-labelledby="task-tab-ai" tabindex="0" data-task-panel="ai" hidden>
+            <section class="task-overview-section" id="task-panel-ai" data-task-section="ai" aria-label="AI helper" tabindex="-1">
                 <section class="job-detail-section">
                     <div class="history-card-header">
                         <div>
@@ -264,7 +261,11 @@
                 </section>
             </section>
 
-            <section class="job-task-panel" id="task-panel-details" role="tabpanel" aria-labelledby="task-tab-details" tabindex="0" data-task-panel="details" hidden>
+            <details class="task-overview-section task-technical-details" id="task-panel-details" data-task-section="details">
+                <summary class="job-task-section-summary">
+                    <span><span class="eyebrow">Technical details</span><strong>Logs, messages, and relationships</strong></span>
+                    <i class="bi bi-chevron-down" aria-hidden="true"></i>
+                </summary>
                 <section class="job-detail-grid">
                     <article class="job-detail-card"><span class="stat-label">Temporary Storage</span><strong id="task-temp-storage" class="job-detail-value text-break">-</strong></article>
                     <article class="job-detail-card"><span class="stat-label">Disk I/O</span><strong id="task-disk-io" class="job-detail-value text-break">-</strong></article>
@@ -277,7 +278,7 @@
                     </div>
                     <div id="task-details-output" class="on-demand-output text-break" role="status"></div>
                 </section>
-            </section>
+            </details>
         </section>
     </main>
 

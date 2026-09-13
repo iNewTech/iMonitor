@@ -132,6 +132,7 @@ const test = base.extend<{ task: TestHandle }>({
             page.on('pageerror', (error) => errors.push(error.message));
             await page.waitForLoadState('domcontentloaded');
             await expect(page.locator('#task-title')).toHaveText('REVIEWJOB');
+            await expect(page.locator('body')).toHaveAttribute('data-theme', 'operator-light');
             // Deterministically advance the renderer's periodic refresh in tests.
             await page.clock.install();
             await use({ app, page, errors });
@@ -143,19 +144,48 @@ const test = base.extend<{ task: TestHandle }>({
     }
 });
 
-test('tabs support keyboard navigation and History shows escaped incident evidence', async ({ task: { app, page } }) => {
+test('reuses the same task window and opens another for a different job', async ({ task: { app } }) => {
+    const connection = app.windows().find((window) => !window.url().includes('job-task.html'));
+    expect(connection).toBeDefined();
+    const initialWindowCount = app.windows().length;
+
+    await connection!.evaluate(async (name) => {
+        await (window as unknown as { electronAPI: { openJobTaskWindow(jobName: string): Promise<unknown> } }).electronAPI.openJobTaskWindow(name);
+    }, jobName);
+    await expect.poll(() => app.windows().length).toBe(initialWindowCount);
+
+    const secondWindowPromise = app.waitForEvent('window');
+    await connection!.evaluate(async (name) => {
+        await (window as unknown as { electronAPI: { openJobTaskWindow(jobName: string): Promise<unknown> } }).electronAPI.openJobTaskWindow(name);
+    }, '123456/OPERATOR/SECONDJOB');
+    const secondWindow = await secondWindowPromise;
+    await secondWindow.waitForLoadState('domcontentloaded');
+    expect(secondWindow.url()).toContain('SECONDJOB');
+    await expect.poll(() => app.windows().length).toBe(initialWindowCount + 1);
+    await secondWindow.close();
+});
+
+test('compact task window keeps only Overview and History while preserving evidence', async ({ task: { app, page } }) => {
+    await expect(page.getByRole('tab')).toHaveCount(2);
     const overview = page.getByRole('tab', { name: 'Overview', exact: true });
     await overview.focus();
-    await overview.press('ArrowLeft');
-    await expect(page.getByRole('tab', { name: 'Details', exact: true })).toBeFocused();
-    await expect(page.locator('#task-disk-io')).toHaveText('0');
+    await overview.press('ArrowRight');
+    await expect(page.getByRole('tab', { name: 'History', exact: true })).toBeFocused();
     await page.keyboard.press('Home');
     await expect(overview).toBeFocused();
     await page.keyboard.press('End');
-    await page.keyboard.press('ArrowRight');
-    await expect(overview).toBeFocused();
-    await page.keyboard.press('ArrowRight');
-    await expect(page.getByRole('tabpanel', { name: 'Actions', exact: true })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'History', exact: true })).toBeFocused();
+    await page.getByRole('tab', { name: 'Overview', exact: true }).click();
+    await expect(page.locator('#task-panel-actions')).toBeVisible();
+    await expect(page.locator('#task-panel-ai')).toBeVisible();
+    await page.locator('#task-panel-details > summary').click();
+    await expect(page.locator('#task-load-log')).toBeVisible();
+    await page.getByRole('tab', { name: 'History', exact: true }).click();
+    await expect(page.locator('#task-panel-actions')).toBeHidden();
+    await expect(page.locator('#task-panel-ai')).toBeHidden();
+    await expect(page.locator('#task-panel-details')).toBeHidden();
+    await page.getByRole('tab', { name: 'Overview', exact: true }).click();
+    await expect(page.locator('#task-panel-actions')).toBeVisible();
     await expect(page.locator('[role="tab"][tabindex="0"]')).toHaveCount(1);
     await expect(page.locator('[role="tab"][aria-selected="true"]')).toHaveCount(1);
     await pushAlerts(app, [alert, { ...alert, id: 'cleared', isActive: false, title: 'Recovered incident', workflowStatus: 'system_cleared' }]);
@@ -169,8 +199,8 @@ test('tabs support keyboard navigation and History shows escaped incident eviden
     await expect(page.locator('#task-status-history')).toContainText('Running');
 });
 
-test('Actions shows the response brief and keeps handoff routing compact', async ({ task: { page } }) => {
-    await page.getByRole('tab', { name: 'Actions', exact: true }).click();
+test('Overview shows the response brief and keeps handoff routing compact', async ({ task: { page } }) => {
+    await expect(page.locator('#task-panel-actions')).toBeVisible();
     await expect(page.locator('#task-response-step-respond')).toHaveClass(/is-active/);
     await expect(page.locator('#task-response-impact')).toHaveText('High');
     await expect(page.locator('#task-response-owner')).toHaveText('Unassigned');
@@ -187,7 +217,7 @@ test('Actions shows the response brief and keeps handoff routing compact', async
 });
 
 test('L3 workspace explains a problem match and captures confirmation evidence', async ({ task: { app, page } }) => {
-    await page.getByRole('tab', { name: 'Actions', exact: true }).click();
+    await expect(page.locator('#task-panel-actions')).toBeVisible();
     await expect(page.locator('#task-problem-panel')).toBeVisible();
     await expect(page.locator('#task-problem-status')).toContainText('Candidate');
     await expect(page.locator('#task-problem-match')).toContainText('Potential match');
@@ -200,7 +230,7 @@ test('L3 workspace explains a problem match and captures confirmation evidence',
 });
 
 test('training replay stays isolated from IBM i actions', async ({ task: { app, page } }) => {
-    await page.getByRole('tab', { name: 'Actions', exact: true }).click();
+    await expect(page.locator('#task-panel-actions')).toBeVisible();
     await expect(page.locator('#task-replay-panel')).toBeVisible();
     await page.locator('#task-replay-response').selectOption('replyMessage');
     await page.locator('#task-replay-run').click();
@@ -210,7 +240,7 @@ test('training replay stays isolated from IBM i actions', async ({ task: { app, 
 });
 
 test('sends and accepts a persisted incident handoff', async ({ task: { app, page } }) => {
-    await page.getByRole('tab', { name: 'Actions', exact: true }).click();
+    await expect(page.locator('#task-panel-actions')).toBeVisible();
     await page.locator('#task-handoff-recipient').fill('l3-specialist');
     await page.locator('#task-handoff-reason').fill('Specialist review needed.');
     await page.locator('#task-handoff-pending-checks').fill('Find the blocking job.');
@@ -230,7 +260,7 @@ test('sends and accepts a persisted incident handoff', async ({ task: { app, pag
 });
 
 test('workflow checks failures, deduplicates pending claims, and leaves ClickUp to main', async ({ task: { app, page } }) => {
-    await page.getByRole('tab', { name: 'Actions', exact: true }).click();
+    await expect(page.locator('#task-panel-actions')).toBeVisible();
     await configure(app, { 'update-alert-workflow': { value: { success: false, error: 'Claim rejected.' }, hold: true } });
     await page.getByRole('button', { name: 'Claim Work', exact: true }).click();
     await expect.poll(() => calls(app, 'update-alert-workflow')).toHaveLength(1);
@@ -251,12 +281,12 @@ test('workflow checks failures, deduplicates pending claims, and leaves ClickUp 
     expect(await calls(app, 'create-clickup-task-for-alert')).toHaveLength(0);
 });
 
-test('AI actions reveal and focus AI tab, reject duplicate requests and recover from failures', async ({ task: { app, page } }) => {
+test('AI actions reveal and focus the helper section, reject duplicate requests and recover from failures', async ({ task: { app, page } }) => {
     await configure(app, { 'ask-ai-assistant': { error: 'Provider unavailable.', hold: true } });
-    await page.getByRole('tab', { name: 'Actions', exact: true }).click();
+    await expect(page.locator('#task-panel-actions')).toBeVisible();
     await page.getByRole('button', { name: 'Explain Issue', exact: true }).click();
-    await expect(page.getByRole('tab', { name: 'AI helper', exact: true })).toBeFocused();
-    await expect(page.getByRole('tabpanel', { name: 'AI helper', exact: true })).toBeVisible();
+    await expect(page.locator('#task-panel-ai')).toBeVisible();
+    await expect(page.locator('#task-panel-ai')).toBeFocused();
     await expect(page.locator('#task-ai-status')).toHaveText('Thinking');
     await expect(page.locator('#task-ai-summary')).toBeDisabled();
     await page.locator('#task-ai-resolve').dispatchEvent('click');
@@ -299,7 +329,7 @@ test('refresh batches cannot overlap or replace newer pushed alerts and retry af
 });
 
 test('job operations invalidate old refreshes, preserve feedback and confirmation', async ({ task: { app, page } }) => {
-    await page.getByRole('tab', { name: 'Actions', exact: true }).click();
+    await expect(page.locator('#task-panel-actions')).toBeVisible();
     page.once('dialog', (dialog) => dialog.dismiss());
     await page.getByRole('button', { name: 'Hold Job', exact: true }).click();
     expect(await calls(app, 'run-job-action')).toHaveLength(0);
@@ -328,7 +358,7 @@ test('job operations invalidate old refreshes, preserve feedback and confirmatio
 });
 
 test('detail requests share a lock and display returned and thrown errors; external failures are visible', async ({ task: { app, page } }) => {
-    await page.getByRole('tab', { name: 'Details', exact: true }).click();
+    await page.locator('#task-panel-details > summary').click();
     await configure(app, { 'get-job-log': { error: 'Log transport failed.', hold: true } });
     await page.locator('#task-load-log').click();
     await expect.poll(() => calls(app, 'get-job-log')).toHaveLength(1);
@@ -347,18 +377,19 @@ test('detail requests share a lock and display returned and thrown errors; exter
     await expect(page.locator('#task-details-output')).toContainText('CPF1234');
     await pushAlerts(app, [{ ...alert, clickUpTask: { id: 'mock-task', url: 'https://example.invalid/task' } }]);
     await configure(app, { 'open-external-url': { error: 'Link could not open.' } });
-    await page.getByRole('tab', { name: 'Actions', exact: true }).click();
+    await expect(page.locator('#task-panel-actions')).toBeVisible();
     await page.getByRole('button', { name: 'Open ClickUp', exact: true }).click();
     await expect(page.locator('#task-workflow-note')).toContainText('Link could not open.');
 });
 
 test('task panels stay usable at the minimum window size', async ({ task: { page } }, testInfo) => {
     await page.setViewportSize({ width: 560, height: 460 });
-    for (const name of ['Overview', 'Actions', 'AI helper', 'History', 'Details']) {
+    for (const name of ['Overview', 'History']) {
         await page.getByRole('tab', { name, exact: true }).click();
         await expect(page.getByRole('tabpanel', { name, exact: true })).toBeVisible();
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     }
-    await page.getByRole('tab', { name: 'Actions', exact: true }).click();
+    await page.getByRole('tab', { name: 'Overview', exact: true }).click();
+    await expect(page.locator('#task-panel-actions')).toBeVisible();
     await page.screenshot({ path: testInfo.outputPath('task-actions-560.png'), fullPage: true });
 });

@@ -76,6 +76,10 @@ This is the daily operator screen. It contains the live connection state, a slim
 
 Selecting a job opens a separate compact task window. The main ActionBoard keeps polling while task windows are open, and more than one job task can remain open.
 
+The task window has two persistent tabs: **Overview** and **History**. Overview keeps the current issue, job facts, owner, response stage, AI helpers, workflow actions, and runbook context together. Expand **Technical details** only when you need logs, messages, or resource relationships. Use **History** for detection, evidence, ownership, AI, handoff, action, and recovery events.
+
+When an incident is unassigned, **Claim Work** assigns it to the current operator. After claiming, the window shows the owner and the next investigation step. AI helpers stay inside the selected job context. Handoff, linked ticket, work completion, claim removal, and eligible IBM i operations remain available in the compact action area. A job operation is not treated as recovery until a fresh monitoring check confirms the expected state.
+
 ### Settings
 
 Settings contains four areas: **Alerts**, **IBMEye AI**, **Integrations**, and **Support access**. Alert settings also contain the background collector and business service mappings.

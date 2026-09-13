@@ -4,6 +4,7 @@
 
 ### 2026-09-13
 
+- Refined job tasks into compact independent windows with only Overview/History tabs, contextual actions and AI, expandable technical details, saved theme inheritance, and per-job window reuse (#59, UI-03, Project 8).
 - Show the compact live activity overview above jobs by default after connecting; retain live chart updates while collapsed (#58, UI-02, Project 8).
 
 - Removed workspace navigation from Connect and blocked Settings/Knowledge routes until connected (#57, UI-01, Project 8). Profile controls, theme, plan and Support remain available before connection.

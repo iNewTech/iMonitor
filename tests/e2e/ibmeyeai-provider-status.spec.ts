@@ -141,11 +141,11 @@ test('sends presets from the compact composer and exposes incident and job AI in
         await task.waitForLoadState('domcontentloaded');
         await expect(task).toHaveURL(/job-task\.html\?jobName=/);
         await expect(task.locator('#task-qualified-job')).toHaveText(jobName!);
-        await task.getByRole('tab', { name: 'Actions', exact: true }).click();
+        await expect(task.locator('#task-panel-actions')).toBeVisible();
         await expect(task.getByRole('button', { name: 'Explain Issue', exact: true })).toBeVisible();
         await expect(task.getByRole('button', { name: 'How To Resolve', exact: true })).toBeVisible();
         await task.getByRole('button', { name: 'Explain Issue', exact: true }).click();
-        await expect(task.getByRole('tab', { name: 'AI helper', exact: true })).toHaveAttribute('aria-selected', 'true');
+        await expect(task.locator('#task-panel-ai')).toBeFocused();
         await expect(task.locator('#task-ai-content')).toContainText('Mock analysis 3');
         await expect(app.page.locator('#ibmeyeai-widget')).toHaveAttribute('data-open', 'false');
         await expect(task.locator('#task-ai-summary')).toBeEnabled();

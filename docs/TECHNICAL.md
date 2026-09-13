@@ -187,3 +187,11 @@ Unit tests cover domain behavior. Electron tests use temporary application store
 ### Live activity on the connected board
 
 `public/monitor.html` opens the existing `board-history-panel` disclosure above jobs. `public/monitor/history.js` continues rendering the main-process polling history for Job volume, Peak job CPU and Wait states, including empty history; collapsing the overview does not stop collection or reopen the panel on updates. Each connection starts with it expanded. The scoped board stylesheet keeps three compact charts in light/dark and narrow layouts and reduces the job-list scroll height only while the overview is expanded. No additional polling loop, history store, or telemetry metric was added.
+
+### Compact independent job task window (UI-03 / #59)
+
+`src/main/window/window-runtime.ts` owns one native `BrowserWindow` per normalized qualified job identity. A repeated open focuses the existing entry in `jobTaskWindows`; a different identity receives its own window. The initial native size is 720×680 with a 560×460 minimum so the renderer has roughly 680 CSS px of working width while retaining a usable narrow reflow.
+
+`public/job-task.html` keeps only Overview and History as persistent navigation. The workflow, AI helper, runbook, Resolution Memory, recurring-problem, replay, and handoff sections are contextual Overview sections. Logs, messages, and resource relationships are inside a native `details` disclosure. `setTab()` treats helper actions as Overview context, preserves the existing conversation, and hides contextual sections only while History is selected.
+
+The task renderer loads the saved theme before displaying the window and keeps polling, action leases, authorization, ticket synchronization, and recovery verification in their existing main-process boundaries. Focused Electron tests cover window identity reuse/coexistence, two-tab keyboard navigation, contextual AI focus, technical disclosure, workflow failures, action confirmation, history escaping, refresh races, and minimum-size reflow.

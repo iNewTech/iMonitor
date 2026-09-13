@@ -11,6 +11,13 @@ import {
     buildSelectedJobHealthPrompt
 } from './monitor/ibmeyeai/action-prompts.js';
 import { renderAiReportMarkdown } from './monitor/ibmeyeai/render.js';
+import { applyTheme } from './connection/shared.js';
+
+void window.electronAPI.getThemeSettings?.().then((settings) => {
+    applyTheme(settings?.themeId);
+}).catch(() => {
+    applyTheme('operator-light');
+});
 
 const params = new URLSearchParams(window.location.search);
 const selectedJobName = params.get('jobName') || '';
@@ -226,17 +233,24 @@ function renderIncidentEvidence(alert) {
 }
 
 function setTab(tabName) {
+    const persistentTab = ['overview', 'history'].includes(tabName) ? tabName : 'overview';
     document.querySelectorAll('[data-task-tab]').forEach((button) => {
-        const selected = button.dataset.taskTab === tabName;
+        const selected = button.dataset.taskTab === persistentTab;
         button.classList.toggle('is-active', selected);
         button.setAttribute('aria-selected', String(selected));
         button.tabIndex = selected ? 0 : -1;
     });
     document.querySelectorAll('[data-task-panel]').forEach((panel) => {
-        const selected = panel.dataset.taskPanel === tabName;
+        const selected = panel.dataset.taskPanel === persistentTab;
         panel.classList.toggle('is-active', selected);
         panel.hidden = !selected;
     });
+    document.querySelectorAll('[data-task-section]').forEach((section) => {
+        section.hidden = persistentTab !== 'overview';
+    });
+    if (persistentTab === 'overview' && tabName !== 'overview') {
+        document.querySelector(`[data-task-section="${tabName}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
 }
 
 function renderIncidentActions(alert) {
@@ -897,7 +911,7 @@ function runCurrentRunbookStep() {
 function askAi(kind) {
     if (!stateFresh || !latestPayload?.job || !selectedJobName) return;
     setTab('ai');
-    $('task-tab-ai').focus();
+    $('task-panel-ai')?.focus();
     return runRequest('ai', async () => {
         const alert = findLinkedAlert();
         aiOutput.hidden = false;

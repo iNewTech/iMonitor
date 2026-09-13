@@ -49,8 +49,8 @@ export function createWindowRuntime(dependencies: WindowRuntimeDependencies) {
         }
 
         const taskWindow = new BrowserWindow({
-            width: 820,
-            height: 620,
+            width: 720,
+            height: 680,
             minWidth: 560,
             minHeight: 460,
             title: `Job Task - ${normalizedJobName}`,

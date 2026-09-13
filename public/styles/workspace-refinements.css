@@ -532,6 +532,78 @@ body.settings-body .app-shell {
     padding: 12px;
 }
 
+.job-task-content > .task-overview-section {
+    display: grid;
+    gap: 10px;
+}
+
+.job-task-content > .task-overview-section > .job-detail-section {
+    padding: 12px 14px;
+}
+
+.job-task-content > .task-overview-section > .job-detail-section,
+.job-task-content > .task-overview-section > .task-technical-details {
+    border-radius: 14px;
+}
+
+.task-technical-details {
+    overflow: hidden;
+    border: 1px solid rgba(24, 33, 43, 0.1);
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.job-task-section-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.job-task-section-summary::-webkit-details-marker { display: none; }
+.job-task-section-summary strong { display: block; font-size: .92rem; font-weight: 600; }
+.job-task-section-summary .eyebrow { display: block; margin: 0 0 3px; }
+.task-technical-details[open] .job-task-section-summary > i { transform: rotate(180deg); }
+.task-technical-details > .job-detail-grid,
+.task-technical-details > .job-detail-section { margin-inline: 14px; }
+.task-technical-details > .job-detail-section { margin-bottom: 14px; }
+
+body.job-task-body:is([data-theme="night-console"], [data-theme="copper-nocturne"]) {
+    background:
+        radial-gradient(circle at 86% 6%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 28%),
+        linear-gradient(180deg, var(--page-base-start) 0%, var(--page-base-end) 100%);
+}
+
+body.job-task-body:is([data-theme="night-console"], [data-theme="copper-nocturne"]) .job-task-window {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--surface-elevated) 94%, transparent), color-mix(in srgb, var(--surface) 92%, transparent));
+}
+
+body.job-task-body:is([data-theme="night-console"], [data-theme="copper-nocturne"]) .job-task-header {
+    border-color: var(--border);
+    background: color-mix(in srgb, var(--surface-elevated) 92%, transparent);
+}
+
+body.job-task-body:is([data-theme="night-console"], [data-theme="copper-nocturne"]) .job-task-window > .job-task-tabs {
+    border-color: var(--border);
+    background: color-mix(in srgb, var(--accent-soft) 42%, var(--surface));
+}
+
+body.job-task-body:is([data-theme="night-console"], [data-theme="copper-nocturne"]) .job-task-content :is(.job-detail-section, .job-detail-card, .task-technical-details) {
+    border-color: var(--border);
+    background: var(--surface-elevated);
+}
+
+body.job-task-body:is([data-theme="night-console"], [data-theme="copper-nocturne"]) .task-workflow-actions .job-task-action-summary {
+    border-color: var(--border);
+    background: color-mix(in srgb, var(--accent-soft) 38%, var(--surface));
+}
+
+body.job-task-body:is([data-theme="night-console"], [data-theme="copper-nocturne"]) .wait-ai-report {
+    background: color-mix(in srgb, var(--accent-soft) 58%, var(--surface));
+}
+
 .job-task-content .job-detail-grid {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }

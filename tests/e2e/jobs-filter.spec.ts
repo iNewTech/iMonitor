@@ -91,27 +91,30 @@ test('filters and searches the active jobs table in demo mode', async () => {
         await app.cleanup();
     }
     });
-test('shows one health strip and offers activity trends on demand', async () => {
+test('shows one health strip and collapses live activity on demand', async () => {
     const app = await launchTestApp();
 
     try {
         await openDemoMonitor(app.page);
         const overview = app.page.locator('.activity-overview');
-        await expect(overview).toBeHidden();
+        const overviewBody = overview.locator('.activity-overview-body');
+        await expect(overview).toBeVisible();
         await expect(app.page.locator('#superpanel-metrics-slot')).toBeVisible();
-        await expect(overview).not.toHaveAttribute('open', '');
+        await expect(overview).toHaveAttribute('open', '');
         await expect(app.page.locator('.table-shell')).toHaveAttribute('open', '');
         await expect(app.page.locator('#total-jobs')).toBeVisible();
         await expect(app.page.locator('#peak-cpu')).toBeVisible();
-        await expect(app.page.locator('#running-jobs')).toBeHidden();
-        await expect(app.page.locator('#waiting-jobs')).toBeHidden();
+        await expect(app.page.locator('#running-jobs')).toHaveText(/\d+/);
+        await expect(app.page.locator('#waiting-jobs')).toHaveText(/\d+/);
 
-        await expect(app.page.locator('[data-history-view="jobs"]')).toBeHidden();
-        await expect(app.page.locator('[data-history-view="cpu"]')).toBeHidden();
-        await expect(app.page.locator('[data-history-view="waits"]')).toBeHidden();
-        await app.page.locator('#board-workspace-menu > summary').click();
-        await app.page.getByRole('button', { name: 'Activity trends', exact: true }).click();
+        await expect(overviewBody).toBeVisible();
         await expect(app.page.locator('[data-history-view="jobs"]')).toBeVisible();
+        await expect(app.page.locator('[data-history-view="cpu"]')).toBeVisible();
+        await expect(app.page.locator('[data-history-view="waits"]')).toBeVisible();
+        await overview.locator(':scope > summary').click();
+        await expect(overviewBody).toBeHidden();
+        await overview.locator(':scope > summary').click();
+        await expect(overviewBody).toBeVisible();
         await expect(app.page.locator('#total-jobs')).toBeVisible();
     } finally {
         await app.cleanup();
@@ -124,7 +127,8 @@ test('keeps the inner work surfaces compact and free of duplicate history contro
     try {
         await openDemoMonitor(app.page);
 
-        await expect(app.page.getByTestId('activity-overview')).toBeHidden();
+        await expect(app.page.getByTestId('activity-overview')).toHaveAttribute('open', '');
+        await expect(app.page.locator('#board-history-panel .activity-overview-body')).toBeVisible();
         await expect(app.page.locator('#jobs-history-chart')).toHaveCount(1);
         await expect(app.page.locator('#cpu-history-chart')).toHaveCount(1);
         await expect(app.page.locator('#wait-history-chart')).toHaveCount(1);
