@@ -16,12 +16,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     const backButton = document.getElementById('settings-back');
     const backLabel = document.getElementById('settings-back-label');
     const themeDescription = document.getElementById('settings-theme-description');
+    const generalThemeDescription = document.getElementById('settings-general-theme-description');
+    const themeForm = document.getElementById('settings-theme-form');
+    const themeSelect = document.getElementById('settings-theme-select');
+    const themeStatus = document.getElementById('settings-theme-status');
+    const generalConnection = document.getElementById('settings-general-connection');
+    const generalConnectionAction = document.getElementById('settings-general-connection-action');
+    const generalPlan = document.getElementById('settings-general-plan');
     const connectionStateLabel = document.getElementById('settings-connection-state');
     const planStatus = document.getElementById('settings-plan-status');
+    const navGeneralStatus = document.getElementById('settings-nav-general-status');
     const navAlertStatus = document.getElementById('settings-nav-alert-status');
     const navAiStatus = document.getElementById('settings-nav-ai-status');
     const navIntegrationStatus = document.getElementById('settings-nav-integration-status');
     const navSupportStatus = document.getElementById('settings-nav-support-status');
+    const navSkillsStatus = document.getElementById('settings-nav-skills-status');
+    const navStorageStatus = document.getElementById('settings-nav-storage-status');
+    const storageSummary = document.getElementById('settings-storage-summary');
     const clickUpUser = document.getElementById('settings-clickup-user');
     const integrationCatalog = document.getElementById('settings-integration-catalog');
     const installedIntegrations = document.getElementById('settings-installed-integrations');
@@ -114,11 +125,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     function syncSettingsNavigation() {
         const alertStatus = document.getElementById('settings-alert-summary-status')?.textContent?.trim();
         const aiStatus = document.getElementById('settings-ai-summary-status')?.textContent?.trim();
+        const collectorStatus = document.getElementById('settings-collector-summary-status')?.textContent?.trim();
         if (navAlertStatus && alertStatus) {
             navAlertStatus.textContent = alertStatus;
         }
         if (navAiStatus && aiStatus) {
             navAiStatus.textContent = aiStatus;
+        }
+        if (navSkillsStatus) {
+            navSkillsStatus.textContent = 'Coming next';
+        }
+        if (navStorageStatus && collectorStatus) {
+            navStorageStatus.textContent = collectorStatus === 'Off' ? 'Collector off' : `Collector ${collectorStatus.toLowerCase()}`;
+        }
+        if (storageSummary && collectorStatus) {
+            storageSummary.textContent = `Collector ${collectorStatus.toLowerCase()}`;
         }
     }
 
@@ -189,7 +210,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (emailButton) {
             event.preventDefault();
             event.stopPropagation();
-            showSettingsView('alerts');
+            showSettingsView('monitoring');
             const alertPanel = document.getElementById('settings-alert-panel');
             const emailPanel = document.querySelector('.email-settings-disclosure');
             if (alertPanel instanceof HTMLDetailsElement) {
@@ -202,6 +223,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        const collectorButton = target?.closest('[data-open-collector]');
+        if (collectorButton) {
+            event.preventDefault();
+            showSettingsView('monitoring');
+            const alertPanel = document.getElementById('settings-alert-panel');
+            const collectorPanel = document.getElementById('settings-collector-panel');
+            if (alertPanel instanceof HTMLDetailsElement) {
+                alertPanel.open = true;
+            }
+            if (collectorPanel instanceof HTMLDetailsElement) {
+                collectorPanel.open = true;
+            }
+            collectorPanel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            return;
+        }
+
         const navigationButton = target?.closest('[data-settings-page]');
         if (!navigationButton) {
             return;
@@ -210,13 +247,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         event.preventDefault();
         const view = navigationButton.dataset.settingsPage || 'integrations';
         showSettingsView(view);
-        const destinationId = view === 'alerts'
+        const destinationId = view === 'monitoring'
             ? 'settings-alert-panel'
             : view === 'ai'
                 ? 'settings-ai-panel'
-                : view === 'support'
+                : view === 'access'
                     ? 'settings-support-access'
-                : 'settings-integration-catalog';
+                    : view === 'general'
+                        ? 'settings-general-panel'
+                        : view === 'skills'
+                            ? 'settings-skills-panel'
+                            : view === 'storage'
+                                ? 'settings-storage-panel'
+                                : 'settings-integration-catalog';
         const destination = document.getElementById(destinationId);
         if (destination instanceof HTMLDetailsElement) {
             destination.open = true;
@@ -326,6 +369,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (themeDescription) {
         themeDescription.textContent = selectedTheme?.description || 'Theme loads from your current app preference.';
     }
+    if (generalThemeDescription) {
+        generalThemeDescription.textContent = selectedTheme?.description || 'Theme loads from your current app preference.';
+    }
+    if (themeSelect) {
+        themeSelect.replaceChildren(...(Array.isArray(themeSettings.themes) ? themeSettings.themes : []).map((theme) => {
+            const option = document.createElement('option');
+            option.value = theme.id;
+            option.textContent = theme.label;
+            return option;
+        }));
+        themeSelect.value = themeSettings.themeId;
+        themeSelect.addEventListener('change', () => {
+            const nextTheme = themeSettings.themes?.find((theme) => theme.id === themeSelect.value);
+            if (generalThemeDescription) {
+                generalThemeDescription.textContent = nextTheme?.description || '';
+            }
+        });
+    }
 
     if (backLabel) {
         backLabel.textContent = connectionState?.isConnected ? 'Back To ActionBoard' : 'Back To Connect';
@@ -339,10 +400,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             ? `Connected to ${connection?.name || connection?.host || 'IBM i'}`
             : 'No active connection';
     }
+    if (generalConnection) {
+        const connection = connectionState?.currentConnection;
+        generalConnection.textContent = connectionState?.isConnected
+            ? `Connected to ${connection?.name || connection?.host || 'IBM i'}`
+            : 'No active connection';
+    }
     if (planStatus) {
         const premium = entitlements?.plan === 'premium';
         planStatus.innerHTML = `<i class="bi ${premium ? 'bi-stars' : 'bi-unlock'}" aria-hidden="true"></i>${premium ? 'Premium plan' : 'Free plan'}`;
         planStatus.dataset.plan = premium ? 'premium' : 'free';
+        if (generalPlan) {
+            generalPlan.textContent = premium ? 'Premium plan' : 'Free plan';
+        }
     }
 
     if (clickUpUser) {
@@ -357,6 +427,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         await window.electronAPI.navigateToConnection();
+    });
+
+    generalConnectionAction?.addEventListener('click', async () => {
+        await window.electronAPI.navigateToConnection();
+    });
+    themeForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (!themeSelect?.value) {
+            return;
+        }
+        try {
+            const savedTheme = await window.electronAPI.saveThemeSettings(themeSelect.value);
+            applyTheme(savedTheme.themeId);
+            const selected = savedTheme.themes?.find((theme) => theme.id === savedTheme.themeId);
+            if (themeDescription) themeDescription.textContent = selected?.description || '';
+            if (generalThemeDescription) generalThemeDescription.textContent = selected?.description || '';
+            if (themeStatus) themeStatus.textContent = 'Theme saved.';
+        } catch {
+            if (themeStatus) themeStatus.textContent = 'Theme could not be saved.';
+        }
     });
 
     await initSupportPanel({

@@ -1469,3 +1469,110 @@ body.object-analysis-body:is([data-theme="night-console"], [data-theme="copper-n
     color: var(--text-strong);
     line-height: 1.5;
 }
+
+/* UI-04 keeps settings categories compact while leaving feature panels intact. */
+.settings-page-nav {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.settings-category-panel {
+    display: grid;
+    gap: 22px;
+}
+
+.settings-category-list {
+    display: grid;
+    gap: 10px;
+}
+
+.settings-category-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-width: 0;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--accent-soft) 20%, var(--surface));
+}
+
+.settings-category-row > div:first-child {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+}
+
+.settings-category-row strong,
+.settings-category-row label {
+    margin: 0;
+    color: var(--ink);
+    font-size: .9rem;
+    font-weight: 750;
+}
+
+.settings-category-row small {
+    color: var(--muted);
+    font-size: .78rem;
+    line-height: 1.35;
+}
+
+.settings-category-row-controls {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 8px;
+}
+
+.settings-category-row-controls .form-select {
+    min-width: 150px;
+}
+
+.settings-empty-state {
+    display: grid;
+    gap: 6px;
+    place-items: center;
+    min-height: 150px;
+    padding: 24px;
+    border: 1px dashed var(--border-strong);
+    border-radius: 16px;
+    color: var(--muted);
+    text-align: center;
+}
+
+.settings-empty-state i {
+    color: var(--accent);
+    font-size: 1.5rem;
+}
+
+.settings-empty-state strong {
+    color: var(--ink);
+    font-size: .95rem;
+}
+
+@media (max-width: 1100px) {
+    .settings-page-nav {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 680px) {
+    .settings-page-nav {
+        grid-template-columns: 1fr;
+    }
+
+    .settings-category-row {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .settings-category-row-controls {
+        width: 100%;
+    }
+
+    .settings-category-row-controls .form-select,
+    .settings-category-row-controls .btn {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+}

@@ -38,14 +38,19 @@
                     <span id="settings-theme-description" class="settings-theme-context">Theme loads from your current app preference.</span>
                 </div>
                 <nav id="settings-page-nav" class="settings-page-nav" aria-label="Settings sections">
-                    <button type="button" class="settings-page-tab" data-settings-page="alerts" data-testid="settings-page-alerts">
+                    <button type="button" class="settings-page-tab" data-settings-page="general" data-testid="settings-page-general">
+                        <span class="settings-page-tab-icon"><i class="bi bi-sliders" aria-hidden="true"></i></span>
+                        <span class="settings-page-tab-copy"><strong>General</strong><small id="settings-nav-general-status">Workspace defaults</small></span>
+                        <i class="bi bi-arrow-right settings-page-tab-arrow" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="settings-page-tab" data-settings-page="monitoring" data-testid="settings-page-alerts">
                         <span class="settings-page-tab-icon"><i class="bi bi-bell" aria-hidden="true"></i></span>
-                        <span class="settings-page-tab-copy"><strong>Alerts</strong><small id="settings-nav-alert-status">Rules &amp; delivery</small></span>
+                        <span class="settings-page-tab-copy"><strong>Monitoring</strong><small id="settings-nav-alert-status">Rules &amp; delivery</small></span>
                         <i class="bi bi-arrow-right settings-page-tab-arrow" aria-hidden="true"></i>
                     </button>
                     <button type="button" class="settings-page-tab" data-settings-page="ai" data-testid="settings-page-ai">
                         <span class="settings-page-tab-icon"><i class="bi bi-stars" aria-hidden="true"></i></span>
-                        <span class="settings-page-tab-copy"><strong>IBMEye AI</strong><small id="settings-nav-ai-status">Provider &amp; model</small></span>
+                        <span class="settings-page-tab-copy"><strong>AI &amp; knowledge</strong><small id="settings-nav-ai-status">Provider &amp; model</small></span>
                         <i class="bi bi-arrow-right settings-page-tab-arrow" aria-hidden="true"></i>
                     </button>
                     <button type="button" class="settings-page-tab is-active" data-settings-page="integrations" aria-current="page" data-testid="settings-page-integrations">
@@ -53,20 +58,59 @@
                         <span class="settings-page-tab-copy"><strong>Integrations</strong><small id="settings-nav-integration-status">Apps &amp; channels</small></span>
                         <i class="bi bi-arrow-right settings-page-tab-arrow" aria-hidden="true"></i>
                     </button>
-                    <button type="button" class="settings-page-tab" data-settings-page="support" data-testid="settings-page-support">
+                    <button type="button" class="settings-page-tab" data-settings-page="skills" data-testid="settings-page-skills">
+                        <span class="settings-page-tab-icon"><i class="bi bi-puzzle" aria-hidden="true"></i></span>
+                        <span class="settings-page-tab-copy"><strong>Skills &amp; MCP</strong><small id="settings-nav-skills-status">Coming next</small></span>
+                        <i class="bi bi-arrow-right settings-page-tab-arrow" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="settings-page-tab" data-settings-page="access" data-testid="settings-page-support">
                         <span class="settings-page-tab-icon"><i class="bi bi-person-lock" aria-hidden="true"></i></span>
-                        <span class="settings-page-tab-copy"><strong>Support access</strong><small id="settings-nav-support-status">Client controlled</small></span>
+                        <span class="settings-page-tab-copy"><strong>Access</strong><small id="settings-nav-support-status">Support access</small></span>
+                        <i class="bi bi-arrow-right settings-page-tab-arrow" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="settings-page-tab" data-settings-page="storage" data-testid="settings-page-storage">
+                        <span class="settings-page-tab-icon"><i class="bi bi-database" aria-hidden="true"></i></span>
+                        <span class="settings-page-tab-copy"><strong>Storage</strong><small id="settings-nav-storage-status">Collector &amp; retention</small></span>
                         <i class="bi bi-arrow-right settings-page-tab-arrow" aria-hidden="true"></i>
                     </button>
                 </nav>
             </header>
 
             <section class="settings-grid">
-                <div class="settings-section-divider" role="presentation" data-settings-view="alerts">
+                <section id="settings-general-panel" data-settings-view="general" class="surface-card settings-view-surface settings-category-panel" aria-labelledby="settings-general-title">
+                    <header class="settings-catalog-header">
+                        <div class="settings-heading-lockup">
+                            <span class="settings-heading-icon"><i class="bi bi-sliders" aria-hidden="true"></i></span>
+                            <div>
+                                <p class="eyebrow mb-2">Workspace defaults</p>
+                                <h2 id="settings-general-title" class="settings-catalog-title">General</h2>
+                                <p class="panel-copy mb-0">Set the appearance and connection context used by this operator workspace.</p>
+                            </div>
+                        </div>
+                        <span class="settings-catalog-count">Local to this machine</span>
+                    </header>
+                    <div class="settings-category-list">
+                        <div class="settings-category-row">
+                            <div><strong>IBM i connection</strong><small id="settings-general-connection">Checking active connection</small></div>
+                            <button id="settings-general-connection-action" type="button" class="btn btn-outline-ink btn-sm">Open connection</button>
+                        </div>
+                        <form id="settings-theme-form" class="settings-category-row">
+                            <div><label for="settings-theme-select"><strong>Theme</strong></label><small id="settings-general-theme-description">Theme loads from your current app preference.</small></div>
+                            <div class="settings-category-row-controls"><select id="settings-theme-select" class="form-select form-select-sm" aria-label="Theme"></select><button type="submit" class="btn btn-outline-ink btn-sm">Save</button></div>
+                        </form>
+                        <div class="settings-category-row">
+                            <div><strong>Plan</strong><small>Controls which premium integrations and providers are available.</small></div>
+                            <span id="settings-general-plan" class="settings-provider-chip">Loading plan</span>
+                        </div>
+                    </div>
+                    <p id="settings-theme-status" class="stat-note mb-0" role="status"></p>
+                </section>
+
+                <div class="settings-section-divider" role="presentation" data-settings-view="monitoring">
                     <span class="settings-section-divider-title">Monitoring &amp; notifications</span>
                     <span class="settings-section-divider-note">Core operator controls</span>
                 </div>
-                <details id="settings-alert-panel" data-settings-view="alerts" class="surface-card settings-card settings-disclosure">
+                <details id="settings-alert-panel" data-settings-view="monitoring" class="surface-card settings-card settings-disclosure">
                     <summary class="settings-card-summary">
                         <div class="settings-heading-lockup">
                             <span class="settings-heading-icon"><i class="bi bi-bell" aria-hidden="true"></i></span>
@@ -169,7 +213,7 @@
                     </div>
                 </details>
 
-                <details id="settings-business-services-panel" data-settings-view="alerts" class="surface-card settings-card settings-disclosure">
+                <details id="settings-business-services-panel" data-settings-view="monitoring" class="surface-card settings-card settings-disclosure">
                     <summary class="settings-card-summary">
                         <div class="settings-heading-lockup">
                             <span class="settings-heading-icon"><i class="bi bi-diagram-3" aria-hidden="true"></i></span>
@@ -221,6 +265,49 @@
                         </section>
                     </div>
                 </details>
+
+                <section id="settings-skills-panel" data-settings-view="skills" class="surface-card settings-view-surface settings-category-panel" aria-labelledby="settings-skills-title">
+                    <header class="settings-catalog-header">
+                        <div class="settings-heading-lockup">
+                            <span class="settings-heading-icon"><i class="bi bi-puzzle" aria-hidden="true"></i></span>
+                            <div>
+                                <p class="eyebrow mb-2">AI extension point</p>
+                                <h2 id="settings-skills-title" class="settings-catalog-title">Skills &amp; MCP</h2>
+                                <p class="panel-copy mb-0">Future skills will add verified IBM i context and tools without expanding the ActionBoard itself.</p>
+                            </div>
+                        </div>
+                        <span class="settings-catalog-count">Planned</span>
+                    </header>
+                    <div class="settings-empty-state">
+                        <i class="bi bi-puzzle" aria-hidden="true"></i>
+                        <strong>No skills configured</strong>
+                        <span>The skills registry and scoped MCP resources will be available in the AI + ActionBoard rollout.</span>
+                    </div>
+                </section>
+
+                <section id="settings-storage-panel" data-settings-view="storage" class="surface-card settings-view-surface settings-category-panel" aria-labelledby="settings-storage-title">
+                    <header class="settings-catalog-header">
+                        <div class="settings-heading-lockup">
+                            <span class="settings-heading-icon"><i class="bi bi-database" aria-hidden="true"></i></span>
+                            <div>
+                                <p class="eyebrow mb-2">Local evidence</p>
+                                <h2 id="settings-storage-title" class="settings-catalog-title">Storage</h2>
+                                <p class="panel-copy mb-0">Review how background monitoring data is retained and purge it when the customer policy requires.</p>
+                            </div>
+                        </div>
+                        <span id="settings-storage-summary" class="settings-catalog-count">Managed by collector</span>
+                    </header>
+                    <div class="settings-category-list">
+                        <div class="settings-category-row">
+                            <div><strong>Background collector</strong><small>Read-only monitoring continues according to its saved profile and polling interval.</small></div>
+                            <button type="button" class="btn btn-outline-ink btn-sm" data-open-collector>Manage collector</button>
+                        </div>
+                        <div class="settings-category-row">
+                            <div><strong>Retention and purge</strong><small>Keep only the evidence needed for support, review, and audit.</small></div>
+                            <button type="button" class="btn btn-outline-ink btn-sm" data-open-collector>Manage retention</button>
+                        </div>
+                    </div>
+                </section>
 
                 <div class="settings-section-divider" role="presentation" data-settings-view="ai">
                     <span class="settings-section-divider-title">AI &amp; integrations</span>
@@ -303,7 +390,7 @@
                     </div>
                 </details>
 
-                <section id="settings-support-access" data-settings-view="support" class="surface-card settings-support-access settings-view-surface" aria-labelledby="settings-support-access-title">
+                <section id="settings-support-access" data-settings-view="access" class="surface-card settings-support-access settings-view-surface" aria-labelledby="settings-support-access-title">
                     <header class="settings-catalog-header">
                         <div class="settings-heading-lockup">
                             <span class="settings-heading-icon settings-support-access-icon"><i class="bi bi-person-lock" aria-hidden="true"></i></span>

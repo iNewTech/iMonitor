@@ -219,6 +219,43 @@ test('configures the read-only background collector and shows its local inventor
     }
 });
 
+test('keeps the seven settings categories compact and preserves draft values', async () => {
+    const app = await launchTestApp();
+
+    try {
+        await app.page.locator('#connect').click();
+        await app.page.locator('#open-settings').click();
+        await expect(app.page.locator('[data-settings-page]')).toHaveCount(7);
+
+        await app.page.getByTestId('settings-page-general').click();
+        await expect(app.page.locator('#settings-general-panel')).toBeVisible();
+        await expect(app.page.locator('#settings-theme-select')).toHaveValue('operator-light');
+        await app.page.locator('#settings-theme-select').selectOption('night-console');
+        await app.page.locator('#settings-theme-form button[type="submit"]').click();
+        await expect(app.page.locator('#settings-theme-status')).toHaveText('Theme saved.');
+        await expect(app.page.locator('body')).toHaveAttribute('data-theme', 'night-console');
+
+        await app.page.getByTestId('settings-page-ai').click();
+        await app.page.locator('#settings-ai-endpoint').fill('http://draft.local');
+        await app.page.getByTestId('settings-page-skills').click();
+        await expect(app.page.getByRole('heading', { name: 'Skills & MCP', exact: true })).toBeVisible();
+        await expect(app.page.getByText('No skills configured', { exact: true })).toBeVisible();
+        await expect(app.page.locator('#settings-ai-panel')).toBeHidden();
+
+        await app.page.getByTestId('settings-page-storage').click();
+        await expect(app.page.getByRole('heading', { name: 'Storage', exact: true })).toBeVisible();
+        await app.page.getByRole('button', { name: 'Manage collector', exact: true }).click();
+        await expect(app.page.locator('#settings-alert-panel')).toHaveAttribute('open', '');
+        await expect(app.page.locator('#settings-collector-panel')).toHaveAttribute('open', '');
+        await expect(app.page.locator('#settings-collector-panel')).toBeVisible();
+
+        await app.page.getByTestId('settings-page-ai').click();
+        await expect(app.page.locator('#settings-ai-endpoint')).toHaveValue('http://draft.local');
+    } finally {
+        await app.cleanup();
+    }
+});
+
 test('saves and removes a customer business service mapping', async () => {
     const app = await launchTestApp();
 

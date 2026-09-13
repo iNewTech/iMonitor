@@ -4,6 +4,7 @@
 
 ### 2026-09-13
 
+- Organized Settings into seven compact categories with General theme management, honest Skills & MCP and Storage entry points, and preserved existing alert, AI, integration, collector, and access flows (#60, UI-04, Project 8).
 - Refined job tasks into compact independent windows with only Overview/History tabs, contextual actions and AI, expandable technical details, saved theme inheritance, and per-job window reuse (#59, UI-03, Project 8).
 - Show the compact live activity overview above jobs by default after connecting; retain live chart updates while collapsed (#58, UI-02, Project 8).
 

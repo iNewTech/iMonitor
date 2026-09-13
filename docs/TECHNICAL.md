@@ -184,6 +184,10 @@ Unit tests cover domain behavior. Electron tests use temporary application store
 
 `public/styles/app-shell.css` scopes shared tokens, navigation and compact form patterns to migrated screens. The board keeps its feature styles. Settings categories and job-window layout remain separate tickets (#60 and #59). The shared navigation prevents departure while a board AI request is pending, and board session preferences restore its unsent draft after navigation without automatically sending it.
 
+### Settings categories (UI-04 / #60)
+
+`public/settings.html` exposes seven category values: `general`, `monitoring`, `ai`, `integrations`, `skills`, `access`, and `storage`. `public/settings.js` owns category visibility, one-open-panel behavior, compact cross-category routing, and integration catalog placement. Existing feature modules continue to own their forms and persistence. General uses the existing theme IPC contract; Skills & MCP is an honest reserved slot for #50–#52. Storage links to the existing background collector and retention controls without duplicating their state. Category navigation hides inactive views while keeping unsaved DOM form values in memory.
+
 ### Live activity on the connected board
 
 `public/monitor.html` opens the existing `board-history-panel` disclosure above jobs. `public/monitor/history.js` continues rendering the main-process polling history for Job volume, Peak job CPU and Wait states, including empty history; collapsing the overview does not stop collection or reopen the panel on updates. Each connection starts with it expanded. The scoped board stylesheet keeps three compact charts in light/dark and narrow layouts and reduces the job-list scroll height only while the overview is expanded. No additional polling loop, history store, or telemetry metric was added.

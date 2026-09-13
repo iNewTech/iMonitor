@@ -65,7 +65,7 @@ Keep original documents and scoped deletion/reindex controls reachable. Approved
 
 Use General, Monitoring, AI & knowledge, Integrations, Skills & MCP, Access, and Storage categories. Only the selected category opens. On narrow windows the category navigation wraps or collapses without hiding the current section. Each row shows its value/status and Manage. Editing a different item must not silently discard unsaved input.
 
-Monitoring holds custom polling seconds, watch rules, channels, and background/login collection. AI & knowledge holds model and storage connections. Integrations show installed icons with accessible names and configured status. Available items open detail, configuration, test/save, then move to installed only after valid persisted setup. Keep ClickUp/Jira/Slack/Email/SMS and existing entitlement behavior. Skills & MCP has its own subpage. Access holds scope and permission management. Storage holds counts, retention, purge/reindex previews, and health.
+General shows the active connection, theme, and plan. Monitoring holds custom polling seconds, watch rules, channels, and business service mappings. AI & knowledge holds model setup. Integrations show installed icons with accessible names and configured status. Available items open detail, configuration, test/save, then move to installed only after valid persisted setup. Keep ClickUp/Jira/Slack/Email/SMS and existing entitlement behavior. Skills & MCP has its own reserved subpage until #50–#52 ship. Access holds scope and permission management. Storage provides the entry point to the existing background collector’s counts, retention, and purge controls; it does not duplicate collector state.
 
 ### 7. Skills & MCP
 

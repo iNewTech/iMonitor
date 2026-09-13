@@ -26,6 +26,7 @@ iMonitor uses a simple Free/Premium feature boundary. The application keeps Prem
 - Full-width growing AI composer with compact model menu, explicit system/job scope, availability checks, and optional floating IBMEye.
 - Job queues remain in their own section below the main workspace.
 - Client-controlled background collector for read-only monitoring, per-system local snapshots, retention, inventory, health, and confirmed purge.
+- Compact Settings categories for General, Monitoring, AI & knowledge, Integrations, Skills & MCP, Access, and Storage; existing feature panels keep their current setup and permission boundaries.
 - Evidence-first Support outcomes panel with date windows, incident/stage samples, unknown outcomes, AI request availability, previous-window comparison, and customer-scoped JSON export. Operator-verified recovery is measured separately from future autonomous recovery.
 - Local and IBM i source analysis, evidence-based call graphs, approved reports mapped to source programs, and saved compile plans. Compile commands are never run automatically.
 - A macOS WidgetKit scaffold is available under `macos-widget/`; signing and native installation remain separate from the Electron app.

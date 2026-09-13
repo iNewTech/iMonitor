@@ -82,7 +82,17 @@ When an incident is unassigned, **Claim Work** assigns it to the current operato
 
 ### Settings
 
-Settings contains four areas: **Alerts**, **IBMEye AI**, **Integrations**, and **Support access**. Alert settings also contain the background collector and business service mappings.
+Settings is organized into seven compact categories:
+
+- **General:** active connection, theme, and plan summary.
+- **Monitoring:** alert rules, notification channels, and business service mappings.
+- **AI & knowledge:** provider and model setup.
+- **Integrations:** installed and available ClickUp, Slack, Jira, Email, and SMS connections.
+- **Skills & MCP:** the reserved home for reviewed skills and scoped MCP connections.
+- **Access:** client-controlled support invitations, permissions, and revocation.
+- **Storage:** the entry point for background collection, retention, inventory, and purge controls.
+
+Only the selected category is shown. Category changes keep unsaved form values in the current page session; save a form before leaving the app if you want the change to persist.
 
 ### Object analysis
 
@@ -283,7 +293,7 @@ Replay is labelled **Training only**. It never calls IBM i and never sends updat
 
 ## 12. Configure IBMEye AI
 
-Open **Settings → IBMEye AI**.
+Open **Settings → AI & knowledge**.
 
 1. Turn on **Enable IBMEye AI**.
 2. Choose a provider family.
@@ -301,7 +311,7 @@ AI can explain and recommend. It cannot claim work, create a ticket, send a mess
 
 ## 13. Configure alerts and notifications
 
-Open **Settings → Alerts**.
+Open **Settings → Monitoring**.
 
 ### Choose what to watch
 
@@ -341,7 +351,7 @@ Use each integration’s **Send Test**, **Create Test Issue**, or equivalent tes
 
 ## 15. Give an outsourced support person limited access
 
-The client owner controls access from **Settings → Support access**.
+The client owner controls access from **Settings → Access**.
 
 1. Enter the person’s display name and authenticated operator ID.
 2. Enter the exact IBM i system IDs they may access.
@@ -356,7 +366,7 @@ The named operator must accept the invitation before access starts. The client c
 
 ## 16. Add business service context
 
-Open **Settings → Alerts → Business service mappings**.
+Open **Settings → Monitoring → Business service mappings**.
 
 1. Enter a business service and owner.
 2. Add one or more matching job, resource, queue, or subsystem patterns.
@@ -367,7 +377,7 @@ Use `*` for a wildcard. More specific mappings win. When no mapping matches, iMo
 
 ## 17. Keep monitoring after closing the dashboard
 
-Open **Settings → Alerts → Background collector**.
+Open **Settings → Storage**, then select **Manage collector**.
 
 1. Turn on **Keep collecting in the background**.
 2. Choose a saved IBM i profile.
@@ -445,7 +455,7 @@ This is expected when the job is active but has a condition such as high CPU or 
 
 ### AI has no usable model
 
-Open **Settings → IBMEye AI**, enable a provider, refresh provider status, choose an available model, and save. Hosted providers also need a valid endpoint or API key. The composer will not offer an unavailable model.
+Open **Settings → AI & knowledge**, enable a provider, refresh provider status, choose an available model, and save. Hosted providers also need a valid endpoint or API key. The composer will not offer an unavailable model.
 
 ### An action is disabled
 
