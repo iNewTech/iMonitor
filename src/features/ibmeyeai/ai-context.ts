@@ -168,7 +168,8 @@ function collapseWhitespace(value: string) {
     return value.replace(/\s+/g, ' ').trim();
 }
 
-function formatRetrievedEvidence(pack?: ContextPack) {
+/** Formats retrieved evidence for the provider while preserving the untrusted-data boundary. */
+export function formatRetrievedEvidence(pack?: ContextPack) {
     if (!pack?.citations?.length) return ['No matching scoped knowledge was found.'];
     const records = new Map(pack.records.map((record) => [record.id, record]));
     return pack.citations.map((citation) => {

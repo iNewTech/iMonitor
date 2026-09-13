@@ -14,6 +14,7 @@
     "release": "npm run package && npm run package:collect",
     "test": "npm run build && npm run test:unit && npm run test:e2e",
     "test:unit": "vitest run",
+    "test:knowledge-regression": "npm run build && node scripts/run-knowledge-regression.mjs",
     "test:e2e": "playwright test",
     "test:watch": "vitest",
     "docs:api": "typedoc",

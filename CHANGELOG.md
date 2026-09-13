@@ -13,6 +13,7 @@
 - Added hybrid IBM i knowledge retrieval with bounded job/incident query context, exact identifier ranking, provider-backed semantic source labelling, deduplication, freshness/review states, relevance reasons, stable citations, no-match states, and local fallback (#46, AIAB-06, Project 8).
 - Added bounded cited context packs with source-type freshness windows, explicit missing evidence, safe exclusions, citation-complete records, and compact on-demand evidence details below job AI responses (#47, AIAB-07, Project 8).
 - Grounded selected-job AI in scoped retrieved support context with bounded SupportContext, retrieval health, full response-shape validation, citation requirements, stale/fallback visibility, and prompt-injection-safe evidence formatting (#48, AIAB-08, Project 8).
+- Added a versioned deterministic knowledge regression harness with golden IBM i support scenarios, retrieval recall/precision proxies, citation and uncertainty checks, scope isolation, latency/context metrics, and sanitized comparison artifacts (#49, AIAB-09, Project 8).
 - Refined job tasks into compact independent windows with only Overview/History tabs, contextual actions and AI, expandable technical details, saved theme inheritance, and per-job window reuse (#59, UI-03, Project 8).
 - Show the compact live activity overview above jobs by default after connecting; retain live chart updates while collapsed (#58, UI-02, Project 8).
 

@@ -65,4 +65,11 @@ describe('knowledge retrieval', () => {
         });
         expect(rankKnowledgeRecords([], query)).toMatchObject({ matches: [], citations: [], noMatchReason: 'no-match' });
     });
+
+    it('does not make an unrelated approved record match an unknown query', () => {
+        const query = buildKnowledgeRetrievalQuery({
+            customerScope: 'customer-a', systemScope: 'system-a', operatorId: 'operator-a', operatorPermissions: ['read'], query: 'unseen printer condition', qualifiedJob: '123/APP/UNKNOWNJOB'
+        });
+        expect(rankKnowledgeRecords([record()], query, 'lexical', now)).toMatchObject({ matches: [], noMatchReason: 'no-match' });
+    });
 });

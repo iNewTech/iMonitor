@@ -138,7 +138,9 @@ function scoreRecord(record: KnowledgeRecord, query: KnowledgeRetrievalQuery, no
         score += exactTitleMatches.length * 20;
         reasons.unshift(`Exact identifier: ${exactMatches.slice(0, 2).join(', ')}`);
     }
-    if (record.status === 'approved') {
+    // Approval improves a relevant result; it must never make an unrelated
+    // record relevant by itself.
+    if (record.status === 'approved' && score > 0) {
         score += 2;
         reasons.push('Approved source');
     }
