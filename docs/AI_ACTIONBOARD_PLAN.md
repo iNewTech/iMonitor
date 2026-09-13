@@ -154,7 +154,7 @@ The provider adapter must treat retrieved text as untrusted data. Retrieved cont
 
 ## MCP Skills area
 
-Add **Settings → AI & MCP Skills** as a first-class product area. It should show:
+Add **Settings → Skills & MCP**, also reachable from the AI & knowledge category. The approved design uses separate lists for reusable instruction skills and MCP tool/resource connections within this Settings area. Its selected-item detail should show:
 
 - Installed skills and available customer-approved skills.
 - Skill name, ID, version, owner, transport/provider, status, and last health check.
@@ -199,31 +199,34 @@ The preview must show the target job, command family, current evidence, expected
 
 ## UI and operator experience
 
-Keep the ActionBoard focused on work:
+The user-approved [UI design contract](UI_DESIGN.md) and [seven-screen sketch](design/approved-ui.html) define the target layout. Existing features retain contextual entry points as the screens are simplified.
 
-- The job list remains the primary surface with incident state, owner, priority, freshness, and Focus Next.
-- The task window shows Overview, Actions, AI helper, History, and Details without repeating the same data in multiple panels.
-- The AI composer stays compact. Provider and model selectors remain small controls beside the input; the selected job is always visible as the scope.
-- AI answers show citations as expandable evidence chips. A stale or unknown answer is visually distinct.
-- The action bar groups `Claim`, `Create/update ticket`, `Handoff`, `How to resolve`, approved job actions, and `Mark work done`; incident removal remains monitoring-confirmed.
-- Settings exposes index health, data collected, retention, purge, connected model/vector providers, and MCP Skills in one place.
-- A small “Why this answer?” view shows retrieved sources, filters, freshness, and excluded evidence without exposing implementation details to ordinary operators.
+- Main navigation is ActionBoard, Knowledge, Settings. Connect is compact and profile-first.
+- The board has a slim health strip, one job list with actual conditions and owners, and a compact AI dock. Job queues stay collapsed before Support.
+- Independent job windows have Overview and History. Technical details expand; AI conversation is an in-window state. Additional actions are contextual.
+- The textarea uses the full width and grows with input. Attachments sit bottom-left; small provider/model selection and Send sit bottom-right. Unavailable models cannot be selected.
+- Source chips expand evidence, freshness, and uncertainty only when requested.
+- Knowledge uses searchable rows and a short Add/review flow. Skills and MCP connections have distinct lists inside Settings.
+- Settings opens one category at a time. Retention, storage/provider health, access, and integrations belong there rather than on the daily board.
+
+The shared layouts are owned by #57–#60. Feature-specific UI and tests are part of #41–#56, with backend-only work explicitly mapped to its consuming screen.
 
 ## Delivery phases and ticket map
 
-The GitHub project **AI + ActionBoard** is the execution source of truth. The parent story is issue #40. Tickets are deliberately ordered so each stage leaves a usable product and a reviewable contract.
+The GitHub project **AI + ActionBoard** is the execution source of truth. The parent story is issue #40. Begin with #57 → #58 → #59 → #60 using current services, then deliver #41–#56 in dependency order. The parent groups work and is not a blocking prerequisite for its children.
 
 | Phase | Outcome | Tickets | Estimate |
 |---|---|---|---:|
+| Shared UI first | Approved shell/Connect, ActionBoard, job window, and Settings | #57–#60 | 29 |
 | Foundation | Scoped contracts and safe storage boundaries | #41–#43 | 21 |
-| Knowledge | Ingestion, redaction, and source indexing | #44–#45 | 13 |
-| Retrieval | Hybrid search, context packs, and freshness | #46–#47 | 13 |
-| Grounded AI | Job-scoped AI and retrieval evaluation | #48–#49 | 13 |
-| MCP Skills | Registry, safe resources, and controlled tools | #50–#52 | 21 |
+| Knowledge | Ingestion, library UI, and index/provider configuration | #44–#45 | 21 |
+| Retrieval | Hybrid search, context packs, and evidence detail | #46–#47 | 16 |
+| Grounded AI | Job-scoped conversation and retrieval evaluation | #48–#49 | 18 |
+| MCP Skills | Registry UI, safe resources, and controlled tools | #50–#52 | 26 |
 | Controlled Actions | Verified action planning and learning loop | #53–#54 | 16 |
-| Operations and pilot | Privacy, observability, docs, and live validation | #55–#56 | 13 |
+| Operations and pilot | Operational settings, docs, UI regression, and live validation | #55–#56 | 21 |
 
-Estimates are story points for planning, not promises. Each ticket includes its own acceptance criteria and depends on the previous contract where necessary.
+Total: **168 story points**, including the approved UI work and tests. Estimates are relative planning values, not hours or promises. Each ticket includes its own acceptance criteria and dependency references.
 
 ## Review gate: revised decisions
 
@@ -237,6 +240,7 @@ The draft was reviewed against the current iMonitor architecture, the L1/L2/L3 o
 6. **Learning:** verified outcomes create drafts for review. The system does not automatically promote a successful action into trusted memory.
 7. **Autonomy:** fully automatic recovery stays future scope until retrieval quality, runbook coverage, permissions, recovery verification, and rollback evidence meet a separate release gate.
 8. **Code shape:** add small feature modules around the existing main-process boundaries. Do not create a framework or split every function into its own file.
+9. **Approved UI:** follow the seven-screen reference in `UI_DESIGN.md`. Shared layout work lands first, while each feature owns the UI and tests in its assigned screen. The accepted Overview/History task layout and controls beneath a full-width composer supersede the initial UI draft.
 
 ## Definition of done for the program
 

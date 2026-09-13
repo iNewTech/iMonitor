@@ -90,6 +90,7 @@ UI tests exercise the development demo, not a production IBM i host. Live comman
 
 - [User guide](docs/USER_GUIDE.md)
 - [AI + ActionBoard plan](docs/AI_ACTIONBOARD_PLAN.md)
+- [Approved UI design and screen sketches](docs/UI_DESIGN.md)
 - [Features and access](docs/FEATURES.md)
 - [Technical guide and maintenance rules](docs/TECHNICAL.md)
 - [Architecture](docs/ARCHITECTURE.md)

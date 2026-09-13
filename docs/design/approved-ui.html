@@ -1,0 +1,1642 @@
+<!doctype html>
+<html lang="en" data-visualize-standalone>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src 'unsafe-inline' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Imonitor Screen Sketches</title>
+<style>:root{color-scheme:light dark;background:light-dark(rgb(255 255 255), rgb(24 24 24))}html,body{margin:0}body{box-sizing:border-box;padding:1rem;background:inherit}iframe{display:block;width:100%;height:calc(100vh - 2rem);margin:0 auto;border:0}</style>
+</head>
+<body>
+<iframe sandbox="allow-scripts" referrerpolicy="no-referrer" title="Imonitor Screen Sketches" srcdoc="&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot; data-visualize-standalone&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;meta name=&quot;referrer&quot; content=&quot;no-referrer&quot;&gt;
+&lt;meta http-equiv=&quot;Content-Security-Policy&quot; content=&quot;default-src &#x27;none&#x27;; script-src &#x27;unsafe-inline&#x27; &#x27;unsafe-eval&#x27; &#x27;wasm-unsafe-eval&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src &#x27;unsafe-inline&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src &#x27;none&#x27;; object-src &#x27;none&#x27;; base-uri &#x27;none&#x27;; form-action &#x27;none&#x27;&quot;&gt;
+&lt;title&gt;Imonitor Screen Sketches&lt;/title&gt;
+&lt;style&gt;:root {
+  color-scheme: light dark;
+  background-color: var(
+    --background,
+    var(--color-background-primary, light-dark(rgb(255 255 255), rgb(24 24 24)))
+  ) !important;
+
+  /* Agent-facing contract; keep in sync with SKILL.md. */
+  --background: var(
+    --color-background-primary,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --card: color-mix(in oklab, var(--foreground) 5%, var(--background));
+  --card-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --popover: var(
+    --color-background-secondary,
+    light-dark(rgb(255 255 255), rgb(45 45 45))
+  );
+  --popover-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --primary: var(
+    --color-text-info,
+    light-dark(rgb(51 156 255), rgb(131 195 255))
+  );
+  --primary-foreground: var(
+    --color-text-inverse,
+    light-dark(rgb(255 255 255), rgb(13 13 13))
+  );
+  --secondary: var(
+    --color-background-secondary,
+    light-dark(rgb(255 255 255 / 96%), rgb(54 54 54 / 96%))
+  );
+  --secondary-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --muted: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --muted-foreground: var(
+    --color-text-secondary,
+    light-dark(rgb(26 28 31 / 49.4%), rgb(255 255 255 / 49.8%))
+  );
+  --accent: var(
+    --color-background-info,
+    light-dark(rgb(229 242 255), rgb(13 39 63))
+  );
+  --accent-foreground: var(
+    --color-text-info,
+    light-dark(rgb(51 156 255), rgb(131 195 255))
+  );
+  --destructive: var(
+    --color-text-warning,
+    light-dark(rgb(226 85 7), rgb(255 133 73))
+  );
+  --border: var(
+    --color-border-secondary,
+    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
+  );
+  --input: var(
+    --color-border-primary,
+    light-dark(
+      rgb(26 28 31 / 11.8%),
+      color-mix(in oklab, rgb(0 0 0) 10%, transparent)
+    )
+  );
+  --ring: var(
+    --color-ring-primary,
+    light-dark(rgb(51 156 255), rgb(131 195 255 / 76%))
+  );
+  --font-size-base: var(--font-text-md-size, 14px);
+  --blue: light-dark(rgb(51 156 255), rgb(51 156 255));
+  --orange: light-dark(rgb(226 85 7), rgb(251 106 34));
+  --green: light-dark(rgb(0 162 64), rgb(64 201 119));
+  --red: light-dark(rgb(224 46 42), rgb(255 103 100));
+  --purple: light-dark(rgb(146 79 247), rgb(173 123 249));
+  --yellow: light-dark(rgb(255 195 0), rgb(255 210 64));
+  --viz-series-1: var(--primary);
+  --viz-series-2: light-dark(rgb(243 136 59), rgb(245 154 86));
+  --viz-series-3: light-dark(rgb(93 201 119), rgb(116 213 139));
+  --viz-series-4: light-dark(rgb(235 119 177), rgb(240 143 192));
+  --viz-series-5: light-dark(rgb(155 121 236), rgb(170 145 239));
+  --viz-series-6: light-dark(rgb(58 185 177), rgb(90 203 194));
+
+  /* Internal implementation variables; not part of the agent contract. */
+  --font-sans: -apple-system, system-ui, &quot;Segoe UI&quot;, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, &quot;SF Mono&quot;, Menlo, Consolas, &quot;Liberation Mono&quot;,
+    monospace;
+  --font-size-normal: max(11px, var(--font-size-base));
+  --font-size-tooltip: calc(var(--font-size-base) - 1px);
+  --font-size-small: max(11px, calc(var(--font-size-base) - 2px));
+  --font-size-h1: calc(var(--font-size-normal) * 1.7142857143);
+  --font-size-h2: calc(var(--font-size-normal) * 1.4285714286);
+  --font-size-h3: calc(var(--font-size-normal) * 1.2857142857);
+  --font-weight-normal: 430;
+  --font-weight-medium: 500;
+  --icon-size: 16px;
+  --line-height-normal: calc(var(--font-size-normal) * 1.5);
+  --line-height-tooltip: calc(var(--font-size-tooltip) * 1.4285714286);
+  --line-height-small: calc(var(--font-size-small) + 4px);
+  --corner-shape: round;
+  --radius: var(--border-radius-lg, 10px);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-2xl: calc(var(--radius) * 1.6);
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px -1px rgb(0 0 0 / 8%);
+  --checkmark-image: url(&quot;data:image/svg+xml,%3Csvg xmlns=&#x27;http://www.w3.org/2000/svg&#x27; viewBox=&#x27;0 0 17 17&#x27;%3E%3Cpath d=&#x27;M12.8961 3.64101C13.1297 3.41418 13.4984 3.37523 13.7779 3.56581C14.0571 3.75635 14.1554 4.11331 14.0299 4.41347L13.9615 4.53847L7.71151 13.7045C7.59411 13.8767 7.4063 13.9877 7.19881 14.0072C6.99136 14.0267 6.78564 13.9533 6.63826 13.806L2.88826 10.056L2.79842 9.9457C2.6192 9.67407 2.64927 9.30496 2.88826 9.06581C3.12738 8.82669 3.49647 8.79676 3.76815 8.97597L3.8785 9.06581L7.03084 12.2182L12.8053 3.74941L12.8961 3.64101Z&#x27;/%3E%3C/svg%3E&quot;);
+
+  /* Legacy aliases; not part of the current agent contract. */
+  --viz-bg: transparent;
+  --viz-panel: var(--card);
+  --viz-border: var(--border);
+  --viz-text: var(--foreground);
+  --viz-muted: var(--muted-foreground);
+  --viz-accent: var(--primary);
+  --viz-accent-text: var(--primary-foreground);
+  --viz-accent-bg: var(--accent);
+  --viz-font-size: var(--font-size-base);
+  --viz-warning: var(--destructive);
+}
+
+:root[data-theme=&quot;light&quot;] {
+  color-scheme: light;
+}
+
+:root[data-theme=&quot;dark&quot;] {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html &gt; body {
+  /* Preserve MCP aliases for older inline renderers without creating :root cycles. */
+  --color-background-primary: var(
+    --background,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --color-text-primary: var(
+    --foreground,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --color-border-secondary: var(
+    --border,
+    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
+  );
+
+  margin: 0;
+  padding: var(--visualize-paint-gutter, 0px);
+  color: var(--foreground);
+  background: transparent !important;
+  font-family: var(--font-sans) !important;
+  font-size: var(--font-size-normal);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+}
+
+a {
+  color: color-mix(in srgb, var(--viz-accent) 80%, var(--viz-text) 20%);
+  cursor: pointer;
+  font-weight: var(--font-weight-medium, 500);
+  text-decoration: none;
+  text-underline-offset: 2px;
+}
+
+a:is(:hover, :focus-visible) {
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-thickness: 0.5px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin-block: 0;
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h3,
+h4,
+h5,
+h6 {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.3;
+}
+
+b,
+strong,
+th {
+  font-weight: var(--font-weight-medium);
+}
+
+code:not(pre code) {
+  display: inline;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  corner-shape: var(--corner-shape);
+  background: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  word-break: break-word;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--foreground);
+  font: inherit;
+  text-align: start;
+}
+
+.table :is(th, td) {
+  padding-block: 10px;
+  padding-inline: 0 24px;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--border);
+  text-align: start;
+  vertical-align: top;
+}
+
+.table-responsive &gt; .table :is(th, td) {
+  overflow-wrap: break-word;
+}
+
+.table :is(th, td):last-child {
+  padding-inline-end: 0;
+}
+
+.table :is(caption, thead th) {
+  font-weight: 600;
+}
+
+.table thead th {
+  padding-block: 8px;
+  border-bottom-color: color-mix(in srgb, var(--foreground) 16%, transparent);
+}
+
+.table tbody tr:last-child :is(th, td) {
+  border-bottom: 0;
+}
+
+.table.table-sm :is(th, td) {
+  padding-block: 6px;
+}
+
+.table.table-sm :is(th, td):not(:last-child) {
+  padding-inline-end: 16px;
+}
+
+.table :is(.text-end, [align=&quot;right&quot;]) {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.table :is(.text-center, [align=&quot;center&quot;]) {
+  text-align: center;
+}
+
+.table .text-nowrap {
+  white-space: nowrap;
+}
+
+#widget {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  background: transparent !important;
+}
+
+.card {
+  min-width: 0;
+  padding: 12px;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  border-radius: var(--radius-2xl);
+  corner-shape: var(--corner-shape);
+  color: var(--card-foreground);
+  background: var(--card);
+}
+
+#widget &gt; :not(.card, .progress) {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  width: max-content;
+  max-width: min(
+    20rem,
+    var(--tooltip-available-width, calc(100vw - 10px)),
+    calc(100vw - 10px)
+  );
+  max-height: min(
+    var(--tooltip-available-height, calc(100vh - 10px)),
+    calc(100vh - 10px)
+  );
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  corner-shape: var(--corner-shape);
+  color: var(--popover-foreground);
+  background: var(--popover);
+  box-shadow: none;
+  font-size: var(--font-size-tooltip);
+  line-height: var(--line-height-tooltip);
+  overflow-wrap: break-word;
+  white-space: normal;
+  pointer-events: none;
+  user-select: none;
+}
+
+.viz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(max(180px, 24%), 1fr));
+  gap: 10px;
+}
+
+.viz-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.viz-stat-value {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+.viz-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+hr {
+  width: 100%;
+  height: 1px;
+  margin-block: 6px;
+  border: 0;
+  background: var(--border);
+}
+
+.nav {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+}
+
+.progress {
+  display: flex;
+  height: 8px;
+  margin-block: calc((var(--line-height-normal, 1.5em) - 8px) / 2);
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+}
+
+.progress-bar:only-child {
+  border-radius: var(--radius-full);
+}
+
+.progress-bar {
+  height: 100%;
+  flex-shrink: 0;
+  border: 0;
+  background: var(--viz-series-1);
+}
+
+.viz-badge {
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  color: var(--accent-foreground);
+  background: var(--accent);
+  font-weight: var(--font-weight-medium);
+}
+
+small,
+.text-small,
+.viz-badge {
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-small);
+}
+
+.text-muted {
+  color: var(--muted-foreground);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.viz-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.viz-controls &gt; .form-label {
+  display: grid;
+  min-width: min(100%, 260px);
+  flex: 1 1 280px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-bottom: 0;
+}
+
+.viz-controls &gt; .form-label &gt; :is(.form-control, .form-range, .form-select) {
+  grid-column: 1 / -1;
+}
+
+.btn,
+.nav-link,
+.form-check-input,
+.form-control,
+.form-range,
+.form-select {
+  font: inherit;
+}
+
+.btn,
+.nav-link {
+  appearance: button;
+  display: inline-flex;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0 8px;
+  -webkit-app-region: no-drag;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: var(--corner-shape);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: var(--cursor-interaction, pointer);
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.btn:is(.btn-block, .viz-tile) {
+  inline-size: 100%;
+}
+
+.btn.viz-tile {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+a.btn {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn:not(:disabled):hover,
+.nav-link:not(:disabled):not([aria-disabled=&quot;true&quot;]):hover {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn-primary {
+  border-color: transparent;
+  color: var(--primary-foreground);
+  background: var(--foreground);
+  background-clip: padding-box;
+}
+
+.btn-primary .text-muted {
+  color: color-mix(in srgb, var(--primary-foreground) 50%, transparent);
+}
+
+.btn-primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 80%, transparent);
+  background-clip: padding-box;
+}
+
+.btn-ghost {
+  border-color: transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.btn-ghost:not(:disabled):hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.nav-pills .nav-link {
+  min-width: 0;
+  border-color: transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.nav-justified .nav-link {
+  flex: 1 1 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.nav-pills .nav-link.active {
+  color: var(--foreground);
+  background: var(--muted);
+}
+
+.btn:disabled,
+.nav-link:disabled,
+.nav-link[aria-disabled=&quot;true&quot;] {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+[data-lucide] {
+  stroke-width: 1.6;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--foreground);
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  padding: 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: var(--corner-shape);
+  color: var(--foreground);
+  background: var(--secondary);
+}
+
+.form-control::placeholder {
+  color: var(--muted-foreground);
+}
+
+.form-control[type=&quot;file&quot;] {
+  padding: 0;
+  overflow: hidden;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control[type=&quot;file&quot;]::file-selector-button {
+  min-height: 26px;
+  margin-right: 8px;
+  padding: 0 8px;
+  border: 0;
+  border-right: 1px solid var(--input);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: inherit;
+  font: inherit;
+}
+
+.form-control[type=&quot;file&quot;]:not(:disabled):hover::file-selector-button {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-control-color[type=&quot;color&quot;] {
+  width: 40px;
+  height: 28px;
+  padding: 3px;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch {
+  border: 0;
+  border-radius: calc(var(--radius-lg) - 4px);
+  corner-shape: var(--corner-shape);
+}
+
+textarea.form-control {
+  height: auto;
+  min-height: 72px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.form-control:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-control:disabled,
+.form-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.form-select {
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  margin: 0;
+  padding: 0 32px 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: var(--corner-shape);
+  color: var(--foreground);
+  background-color: var(--secondary);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
+    linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 50%,
+    calc(100% - 10px) 50%;
+  background-repeat: no-repeat;
+  background-size: 4px 4px;
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-select:not(:disabled):hover {
+  background-color: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-select:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-check {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-check-input {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin: 0;
+  border: 1px solid var(--input);
+  color: var(--primary-foreground);
+  background-color: transparent;
+  cursor: var(--cursor-interaction, default);
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
+}
+
+.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;] {
+  border-color: var(--input);
+  border-radius: var(--radius-sm);
+  corner-shape: var(--corner-shape);
+  background-color: var(--secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input:not(:disabled):not(:checked):hover {
+  background-color: var(--card);
+}
+
+.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;]:checked {
+  border-color: var(--primary);
+  background-color: var(--primary);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input[type=&quot;checkbox&quot;]:checked::before {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--primary-foreground);
+  content: &quot;&quot;;
+  mask: var(--checkmark-image) center / 12px 12px no-repeat;
+}
+
+.form-check-input[type=&quot;radio&quot;] {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+}
+
+.form-check-input[type=&quot;radio&quot;]:checked {
+  border: 2px solid var(--primary);
+  background:
+    radial-gradient(circle, var(--primary-foreground) 0 2.5px, transparent 3px),
+    var(--primary);
+}
+
+.form-check:not(.form-switch) .form-check-input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+}
+
+.form-switch .form-check-input:disabled,
+.form-switch .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.form-check-label {
+  color: var(--foreground);
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-switch .form-check-input {
+  position: relative;
+  width: 32px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+  box-shadow: none;
+  transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1px solid light-dark(var(--primary-foreground), var(--foreground));
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+  box-shadow: var(--shadow-sm);
+  content: &quot;&quot;;
+  transform: translate(2px, -50%);
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input:checked {
+  background: var(--primary);
+}
+
+.form-switch .form-check-input:checked::before {
+  transform: translate(14px, -50%);
+}
+
+.form-switch .form-check-input:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.form-range {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 28px;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  outline: none;
+  border: 0;
+  accent-color: var(--primary);
+  background: linear-gradient(
+      color-mix(in srgb, var(--foreground) 7%, transparent),
+      color-mix(in srgb, var(--foreground) 7%, transparent)
+    )
+    center / 100% 2px no-repeat;
+}
+
+.form-range::-webkit-slider-runnable-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-webkit-slider-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range::-moz-range-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-moz-range-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.btn:not(.btn-primary, .viz-tile):is(
+  [aria-pressed=&quot;true&quot;],
+  [aria-selected=&quot;true&quot;],
+  .is-selected
+) {
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+
+.btn.viz-tile:is([aria-pressed=&quot;true&quot;], [aria-selected=&quot;true&quot;], .is-selected) {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.btn:focus-visible,
+.nav-link:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .btn,
+  .nav-link,
+  .form-control,
+  .form-select {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Keep small-screen WebKit from zooming when a text field receives focus. */
+  .form-control,
+  .form-select {
+    font-size: max(16px, var(--font-size-normal));
+  }
+
+  .form-control[type=&quot;file&quot;]::file-selector-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .form-control-color[type=&quot;color&quot;] {
+    width: 44px;
+    height: 44px;
+  }
+
+  .form-control:is(
+    [type=&quot;date&quot;],
+    [type=&quot;datetime-local&quot;],
+    [type=&quot;month&quot;],
+    [type=&quot;time&quot;],
+    [type=&quot;week&quot;]
+  ) {
+    min-width: 0;
+    max-width: 100%;
+    padding-block: 8px;
+  }
+
+  .form-check {
+    min-height: 44px;
+    padding-inline: 15px;
+  }
+
+  .form-check-input {
+    position: relative;
+  }
+
+  .form-check-input::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    content: &quot;&quot;;
+    transform: translate(-50%, -50%);
+  }
+
+  .form-check-label {
+    display: inline-flex;
+    min-width: 44px;
+    min-height: 44px;
+    align-items: center;
+  }
+
+  .form-range {
+    height: 44px;
+    touch-action: pan-y;
+  }
+
+  .form-range::-webkit-slider-runnable-track {
+    height: 44px;
+  }
+
+  .form-range::-moz-range-track {
+    height: 44px;
+  }
+
+  .form-range::-webkit-slider-thumb {
+    margin-top: 12px;
+  }
+}
+
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+#widget &gt; svg {
+  width: 100%;
+}
+
+/* Model-authored chart rules can otherwise stretch icons after these styles load. */
+svg.lucide {
+  display: block;
+  width: var(--icon-size) !important;
+  height: var(--icon-size) !important;
+  flex: none;
+  margin: 0 !important;
+  stroke-width: 1.6;
+}
+
+.text-warning,
+.text-destructive {
+  color: var(--destructive);
+}
+
+html&gt;body{padding:0}&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div id=&quot;im-sketches&quot; aria-label=&quot;iMonitor proposed screen layouts&quot;&gt;
+  &lt;style&gt;
+    #im-sketches { --im-bg:light-dark(#f7f8f7,#191d20); --im-paper:light-dark(#ffffff,#23282c); --im-ink:light-dark(#21322e,#e7eeeb); --im-muted:light-dark(#61706a,#a6b7ae); --im-line:light-dark(#dce3df,#3b4540); --im-accent:light-dark(#136854,#8ad9be); --im-on:light-dark(#ffffff,#102d23); --im-soft:light-dark(#edf5f0,#253d32); --im-warn:light-dark(#a34921,#ffbb93); --im-red:light-dark(#ae3f49,#f7a0a9); --im-shadow:light-dark(#15251c14,#00000040); color:var(--im-ink); font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif; }
+    #im-sketches * { box-sizing:border-box; }
+    #im-sketches [hidden] { display:none!important; }
+    #im-sketches button,#im-sketches input,#im-sketches textarea,#im-sketches select { font:inherit; color:inherit; }
+    #im-sketches button { cursor:pointer; }
+    #im-sketches button:disabled { cursor:default; opacity:.5; }
+    #im-sketches button { border:1px solid var(--im-line); border-radius:7px; padding:7px 11px; background:var(--im-paper); display:inline-flex; align-items:center; justify-content:center; gap:7px; max-width:100%; }
+    #im-sketches strong,#im-sketches b { font-weight:500; }
+    #im-sketches small { color:var(--im-muted); }
+    #im-sketches i { display:inline-flex; }
+    #im-sketches .im-primary { background:var(--im-accent);color:var(--im-on);border-color:var(--im-accent); }
+    #im-sketches .im-plain { border-color:transparent;background:transparent; }
+    #im-sketches .im-tabs { display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px; }
+    #im-sketches .im-tabs button[aria-selected=&quot;true&quot;] { background:var(--im-ink);color:var(--im-paper);border-color:var(--im-ink); }
+    #im-sketches .im-preview-label { display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px; }
+    #im-sketches .im-window { border:1px solid var(--im-line);border-radius:13px;overflow:hidden;background:var(--im-bg);box-shadow:0 8px 24px var(--im-shadow); }
+    #im-sketches .im-chrome { display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 16px;background:var(--im-paper);border-bottom:1px solid var(--im-line); }
+    #im-sketches .im-chrome .im-brand { margin-right:auto;display:flex;gap:8px;align-items:center; }
+    #im-sketches .im-dot { width:8px;height:8px;border-radius:50%;background:var(--im-accent);display:inline-block;flex-shrink:0; }
+    #im-sketches .im-nav { display:flex;gap:4px;flex-wrap:wrap; }
+    #im-sketches .im-nav button { background:transparent;border-color:transparent; }
+    #im-sketches .im-nav .im-current { background:var(--im-soft);color:var(--im-accent); }
+    #im-sketches .im-page { padding:20px; }
+    #im-sketches .im-row { display:flex;align-items:center;gap:10px;flex-wrap:wrap; }
+    #im-sketches .im-between { justify-content:space-between; }
+    #im-sketches .im-stack { display:grid;gap:14px; }
+    #im-sketches .im-section { margin-top:20px; }
+    #im-sketches .im-title { margin:0 0 6px; }
+    #im-sketches .im-rule { border:0;border-top:1px solid var(--im-line);margin:16px 0; }
+    #im-sketches .im-fields { display:grid;grid-template-columns:1fr 1fr;gap:12px; }
+    #im-sketches label { display:grid;gap:5px;min-width:0; }
+    #im-sketches input,#im-sketches textarea,#im-sketches select { border:1px solid var(--im-line);background:var(--im-paper);padding:9px 10px;border-radius:7px;min-width:0;width:100%; }
+    #im-sketches textarea { resize:vertical; }
+    #im-sketches .im-connect { max-width:450px;margin:18px auto;padding:24px;background:var(--im-paper);border:1px solid var(--im-line);border-radius:12px; }
+    #im-sketches .im-wide { width:100%; }
+    #im-sketches details { border-bottom:1px solid var(--im-line);padding:12px 0; }
+    #im-sketches summary { cursor:pointer; }
+    #im-sketches details&gt;div { padding-top:12px; }
+    #im-sketches .im-health { display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding-bottom:16px; }
+    #im-sketches .im-health&gt;div { display:grid;gap:3px; }
+    #im-sketches .im-health&gt;div:first-child { margin-right:auto; }
+    #im-sketches .im-toolbar { display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 0; }
+    #im-sketches .im-toolbar&gt;input { flex:1;min-width:150px; }
+    #im-sketches .im-toolbar&gt;select { width:auto; }
+    #im-sketches .im-tablewrap { overflow-x:auto; }
+    #im-sketches table { width:100%;border-collapse:collapse;background:var(--im-paper); }
+    #im-sketches th { color:var(--im-muted);font-weight:400;text-align:left;padding:9px 10px;border-bottom:1px solid var(--im-line); }
+    #im-sketches td { padding:12px 10px;border-bottom:1px solid var(--im-line); }
+    #im-sketches .im-job-link { padding:0;border:0;background:transparent;text-align:left;justify-content:flex-start; }
+    #im-sketches .im-selected { background:var(--im-soft); }
+    #im-sketches .im-error { color:var(--im-red); }
+    #im-sketches .im-warning { color:var(--im-warn); }
+    #im-sketches .im-muted { color:var(--im-muted); }
+    #im-sketches .im-foot { display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 0;color:var(--im-muted); }
+    #im-sketches .im-composer { background:var(--im-paper);border:1px solid var(--im-line);border-radius:14px;padding:10px 12px;margin-top:14px; }
+    #im-sketches .im-composer textarea { width:100%;border:0;background:transparent;resize:none;padding:4px 2px;min-height:56px; }
+    #im-sketches .im-composebar { display:flex;align-items:center;gap:6px;flex-wrap:wrap; }
+    #im-sketches .im-composebar .im-spacer { flex:1; }
+    #im-sketches .im-composebar button { border:0;background:transparent;padding:5px 6px; }
+    #im-sketches .im-composebar .im-send { background:var(--im-accent);color:var(--im-on);border-radius:50%;width:32px;height:32px; }
+    #im-sketches .im-submenu { display:flex;gap:5px;flex-wrap:wrap;border-top:1px solid var(--im-line);padding-top:9px;margin-top:8px; }
+    #im-sketches .im-submenu button { padding:5px 8px; }
+    #im-sketches .im-task { max-width:680px;margin:0 auto;background:var(--im-paper);border:1px solid var(--im-line);border-radius:11px; }
+    #im-sketches .im-task-head { padding:14px 18px;border-bottom:1px solid var(--im-line); }
+    #im-sketches .im-task-body { padding:18px; }
+    #im-sketches .im-task-tabs { display:flex;gap:8px;margin-top:12px; }
+    #im-sketches .im-task-tabs button { border:0; }
+    #im-sketches .im-task-tabs [aria-selected=&quot;true&quot;] { background:var(--im-soft);color:var(--im-accent); }
+    #im-sketches .im-note { border-left:3px solid var(--im-warn);padding-left:12px;display:grid;gap:5px; }
+    #im-sketches .im-definition { display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:16px; }
+    #im-sketches .im-definition&gt;div { display:grid;gap:4px; }
+    #im-sketches .im-actions { display:flex;gap:8px;flex-wrap:wrap;margin-top:16px; }
+    #im-sketches .im-timeline { margin:0;padding-left:20px;display:grid;gap:16px; }
+    #im-sketches .im-timeline li { padding-left:6px; }
+    #im-sketches .im-timeline li&gt;div { display:grid;gap:3px; }
+    #im-sketches .im-answer { display:grid;gap:12px; }
+    #im-sketches .im-answer p { margin:0; }
+    #im-sketches .im-citations { display:flex;gap:6px;flex-wrap:wrap; }
+    #im-sketches .im-citations button { padding:4px 8px;background:var(--im-bg); }
+    #im-sketches .im-evidence { background:var(--im-bg);padding:12px;border-radius:8px;display:grid;gap:6px; }
+    #im-sketches .im-library-row { display:grid;grid-template-columns:minmax(180px,1fr) 120px 100px auto;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--im-line); }
+    #im-sketches .im-library-row&gt;div:first-child { display:grid;gap:5px; }
+    #im-sketches .im-pane { border:1px solid var(--im-line);border-radius:10px;padding:16px;background:var(--im-paper);margin-top:16px; }
+    #im-sketches .im-settings { display:grid;grid-template-columns:160px minmax(0,1fr);gap:24px; }
+    #im-sketches .im-side { display:flex;flex-direction:column;gap:5px;border-right:1px solid var(--im-line);padding-right:15px; }
+    #im-sketches .im-side button { justify-content:flex-start;border:0;background:transparent; }
+    #im-sketches .im-side button[aria-pressed=&quot;true&quot;] { background:var(--im-soft);color:var(--im-accent); }
+    #im-sketches .im-settingrow { display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 0;border-bottom:1px solid var(--im-line);flex-wrap:wrap; }
+    #im-sketches .im-settingrow&gt;div { display:grid;gap:4px; }
+    #im-sketches .im-installed { display:flex;gap:16px;flex-wrap:wrap;margin:16px 0; }
+    #im-sketches .im-app { display:flex;flex-direction:column;gap:7px;align-items:center;min-width:76px; }
+    #im-sketches .im-app button { width:43px;height:43px;background:var(--im-soft);color:var(--im-accent); }
+    #im-sketches .im-check { display:flex;align-items:center;gap:8px; }
+    #im-sketches .im-check input { width:auto; }
+    #im-sketches .im-preview-action { display:grid;gap:10px;background:var(--im-bg);padding:12px;margin-top:12px;border-radius:8px; }
+    #im-sketches .im-scene-label { color:var(--im-muted); }
+    #im-sketches .im-example { color:var(--im-muted);margin-top:8px; }
+    #im-sketches[data-density=&quot;compact&quot;] td { padding-top:8px;padding-bottom:8px; }
+    #im-sketches[data-density=&quot;compact&quot;] .im-settingrow,#im-sketches[data-density=&quot;compact&quot;] .im-library-row { padding-top:10px;padding-bottom:10px; }
+    @media(max-width:680px) { #im-sketches .im-settings { grid-template-columns:1fr;gap:12px; } #im-sketches .im-side { flex-direction:row;flex-wrap:wrap;border-right:0;border-bottom:1px solid var(--im-line);padding-bottom:10px; } #im-sketches .im-secondary-column { display:none; } #im-sketches .im-page { padding:12px; } #im-sketches .im-library-row { grid-template-columns:minmax(0,1fr) auto; } #im-sketches .im-library-row .im-kind { display:none; } }
+    @media(max-width:420px) { #im-sketches .im-fields,#im-sketches .im-definition { grid-template-columns:1fr; } #im-sketches .im-connect { padding:15px; } #im-sketches .im-nav { width:100%; } #im-sketches .im-health { gap:12px; } #im-sketches .im-chrome { padding:9px; } }
+    @media(pointer:coarse) { #im-sketches button { min-height:44px; } #im-sketches input,#im-sketches textarea { font-size:16px; } }
+  &lt;/style&gt;
+  &lt;div class=&quot;im-preview-label&quot;&gt;&lt;strong&gt;iMonitor · Screen sketches&lt;/strong&gt;&lt;small&gt;Design preview · All data is illustrative&lt;/small&gt;&lt;/div&gt;
+  &lt;div class=&quot;im-tabs&quot; role=&quot;tablist&quot; aria-label=&quot;Choose a screen sketch&quot;&gt;
+    &lt;button id=&quot;im-tab-connect&quot; role=&quot;tab&quot; aria-controls=&quot;im-connect&quot; aria-selected=&quot;false&quot; data-screen=&quot;connect&quot;&gt;1 · Connect&lt;/button&gt;
+    &lt;button id=&quot;im-tab-board&quot; role=&quot;tab&quot; aria-controls=&quot;im-board&quot; aria-selected=&quot;true&quot; data-screen=&quot;board&quot;&gt;2 · ActionBoard&lt;/button&gt;
+    &lt;button id=&quot;im-tab-task&quot; role=&quot;tab&quot; aria-controls=&quot;im-task&quot; aria-selected=&quot;false&quot; data-screen=&quot;task&quot;&gt;3 · Job task&lt;/button&gt;
+    &lt;button id=&quot;im-tab-ai&quot; role=&quot;tab&quot; aria-controls=&quot;im-ai&quot; aria-selected=&quot;false&quot; data-screen=&quot;ai&quot;&gt;4 · AI &amp; evidence&lt;/button&gt;
+    &lt;button id=&quot;im-tab-knowledge&quot; role=&quot;tab&quot; aria-controls=&quot;im-knowledge&quot; aria-selected=&quot;false&quot; data-screen=&quot;knowledge&quot;&gt;5 · Knowledge&lt;/button&gt;
+    &lt;button id=&quot;im-tab-settings&quot; role=&quot;tab&quot; aria-controls=&quot;im-settings&quot; aria-selected=&quot;false&quot; data-screen=&quot;settings&quot;&gt;6 · Settings&lt;/button&gt;
+    &lt;button id=&quot;im-tab-skills&quot; role=&quot;tab&quot; aria-controls=&quot;im-skills&quot; aria-selected=&quot;false&quot; data-screen=&quot;skills&quot;&gt;7 · Skills &amp; MCP&lt;/button&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;im-window&quot; aria-label=&quot;Proposed iMonitor app window&quot;&gt;
+    &lt;div class=&quot;im-chrome&quot;&gt;
+      &lt;strong class=&quot;im-brand&quot;&gt;&lt;span class=&quot;im-dot&quot;&gt;&lt;/span&gt; iMonitor&lt;/strong&gt;
+      &lt;nav class=&quot;im-nav&quot; aria-label=&quot;Application navigation&quot;&gt;
+        &lt;button class=&quot;im-current&quot; data-go=&quot;board&quot;&gt;ActionBoard&lt;/button&gt;&lt;button data-go=&quot;knowledge&quot;&gt;Knowledge&lt;/button&gt;&lt;button data-go=&quot;settings&quot;&gt;Settings&lt;/button&gt;
+      &lt;/nav&gt;
+      &lt;small class=&quot;im-user&quot;&gt;Gajender&lt;/small&gt;
+    &lt;/div&gt;
+    &lt;section id=&quot;im-connect&quot; role=&quot;tabpanel&quot; aria-labelledby=&quot;im-tab-connect&quot; hidden class=&quot;im-page&quot;&gt;
+      &lt;div class=&quot;im-connect im-stack&quot;&gt;
+        &lt;div&gt;&lt;h3 class=&quot;im-title&quot;&gt;Connect to IBM i&lt;/h3&gt;&lt;small&gt;Your systems, ready to monitor.&lt;/small&gt;&lt;/div&gt;
+        &lt;label&gt;Saved system&lt;select aria-label=&quot;Saved system&quot;&gt;&lt;option&gt;NORTH01 · Production&lt;/option&gt;&lt;option&gt;DEV01 · Development&lt;/option&gt;&lt;/select&gt;&lt;/label&gt;
+        &lt;div class=&quot;im-row im-between&quot;&gt;&lt;small&gt;Operator: Gajender · north01.example&lt;/small&gt;&lt;button class=&quot;im-plain&quot; data-toggle=&quot;im-profile-edit&quot;&gt;Edit&lt;/button&gt;&lt;/div&gt;
+        &lt;div id=&quot;im-profile-edit&quot; hidden class=&quot;im-stack&quot;&gt;&lt;label&gt;System address&lt;input value=&quot;north01.example&quot;&gt;&lt;/label&gt;&lt;div class=&quot;im-fields&quot;&gt;&lt;label&gt;Username&lt;input value=&quot;GAJENDER&quot;&gt;&lt;/label&gt;&lt;label&gt;Port&lt;input value=&quot;8076&quot;&gt;&lt;/label&gt;&lt;/div&gt;&lt;label&gt;Password&lt;input type=&quot;password&quot; value=&quot;example-only&quot;&gt;&lt;/label&gt;&lt;/div&gt;
+        &lt;button class=&quot;im-primary im-wide&quot; data-go=&quot;board&quot;&gt;Connect &amp; monitor &lt;i data-lucide=&quot;arrow-right&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;
+        &lt;details&gt;&lt;summary&gt;Add another system&lt;/summary&gt;&lt;div class=&quot;im-stack&quot;&gt;&lt;label&gt;Profile name&lt;input placeholder=&quot;For example: North development&quot;&gt;&lt;/label&gt;&lt;div class=&quot;im-fields&quot;&gt;&lt;label&gt;Address&lt;input placeholder=&quot;system.example&quot;&gt;&lt;/label&gt;&lt;label&gt;Port&lt;input value=&quot;8076&quot;&gt;&lt;/label&gt;&lt;/div&gt;&lt;button data-preview-message=&quot;Profile setup preview only.&quot;&gt;Save profile&lt;/button&gt;&lt;/div&gt;&lt;/details&gt;
+        &lt;div class=&quot;im-row im-between&quot;&gt;&lt;small&gt;Credentials stay protected.&lt;/small&gt;&lt;button class=&quot;im-plain&quot; data-preview-message=&quot;Support remains available before connecting.&quot;&gt;Support&lt;/button&gt;&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/section&gt;
+    &lt;section id=&quot;im-board&quot; role=&quot;tabpanel&quot; aria-labelledby=&quot;im-tab-board&quot; class=&quot;im-page&quot;&gt;
+      &lt;div class=&quot;im-health&quot;&gt;
+        &lt;div&gt;&lt;strong&gt;NORTH01 &lt;small&gt;⌄&lt;/small&gt;&lt;/strong&gt;&lt;small&gt;&lt;span class=&quot;im-dot&quot;&gt;&lt;/span&gt; Connected · Updated 5s ago&lt;/small&gt;&lt;/div&gt;
+        &lt;div&gt;&lt;small&gt;CPU&lt;/small&gt;&lt;strong&gt;39%&lt;/strong&gt;&lt;/div&gt;&lt;div&gt;&lt;small&gt;Active jobs&lt;/small&gt;&lt;strong&gt;18&lt;/strong&gt;&lt;/div&gt;&lt;div&gt;&lt;small&gt;Need attention&lt;/small&gt;&lt;strong class=&quot;im-warning&quot;&gt;3&lt;/strong&gt;&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;im-toolbar&quot;&gt;&lt;input id=&quot;im-job-search&quot; aria-label=&quot;Search jobs&quot; placeholder=&quot;Search jobs, users, or messages…&quot;&gt;&lt;select id=&quot;im-job-filter&quot; aria-label=&quot;Filter jobs&quot;&gt;&lt;option value=&quot;all&quot;&gt;All jobs&lt;/option&gt;&lt;option value=&quot;issues&quot;&gt;Needs attention&lt;/option&gt;&lt;/select&gt;&lt;button id=&quot;im-mywork&quot; aria-pressed=&quot;false&quot;&gt;My work&lt;/button&gt;&lt;button class=&quot;im-primary&quot; data-go=&quot;task&quot;&gt;&lt;i data-lucide=&quot;focus&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt; Focus next&lt;/button&gt;&lt;/div&gt;
+      &lt;div class=&quot;im-tablewrap&quot;&gt;&lt;table aria-label=&quot;Active jobs&quot;&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Job / function&lt;/th&gt;&lt;th&gt;Current condition&lt;/th&gt;&lt;th class=&quot;im-secondary-column&quot;&gt;CPU&lt;/th&gt;&lt;th&gt;Owner&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody id=&quot;im-job-rows&quot;&gt;
+        &lt;tr data-issue=&quot;yes&quot; data-owner=&quot;&quot; class=&quot;im-selected&quot;&gt;&lt;td&gt;&lt;button class=&quot;im-job-link&quot; data-go=&quot;task&quot;&gt;&lt;strong&gt;QBATCH/ARLOCK2&lt;/strong&gt;&lt;/button&gt;&lt;br&gt;&lt;small&gt;Accounts receivable&lt;/small&gt;&lt;/td&gt;&lt;td class=&quot;im-error&quot;&gt;Lock wait · 8 min&lt;/td&gt;&lt;td class=&quot;im-secondary-column&quot;&gt;0.3%&lt;/td&gt;&lt;td data-owner-display&gt;Unassigned&lt;/td&gt;&lt;/tr&gt;
+        &lt;tr data-issue=&quot;yes&quot; data-owner=&quot;Gajender&quot;&gt;&lt;td&gt;&lt;strong&gt;QBATCH/NIGHTBCH&lt;/strong&gt;&lt;br&gt;&lt;small&gt;Posting invoices&lt;/small&gt;&lt;/td&gt;&lt;td class=&quot;im-warning&quot;&gt;High CPU · 62%&lt;/td&gt;&lt;td class=&quot;im-secondary-column&quot;&gt;62.0%&lt;/td&gt;&lt;td&gt;Gajender&lt;/td&gt;&lt;/tr&gt;
+        &lt;tr data-issue=&quot;yes&quot; data-owner=&quot;Anita&quot;&gt;&lt;td&gt;&lt;strong&gt;QUSRWRK/ORDPOST&lt;/strong&gt;&lt;br&gt;&lt;small&gt;Order processing&lt;/small&gt;&lt;/td&gt;&lt;td class=&quot;im-error&quot;&gt;Message reply needed&lt;/td&gt;&lt;td class=&quot;im-secondary-column&quot;&gt;0.0%&lt;/td&gt;&lt;td&gt;Anita&lt;/td&gt;&lt;/tr&gt;
+        &lt;tr data-issue=&quot;no&quot; data-owner=&quot;&quot;&gt;&lt;td&gt;&lt;strong&gt;QBATCH/SHIPPICK&lt;/strong&gt;&lt;br&gt;&lt;small&gt;Picking release&lt;/small&gt;&lt;/td&gt;&lt;td class=&quot;im-muted&quot;&gt;Running&lt;/td&gt;&lt;td class=&quot;im-secondary-column&quot;&gt;8.2%&lt;/td&gt;&lt;td&gt;—&lt;/td&gt;&lt;/tr&gt;
+        &lt;tr data-issue=&quot;no&quot; data-owner=&quot;&quot;&gt;&lt;td&gt;&lt;strong&gt;QHTTPSVR/HTTPAPI2&lt;/strong&gt;&lt;br&gt;&lt;small&gt;API requests&lt;/small&gt;&lt;/td&gt;&lt;td class=&quot;im-muted&quot;&gt;Running&lt;/td&gt;&lt;td class=&quot;im-secondary-column&quot;&gt;2.4%&lt;/td&gt;&lt;td&gt;—&lt;/td&gt;&lt;/tr&gt;
+        &lt;tr data-issue=&quot;no&quot; data-owner=&quot;&quot;&gt;&lt;td&gt;&lt;strong&gt;QSERVER/QZDASOINIT&lt;/strong&gt;&lt;br&gt;&lt;small&gt;Database server&lt;/small&gt;&lt;/td&gt;&lt;td class=&quot;im-muted&quot;&gt;Running&lt;/td&gt;&lt;td class=&quot;im-secondary-column&quot;&gt;0.3%&lt;/td&gt;&lt;td&gt;—&lt;/td&gt;&lt;/tr&gt;
+      &lt;/tbody&gt;&lt;/table&gt;&lt;/div&gt;
+      &lt;div class=&quot;im-foot&quot;&gt;&lt;small id=&quot;im-row-count&quot;&gt;6 sample rows · 18 active jobs&lt;/small&gt;&lt;small&gt;Polling: every 5 seconds&lt;/small&gt;&lt;/div&gt;
+      &lt;div class=&quot;im-composer&quot;&gt;&lt;textarea rows=&quot;2&quot; aria-label=&quot;Ask IBMEye about the system&quot; placeholder=&quot;Ask IBMEye about this system…&quot;&gt;&lt;/textarea&gt;&lt;div class=&quot;im-composebar&quot;&gt;&lt;button aria-label=&quot;Attach context&quot; data-toggle=&quot;im-board-attach&quot;&gt;&lt;i data-lucide=&quot;plus&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;&lt;small&gt;NORTH01&lt;/small&gt;&lt;span class=&quot;im-spacer&quot;&gt;&lt;/span&gt;&lt;button data-toggle=&quot;im-board-model&quot;&gt;&lt;span&gt;Local · gemma3&lt;/span&gt;&lt;i data-lucide=&quot;chevron-down&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;&lt;button class=&quot;im-send&quot; aria-label=&quot;Send example question&quot; data-go=&quot;ai&quot;&gt;&lt;i data-lucide=&quot;arrow-up&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;im-submenu&quot; id=&quot;im-board-model&quot; hidden&gt;&lt;button data-preview-message=&quot;Local gemma3 selected for this sketch.&quot;&gt;✓ Local · gemma3&lt;/button&gt;&lt;button disabled&gt;OpenAI · Setup required&lt;/button&gt;&lt;button class=&quot;im-plain&quot; data-go=&quot;settings&quot;&gt;Manage models&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;im-submenu&quot; id=&quot;im-board-attach&quot; hidden&gt;&lt;button data-preview-message=&quot;Current system snapshot attached in this sketch.&quot;&gt;System snapshot&lt;/button&gt;&lt;button data-go=&quot;knowledge&quot;&gt;Knowledge document&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;
+      &lt;details class=&quot;im-section&quot;&gt;&lt;summary&gt;Job queues &lt;small&gt; · 4 queues · 5 waiting&lt;/small&gt;&lt;/summary&gt;&lt;div class=&quot;im-row im-between&quot;&gt;&lt;span&gt;QBATCH · 3 waiting&lt;/span&gt;&lt;button data-preview-message=&quot;Queue inspection opens from this row; the queues section remains separate.&quot;&gt;Inspect queue&lt;/button&gt;&lt;/div&gt;&lt;/details&gt;
+      &lt;div class=&quot;im-foot&quot;&gt;&lt;small&gt;Monitoring continues in the background&lt;/small&gt;&lt;button class=&quot;im-plain&quot; data-preview-message=&quot;Support entry stays at the end of the page.&quot;&gt;Support&lt;/button&gt;&lt;/div&gt;
+    &lt;/section&gt;
+    &lt;section id=&quot;im-task&quot; role=&quot;tabpanel&quot; aria-labelledby=&quot;im-tab-task&quot; hidden class=&quot;im-page&quot;&gt;
+      &lt;div class=&quot;im-task&quot;&gt;
+        &lt;div class=&quot;im-task-head&quot;&gt;&lt;div class=&quot;im-row im-between&quot;&gt;&lt;strong&gt;ARLOCK2 &lt;small&gt;· Job task&lt;/small&gt;&lt;/strong&gt;&lt;button aria-label=&quot;Close task preview&quot; class=&quot;im-plain&quot; data-go=&quot;board&quot;&gt;&lt;i data-lucide=&quot;x&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;&lt;/div&gt;&lt;small&gt;NORTH01 · 901155/ARUSR/ARLOCK2 · QBATCH&lt;/small&gt;&lt;div class=&quot;im-task-tabs&quot; role=&quot;tablist&quot; aria-label=&quot;Task details&quot;&gt;&lt;button role=&quot;tab&quot; id=&quot;im-overview-tab&quot; aria-controls=&quot;im-overview&quot; aria-selected=&quot;true&quot; data-task-tab=&quot;overview&quot;&gt;Overview&lt;/button&gt;&lt;button role=&quot;tab&quot; id=&quot;im-history-tab&quot; aria-controls=&quot;im-history&quot; aria-selected=&quot;false&quot; data-task-tab=&quot;history&quot;&gt;History&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;im-task-body&quot;&gt;&lt;div id=&quot;im-overview&quot; role=&quot;tabpanel&quot; aria-labelledby=&quot;im-overview-tab&quot;&gt;
+          &lt;div class=&quot;im-note&quot;&gt;&lt;strong&gt;Waiting for a record lock&lt;/strong&gt;&lt;span&gt;ARLOCK2 cannot update invoice 18472.&lt;/span&gt;&lt;small&gt;Observed 5 seconds ago · LCKW for 8 minutes&lt;/small&gt;&lt;/div&gt;
+          &lt;div class=&quot;im-definition&quot;&gt;&lt;div&gt;&lt;small&gt;Business service&lt;/small&gt;&lt;span&gt;Invoice posting&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;small&gt;Owner&lt;/small&gt;&lt;span data-owner-display&gt;Unassigned&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;small&gt;Support stage&lt;/small&gt;&lt;span data-stage-display&gt;L2 · Ready to pick up&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;hr class=&quot;im-rule&quot;&gt;
+          &lt;div class=&quot;im-stack&quot;&gt;&lt;strong&gt;Recommended next step&lt;/strong&gt;&lt;span&gt;Inspect the blocking job before choosing a recovery action.&lt;/span&gt;&lt;small&gt;Previous recovery procedure available · 3 sources&lt;/small&gt;&lt;/div&gt;
+          &lt;div class=&quot;im-actions&quot;&gt;&lt;button class=&quot;im-primary&quot; id=&quot;im-claim&quot;&gt;Claim work&lt;/button&gt;&lt;button data-go=&quot;ai&quot;&gt;&lt;i data-lucide=&quot;sparkles&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt; Explain &amp; resolve&lt;/button&gt;&lt;button data-toggle=&quot;im-more&quot;&gt;More &lt;i data-lucide=&quot;chevron-down&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;&lt;/div&gt;
+          &lt;div class=&quot;im-submenu&quot; id=&quot;im-more&quot; hidden&gt;&lt;button data-toggle=&quot;im-handoff&quot;&gt;Handoff&lt;/button&gt;&lt;button data-preview-message=&quot;Work is marked done only after recording an outcome; the incident remains until recovery is verified.&quot;&gt;Mark work done&lt;/button&gt;&lt;button data-preview-message=&quot;The linked ticket opens here after a claim and configured integration.&quot;&gt;Linked ticket&lt;/button&gt;&lt;button id=&quot;im-release&quot;&gt;Remove claim&lt;/button&gt;&lt;button data-toggle=&quot;im-job-actions&quot;&gt;Job actions&lt;/button&gt;&lt;/div&gt;
+          &lt;div class=&quot;im-preview-action&quot; id=&quot;im-job-actions&quot; hidden&gt;&lt;div class=&quot;im-row&quot;&gt;&lt;button data-preview-message=&quot;Hold preview: target, reason, permission, confirmation, and recovery check appear before any action.&quot;&gt;Hold job…&lt;/button&gt;&lt;button data-preview-message=&quot;Release preview: target and current state are checked before confirmation.&quot;&gt;Release job…&lt;/button&gt;&lt;button class=&quot;im-error&quot; data-preview-message=&quot;End job requires a separate confirmation and impact review.&quot;&gt;End job…&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;im-preview-action&quot; id=&quot;im-handoff&quot; hidden&gt;&lt;strong&gt;Handoff work&lt;/strong&gt;&lt;label&gt;Recipient&lt;select&gt;&lt;option&gt;Anita · L3 specialist&lt;/option&gt;&lt;/select&gt;&lt;/label&gt;&lt;label&gt;Reason&lt;textarea rows=&quot;2&quot; placeholder=&quot;What needs specialist investigation?&quot;&gt;&lt;/textarea&gt;&lt;/label&gt;&lt;small&gt;You remain the owner until Anita accepts.&lt;/small&gt;&lt;button data-preview-message=&quot;Handoff preview only. No ticket or notification was sent.&quot;&gt;Preview handoff&lt;/button&gt;&lt;/div&gt;
+          &lt;details class=&quot;im-section&quot;&gt;&lt;summary&gt;Technical details&lt;/summary&gt;&lt;div class=&quot;im-definition&quot;&gt;&lt;div&gt;&lt;small&gt;Job user&lt;/small&gt;&lt;span&gt;ARUSR&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;small&gt;CPU&lt;/small&gt;&lt;span&gt;0.3%&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;small&gt;State&lt;/small&gt;&lt;span&gt;LCKW&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/details&gt;
+          &lt;div class=&quot;im-composer&quot;&gt;&lt;textarea rows=&quot;2&quot; aria-label=&quot;Ask about ARLOCK2&quot; placeholder=&quot;Ask about ARLOCK2…&quot;&gt;&lt;/textarea&gt;&lt;div class=&quot;im-composebar&quot;&gt;&lt;button aria-label=&quot;Attach job context&quot; data-preview-message=&quot;Job evidence and knowledge can be attached here.&quot;&gt;&lt;i data-lucide=&quot;plus&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;&lt;small&gt;ARLOCK2 only&lt;/small&gt;&lt;span class=&quot;im-spacer&quot;&gt;&lt;/span&gt;&lt;button data-go=&quot;settings&quot;&gt;Local · gemma3 &lt;i data-lucide=&quot;chevron-down&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;&lt;button class=&quot;im-send&quot; aria-label=&quot;Show AI answer&quot; data-go=&quot;ai&quot;&gt;&lt;i data-lucide=&quot;arrow-up&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;
+        &lt;/div&gt;&lt;div id=&quot;im-history&quot; role=&quot;tabpanel&quot; aria-labelledby=&quot;im-history-tab&quot; hidden&gt;&lt;ol class=&quot;im-timeline&quot;&gt;&lt;li&gt;&lt;div&gt;&lt;strong&gt;10:02 · Lock wait detected&lt;/strong&gt;&lt;small&gt;Monitoring · IBM i state LCKW&lt;/small&gt;&lt;/div&gt;&lt;/li&gt;&lt;li&gt;&lt;div&gt;&lt;strong&gt;10:02 · Evidence collected&lt;/strong&gt;&lt;small&gt;Job snapshot and record-lock evidence&lt;/small&gt;&lt;/div&gt;&lt;/li&gt;&lt;li&gt;&lt;div&gt;&lt;strong&gt;10:03 · L1 brief prepared&lt;/strong&gt;&lt;small&gt;Ready for L2 · Suggested procedure found&lt;/small&gt;&lt;/div&gt;&lt;/li&gt;&lt;li id=&quot;im-claim-history&quot; hidden&gt;&lt;div&gt;&lt;strong&gt;10:10 · Gajender claimed work&lt;/strong&gt;&lt;small&gt;Example ticket linked · L2 investigation started&lt;/small&gt;&lt;/div&gt;&lt;/li&gt;&lt;/ol&gt;&lt;/div&gt;&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;im-example&quot;&gt;&lt;small&gt;Separate task window · Same window size for every job · Multiple jobs can stay open&lt;/small&gt;&lt;/div&gt;
+    &lt;/section&gt;
+    &lt;section id=&quot;im-ai&quot; role=&quot;tabpanel&quot; aria-labelledby=&quot;im-tab-ai&quot; hidden class=&quot;im-page&quot;&gt;
+      &lt;div class=&quot;im-task&quot;&gt;&lt;div class=&quot;im-task-head&quot;&gt;&lt;div class=&quot;im-row im-between&quot;&gt;&lt;strong&gt;ARLOCK2 &lt;small&gt;· AI conversation&lt;/small&gt;&lt;/strong&gt;&lt;button class=&quot;im-plain&quot; data-go=&quot;task&quot;&gt;&lt;i data-lucide=&quot;arrow-left&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt; Back to overview&lt;/button&gt;&lt;/div&gt;&lt;small&gt;NORTH01 · Selected-job context&lt;/small&gt;&lt;/div&gt;
+      &lt;div class=&quot;im-task-body&quot;&gt;&lt;div class=&quot;im-answer&quot;&gt;&lt;div class=&quot;im-row&quot;&gt;&lt;i data-lucide=&quot;sparkles&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;strong&gt;IBMEye&lt;/strong&gt;&lt;small&gt;Example answer&lt;/small&gt;&lt;/div&gt;&lt;p&gt;ARLOCK2 is waiting to update invoice 18472. The latest lock snapshot identifies &lt;strong&gt;POSTBCH&lt;/strong&gt; as the holder.&lt;/p&gt;&lt;p&gt;The reviewed procedure recommends inspecting POSTBCH and checking its transaction before considering intervention.&lt;/p&gt;&lt;div class=&quot;im-citations&quot;&gt;&lt;button data-evidence=&quot;job&quot;&gt;1 · Job snapshot&lt;/button&gt;&lt;button data-evidence=&quot;lock&quot;&gt;2 · Record locks&lt;/button&gt;&lt;button data-evidence=&quot;runbook&quot;&gt;3 · Reviewed procedure&lt;/button&gt;&lt;/div&gt;&lt;small&gt;Current evidence: 5s old · Procedure reviewed: 3 days ago&lt;/small&gt;&lt;div class=&quot;im-evidence&quot; id=&quot;im-source&quot; hidden aria-live=&quot;polite&quot;&gt;&lt;/div&gt;&lt;div class=&quot;im-note&quot;&gt;&lt;strong&gt;Still unknown&lt;/strong&gt;&lt;span&gt;Whether POSTBCH is progressing or needs specialist intervention.&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;im-row&quot;&gt;&lt;button class=&quot;im-primary&quot; data-toggle=&quot;im-inspect-preview&quot;&gt;Inspect blocking job&lt;/button&gt;&lt;button class=&quot;im-plain&quot; data-go=&quot;task&quot;&gt;Return to task&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;im-preview-action&quot; id=&quot;im-inspect-preview&quot; hidden&gt;&lt;strong&gt;Read-only check · POSTBCH&lt;/strong&gt;&lt;span&gt;Collect current job state, message wait, and lock ownership.&lt;/span&gt;&lt;small&gt;Example result: more evidence is needed before a recovery action.&lt;/small&gt;&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;im-composer&quot;&gt;&lt;textarea rows=&quot;2&quot; aria-label=&quot;Continue job conversation&quot; placeholder=&quot;Ask a follow-up about this job…&quot;&gt;&lt;/textarea&gt;&lt;div class=&quot;im-composebar&quot;&gt;&lt;button aria-label=&quot;Attach evidence&quot; data-evidence=&quot;lock&quot;&gt;&lt;i data-lucide=&quot;plus&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;&lt;small&gt;ARLOCK2 only&lt;/small&gt;&lt;span class=&quot;im-spacer&quot;&gt;&lt;/span&gt;&lt;button data-toggle=&quot;im-ai-model&quot;&gt;Local · gemma3 &lt;i data-lucide=&quot;chevron-down&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;&lt;button class=&quot;im-send&quot; aria-label=&quot;Send preview message&quot; data-preview-message=&quot;This is a conversation sketch; no AI request is sent.&quot;&gt;&lt;i data-lucide=&quot;arrow-up&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;im-submenu&quot; id=&quot;im-ai-model&quot; hidden&gt;&lt;button data-preview-message=&quot;Configured local model selected.&quot;&gt;✓ Local · gemma3&lt;/button&gt;&lt;button disabled&gt;Claude · Setup required&lt;/button&gt;&lt;button data-go=&quot;settings&quot;&gt;Manage providers&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;im-example&quot;&gt;&lt;small&gt;Expanded conversation inside the job window · Evidence opens only when selected&lt;/small&gt;&lt;/div&gt;
+    &lt;/section&gt;
+    &lt;section id=&quot;im-knowledge&quot; role=&quot;tabpanel&quot; aria-labelledby=&quot;im-tab-knowledge&quot; hidden class=&quot;im-page&quot;&gt;
+      &lt;div class=&quot;im-row im-between&quot;&gt;&lt;div&gt;&lt;h3 class=&quot;im-title&quot;&gt;Knowledge&lt;/h3&gt;&lt;small&gt;NORTH01 · Reviewed guidance for your support team&lt;/small&gt;&lt;/div&gt;&lt;button class=&quot;im-primary&quot; data-toggle=&quot;im-add-knowledge&quot;&gt;&lt;i data-lucide=&quot;plus&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt; Add knowledge&lt;/button&gt;&lt;/div&gt;
+      &lt;div class=&quot;im-toolbar im-section&quot;&gt;&lt;input id=&quot;im-knowledge-search&quot; aria-label=&quot;Search knowledge&quot; placeholder=&quot;Search procedures, solutions, or documents…&quot;&gt;&lt;select id=&quot;im-knowledge-filter&quot; aria-label=&quot;Knowledge review filter&quot;&gt;&lt;option value=&quot;all&quot;&gt;All content&lt;/option&gt;&lt;option value=&quot;review&quot;&gt;Needs review&lt;/option&gt;&lt;/select&gt;&lt;/div&gt;
+      &lt;div id=&quot;im-library&quot;&gt;
+        &lt;div class=&quot;im-library-row&quot; data-review=&quot;no&quot;&gt;&lt;div&gt;&lt;button class=&quot;im-job-link&quot; data-library=&quot;Record lock recovery&quot;&gt;&lt;strong&gt;Record lock recovery&lt;/strong&gt;&lt;/button&gt;&lt;small&gt;Reviewed by Anita · Updated 3 days ago&lt;/small&gt;&lt;/div&gt;&lt;span class=&quot;im-kind im-muted&quot;&gt;Procedure&lt;/span&gt;&lt;span&gt;Approved&lt;/span&gt;&lt;button class=&quot;im-plain&quot; data-library=&quot;Record lock recovery&quot; aria-label=&quot;Open record lock recovery&quot;&gt;&lt;i data-lucide=&quot;chevron-right&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;&lt;/div&gt;
+        &lt;div class=&quot;im-library-row&quot; data-review=&quot;yes&quot;&gt;&lt;div&gt;&lt;button class=&quot;im-job-link&quot; data-library=&quot;Nightly posting recovery&quot;&gt;&lt;strong&gt;Nightly posting recovery&lt;/strong&gt;&lt;/button&gt;&lt;small&gt;From resolved incident INC-184&lt;/small&gt;&lt;/div&gt;&lt;span class=&quot;im-kind im-muted&quot;&gt;Resolution&lt;/span&gt;&lt;span class=&quot;im-warning&quot;&gt;Needs review&lt;/span&gt;&lt;button class=&quot;im-plain&quot; data-library=&quot;Nightly posting recovery&quot; aria-label=&quot;Review nightly posting recovery&quot;&gt;&lt;i data-lucide=&quot;chevron-right&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;&lt;/div&gt;
+        &lt;div class=&quot;im-library-row&quot; data-review=&quot;no&quot;&gt;&lt;div&gt;&lt;button class=&quot;im-job-link&quot; data-library=&quot;Month-end operator guide&quot;&gt;&lt;strong&gt;Month-end operator guide&lt;/strong&gt;&lt;/button&gt;&lt;small&gt;Added by Gajender · Updated yesterday&lt;/small&gt;&lt;/div&gt;&lt;span class=&quot;im-kind im-muted&quot;&gt;Document&lt;/span&gt;&lt;span&gt;Ready&lt;/span&gt;&lt;button class=&quot;im-plain&quot; data-library=&quot;Month-end operator guide&quot; aria-label=&quot;Open month-end operator guide&quot;&gt;&lt;i data-lucide=&quot;chevron-right&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;im-pane&quot; id=&quot;im-add-knowledge&quot; hidden&gt;&lt;div class=&quot;im-row im-between&quot;&gt;&lt;strong&gt;Add knowledge&lt;/strong&gt;&lt;button class=&quot;im-plain&quot; data-toggle=&quot;im-add-knowledge&quot; aria-label=&quot;Close add knowledge&quot;&gt;&lt;i data-lucide=&quot;x&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;im-stack&quot;&gt;&lt;label&gt;Document name&lt;input placeholder=&quot;For example: Invoice recovery guide&quot;&gt;&lt;/label&gt;&lt;div class=&quot;im-fields&quot;&gt;&lt;label&gt;Type&lt;select&gt;&lt;option&gt;Document&lt;/option&gt;&lt;option&gt;Procedure&lt;/option&gt;&lt;/select&gt;&lt;/label&gt;&lt;label&gt;System scope&lt;select&gt;&lt;option&gt;NORTH01 only&lt;/option&gt;&lt;/select&gt;&lt;/label&gt;&lt;/div&gt;&lt;button data-preview-message=&quot;File selection and ingestion will happen here in the implemented app.&quot;&gt;Choose a file…&lt;/button&gt;&lt;small&gt;Content is checked before it becomes available to AI.&lt;/small&gt;&lt;button class=&quot;im-primary&quot; data-preview-message=&quot;Preview only. A document will enter the review workflow before approval.&quot;&gt;Add for review&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;im-pane&quot; id=&quot;im-library-detail&quot; hidden&gt;&lt;div class=&quot;im-row im-between&quot;&gt;&lt;strong id=&quot;im-library-title&quot;&gt;&lt;/strong&gt;&lt;button class=&quot;im-plain&quot; data-toggle=&quot;im-library-detail&quot; aria-label=&quot;Close knowledge detail&quot;&gt;&lt;i data-lucide=&quot;x&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;im-stack&quot;&gt;&lt;small&gt;Scope: NORTH01 · Source and review history attached&lt;/small&gt;&lt;span&gt;Check the current job and evidence. Follow a reviewed procedure only when its conditions match.&lt;/span&gt;&lt;details&gt;&lt;summary&gt;Source &amp; review history&lt;/summary&gt;&lt;div&gt;&lt;small&gt;Original document, reviewer, timestamps, and applicable environment appear here.&lt;/small&gt;&lt;/div&gt;&lt;/details&gt;&lt;button data-preview-message=&quot;Review opens the source and approval controls for an authorized reviewer.&quot;&gt;Review entry&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;im-foot&quot;&gt;&lt;small&gt;3 sample entries · Drafts require review&lt;/small&gt;&lt;button class=&quot;im-plain&quot; data-go=&quot;settings&quot;&gt;Storage &amp; connections&lt;/button&gt;&lt;/div&gt;
+    &lt;/section&gt;
+    &lt;section id=&quot;im-settings&quot; role=&quot;tabpanel&quot; aria-labelledby=&quot;im-tab-settings&quot; hidden class=&quot;im-page&quot;&gt;
+      &lt;h3 class=&quot;im-title&quot;&gt;Settings&lt;/h3&gt;&lt;div class=&quot;im-settings im-section&quot;&gt;&lt;nav class=&quot;im-side&quot; aria-label=&quot;Settings category&quot;&gt;&lt;button data-setting=&quot;general&quot; aria-pressed=&quot;false&quot;&gt;General&lt;/button&gt;&lt;button data-setting=&quot;monitoring&quot; aria-pressed=&quot;false&quot;&gt;Monitoring&lt;/button&gt;&lt;button data-setting=&quot;ai&quot; aria-pressed=&quot;true&quot;&gt;AI &amp; knowledge&lt;/button&gt;&lt;button data-setting=&quot;integrations&quot; aria-pressed=&quot;false&quot;&gt;Integrations&lt;/button&gt;&lt;button data-go=&quot;skills&quot;&gt;Skills &amp; MCP&lt;/button&gt;&lt;button data-setting=&quot;access&quot; aria-pressed=&quot;false&quot;&gt;Access&lt;/button&gt;&lt;button data-setting=&quot;storage&quot; aria-pressed=&quot;false&quot;&gt;Storage&lt;/button&gt;&lt;/nav&gt;&lt;div&gt;
+      &lt;div data-setting-pane=&quot;ai&quot;&gt;&lt;strong&gt;AI &amp; knowledge&lt;/strong&gt;&lt;div class=&quot;im-settingrow&quot;&gt;&lt;div&gt;&lt;span&gt;AI provider&lt;/span&gt;&lt;small&gt;Local Ollama · gemma3 · Ready&lt;/small&gt;&lt;/div&gt;&lt;button data-toggle=&quot;im-provider-config&quot;&gt;Manage&lt;/button&gt;&lt;/div&gt;&lt;div id=&quot;im-provider-config&quot; class=&quot;im-pane&quot; hidden&gt;&lt;div class=&quot;im-stack&quot;&gt;&lt;label&gt;Provider&lt;select&gt;&lt;option&gt;Local Ollama&lt;/option&gt;&lt;option&gt;OpenAI&lt;/option&gt;&lt;option&gt;Claude&lt;/option&gt;&lt;/select&gt;&lt;/label&gt;&lt;label&gt;Endpoint&lt;input value=&quot;http://127.0.0.1:11434&quot;&gt;&lt;/label&gt;&lt;button data-preview-message=&quot;Provider check preview: only configured, available models will be selectable.&quot;&gt;Check connection&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;im-settingrow&quot;&gt;&lt;div&gt;&lt;span&gt;Knowledge storage&lt;/span&gt;&lt;small&gt;On this device · Available offline&lt;/small&gt;&lt;/div&gt;&lt;button data-toggle=&quot;im-storage-connect&quot;&gt;Change&lt;/button&gt;&lt;/div&gt;&lt;div id=&quot;im-storage-connect&quot; class=&quot;im-pane&quot; hidden&gt;&lt;div class=&quot;im-stack&quot;&gt;&lt;label&gt;Storage&lt;select&gt;&lt;option&gt;This device&lt;/option&gt;&lt;option&gt;Qdrant · Planned adapter&lt;/option&gt;&lt;option&gt;PostgreSQL / pgvector · Planned adapter&lt;/option&gt;&lt;/select&gt;&lt;/label&gt;&lt;small&gt;External storage requires an approved connection and system scope.&lt;/small&gt;&lt;button data-preview-message=&quot;Storage setup preview only. No records are transferred.&quot;&gt;Configure connection&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;im-settingrow&quot;&gt;&lt;div&gt;&lt;span&gt;Knowledge library&lt;/span&gt;&lt;small&gt;2 available · 1 awaiting review&lt;/small&gt;&lt;/div&gt;&lt;button data-go=&quot;knowledge&quot;&gt;Open library&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;im-settingrow&quot;&gt;&lt;div&gt;&lt;span&gt;Skills &amp; MCP&lt;/span&gt;&lt;small&gt;2 enabled skills · 1 connection&lt;/small&gt;&lt;/div&gt;&lt;button data-go=&quot;skills&quot;&gt;Manage&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;
+      &lt;div data-setting-pane=&quot;general&quot; hidden&gt;&lt;strong&gt;General&lt;/strong&gt;&lt;div class=&quot;im-settingrow&quot;&gt;&lt;div&gt;&lt;span&gt;Appearance&lt;/span&gt;&lt;small&gt;Follow your computer&lt;/small&gt;&lt;/div&gt;&lt;select aria-label=&quot;Appearance&quot; style=&quot;width:auto&quot;&gt;&lt;option&gt;System&lt;/option&gt;&lt;option&gt;Light&lt;/option&gt;&lt;option&gt;Dark&lt;/option&gt;&lt;/select&gt;&lt;/div&gt;&lt;div class=&quot;im-settingrow&quot;&gt;&lt;span&gt;Support and application information&lt;/span&gt;&lt;button data-preview-message=&quot;Version and support details appear here.&quot;&gt;View&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;
+      &lt;div data-setting-pane=&quot;monitoring&quot; hidden&gt;&lt;strong&gt;Monitoring&lt;/strong&gt;&lt;div class=&quot;im-settingrow&quot;&gt;&lt;label&gt;Polling interval, seconds&lt;input type=&quot;number&quot; value=&quot;5&quot; min=&quot;1&quot;&gt;&lt;/label&gt;&lt;button data-preview-message=&quot;Custom polling interval preview only.&quot;&gt;Save&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;im-settingrow&quot;&gt;&lt;label class=&quot;im-check&quot;&gt;&lt;input type=&quot;checkbox&quot; checked&gt; Keep collecting when the window closes&lt;/label&gt;&lt;/div&gt;&lt;details&gt;&lt;summary&gt;Watch rules &amp; notification channels&lt;/summary&gt;&lt;div&gt;&lt;span&gt;High CPU, message waits, lock waits, and delivery settings stay here.&lt;/span&gt;&lt;/div&gt;&lt;/details&gt;&lt;/div&gt;
+      &lt;div data-setting-pane=&quot;integrations&quot; hidden&gt;&lt;strong&gt;Integrations&lt;/strong&gt;&lt;div class=&quot;im-installed&quot;&gt;&lt;div class=&quot;im-app&quot;&gt;&lt;button aria-label=&quot;Configure ClickUp&quot; data-integration=&quot;ClickUp&quot;&gt;&lt;i data-lucide=&quot;circle-check&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;&lt;small&gt;ClickUp&lt;/small&gt;&lt;/div&gt;&lt;div class=&quot;im-app&quot;&gt;&lt;button aria-label=&quot;Configure Slack&quot; data-integration=&quot;Slack&quot;&gt;&lt;i data-lucide=&quot;hash&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;&lt;small&gt;Slack&lt;/small&gt;&lt;/div&gt;&lt;/div&gt;&lt;small&gt;Available to connect&lt;/small&gt;&lt;div class=&quot;im-settingrow&quot;&gt;&lt;div&gt;&lt;strong&gt;Jira&lt;/strong&gt;&lt;small&gt;Incident tracking&lt;/small&gt;&lt;/div&gt;&lt;button data-integration=&quot;Jira&quot;&gt;View&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;im-settingrow&quot;&gt;&lt;div&gt;&lt;strong&gt;Email&lt;/strong&gt;&lt;small&gt;Notifications through your SMTP server&lt;/small&gt;&lt;/div&gt;&lt;button data-integration=&quot;Email&quot;&gt;View&lt;/button&gt;&lt;/div&gt;&lt;div id=&quot;im-integration-detail&quot; class=&quot;im-pane&quot; hidden&gt;&lt;div class=&quot;im-stack&quot;&gt;&lt;strong id=&quot;im-integration-title&quot;&gt;&lt;/strong&gt;&lt;small&gt;Capabilities and access are explained before configuration.&lt;/small&gt;&lt;button data-toggle=&quot;im-integration-fields&quot;&gt;Configure&lt;/button&gt;&lt;div id=&quot;im-integration-fields&quot; hidden class=&quot;im-stack&quot;&gt;&lt;label&gt;Connection name&lt;input placeholder=&quot;Support team&quot;&gt;&lt;/label&gt;&lt;button data-preview-message=&quot;Connection is tested and saved before appearing under installed integrations.&quot;&gt;Test &amp; save connection&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+      &lt;div data-setting-pane=&quot;access&quot; hidden&gt;&lt;strong&gt;Access&lt;/strong&gt;&lt;div class=&quot;im-settingrow&quot;&gt;&lt;div&gt;&lt;span&gt;Gajender&lt;/span&gt;&lt;small&gt;Client owner · NORTH01&lt;/small&gt;&lt;/div&gt;&lt;span&gt;Active&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;im-settingrow&quot;&gt;&lt;div&gt;&lt;span&gt;Anita&lt;/span&gt;&lt;small&gt;L3 support · Investigate and approved actions&lt;/small&gt;&lt;/div&gt;&lt;button data-preview-message=&quot;Inspect system permissions, access expiry, and revocation here.&quot;&gt;Manage access&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;
+      &lt;div data-setting-pane=&quot;storage&quot; hidden&gt;&lt;strong&gt;Storage&lt;/strong&gt;&lt;div class=&quot;im-settingrow&quot;&gt;&lt;div&gt;&lt;span&gt;Monitoring records&lt;/span&gt;&lt;small&gt;124 MB · Retain 30 days · Sample values&lt;/small&gt;&lt;/div&gt;&lt;button data-preview-message=&quot;Purge first previews system, dates, affected records, and deletion scope.&quot;&gt;Review storage&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;im-settingrow&quot;&gt;&lt;div&gt;&lt;span&gt;Knowledge index&lt;/span&gt;&lt;small&gt;38 MB · Stored on this device · Sample values&lt;/small&gt;&lt;/div&gt;&lt;button data-preview-message=&quot;Rebuild the derived index from authorized sources.&quot;&gt;Rebuild…&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;
+      &lt;/div&gt;&lt;/div&gt;
+    &lt;/section&gt;
+    &lt;section id=&quot;im-skills&quot; role=&quot;tabpanel&quot; aria-labelledby=&quot;im-tab-skills&quot; hidden class=&quot;im-page&quot;&gt;
+      &lt;div class=&quot;im-row im-between&quot;&gt;&lt;div&gt;&lt;button class=&quot;im-plain&quot; data-go=&quot;settings&quot;&gt;&lt;i data-lucide=&quot;arrow-left&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt; Settings&lt;/button&gt;&lt;h3 class=&quot;im-title&quot;&gt;Skills &amp; MCP&lt;/h3&gt;&lt;small&gt;Reusable guidance and approved tool connections&lt;/small&gt;&lt;/div&gt;&lt;button class=&quot;im-primary&quot; data-toggle=&quot;im-skill-add&quot;&gt;&lt;i data-lucide=&quot;plus&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt; Add…&lt;/button&gt;&lt;/div&gt;
+      &lt;div class=&quot;im-pane&quot; id=&quot;im-skill-add&quot; hidden&gt;&lt;div class=&quot;im-row&quot;&gt;&lt;button data-preview-message=&quot;Import a reviewed instruction package; inspect its requested tools and scope before enabling it.&quot;&gt;Add skill&lt;/button&gt;&lt;button data-preview-message=&quot;Configure an approved MCP server with its transport, credentials, scope, and tool permissions.&quot;&gt;Connect MCP server&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;im-section&quot;&gt;&lt;strong&gt;Skills&lt;/strong&gt;&lt;div class=&quot;im-settingrow&quot;&gt;&lt;div&gt;&lt;span&gt;Investigate lock waits&lt;/span&gt;&lt;small&gt;Procedure guidance · NORTH01 · Enabled&lt;/small&gt;&lt;/div&gt;&lt;button data-toggle=&quot;im-skill-detail&quot;&gt;Inspect&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;im-settingrow&quot;&gt;&lt;div&gt;&lt;span&gt;Prepare support handoff&lt;/span&gt;&lt;small&gt;Summarize evidence and pending checks · Enabled&lt;/small&gt;&lt;/div&gt;&lt;button data-preview-message=&quot;Handoff skill: inspect instructions, revision, scope, and required permissions.&quot;&gt;Inspect&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;im-section&quot;&gt;&lt;strong&gt;MCP connections&lt;/strong&gt;&lt;div class=&quot;im-settingrow&quot;&gt;&lt;div&gt;&lt;span&gt;IBM i evidence tools&lt;/span&gt;&lt;small&gt;Connected · Read-only · Job, message, and lock inspection&lt;/small&gt;&lt;/div&gt;&lt;button data-toggle=&quot;im-mcp-detail&quot;&gt;Manage&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;im-pane&quot; id=&quot;im-skill-detail&quot; hidden&gt;&lt;div class=&quot;im-row im-between&quot;&gt;&lt;strong&gt;Investigate lock waits&lt;/strong&gt;&lt;button class=&quot;im-plain&quot; data-toggle=&quot;im-skill-detail&quot; aria-label=&quot;Close skill detail&quot;&gt;&lt;i data-lucide=&quot;x&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;im-stack&quot;&gt;&lt;small&gt;Reviewed by Anita · Version 1.2 · NORTH01 only&lt;/small&gt;&lt;span&gt;Gather the job snapshot, inspect the blocking job, then suggest the applicable reviewed procedure.&lt;/span&gt;&lt;div class=&quot;im-row&quot;&gt;&lt;span&gt;Tools required: job and lock reads&lt;/span&gt;&lt;span class=&quot;im-muted&quot;&gt;No production write access&lt;/span&gt;&lt;/div&gt;&lt;details&gt;&lt;summary&gt;Instructions &amp; version history&lt;/summary&gt;&lt;div&gt;&lt;span&gt;The full skill instructions and changes are visible here.&lt;/span&gt;&lt;/div&gt;&lt;/details&gt;&lt;div class=&quot;im-row&quot;&gt;&lt;button data-preview-message=&quot;Safe skill test preview. It cannot change a live job.&quot;&gt;Test read-only&lt;/button&gt;&lt;button id=&quot;im-skill-disable&quot;&gt;Disable skill&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;im-pane&quot; id=&quot;im-mcp-detail&quot; hidden&gt;&lt;div class=&quot;im-stack&quot;&gt;&lt;strong&gt;IBM i evidence tools&lt;/strong&gt;&lt;small&gt;Connection: local · Scope: NORTH01&lt;/small&gt;&lt;label class=&quot;im-check&quot;&gt;&lt;input type=&quot;checkbox&quot; checked&gt; Read job details&lt;/label&gt;&lt;label class=&quot;im-check&quot;&gt;&lt;input type=&quot;checkbox&quot; checked&gt; Inspect current locks&lt;/label&gt;&lt;label class=&quot;im-check&quot;&gt;&lt;input type=&quot;checkbox&quot; disabled&gt; Run production actions · Not granted&lt;/label&gt;&lt;div class=&quot;im-row&quot;&gt;&lt;button data-preview-message=&quot;Read-only connection check preview.&quot;&gt;Check connection&lt;/button&gt;&lt;button data-preview-message=&quot;Invocation history shows who requested which tool, when, and the result.&quot;&gt;Activity&lt;/button&gt;&lt;button data-preview-message=&quot;Revoking a connection blocks new tool calls.&quot;&gt;Revoke…&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;/section&gt;
+  &lt;/div&gt;
+  &lt;div id=&quot;im-feedback&quot; class=&quot;im-example&quot; role=&quot;status&quot; aria-live=&quot;polite&quot;&gt;&lt;/div&gt;
+  &lt;script&gt;
+    (function(){
+      const root=document.getElementById(&#x27;im-sketches&#x27;);
+      const feedback=root.querySelector(&#x27;#im-feedback&#x27;);
+      const say=(text)=&gt;{feedback.textContent=text;};
+      function screen(name){
+        root.querySelectorAll(&#x27;.im-page[role=&quot;tabpanel&quot;]&#x27;).forEach(el=&gt;el.hidden=el.id!==&#x27;im-&#x27;+name);
+        root.querySelectorAll(&#x27;[data-screen]&#x27;).forEach(el=&gt;el.setAttribute(&#x27;aria-selected&#x27;,String(el.dataset.screen===name)));
+        root.querySelectorAll(&#x27;.im-nav button&#x27;).forEach(el=&gt;el.classList.toggle(&#x27;im-current&#x27;,el.dataset.go===(name===&#x27;connect&#x27;?&#x27;&#x27;:([&#x27;task&#x27;,&#x27;ai&#x27;].includes(name)?&#x27;board&#x27;:name===&#x27;skills&#x27;?&#x27;settings&#x27;:name))));
+        root.querySelector(&#x27;.im-nav&#x27;).hidden=[&#x27;connect&#x27;,&#x27;task&#x27;,&#x27;ai&#x27;].includes(name);
+        root.querySelector(&#x27;.im-user&#x27;).hidden=[&#x27;connect&#x27;,&#x27;task&#x27;,&#x27;ai&#x27;].includes(name);
+        say(&#x27;&#x27;);
+      }
+      root.querySelectorAll(&#x27;[data-screen]&#x27;).forEach(el=&gt;el.addEventListener(&#x27;click&#x27;,()=&gt;screen(el.dataset.screen)));
+      root.querySelectorAll(&#x27;[data-go]&#x27;).forEach(el=&gt;el.addEventListener(&#x27;click&#x27;,()=&gt;screen(el.dataset.go)));
+      root.querySelectorAll(&#x27;[data-toggle]&#x27;).forEach(el=&gt;{el.setAttribute(&#x27;aria-expanded&#x27;,&#x27;false&#x27;);el.addEventListener(&#x27;click&#x27;,()=&gt;{const target=root.querySelector(&#x27;#&#x27;+el.dataset.toggle);target.hidden=!target.hidden;root.querySelectorAll(&#x27;[data-toggle=&quot;&#x27;+el.dataset.toggle+&#x27;&quot;]&#x27;).forEach(btn=&gt;btn.setAttribute(&#x27;aria-expanded&#x27;,String(!target.hidden)));});});
+      root.querySelectorAll(&#x27;[data-preview-message]&#x27;).forEach(el=&gt;el.addEventListener(&#x27;click&#x27;,()=&gt;say(el.dataset.previewMessage)));
+      root.querySelectorAll(&#x27;.im-composer textarea&#x27;).forEach(el=&gt;el.addEventListener(&#x27;input&#x27;,()=&gt;{el.style.height=&#x27;auto&#x27;;el.style.height=el.scrollHeight+&#x27;px&#x27;;}));
+      root.querySelectorAll(&#x27;[data-task-tab]&#x27;).forEach(el=&gt;el.addEventListener(&#x27;click&#x27;,()=&gt;{root.querySelectorAll(&#x27;[data-task-tab]&#x27;).forEach(t=&gt;t.setAttribute(&#x27;aria-selected&#x27;,String(t===el)));root.querySelector(&#x27;#im-overview&#x27;).hidden=el.dataset.taskTab!==&#x27;overview&#x27;;root.querySelector(&#x27;#im-history&#x27;).hidden=el.dataset.taskTab!==&#x27;history&#x27;;}));
+      let claimed=false;
+      function claim(value){claimed=value;root.querySelectorAll(&#x27;[data-owner-display]&#x27;).forEach(el=&gt;el.textContent=value?&#x27;Gajender&#x27;:&#x27;Unassigned&#x27;);root.querySelector(&#x27;[data-stage-display]&#x27;).textContent=value?&#x27;L2 · Investigating&#x27;:&#x27;L2 · Ready to pick up&#x27;;root.querySelector(&#x27;#im-claim-history&#x27;).hidden=!value;root.querySelector(&#x27;#im-claim&#x27;).textContent=value?&#x27;Inspect blocking job&#x27;:&#x27;Claim work&#x27;;root.querySelector(&#x27;#im-job-rows tr&#x27;).dataset.owner=value?&#x27;Gajender&#x27;:&#x27;&#x27;;say(value?&#x27;Claimed in the sketch. The board row and timeline now show Gajender.&#x27;:&#x27;Claim removed in the sketch.&#x27;);}
+      root.querySelector(&#x27;#im-claim&#x27;).addEventListener(&#x27;click&#x27;,()=&gt;{if(!claimed)claim(true);else screen(&#x27;ai&#x27;);});
+      root.querySelector(&#x27;#im-release&#x27;).addEventListener(&#x27;click&#x27;,()=&gt;claim(false));
+      const evidence={job:[&#x27;Job snapshot · Observed 5s ago&#x27;,&#x27;ARLOCK2 · State LCKW · CPU 0.3%&#x27;,&#x27;Source: NORTH01 active job snapshot&#x27;],lock:[&#x27;Record-lock evidence · Observed 5s ago&#x27;,&#x27;Invoice 18472 · Holder POSTBCH&#x27;,&#x27;Source: NORTH01 lock inspection&#x27;],runbook:[&#x27;Record lock recovery · Version 1.2&#x27;,&#x27;Reviewed by Anita · NORTH01 scope&#x27;,&#x27;Inspect the owner and transaction before an approved action.&#x27;]};
+      root.querySelectorAll(&#x27;[data-evidence]&#x27;).forEach(el=&gt;el.addEventListener(&#x27;click&#x27;,()=&gt;{const pane=root.querySelector(&#x27;#im-source&#x27;);pane.hidden=false;pane.replaceChildren(...evidence[el.dataset.evidence].map((line,i)=&gt;{const row=document.createElement(i===0?&#x27;strong&#x27;:&#x27;span&#x27;);row.textContent=line;return row;}));}));
+      function filterJobs(){const query=root.querySelector(&#x27;#im-job-search&#x27;).value.toLowerCase(),issues=root.querySelector(&#x27;#im-job-filter&#x27;).value===&#x27;issues&#x27;,mine=root.querySelector(&#x27;#im-mywork&#x27;).getAttribute(&#x27;aria-pressed&#x27;)===&#x27;true&#x27;;let count=0;root.querySelectorAll(&#x27;#im-job-rows tr&#x27;).forEach(row=&gt;{row.hidden=!row.textContent.toLowerCase().includes(query)||(issues&amp;&amp;row.dataset.issue!==&#x27;yes&#x27;)||(mine&amp;&amp;row.dataset.owner!==&#x27;Gajender&#x27;);if(!row.hidden)count++;});root.querySelector(&#x27;#im-row-count&#x27;).textContent=count+&#x27; sample rows shown · 18 active jobs&#x27;;}
+      root.querySelector(&#x27;#im-job-search&#x27;).addEventListener(&#x27;input&#x27;,filterJobs);root.querySelector(&#x27;#im-job-filter&#x27;).addEventListener(&#x27;change&#x27;,filterJobs);root.querySelector(&#x27;#im-mywork&#x27;).addEventListener(&#x27;click&#x27;,function(){this.setAttribute(&#x27;aria-pressed&#x27;,String(this.getAttribute(&#x27;aria-pressed&#x27;)!==&#x27;true&#x27;));filterJobs();});
+      function filterKnowledge(){const q=root.querySelector(&#x27;#im-knowledge-search&#x27;).value.toLowerCase(),review=root.querySelector(&#x27;#im-knowledge-filter&#x27;).value===&#x27;review&#x27;;root.querySelectorAll(&#x27;#im-library .im-library-row&#x27;).forEach(row=&gt;row.hidden=!row.textContent.toLowerCase().includes(q)||(review&amp;&amp;row.dataset.review!==&#x27;yes&#x27;));}
+      root.querySelector(&#x27;#im-knowledge-search&#x27;).addEventListener(&#x27;input&#x27;,filterKnowledge);root.querySelector(&#x27;#im-knowledge-filter&#x27;).addEventListener(&#x27;change&#x27;,filterKnowledge);
+      root.querySelectorAll(&#x27;[data-library]&#x27;).forEach(el=&gt;el.addEventListener(&#x27;click&#x27;,()=&gt;{root.querySelector(&#x27;#im-library-detail&#x27;).hidden=false;root.querySelector(&#x27;#im-library-title&#x27;).textContent=el.dataset.library;}));
+      root.querySelectorAll(&#x27;[data-setting]&#x27;).forEach(el=&gt;el.addEventListener(&#x27;click&#x27;,()=&gt;{root.querySelectorAll(&#x27;[data-setting-pane]&#x27;).forEach(p=&gt;p.hidden=p.dataset.settingPane!==el.dataset.setting);root.querySelectorAll(&#x27;[data-setting]&#x27;).forEach(b=&gt;b.setAttribute(&#x27;aria-pressed&#x27;,String(b===el)));}));
+      root.querySelectorAll(&#x27;[data-integration]&#x27;).forEach(el=&gt;el.addEventListener(&#x27;click&#x27;,()=&gt;{root.querySelector(&#x27;#im-integration-detail&#x27;).hidden=false;root.querySelector(&#x27;#im-integration-title&#x27;).textContent=el.dataset.integration;root.querySelector(&#x27;#im-integration-fields&#x27;).hidden=true;}));
+      root.querySelector(&#x27;#im-skill-disable&#x27;).addEventListener(&#x27;click&#x27;,function(){const disabled=this.textContent===&#x27;Disable skill&#x27;;this.textContent=disabled?&#x27;Enable skill&#x27;:&#x27;Disable skill&#x27;;say(disabled?&#x27;Skill disabled in the sketch. New invocations would be blocked.&#x27;:&#x27;Skill re-enabled in the sketch.&#x27;);});
+      const design={density:&#x27;comfortable&#x27;,rounding:13};
+      function renderDesign(){root.dataset.density=design.density;root.querySelector(&#x27;.im-window&#x27;).style.borderRadius=design.rounding+&#x27;px&#x27;;}
+      renderDesign();
+      if(globalThis.Tweak){const tweak=new Tweak({container:root,onChange:renderDesign});tweak.addSelect(design,&#x27;density&#x27;,{label:&#x27;Row spacing&#x27;,options:[&#x27;comfortable&#x27;,&#x27;compact&#x27;]});tweak.addSlider(design,&#x27;rounding&#x27;,{label:&#x27;Window corners&#x27;,min:4,max:18,unit:&#x27;px&#x27;});}
+    })();
+  &lt;/script&gt;
+&lt;/div&gt;
+
+&lt;script src=&quot;https://unpkg.com/@floating-ui/core@1.7.3/dist/floating-ui.core.umd.min.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;https://unpkg.com/@floating-ui/dom@1.7.4/dist/floating-ui.dom.umd.min.js&quot;&gt;&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  if (window.FloatingUIDOM == null) {
+    return;
+  }
+  const { autoUpdate, computePosition, flip, offset, shift, size } =
+    window.FloatingUIDOM;
+  const tooltipPlacements = new Set([&quot;top&quot;, &quot;right&quot;, &quot;bottom&quot;, &quot;left&quot;]);
+  const tooltipId = `codex-visualization-tooltip-${
+    window.crypto?.randomUUID?.() ?? Date.now().toString(36)
+  }`;
+  const tooltipGap = 5;
+  const hoverDelay = 700;
+  const skipDelay = 300;
+  let activeTrigger = null;
+  let pendingTrigger = null;
+  let tooltip = null;
+  let openTimeout = null;
+  let autoUpdateCleanup = null;
+  let positionRequest = 0;
+  let skipDelayUntil = 0;
+  let lastPointerWasTouch = false;
+  let pinnedByTouch = false;
+
+  const getTrigger = (target) =&gt;
+    target?.nodeType === Node.ELEMENT_NODE
+      ? target.closest(&quot;[data-tooltip]&quot;)
+      : null;
+  const containsTarget = (trigger, target) =&gt;
+    target?.nodeType != null &amp;&amp; trigger.contains(target);
+  const getContent = (trigger) =&gt;
+    trigger.getAttribute(&quot;data-tooltip&quot;)?.trim() ?? &quot;&quot;;
+  const getPlacement = (trigger) =&gt; {
+    const placement = trigger.getAttribute(&quot;data-tooltip-placement&quot;);
+    return tooltipPlacements.has(placement) ? placement : &quot;top&quot;;
+  };
+  const getTooltip = () =&gt; {
+    if (tooltip == null) {
+      tooltip = document.createElement(&quot;div&quot;);
+      tooltip.id = tooltipId;
+      tooltip.className = &quot;tooltip&quot;;
+      tooltip.setAttribute(&quot;role&quot;, &quot;tooltip&quot;);
+    }
+    return tooltip;
+  };
+  const setDescribedBy = (trigger, described) =&gt; {
+    const ids = new Set(
+      (trigger.getAttribute(&quot;aria-describedby&quot;) ?? &quot;&quot;)
+        .split(/\s+/)
+        .filter(Boolean),
+    );
+    if (described) {
+      ids.add(tooltipId);
+    } else {
+      ids.delete(tooltipId);
+    }
+    if (ids.size === 0) {
+      trigger.removeAttribute(&quot;aria-describedby&quot;);
+    } else {
+      trigger.setAttribute(&quot;aria-describedby&quot;, [...ids].join(&quot; &quot;));
+    }
+  };
+  const clearOpenTimeout = () =&gt; {
+    if (openTimeout != null) {
+      window.clearTimeout(openTimeout);
+      openTimeout = null;
+    }
+    pendingTrigger = null;
+  };
+  const closeTooltip = (activateSkipDelay = true) =&gt; {
+    clearOpenTimeout();
+    pinnedByTouch = false;
+    positionRequest += 1;
+    autoUpdateCleanup?.();
+    autoUpdateCleanup = null;
+    if (activeTrigger == null) {
+      return;
+    }
+    setDescribedBy(activeTrigger, false);
+    activeTrigger = null;
+    tooltip?.remove();
+    if (activateSkipDelay) {
+      skipDelayUntil = Date.now() + skipDelay;
+    }
+  };
+  const updatePosition = (trigger, floating) =&gt; {
+    const request = ++positionRequest;
+    void computePosition(trigger, floating, {
+      middleware: [
+        offset(tooltipGap),
+        flip({ padding: tooltipGap }),
+        shift({ padding: tooltipGap }),
+        size({
+          padding: tooltipGap,
+          apply({ availableHeight, availableWidth, elements }) {
+            elements.floating.style.setProperty(
+              &quot;--tooltip-available-width&quot;,
+              `${Math.max(0, availableWidth)}px`,
+            );
+            elements.floating.style.setProperty(
+              &quot;--tooltip-available-height&quot;,
+              `${Math.max(0, availableHeight)}px`,
+            );
+          },
+        }),
+      ],
+      placement: getPlacement(trigger),
+      strategy: &quot;fixed&quot;,
+    })
+      .then(({ x, y }) =&gt; {
+        if (activeTrigger !== trigger || request !== positionRequest) {
+          return;
+        }
+        const scale = window.devicePixelRatio || 1;
+        floating.style.transform = `translate(${Math.round(x * scale) / scale}px, ${Math.round(y * scale) / scale}px)`;
+        floating.style.visibility = &quot;visible&quot;;
+      })
+      .catch(() =&gt; {
+        if (activeTrigger === trigger &amp;&amp; request === positionRequest) {
+          closeTooltip(false);
+        }
+      });
+  };
+  const openTooltip = (trigger) =&gt; {
+    const content = getContent(trigger);
+    if (!trigger.isConnected || content.length === 0) {
+      return;
+    }
+    clearOpenTimeout();
+    if (activeTrigger === trigger) {
+      return;
+    }
+    closeTooltip();
+    const floating = getTooltip();
+    floating.textContent = content;
+    floating.style.visibility = &quot;hidden&quot;;
+    floating.style.transform = &quot;translate(0, 0)&quot;;
+    document.body.appendChild(floating);
+    activeTrigger = trigger;
+    setDescribedBy(trigger, true);
+    autoUpdateCleanup = autoUpdate(trigger, floating, () =&gt; {
+      updatePosition(trigger, floating);
+    });
+  };
+  const requestOpen = (trigger, immediate = false) =&gt; {
+    if (
+      getContent(trigger).length === 0 ||
+      activeTrigger === trigger ||
+      pendingTrigger === trigger
+    ) {
+      return;
+    }
+    clearOpenTimeout();
+    pendingTrigger = trigger;
+    const delay =
+      immediate || activeTrigger != null || Date.now() &lt; skipDelayUntil
+        ? 0
+        : hoverDelay;
+    if (delay === 0) {
+      openTooltip(trigger);
+      return;
+    }
+    openTimeout = window.setTimeout(() =&gt; {
+      openTimeout = null;
+      pendingTrigger = null;
+      openTooltip(trigger);
+    }, delay);
+  };
+  const handlePointerOpen = (event) =&gt; {
+    if (event.pointerType === &quot;touch&quot;) {
+      return;
+    }
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    requestOpen(trigger);
+  };
+  const handlePointer = (event) =&gt; {
+    lastPointerWasTouch =
+      event.type === &quot;pointerdown&quot; &amp;&amp; event.pointerType === &quot;touch&quot;;
+  };
+  const handleTouchClick = (event) =&gt; {
+    const isTouch = event.pointerType === &quot;touch&quot; || lastPointerWasTouch;
+    lastPointerWasTouch = false;
+    if (!isTouch || event.detail === 0) {
+      return;
+    }
+    const trigger = getTrigger(event.target);
+    if (
+      trigger == null ||
+      !trigger.isConnected ||
+      getContent(trigger).length === 0 ||
+      (pinnedByTouch &amp;&amp; activeTrigger === trigger)
+    ) {
+      if (pinnedByTouch) {
+        closeTooltip();
+      }
+      return;
+    }
+    openTooltip(trigger);
+    pinnedByTouch = activeTrigger === trigger;
+    window.setTimeout(() =&gt; {
+      if (activeTrigger === trigger &amp;&amp; !trigger.isConnected) {
+        closeTooltip(false);
+      }
+    }, 0);
+  };
+  const handleLeave = (event) =&gt; {
+    if (pinnedByTouch) {
+      return;
+    }
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const handleFocusIn = (event) =&gt; {
+    const trigger = getTrigger(event.target);
+    if (trigger?.matches(&quot;:focus-visible&quot;)) {
+      requestOpen(trigger, true);
+    }
+  };
+  const handleKeyDown = (event) =&gt; {
+    if (event.key === &quot;Escape&quot;) {
+      closeTooltip();
+    }
+  };
+  const handleContextMenu = (event) =&gt; {
+    lastPointerWasTouch = false;
+    const trigger = getTrigger(event.target);
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const destroy = () =&gt; {
+    closeTooltip(false);
+    lastPointerWasTouch = false;
+    document.removeEventListener(&quot;pointerover&quot;, handlePointerOpen);
+    document.removeEventListener(&quot;pointerdown&quot;, handlePointer);
+    document.removeEventListener(&quot;pointercancel&quot;, handlePointer);
+    document.removeEventListener(&quot;click&quot;, handleTouchClick);
+    document.removeEventListener(&quot;pointerout&quot;, handleLeave);
+    document.removeEventListener(&quot;focusin&quot;, handleFocusIn);
+    document.removeEventListener(&quot;focusout&quot;, handleLeave);
+    document.removeEventListener(&quot;keydown&quot;, handleKeyDown);
+    document.removeEventListener(&quot;contextmenu&quot;, handleContextMenu);
+    tooltip = null;
+  };
+
+  document.addEventListener(&quot;pointerover&quot;, handlePointerOpen);
+  document.addEventListener(&quot;pointerdown&quot;, handlePointer);
+  document.addEventListener(&quot;pointercancel&quot;, handlePointer);
+  document.addEventListener(&quot;click&quot;, handleTouchClick);
+  document.addEventListener(&quot;pointerout&quot;, handleLeave);
+  document.addEventListener(&quot;focusin&quot;, handleFocusIn);
+  document.addEventListener(&quot;focusout&quot;, handleLeave);
+  document.addEventListener(&quot;keydown&quot;, handleKeyDown);
+  document.addEventListener(&quot;contextmenu&quot;, handleContextMenu);
+  window.addEventListener(&quot;pagehide&quot;, destroy, { once: true });
+})();
+&lt;/script&gt;
+&lt;script id=&quot;codex-visualization-tabs&quot;&gt;
+(() =&gt; {
+  const selector = &#x27;.nav[role=&quot;tablist&quot;] [role=&quot;tab&quot;]&#x27;;
+  const disabled = &#x27;:disabled,[aria-disabled=&quot;true&quot;]&#x27;;
+  const selectTab = (selected) =&gt; {
+    const panelId = selected.getAttribute(&quot;aria-controls&quot;);
+    for (const tab of selected.closest(&#x27;[role=&quot;tablist&quot;]&#x27;).querySelectorAll(&#x27;[role=&quot;tab&quot;]&#x27;)) {
+      const active = tab === selected;
+      tab.classList.toggle(&quot;active&quot;, active);
+      tab.setAttribute(&quot;aria-selected&quot;, String(active));
+      const id = tab.getAttribute(&quot;aria-controls&quot;);
+      const panel = id &amp;&amp; document.getElementById(id);
+      if (panel != null) {
+        panel.hidden = id !== panelId;
+        if (!panel.hidden &amp;&amp; selected.id) {
+          panel.setAttribute(&quot;aria-labelledby&quot;, selected.id);
+        }
+      }
+    }
+  };
+  const interact = (event) =&gt; {
+    const tab = event.target?.closest?.(selector);
+    if (event.defaultPrevented || tab == null || tab.matches(disabled)) {
+      return;
+    }
+    if (event.type === &quot;click&quot;) {
+      selectTab(tab);
+      return;
+    }
+    const tabs = Array.from(
+      tab.closest(&#x27;[role=&quot;tablist&quot;]&#x27;).querySelectorAll(&#x27;[role=&quot;tab&quot;]&#x27;),
+    ).filter((candidate) =&gt; !candidate.matches(disabled));
+    const current = tabs.indexOf(tab);
+    let next;
+    if (event.key === &quot;ArrowRight&quot; || event.key === &quot;ArrowDown&quot;) {
+      next = (current + 1) % tabs.length;
+    } else if (event.key === &quot;ArrowLeft&quot; || event.key === &quot;ArrowUp&quot;) {
+      next = (current + tabs.length - 1) % tabs.length;
+    } else if (event.key === &quot;Home&quot;) {
+      next = 0;
+    } else if (event.key === &quot;End&quot;) {
+      next = tabs.length - 1;
+    } else {
+      return;
+    }
+    event.preventDefault();
+    tabs[next].focus();
+    selectTab(tabs[next]);
+  };
+
+  for (const list of document.querySelectorAll(&#x27;.nav[role=&quot;tablist&quot;]&#x27;)) {
+    const selected =
+      list.querySelector(&#x27;[role=&quot;tab&quot;][aria-selected=&quot;true&quot;]&#x27;) ??
+      list.querySelector(&#x27;[role=&quot;tab&quot;].active&#x27;) ??
+      list.querySelector(&#x27;[role=&quot;tab&quot;]&#x27;);
+    if (selected != null) {
+      selectTab(selected);
+    }
+  }
+  document.addEventListener(&quot;click&quot;, interact);
+  document.addEventListener(&quot;keydown&quot;, interact);
+  window.addEventListener(&quot;pagehide&quot;, () =&gt; {
+    document.removeEventListener(&quot;click&quot;, interact);
+    document.removeEventListener(&quot;keydown&quot;, interact);
+  }, { once: true });
+})();
+&lt;/script&gt;
+&lt;script id=&quot;codex-visualization-lucide&quot; async src=&quot;https://unpkg.com/lucide@1.17.0/dist/umd/lucide.js&quot;&gt;&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  const initialize = () =&gt; {
+    globalThis.lucide?.createIcons({ attrs: { width: 16, height: 16 } });
+  };
+  if (globalThis.lucide != null) {
+    initialize();
+    return;
+  }
+  document
+    .getElementById(&quot;codex-visualization-lucide&quot;)
+    ?.addEventListener(&quot;load&quot;, initialize, { once: true });
+})();
+&lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+"></iframe>
+</body>
+</html>
