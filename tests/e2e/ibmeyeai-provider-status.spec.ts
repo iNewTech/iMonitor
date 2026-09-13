@@ -67,8 +67,9 @@ async function openDemoMonitor(page: Page) {
     await expect(page.getByRole('heading', { name: 'iMonitor ActionBoard', exact: true })).toBeVisible();
     await expect(page.locator('.actionboard-jobs-panel')).toHaveAttribute('open', '');
     await expect(page.locator('#superpanel-ai-slot #ai-assistant-form')).toBeVisible();
-    await expect(page.locator('#ai-provider-quick')).toBeVisible();
-    await expect(page.locator('#ai-model-quick')).toBeVisible();
+    await expect(page.locator('#ai-model-menu > summary')).toBeVisible();
+    await expect(page.locator('#ai-provider-quick')).toBeHidden();
+    await expect(page.locator('#ai-model-quick')).toBeHidden();
     await expect(page.locator('.job-row.has-incident').first()).toBeVisible();
 }
 
@@ -80,14 +81,15 @@ async function aiRequests(app: ElectronApplication) {
 
 for (const source of [
     { name: 'live models', models: ['review-model'], hint: 'Live models loaded (1)' },
-    { name: 'fallback suggestions', models: [], hint: 'Using fallback suggestions' }
+    { name: 'missing model setup', models: [], hint: 'No available models. Configure AI in Settings.' }
 ]) {
     test(`shows ${source.name} in the compact composer and floating widget`, async () => {
         const app = await launchTestApp(source.models);
         try {
             await openDemoMonitor(app.page);
             await expect(app.page.locator('#ai-provider-model-source')).toHaveText(source.hint);
-            await app.page.locator('#ibmeyeai-launcher').click();
+            await app.page.locator('#board-workspace-menu > summary').click();
+            await app.page.locator('#board-companion-toggle').click();
             await expect(app.page.locator('#ibmeyeai-widget')).toHaveAttribute('data-open', 'true');
             await expect(app.page.locator('#ibmeyeai-widget-model-source')).toHaveText(source.hint);
             await expect(app.page.locator('#ai-provider-quick')).toHaveValue('ollama');
@@ -120,7 +122,8 @@ test('sends presets from the compact composer and exposes incident and job AI in
         const requests = await aiRequests(app.electronApp);
         expect(requests).toHaveLength(1);
         expect(requests[0].message).toContain('current incident picture');
-        await app.page.locator('#ibmeyeai-launcher').click();
+        await app.page.locator('#board-workspace-menu > summary').click();
+        await app.page.locator('#board-companion-toggle').click();
         await expect(app.page.locator('#ibmeyeai-widget-transcript')).toContainText('Mock analysis 1');
         await expect(app.page.locator('#ibmeyeai-widget-refresh')).toHaveCount(0);
         await app.page.locator('#ibmeyeai-widget-input').fill('Which evidence should I verify first?');
@@ -157,6 +160,16 @@ test('sends presets from the compact composer and exposes incident and job AI in
         expect(taskRequests[0].message).toContain('Explain this alert');
         expect(taskRequests[1].message).toContain('next best operator actions');
         expect(taskRequests[2].message).toContain(`health summary for ${jobName}`);
+        await app.page.locator('#ai-assistant-input').fill('Explain this selected job');
+        await app.page.locator('#ai-assistant-input').press('Enter');
+        await expect(app.page.locator('#ai-chat-transcript')).toContainText('Mock analysis 6');
+        expect((await aiRequests(app.electronApp)).at(-1)).toMatchObject({ selectedJobName: jobName, scope: 'job' });
+        await app.page.locator('#board-ai-scope').click();
+        await app.page.locator('#ai-assistant-input').fill('Summarize the system');
+        await app.page.locator('#ai-assistant-input').press('Enter');
+        await expect(app.page.locator('#ai-chat-transcript')).toContainText('Mock analysis 7');
+        expect((await aiRequests(app.electronApp)).at(-1)).toMatchObject({ scope: 'monitor' });
+        expect((await aiRequests(app.electronApp)).at(-1)?.selectedJobName).toBeUndefined();
     } finally {
         await app.cleanup();
     }

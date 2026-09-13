@@ -1,3 +1,5 @@
+import { getJobKey } from './formatters.js';
+import { getAlertOwner } from './alert-view.js';
 function normalizeQuery(value) {
     return String(value ?? '')
         .trim()
@@ -73,21 +75,26 @@ export function getSubsystemOptions(jobs) {
 /**
  * Filters jobs by subsystem and fuzzy text search.
  */
-export function filterJobs(jobs, filters) {
+export function filterJobs(jobs, filters, context = {}) {
     const subsystem = String(filters?.subsystem || '').trim().toUpperCase();
     const query = normalizeQuery(filters?.query);
     const status = String(filters?.status || 'ALL').trim().toUpperCase();
 
-    return jobs.filter((job) => {
+    const exactMatches = [];
+    const matches = jobs.filter((job) => {
         if (subsystem && subsystem !== 'ALL' && String(job?.SUBSYSTEM || '').trim().toUpperCase() !== subsystem) {
             return false;
         }
 
+        const alert = context.findAlert?.(getJobKey(job));
+        if (filters?.mine && (!context.operatorName || getAlertOwner(alert) !== context.operatorName)) return false;
+        if (status === 'ATTENTION' && !alert && !WAITING_STATUSES.has(String(job.STATUS || '').toUpperCase())) return false;
+        if (status === 'HIGH_CPU' && alert?.kind !== 'highCpu') return false;
         const jobStatus = String(job?.STATUS || '').trim().toUpperCase();
         if (status === 'WAITING' && !WAITING_STATUSES.has(jobStatus)) {
             return false;
         }
-        if (status !== 'ALL' && status !== 'WAITING' && jobStatus !== status) {
+        if (!['ALL', 'WAITING', 'ATTENTION', 'HIGH_CPU'].includes(status) && jobStatus !== status) {
             return false;
         }
 
@@ -104,11 +111,15 @@ export function filterJobs(jobs, filters) {
             job?.FUNCTION_NAME,
             job?.SQL_STATEMENT_STATUS,
             job?.CURRENT_USER,
-            job?.JOB_USER
+            job?.JOB_USER,
+            getAlertOwner(alert)
         ]
             .map((value) => normalizeQuery(value))
             .filter(Boolean);
 
+        if (searchableFields.some(field => field.includes(query))) exactMatches.push(job);
         return searchableFields.some((field) => matchesSearch(field, query));
     });
+    // Direct name/identity matches win; typo tolerance is a fallback only.
+    return exactMatches.length ? exactMatches : matches;
 }

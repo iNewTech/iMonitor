@@ -7,7 +7,7 @@ The product flow is **Connect → Monitor → Detect → Explain with AI → App
 ## Operator workflow
 
 - Connect through Mapepire using a saved system profile.
-- Scan active jobs, filter by subsystem/status, or use **Focus Next Job** to inspect a priority job.
+- Scan active jobs, filter by subsystem/status, or use **Focus next** to inspect a priority job.
 - Open a job in its own task window. Multiple job windows can stay open together.
 - In **Details**, load an observed resource call graph for the selected job, including linked incidents, queues, subsystems, message waits, and lock owners when IBM i evidence provides them.
 - Read the issue, claim work, inspect history, ask AI for an explanation or resolution guidance, and deliberately choose an available job action.
@@ -32,7 +32,7 @@ Resource relationships are evidence-backed and timestamped. The graph is bounded
 
 Settings can map a job, resource, queue, or subsystem to a customer-defined business service and owner. The task response shows the configured deadline and expected operating window; unmatched impact stays unknown.
 
-The ActionBoard also includes **Support outcomes** for team leads. Choose a date window to see incident volume, acknowledgement/investigation/recovery measurements, escalation and recurrence signals, AI request availability, sample sizes, unknown outcomes, and a comparison with the previous equal window. The report is scoped to the connected customer system and can be exported as JSON. It records operator-verified recovery separately and keeps autonomous recovery at zero until that future capability is deliberately introduced.
+The compact ActionBoard keeps one jobs table and a full-width AI input. The **⋯** menu opens activity trends, incident history, object analysis, the optional floating IBMEye, and **Support outcomes** for team leads. Choose a date window to see incident volume, acknowledgement/investigation/recovery measurements, escalation and recurrence signals, AI request availability, sample sizes, unknown outcomes, and a comparison with the previous equal window. The report is scoped to the connected customer system and can be exported as JSON. It records operator-verified recovery separately and keeps autonomous recovery at zero until that future capability is deliberately introduced.
 
 ## Run locally
 

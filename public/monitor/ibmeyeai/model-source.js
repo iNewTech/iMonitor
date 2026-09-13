@@ -27,5 +27,14 @@ export function getProviderModelSourceHint(snapshot, providerId) {
         return `Live models loaded (${count})`;
     }
 
-    return 'Using fallback suggestions';
+    return 'No available models. Configure AI in Settings.';
+}
+
+/** A quick picker only offers providers proven ready by discovery. Setup stays in Settings. */
+export function canUseProvider(snapshot, providerId) {
+    return snapshot.settings?.enabled === true
+        && snapshot.availability?.enabled !== false
+        && snapshot.availability?.healthy === true
+        && snapshot.availability?.provider === providerId
+        && getProviderModels(snapshot, providerId).length > 0;
 }

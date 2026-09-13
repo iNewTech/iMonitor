@@ -55,6 +55,6 @@ describe('ibmeyeai model-source', () => {
         };
 
         expect(getProviderModels(snapshot, 'ollama')).toEqual([]);
-        expect(getProviderModelSourceHint(snapshot, 'ollama')).toBe('Using fallback suggestions');
+        expect(getProviderModelSourceHint(snapshot, 'ollama')).toBe('No available models. Configure AI in Settings.');
     });
 });

@@ -11,6 +11,7 @@ export function createIBMEyeAiState(dependencies) {
     let activeRequestId = 0;
     let statusMessage = 'Local Ollama analysis is preparing.';
     let statusIsError = false;
+    let responseError = '';
 
     const listeners = new Set();
 
@@ -78,8 +79,10 @@ export function createIBMEyeAiState(dependencies) {
             providerCatalog = Array.isArray(nextProviderCatalog) ? nextProviderCatalog : [];
             settings = nextSettings;
             availability = nextAvailability;
-            statusMessage = nextAvailability.message;
-            statusIsError = !nextAvailability.healthy;
+            if (!pendingReply && !responseError) {
+                statusMessage = nextAvailability.message;
+                statusIsError = !nextAvailability.healthy;
+            }
             emit();
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
@@ -103,6 +106,8 @@ export function createIBMEyeAiState(dependencies) {
             return false;
         }
 
+        responseError = '';
+        const selectedJobName = getSelectedJobName?.() || undefined;
         conversation = conversation.concat({
             role: 'user',
             content: trimmedMessage
@@ -115,7 +120,8 @@ export function createIBMEyeAiState(dependencies) {
         try {
             const result = await window.electronAPI.askAiAssistant({
                 message: trimmedMessage,
-                selectedJobName: getSelectedJobName?.() || undefined,
+                selectedJobName,
+                scope: selectedJobName ? 'job' : 'monitor',
                 conversation
             });
 
@@ -124,7 +130,8 @@ export function createIBMEyeAiState(dependencies) {
                 if (requestId === activeRequestId) {
                     pendingReply = false;
                 }
-                setStatus(result?.error || 'AI analysis failed.', true);
+                responseError = result?.error || 'AI analysis failed.';
+                setStatus(responseError, true);
                 return false;
             }
 
@@ -145,18 +152,20 @@ export function createIBMEyeAiState(dependencies) {
             if (requestId === activeRequestId) {
                 pendingReply = false;
             }
-            setStatus(`AI analysis failed: ${messageText}`, true);
+            responseError = `AI analysis failed: ${messageText}`;
+            setStatus(responseError, true);
             return false;
         }
     }
 
     async function saveSettings(nextSettings) {
+        responseError = '';
         setStatus('Saving AI settings...');
 
         try {
             settings = await window.electronAPI.saveAiSettings(nextSettings);
             await refresh();
-            setStatus('AI settings saved.');
+            if (availability?.healthy) setStatus('AI settings saved.');
             return settings;
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);

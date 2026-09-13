@@ -36,3 +36,20 @@ describe('IBMEye AI single-flight state', () => {
         expect(state.getSnapshot().pendingReply).toBe(false);
     });
 });
+
+describe('IBMEye scope and error preservation', () => {
+    it('sends explicit job scope and keeps a failed response visible after discovery refresh', async () => {
+        const askAiAssistant = vi.fn(async (_request: unknown) => ({ success: false, error: 'Request timed out. Try again.' }));
+        vi.stubGlobal('window', { electronAPI: {
+            askAiAssistant,
+            getAiProviderCatalog: async () => [{ id: 'ollama' }],
+            getAiSettings: async () => ({ enabled: true, provider: 'ollama' }),
+            getAiAvailability: async () => ({ healthy: true, message: 'Ready' })
+        } });
+        const state = createIBMEyeAiState({ getSelectedJobName: () => '123/OPS/BATCH' });
+        await state.submitPrompt('Explain this job');
+        expect(askAiAssistant.mock.calls[0][0]).toMatchObject({ scope: 'job', selectedJobName: '123/OPS/BATCH' });
+        await state.refresh();
+        expect(state.getSnapshot()).toMatchObject({ statusIsError: true, statusMessage: 'Request timed out. Try again.' });
+    });
+});

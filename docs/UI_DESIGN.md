@@ -33,6 +33,8 @@ The form stays near 450 CSS px on a large desktop and reflows within smaller win
 
 ### 2. ActionBoard
 
+UI-02 implements the subsequently approved [minimal board sketch](design/minimal-actionboard.html); see [implementation screenshots and feature entry points](design/ui58/README.md). The operator chose this board as the first runtime delivery; the Connect screen in #57, job window redesign in #59, and Settings categories in #60 remain separate. Knowledge stays disabled and labelled planned until its library is implemented. Existing Resolution Memory is available in job tasks.
+
 Move basic system information into one top strip. Show CPU, job count, incident count, connection state, and observation time without duplicate statistic cards. Keep one search/filter toolbar and the jobs table. Show the specific condition, such as **Lock wait** or **High CPU · 62%**, instead of a generic ISSUE badge alongside a reassuring Running badge. Technical execution state remains available in details.
 
 Search, status/subsystem filters, My work, Focus next, owner, and polling controls remain available. Polling must preserve selection, scrolling, focus, text, and open task windows. The growing composer sits under the list. Routine provider-ready copy stays out of the idle view; setup problems remain discoverable. Job queues stay collapsed near the bottom before Support. Background health, support outcomes, and the companion remain available through compact entry points.

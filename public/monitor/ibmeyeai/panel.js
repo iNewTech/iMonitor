@@ -6,6 +6,7 @@ import {
     buildSqlActivityPrompt
 } from './action-prompts.js';
 import {
+    canUseProvider,
     getAiProviderOption,
     getProviderCatalog,
     getProviderModels,
@@ -156,8 +157,29 @@ export function initIBMEyeAiPanel(dependencies) {
     }
 
     let preferences = loadIBMEyeAiPreferences();
+    const conversationToggle = root.querySelector('#ai-conversation-toggle');
+    const modelLabel = root.querySelector('#ai-model-label');
+    const submit = root.querySelector('#ai-assistant-submit');
+    let transcriptMarkup = '';
+    let providerMarkup = '';
+    let modelMarkup = '';
+    let conversationSize = 0;
+    let wasPending = false;
+    function resizeInput() {
+        input.style.height = 'auto';
+        input.style.height = `${Math.min(220, Math.max(52, input.scrollHeight))}px`;
+    }
+    function expandConversation(open) {
+        if (!conversationToggle) return;
+        transcriptShell.hidden = !open;
+        conversationToggle.textContent = open ? 'Hide conversation' : 'Show conversation';
+        conversationToggle.setAttribute('aria-expanded', String(open));
+    }
+    conversationToggle?.addEventListener('click', () => expandConversation(transcriptShell.hidden));
+    input.addEventListener('input', resizeInput);
+    resizeInput();
 
-    if (transcriptShell) {
+    if (transcriptShell && !conversationToggle) {
         transcriptShell.style.height = `${preferences.transcriptHeight}px`;
     }
 
@@ -189,7 +211,11 @@ export function initIBMEyeAiPanel(dependencies) {
             return;
         }
 
+        const snapshot = aiState.getSnapshot();
+        if (!canUseProvider(snapshot, getActiveProviderId(snapshot))) return;
         input.value = '';
+        resizeInput();
+        root.querySelector('.ai-attach-menu')?.removeAttribute('open');
         void aiState.submitPrompt(normalizedMessage);
     }
 
@@ -200,15 +226,30 @@ export function initIBMEyeAiPanel(dependencies) {
 
         const activeProviderId = getActiveProviderId(snapshot);
         const catalog = getProviderCatalog(snapshot);
-        providerQuickInput.innerHTML = catalog.map((provider) => (
-            `<option value="${provider.id}">${escapeHtml(provider.symbol)} ${escapeHtml(provider.label)}</option>`
+        const nextProviderMarkup = catalog.map((provider) => (
+            `<option value="${provider.id}" ${canUseProvider(snapshot, provider.id) ? '' : 'disabled'}>${escapeHtml(provider.label)}${canUseProvider(snapshot, provider.id) ? '' : ' · Setup required'}</option>`
         )).join('');
+        if (providerMarkup !== nextProviderMarkup) {
+            providerQuickInput.innerHTML = nextProviderMarkup;
+            providerMarkup = nextProviderMarkup;
+        }
         providerQuickInput.value = activeProviderId;
 
         const selectedModel = snapshot.settings?.model || snapshot.availability?.selectedModel || '';
-        modelQuickInput.innerHTML = buildModelOptions(activeProviderId, snapshot, selectedModel);
+        const nextModelMarkup = buildModelOptions(activeProviderId, snapshot, selectedModel);
+        if (modelMarkup !== nextModelMarkup) {
+            modelQuickInput.innerHTML = nextModelMarkup;
+            modelMarkup = nextModelMarkup;
+        }
         modelQuickInput.value = selectedModel;
-        modelQuickInput.disabled = snapshot.pendingReply || !getProviderModels(snapshot, activeProviderId).length;
+        modelQuickInput.disabled = snapshot.pendingReply || !canUseProvider(snapshot, activeProviderId);
+        if (modelLabel) {
+            const provider = getAiProviderOption(snapshot, activeProviderId);
+            modelLabel.textContent = canUseProvider(snapshot, activeProviderId)
+                ? `${selectedModel || 'Default model'} · ${activeProviderId === 'ollama' ? 'Local' : provider?.label || activeProviderId}`
+                : 'Set up AI';
+            modelLabel.title = modelLabel.textContent;
+        }
 
         if (modelSourceHint) {
             modelSourceHint.textContent = getProviderModelSourceHint(snapshot, activeProviderId);
@@ -241,15 +282,26 @@ export function initIBMEyeAiPanel(dependencies) {
     }
 
     function render(snapshot) {
-        transcript.innerHTML = buildAiTranscriptMarkup(
-            snapshot.conversation,
-            snapshot.pendingReply,
-            snapshot.availability?.selectedModel || ''
-        );
-        transcript.scrollTop = transcript.scrollHeight;
-
+        const nextMarkup = buildAiTranscriptMarkup(snapshot.conversation, snapshot.pendingReply, snapshot.availability?.selectedModel || '');
+        if (nextMarkup !== transcriptMarkup) {
+            const nearBottom = transcript.scrollHeight - transcript.scrollTop - transcript.clientHeight < 48;
+            transcript.innerHTML = nextMarkup;
+            transcriptMarkup = nextMarkup;
+            if (nearBottom || snapshot.pendingReply) transcript.scrollTop = transcript.scrollHeight;
+        }
+        if (conversationToggle) {
+            conversationToggle.hidden = !snapshot.conversation.length && !snapshot.pendingReply;
+            if (snapshot.conversation.length !== conversationSize || (snapshot.pendingReply && !wasPending)) expandConversation(true);
+        }
+        conversationSize = snapshot.conversation.length;
+        wasPending = snapshot.pendingReply;
         setBusy(snapshot.pendingReply);
-        status.textContent = snapshot.statusMessage;
+        const available = canUseProvider(snapshot, getActiveProviderId(snapshot));
+        if (submit) submit.disabled = snapshot.pendingReply || !available;
+        promptButtons.forEach(button => { button.disabled = snapshot.pendingReply || !available; });
+        status.textContent = !snapshot.statusIsError && !available && snapshot.settings
+            ? 'No available model. Open the model menu to configure AI.' : snapshot.statusMessage;
+        status.hidden = Boolean(conversationToggle) && !snapshot.statusIsError && available && !snapshot.pendingReply;
         status.style.color = snapshot.statusIsError ? 'var(--danger)' : 'var(--muted)';
 
         if (availabilityBadge) {
@@ -278,7 +330,7 @@ export function initIBMEyeAiPanel(dependencies) {
 
     const unsubscribe = aiState.subscribe(render);
 
-    const resizeObserver = transcriptShell
+    const resizeObserver = transcriptShell && !conversationToggle
         ? new ResizeObserver((entries) => {
             const nextEntry = entries[0];
             if (!nextEntry) {
@@ -330,7 +382,8 @@ export function initIBMEyeAiPanel(dependencies) {
     providerQuickInput?.addEventListener('change', () => {
         const provider = providerQuickInput.value;
         const providerOption = getAiProviderOption(aiState.getSnapshot(), provider);
-        if (!providerOption) {
+        if (!providerOption || !canUseProvider(aiState.getSnapshot(), provider)) {
+            syncTopToolbar(aiState.getSnapshot());
             return;
         }
         void aiState.saveSettings({
@@ -341,6 +394,9 @@ export function initIBMEyeAiPanel(dependencies) {
     });
 
     modelQuickInput?.addEventListener('change', () => {
+        const snapshot = aiState.getSnapshot();
+        if (!canUseProvider(snapshot, getActiveProviderId(snapshot)) || (modelQuickInput.value && !getProviderModels(snapshot, getActiveProviderId(snapshot)).includes(modelQuickInput.value))) { syncTopToolbar(snapshot); return; }
+        root.querySelector('#ai-model-menu')?.removeAttribute('open');
         void aiState.saveSettings({
             model: modelQuickInput.value || ''
         });

@@ -1,0 +1,161 @@
+<div id="ab-minimal" aria-label="Minimal iMonitor ActionBoard design preview">
+  <style>
+    #ab-minimal{--ab-paper:light-dark(#ffffff,#202522);--ab-bg:light-dark(#f8faf9,#1b1f1d);--ab-text:light-dark(#24342f,#e8eee9);--ab-muted:light-dark(#65736c,#a4b2aa);--ab-line:light-dark(#e2e8e3,#39423d);--ab-teal:light-dark(#155f4b,#92d6b8);--ab-on:light-dark(#fff,#173326);--ab-tint:light-dark(#f0f6f2,#273c30);--ab-red:light-dark(#ae4551,#f1a5ad);--ab-amber:light-dark(#9b611b,#edbf80);--ab-shadow:light-dark(#23392c0c,#00000030);color:var(--ab-text);font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;}
+    #ab-minimal *{box-sizing:border-box;}
+    #ab-minimal [hidden]{display:none!important;}
+    #ab-minimal button,#ab-minimal select,#ab-minimal input,#ab-minimal textarea{font:inherit;color:inherit;}
+    #ab-minimal button{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--ab-line);border-radius:7px;background:var(--ab-paper);padding:7px 11px;cursor:pointer;max-width:100%;}
+    #ab-minimal button:disabled{opacity:.45;cursor:default;}
+    #ab-minimal button:hover:not(:disabled){background:var(--ab-tint);}
+    #ab-minimal .ab-primary,#ab-minimal .ab-primary:hover:not(:disabled){background:var(--ab-teal);color:var(--ab-on);border-color:var(--ab-teal);}
+    #ab-minimal .ab-quiet{background:transparent;border-color:transparent;}
+    #ab-minimal .ab-icon{padding:7px;width:33px;height:33px;flex:none;}
+    #ab-minimal b,#ab-minimal strong{font-weight:500;}
+    #ab-minimal small,#ab-minimal .ab-muted{color:var(--ab-muted);}
+    #ab-minimal i{display:inline-flex;}
+    #ab-minimal .ab-window{background:var(--ab-paper);border:1px solid var(--ab-line);border-radius:12px;overflow:hidden;box-shadow:0 5px 22px var(--ab-shadow);}
+    #ab-minimal .ab-header{padding:12px 20px;display:flex;align-items:center;gap:15px;flex-wrap:wrap;border-bottom:1px solid var(--ab-line);}
+    #ab-minimal .ab-brand{display:flex;align-items:center;gap:8px;margin-right:10px;}
+    #ab-minimal .ab-brand i{color:var(--ab-teal);}
+    #ab-minimal .ab-nav{display:flex;gap:5px;align-items:center;flex-wrap:wrap;}
+    #ab-minimal .ab-nav button{border:0;background:transparent;}
+    #ab-minimal .ab-nav button[aria-current="page"]{background:var(--ab-tint);color:var(--ab-teal);}
+    #ab-minimal .ab-account{margin-left:auto;display:flex;align-items:center;gap:9px;}
+    #ab-minimal .ab-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ab-teal);}
+    #ab-minimal .ab-content{padding:0 24px;}
+    #ab-minimal .ab-system{padding:17px 0;display:flex;align-items:center;gap:18px;flex-wrap:wrap;}
+    #ab-minimal .ab-system-name{display:flex;gap:8px;align-items:center;margin-right:auto;}
+    #ab-minimal .ab-metrics{display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
+    #ab-minimal .ab-metrics>span{display:inline-flex;align-items:baseline;gap:6px;}
+    #ab-minimal .ab-amber{color:var(--ab-amber);}
+    #ab-minimal .ab-red{color:var(--ab-red);}
+    #ab-minimal .ab-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:5px 0 14px;}
+    #ab-minimal .ab-search{display:flex;align-items:center;gap:8px;flex:1;min-width:150px;}
+    #ab-minimal .ab-search input{border:0;background:transparent;padding:8px 0;width:100%;min-width:0;}
+    #ab-minimal .ab-search i{color:var(--ab-muted);}
+    #ab-minimal select,#ab-minimal .ab-field{border:1px solid var(--ab-line);background:var(--ab-paper);border-radius:7px;padding:7px 9px;min-width:0;max-width:100%;}
+    #ab-minimal [aria-pressed="true"]{background:var(--ab-tint);color:var(--ab-teal);border-color:var(--ab-line);}
+    #ab-minimal .ab-table-wrap{overflow-x:auto;}
+    #ab-minimal table{border-collapse:collapse;width:100%;table-layout:fixed;}
+    #ab-minimal th{text-align:left;font-weight:400;color:var(--ab-muted);padding:9px 10px;background:var(--ab-bg);border-block:1px solid var(--ab-line);}
+    #ab-minimal td{padding:13px 10px;border-bottom:1px solid var(--ab-line);vertical-align:middle;overflow-wrap:anywhere;}
+    #ab-minimal th:first-child,#ab-minimal td:first-child{padding-left:0;}
+    #ab-minimal th:last-child,#ab-minimal td:last-child{padding-right:0;}
+    #ab-minimal th:first-child{width:36%;}
+    #ab-minimal th:nth-child(2){width:33%;}
+    #ab-minimal th:nth-child(3){width:12%;}
+    #ab-minimal th:nth-child(4){width:19%;}
+    #ab-minimal tr:hover td{background:var(--ab-bg);}
+    #ab-minimal td small{display:block;margin-top:3px;}
+    #ab-minimal .ab-job{border:0;padding:0;background:transparent;justify-content:flex-start;text-align:left;}
+    #ab-minimal .ab-job:hover:not(:disabled){background:transparent;color:var(--ab-teal);}
+    #ab-minimal .ab-number{font-variant-numeric:tabular-nums;}
+    #ab-minimal .ab-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 0;}
+    #ab-minimal .ab-meta button{padding:3px 0;}
+    #ab-minimal .ab-composer{margin:10px 0 17px;border:1px solid var(--ab-line);border-radius:13px;padding:10px 12px;background:var(--ab-paper);box-shadow:0 3px 12px var(--ab-shadow);}
+    #ab-minimal .ab-composer textarea{display:block;width:100%;min-height:52px;border:0;background:transparent;padding:4px 3px;resize:none;overflow:hidden;}
+    #ab-minimal .ab-composer-bar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+    #ab-minimal .ab-composer-bar .ab-spacer{flex:1;}
+    #ab-minimal .ab-model{border:0;background:transparent;padding:5px 4px;}
+    #ab-minimal .ab-model span{max-width:190px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+    #ab-minimal .ab-send{border-radius:50%;border:0;}
+    #ab-minimal .ab-options{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid var(--ab-line);padding-top:10px;margin-top:10px;}
+    #ab-minimal .ab-options label{display:flex;align-items:center;gap:7px;}
+    #ab-minimal .ab-options input{max-width:82px;}
+    #ab-minimal .ab-toolbar-options{margin:0 0 10px;border-top:0;border-bottom:1px solid var(--ab-line);padding:0 0 12px;}
+    #ab-minimal .ab-footer{border-top:1px solid var(--ab-line);padding:11px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--ab-bg);}
+    #ab-minimal .ab-footer button{padding:4px 0;}
+    #ab-minimal details.ab-queues{padding:13px 0;border-top:1px solid var(--ab-line);}
+    #ab-minimal summary{cursor:pointer;}
+    #ab-minimal .ab-queues summary{display:flex;align-items:center;gap:8px;}
+    #ab-minimal .ab-queues summary small{margin-left:auto;}
+    #ab-minimal details[open] .ab-chevron{transform:rotate(90deg);}
+    #ab-minimal .ab-queue-row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:12px 0 0;}
+    #ab-minimal .ab-reply{margin:8px 0;padding:14px 0;border-top:1px solid var(--ab-line);display:grid;gap:9px;}
+    #ab-minimal .ab-reply p{margin:0;}
+    #ab-minimal .ab-reply-head{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+    #ab-minimal .ab-task{max-width:650px;margin:0 auto;background:var(--ab-paper);border:1px solid var(--ab-line);border-radius:12px;overflow:hidden;}
+    #ab-minimal .ab-task-head{padding:15px 20px;border-bottom:1px solid var(--ab-line);display:flex;align-items:center;gap:8px;}
+    #ab-minimal .ab-task-head div{display:grid;gap:5px;margin-right:auto;}
+    #ab-minimal .ab-task-content{padding:17px 20px;}
+    #ab-minimal .ab-task-tabs{display:flex;gap:8px;margin-bottom:18px;}
+    #ab-minimal .ab-task-tabs button{border:0;}
+    #ab-minimal .ab-task-tabs [aria-selected="true"]{background:var(--ab-tint);color:var(--ab-teal);}
+    #ab-minimal .ab-task-fields{display:flex;align-items:flex-start;gap:22px;flex-wrap:wrap;margin:16px 0;}
+    #ab-minimal .ab-task-fields>div{display:grid;gap:5px;}
+    #ab-minimal .ab-task-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:18px 0 14px;}
+    #ab-minimal .ab-task-detail{border-top:1px solid var(--ab-line);padding:12px 0;}
+    #ab-minimal .ab-task-detail p{margin:10px 0 0;}
+    #ab-minimal .ab-task-history{padding-left:20px;display:grid;gap:16px;}
+    #ab-minimal .ab-preview-caption{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:9px 2px 0;color:var(--ab-muted);}
+    #ab-minimal .ab-empty{padding:24px 10px;text-align:center;color:var(--ab-muted);}
+    #ab-minimal[data-density="compact"] td{padding-block:9px;}
+    #ab-minimal[data-functions="false"] .ab-function{display:none;}
+    @media(max-width:700px){#ab-minimal .ab-content{padding:0 15px;}#ab-minimal .ab-header{padding:10px 15px;gap:9px;}#ab-minimal .ab-account>small{display:none;}#ab-minimal .ab-metrics{gap:13px;}#ab-minimal .ab-toolbar .ab-search{flex-basis:100%;}#ab-minimal th:first-child{width:33%;}#ab-minimal th:nth-child(2){width:30%;}#ab-minimal th:nth-child(4){width:25%;}}
+    @media(max-width:480px){#ab-minimal .ab-system{gap:12px;}#ab-minimal .ab-system-name{width:100%;}#ab-minimal .ab-nav{gap:1px;order:3;width:100%;}#ab-minimal .ab-nav button{padding:6px 9px;}#ab-minimal .ab-cpu-column{display:none;}#ab-minimal th:first-child{width:39%;}#ab-minimal th:nth-child(2){width:34%;}#ab-minimal th:nth-child(4){width:27%;}#ab-minimal td{padding:11px 6px;}#ab-minimal .ab-toolbar{gap:6px;}#ab-minimal .ab-toolbar button{padding:7px 9px;}#ab-minimal .ab-footer{padding:10px 15px;}#ab-minimal .ab-scope-label{display:none;}#ab-minimal .ab-model span{max-width:160px;}}
+    @media(pointer:coarse){#ab-minimal button,#ab-minimal select{min-height:44px;}#ab-minimal .ab-job{min-height:32px;}}
+  </style>
+  <div class="ab-window" id="ab-board">
+    <header class="ab-header">
+      <strong class="ab-brand"><i data-lucide="orbit" aria-hidden="true"></i> iMonitor</strong>
+      <nav class="ab-nav" aria-label="Main navigation"><button aria-current="page">ActionBoard</button><button data-hint="Knowledge stays in its own destination. This sketch focuses on the existing jobs workspace.">Knowledge</button><button data-hint="Settings opens separately for monitoring, providers, integrations, access, and storage.">Settings</button></nav>
+      <div class="ab-account"><small>Gajender</small><button class="ab-icon ab-quiet" aria-label="More workspace actions" data-open="ab-workspace-more" aria-expanded="false"><i data-lucide="ellipsis" aria-hidden="true"></i></button></div>
+    </header>
+    <main class="ab-content">
+      <div class="ab-options" id="ab-workspace-more" hidden><button data-hint="Object analysis opens from this entry, preserving call graphs, compile plans, and reports.">Object analysis</button><button data-hint="Support outcomes open on demand, outside the daily jobs list.">Support outcomes</button><button data-hint="Disconnect requires a deliberate action and preserves saved profiles and history.">Disconnect…</button></div>
+      <div class="ab-system"><div class="ab-system-name"><span class="ab-dot"></span><strong>NORTH01</strong><small>Demo system</small></div><div class="ab-metrics"><span><small>CPU</small><strong class="ab-number">39%</strong></span><span><strong>6</strong><small>jobs</small></span><span><strong class="ab-amber">3</strong><small>need attention</small></span></div></div>
+      <div class="ab-toolbar"><label class="ab-search"><i data-lucide="search" aria-hidden="true"></i><input id="ab-search" aria-label="Search active jobs" placeholder="Search jobs…"></label><select id="ab-filter" aria-label="Job status filter"><option value="all">All jobs</option><option value="attention">Needs attention</option><option value="lock">Lock waits</option><option value="message">Message waits</option><option value="cpu">High CPU</option></select><button class="ab-quiet" id="ab-mine" aria-pressed="false">My work</button><button class="ab-icon ab-quiet" aria-label="Subsystem and polling controls" data-open="ab-filters-more" aria-expanded="false"><i data-lucide="sliders-horizontal" aria-hidden="true"></i></button><button class="ab-primary" id="ab-focus"><i data-lucide="focus" aria-hidden="true"></i> Focus next</button></div>
+      <div class="ab-options ab-toolbar-options" id="ab-filters-more" hidden><label>Subsystem <select id="ab-subsystem"><option value="all">All subsystems</option><option>QBATCH</option><option>QUSRWRK</option><option>QHTTPSVR</option><option>QSERVER</option></select></label><label>Poll every <input class="ab-field" id="ab-poll" type="number" value="5" min="1" max="3600" aria-label="Polling interval in seconds"> seconds</label><button id="ab-pause">Pause monitoring</button></div>
+      <div class="ab-table-wrap"><table aria-label="Current jobs and issues"><thead><tr><th>Job</th><th>Current condition</th><th class="ab-cpu-column">CPU</th><th>Owner</th></tr></thead><tbody id="ab-rows">
+        <tr data-job="ARLOCK2" data-subsystem="QBATCH" data-owner="" data-kind="lock" data-cpu="0.3%" data-condition="Lock wait · 8 min"><td><button class="ab-job" data-job-open="ARLOCK2"><strong>ARLOCK2</strong></button><small class="ab-function">QBATCH · Invoice posting</small></td><td class="ab-red">Lock wait <small>8 minutes</small></td><td class="ab-cpu-column ab-number">0.3%</td><td class="ab-owner ab-muted">Unassigned</td></tr>
+        <tr data-job="NIGHTBCH" data-subsystem="QBATCH" data-owner="Gajender" data-kind="cpu" data-cpu="62.0%" data-condition="High CPU · 62%"><td><button class="ab-job" data-job-open="NIGHTBCH"><strong>NIGHTBCH</strong></button><small class="ab-function">QBATCH · Nightly posting</small></td><td class="ab-amber">High CPU <small>Above 50% threshold</small></td><td class="ab-cpu-column ab-number">62.0%</td><td class="ab-owner">Gajender</td></tr>
+        <tr data-job="ORDPOST" data-subsystem="QUSRWRK" data-owner="Anita" data-kind="message" data-cpu="0.0%" data-condition="Message reply needed"><td><button class="ab-job" data-job-open="ORDPOST"><strong>ORDPOST</strong></button><small class="ab-function">QUSRWRK · Order processing</small></td><td class="ab-red">Message wait <small>Reply needed</small></td><td class="ab-cpu-column ab-number">0.0%</td><td class="ab-owner">Anita</td></tr>
+        <tr data-job="SHIPPICK" data-subsystem="QBATCH" data-owner="" data-kind="normal" data-cpu="8.2%" data-condition="Running · No active incident"><td><button class="ab-job" data-job-open="SHIPPICK"><strong>SHIPPICK</strong></button><small class="ab-function">QBATCH · Picking release</small></td><td class="ab-muted">Running</td><td class="ab-cpu-column ab-number">8.2%</td><td class="ab-owner ab-muted">—</td></tr>
+        <tr data-job="HTTPAPI2" data-subsystem="QHTTPSVR" data-owner="" data-kind="normal" data-cpu="2.4%" data-condition="Running · No active incident"><td><button class="ab-job" data-job-open="HTTPAPI2"><strong>HTTPAPI2</strong></button><small class="ab-function">QHTTPSVR · API requests</small></td><td class="ab-muted">Running</td><td class="ab-cpu-column ab-number">2.4%</td><td class="ab-owner ab-muted">—</td></tr>
+        <tr data-job="QZDASOINIT" data-subsystem="QSERVER" data-owner="" data-kind="normal" data-cpu="0.3%" data-condition="Running · No active incident"><td><button class="ab-job" data-job-open="QZDASOINIT"><strong>QZDASOINIT</strong></button><small class="ab-function">QSERVER · Database server</small></td><td class="ab-muted">Running</td><td class="ab-cpu-column ab-number">0.3%</td><td class="ab-owner ab-muted">—</td></tr>
+      </tbody></table></div><div class="ab-empty" id="ab-empty" hidden>No jobs match these filters.</div>
+      <div class="ab-meta"><small id="ab-count">6 jobs shown</small><small id="ab-freshness">Updated 5s ago · Every 5 seconds</small></div>
+      <section class="ab-reply" id="ab-reply" aria-label="Expanded IBMEye conversation" hidden><div class="ab-reply-head"><strong>IBMEye <small>· NORTH01</small></strong><button class="ab-icon ab-quiet" data-open="ab-reply" aria-label="Collapse conversation"><i data-lucide="chevron-down" aria-hidden="true"></i></button></div><p>Three jobs need attention: ARLOCK2 is waiting on a lock, NIGHTBCH is above its CPU threshold, and ORDPOST needs a message reply.</p><p>ARLOCK2 is unassigned. Open its task to inspect the blocking job before choosing an action.</p><div><button class="ab-quiet" data-job-open="ARLOCK2">Open ARLOCK2 <i data-lucide="arrow-up-right" aria-hidden="true"></i></button></div><small>Illustrative response from the six sample job rows.</small></section>
+      <div class="ab-composer"><textarea id="ab-input" rows="2" aria-label="Ask IBMEye about NORTH01" placeholder="Ask IBMEye about this system…"></textarea><div class="ab-composer-bar"><button class="ab-icon ab-quiet" aria-label="Attach context" data-open="ab-attach" aria-expanded="false"><i data-lucide="plus" aria-hidden="true"></i></button><small class="ab-scope-label">NORTH01</small><span class="ab-spacer"></span><button class="ab-model" data-open="ab-models" aria-expanded="false"><span>gemma3 <small>· Local</small></span><i data-lucide="chevron-down" aria-hidden="true"></i></button><button class="ab-icon ab-primary ab-send" id="ab-send" aria-label="Preview IBMEye reply"><i data-lucide="arrow-up" aria-hidden="true"></i></button></div><div class="ab-options" id="ab-models" hidden><small>Provider / model</small><button data-hint="Local Ollama / gemma3 is selected in this sketch.">✓ Ollama / gemma3</button><button disabled>OpenAI · Setup required</button><button disabled>Claude · Setup required</button></div><div class="ab-options" id="ab-attach" hidden><button data-hint="The current system snapshot would be attached here.">System snapshot</button><button data-hint="Choose an existing job or incident as context.">Job / incident</button><button data-hint="Choose a local document; nothing is uploaded by this sketch.">File…</button></div></div>
+      <details class="ab-queues"><summary><i class="ab-chevron" data-lucide="chevron-right" aria-hidden="true"></i><span>Job queues</span><small>4 queues · 5 waiting</small></summary><div class="ab-queue-row"><span>QBATCH <small>· 3 waiting</small></span><button data-hint="Queue detail opens with its waiting jobs and approved actions.">Inspect</button></div><div class="ab-queue-row"><span>QINTER <small>· 2 waiting</small></span><button data-hint="Queue inspection remains available separately from active jobs.">Inspect</button></div><div class="ab-queue-row"><span>QSYSNOMAX <small>· 0 waiting</small></span><span class="ab-muted">Available</span></div><div class="ab-queue-row"><span>QHTTPSVR <small>· 0 waiting</small></span><span class="ab-muted">Available</span></div></details>
+    </main>
+    <footer class="ab-footer"><small id="ab-health"><span class="ab-dot"></span> Monitoring in background</small><button class="ab-quiet" data-hint="Support remains available here at the end of the board."><i data-lucide="life-buoy" aria-hidden="true"></i> Support</button></footer>
+  </div>
+  <div class="ab-task" id="ab-task" hidden aria-label="Separate job window sketch">
+    <header class="ab-task-head"><div><strong id="ab-task-title">ARLOCK2 · Job task</strong><small id="ab-task-subtitle">NORTH01 · QBATCH</small></div><button class="ab-icon ab-quiet" id="ab-task-close" aria-label="Close job preview and return to board"><i data-lucide="x" aria-hidden="true"></i></button></header>
+    <div class="ab-task-content"><div class="ab-task-tabs" role="tablist" aria-label="Job views"><button id="ab-overview-tab" role="tab" aria-controls="ab-overview" aria-selected="true" data-task-view="overview">Overview</button><button id="ab-history-tab" role="tab" aria-controls="ab-history" aria-selected="false" data-task-view="history">History</button></div><section id="ab-overview" role="tabpanel" aria-labelledby="ab-overview-tab"><strong id="ab-task-condition">Lock wait · 8 min</strong><div class="ab-task-fields"><div><small>Owner</small><span id="ab-task-owner">Unassigned</span></div><div><small>CPU</small><span id="ab-task-cpu">0.3%</span></div><div><small>Evidence</small><span>Latest sample snapshot</span></div></div><p id="ab-next-step">Inspect the blocking job before choosing a recovery action.</p><div class="ab-task-actions"><button class="ab-primary" id="ab-claim">Claim work</button><button id="ab-explain"><i data-lucide="sparkles" aria-hidden="true"></i> Explain & resolve</button><button class="ab-quiet" data-open="ab-task-more" aria-expanded="false">More <i data-lucide="chevron-down" aria-hidden="true"></i></button></div><div class="ab-options" id="ab-task-more" hidden><button data-hint="A handoff selects a recipient. Ownership changes only after they accept.">Handoff…</button><button data-hint="Open the ClickUp/Jira work item linked to this incident.">Linked ticket</button><button data-hint="Marking work done does not clear the incident until recovery is verified.">Mark work done</button><button data-hint="Job operations open an explicit target, permission, effect, and confirmation preview.">Job actions…</button></div><details class="ab-task-detail"><summary>Technical details</summary><p id="ab-technical">QBATCH · LCKW</p></details><div class="ab-reply" id="ab-task-answer" hidden><strong>IBMEye <small>· Job-scoped guidance</small></strong><p id="ab-task-answer-text">Check the current lock holder and its transaction before considering recovery.</p><small>Example guidance only. The sketch runs no production actions.</small></div></section><section id="ab-history" role="tabpanel" aria-labelledby="ab-history-tab" hidden><ol class="ab-task-history"><li>Sample job snapshot loaded</li><li id="ab-history-condition">Lock wait recorded</li><li id="ab-history-claim" hidden>Gajender claimed this incident</li></ol></section></div>
+  </div>
+  <div class="ab-preview-caption"><small id="ab-message" role="status" aria-live="polite"></small><small>Design sketch · Sample data</small></div>
+  <script>
+    (function(){
+      const root=document.getElementById('ab-minimal');
+      const get=id=>root.querySelector('#'+id);
+      const rows=[...root.querySelectorAll('#ab-rows tr')];
+      const hint=text=>{get('ab-message').textContent=text;};
+      let selected=null,returnFocus=null,paused=false;
+      const guidance={lock:'Inspect the blocking job before choosing a recovery action.',cpu:'Check recent CPU activity and the expected batch workload before intervening.',message:'Read the inquiry message and allowed responses before replying.',normal:'No active incident is linked. Inspect details if further investigation is needed.'};
+      function filter(){const q=get('ab-search').value.toLowerCase().trim(),kind=get('ab-filter').value,mine=get('ab-mine').getAttribute('aria-pressed')==='true',sub=get('ab-subsystem').value;let count=0;rows.forEach(row=>{const data=row.dataset;row.hidden=!row.textContent.toLowerCase().includes(q)||(kind==='attention'&&data.kind==='normal')||(!['all','attention'].includes(kind)&&data.kind!==kind)||(mine&&data.owner!=='Gajender')||(sub!=='all'&&data.subsystem!==sub);if(!row.hidden)count++;});get('ab-count').textContent=count+' of 6 jobs shown';get('ab-empty').hidden=count>0;}
+      function taskView(name){root.querySelectorAll('[data-task-view]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.taskView===name)));get('ab-overview').hidden=name!=='overview';get('ab-history').hidden=name!=='history';}
+      function updateTask(){const data=selected.dataset;get('ab-task-title').textContent=data.job+' · Job task';get('ab-task-subtitle').textContent='NORTH01 · '+data.subsystem;get('ab-task-condition').textContent=data.condition;get('ab-task-owner').textContent=data.owner||'Unassigned';get('ab-task-cpu').textContent=data.cpu;get('ab-next-step').textContent=guidance[data.kind];get('ab-technical').textContent=data.subsystem+' · '+data.condition;get('ab-history-condition').textContent=data.condition;get('ab-history-claim').hidden=data.claimed!=='yes';get('ab-claim').disabled=data.kind==='normal'||Boolean(data.owner);get('ab-claim').textContent=data.kind==='normal'?'No active incident':data.owner?'Owned by '+data.owner:'Claim work';}
+      function openJob(name,trigger){selected=rows.find(row=>row.dataset.job===name);if(!selected)return;returnFocus=trigger||get('ab-focus');updateTask();taskView('overview');get('ab-task-answer').hidden=true;get('ab-task-more').hidden=true;get('ab-board').hidden=true;get('ab-task').hidden=false;get('ab-task-close').focus();hint('Job window preview · Close to return to the board');}
+      root.querySelectorAll('[data-job-open]').forEach(button=>button.addEventListener('click',()=>openJob(button.dataset.jobOpen,button)));
+      get('ab-task-close').addEventListener('click',()=>{get('ab-task').hidden=true;get('ab-board').hidden=false;filter();if(returnFocus&&!returnFocus.closest('[hidden]'))returnFocus.focus();else get('ab-focus').focus();hint('');});
+      get('ab-focus').addEventListener('click',function(){const next=rows.find(row=>row.dataset.kind!=='normal'&&!row.dataset.owner)||rows.find(row=>row.dataset.kind!=='normal');if(next)openJob(next.dataset.job,this);});
+      root.querySelectorAll('[data-task-view]').forEach(button=>button.addEventListener('click',()=>taskView(button.dataset.taskView)));
+      root.querySelectorAll('[data-hint]').forEach(button=>button.addEventListener('click',()=>hint(button.dataset.hint)));
+      root.querySelectorAll('[data-open]').forEach(button=>button.addEventListener('click',()=>{const pane=get(button.dataset.open);pane.hidden=!pane.hidden;root.querySelectorAll('[data-open="'+button.dataset.open+'"]').forEach(b=>b.setAttribute('aria-expanded',String(!pane.hidden)));}));
+      get('ab-claim').addEventListener('click',()=>{if(!selected||selected.dataset.owner||selected.dataset.kind==='normal')return;selected.dataset.owner='Gajender';selected.dataset.claimed='yes';selected.querySelector('.ab-owner').textContent='Gajender';selected.querySelector('.ab-owner').classList.remove('ab-muted');updateTask();hint('Claimed in the sketch. Owner and History are updated.');});
+      get('ab-explain').addEventListener('click',()=>{get('ab-task-answer').hidden=false;get('ab-task-answer-text').textContent=guidance[selected.dataset.kind];});
+      get('ab-search').addEventListener('input',filter);get('ab-filter').addEventListener('change',filter);get('ab-subsystem').addEventListener('change',filter);get('ab-mine').addEventListener('click',function(){this.setAttribute('aria-pressed',String(this.getAttribute('aria-pressed')!=='true'));filter();});
+      function pollStatus(){const value=Number(get('ab-poll').value);if(!Number.isInteger(value)||value<1||value>3600){get('ab-poll').setCustomValidity('Enter a whole number of seconds between 1 and 3600.');get('ab-poll').reportValidity();return;}get('ab-poll').setCustomValidity('');get('ab-freshness').textContent=paused?'Paused · Last sample retained':'Updated 5s ago · Every '+value+' seconds';get('ab-health').textContent=paused?'Monitoring paused':'Monitoring in background';get('ab-pause').textContent=paused?'Resume monitoring':'Pause monitoring';}
+      get('ab-poll').addEventListener('change',pollStatus);get('ab-pause').addEventListener('click',()=>{paused=!paused;pollStatus();});
+      const input=get('ab-input');input.addEventListener('input',()=>{input.style.height='auto';input.style.height=input.scrollHeight+'px';});
+      function showReply(){get('ab-reply').hidden=false;const count=rows.filter(row=>row.dataset.kind!=='normal').length;const unassigned=rows.find(row=>row.dataset.kind!=='normal'&&!row.dataset.owner);const paragraphs=get('ab-reply').querySelectorAll('p');paragraphs[0].textContent=count+' sample jobs need attention: a lock wait, high CPU, and a message reply.';paragraphs[1].textContent=unassigned?unassigned.dataset.job+' is unassigned. Open its task and inspect the current evidence before choosing an action.':'All sample incidents have an owner. Open a task to continue investigating.';hint('Illustrative system summary shown; no AI request was sent.');}
+      get('ab-send').addEventListener('click',showReply);input.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();showReply();}});
+      const design={density:'comfortable',functions:true};
+      function renderDesign(){root.dataset.density=design.density;root.dataset.functions=String(design.functions);}
+      renderDesign();
+      if(globalThis.Tweak){const tweak=new Tweak({container:root,onChange:renderDesign});tweak.addSelect(design,'density',{label:'Table spacing',options:['comfortable','compact']});tweak.addToggle(design,'functions',{label:'Show function subtitles'});}
+    })();
+  </script>
+</div>

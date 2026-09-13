@@ -58,7 +58,9 @@ async function openDemoMonitor(page: Page) {
     await expect(page.locator('.actionboard-jobs-panel')).toHaveAttribute('open', '');
     await expect(page.locator('.job-row.has-incident').first()).toBeVisible();
     // Keep the real demo poll running, with stable evidence during each workflow.
+    await page.locator('.board-filter-menu > summary').click();
     await page.locator('#refresh-interval').selectOption('60000');
+    await page.locator('.board-filter-menu > summary').click();
 }
 
 async function openTaskWindow(app: Awaited<ReturnType<typeof launchTestApp>>, open: () => Promise<unknown>) {
@@ -84,14 +86,14 @@ async function readIncident(page: Page, alertId: string) {
 }
 
 function incidentRow(page: Page, jobName: string) {
-    return page.locator('.job-row').filter({ has: page.locator('.job-cell-primary small', { hasText: jobName }) });
+    return page.locator(`.job-row[data-job-name="${jobName}"]`);
 }
 
 test('launches the demo monitor and renders live incidents in active jobs', async () => {
     const app = await launchTestApp();
     try {
         await openDemoMonitor(app.page);
-        await expect(app.page.locator('.hero-logo')).toHaveAttribute('src', 'assets/ibm-eye.svg');
+        await expect(app.page.locator('.board-brand img')).toHaveAttribute('src', 'assets/ibm-eye.svg');
         await expect(app.page.locator('.ai-assistant-panel')).toHaveClass(/panel-tone-ai/);
         await expect(app.page.locator('.alert-rules-panel')).toHaveClass(/panel-tone-alerts/);
         await expect(app.page.locator('#app-status-bar')).toBeVisible();
@@ -106,8 +108,8 @@ test('launches the demo monitor and renders live incidents in active jobs', asyn
         }).toMatch(/^(captured|stale)$/);
         const row = incidentRow(app.page, incident.jobName!);
         await expect(row).toBeVisible();
-        await expect(row.locator('.job-incident-chip')).toHaveText('MSGW');
-        await expect(row.locator('.job-priority-chip')).toHaveText(/^P\d+$/);
+        await expect(row.locator('.job-condition > span')).toHaveText('Message wait');
+        await expect(row.locator('.job-condition')).toHaveAttribute('title', /Priority/);
         await expect(row).toHaveClass(/is-critical/);
         await app.page.evaluate(() => window.electronAPI.saveBusinessServiceSettings({
             mappings: [{ id: 'demo-service', serviceName: 'Order processing', owner: 'Finance operations', systemIds: ['*'], alertKinds: [], jobPattern: '*', priority: 0, deadlineMinutes: 60 }]
@@ -152,6 +154,7 @@ test('shows evidence-first support outcomes with an explicit autonomy boundary',
     const app = await launchTestApp();
     try {
         await openDemoMonitor(app.page);
+        await app.page.locator('#board-workspace-menu > summary').click();
         await app.page.locator('#open-support-outcomes').click();
         await expect(app.page.locator('#support-outcomes-panel')).toHaveAttribute('open', '');
         await expect(app.page.locator('#support-metrics-cards .support-metric-card')).toHaveCount(6);
@@ -174,19 +177,19 @@ test('prioritizes incident jobs and opens the next task from the active jobs boa
     const app = await launchTestApp();
     try {
         await openDemoMonitor(app.page);
-        await expect(app.page.locator('#actionboard-focus-title')).toBeVisible();
+        await expect(app.page.locator('#superpanel-focus-next')).toBeVisible();
         await expect(app.page.locator('#actionboard-attention-count')).toContainText(/[1-9]\d*/);
-        await app.page.getByTestId('jobs-filter-msgw').click();
-        await expect(app.page.getByTestId('jobs-filter-msgw')).toHaveAttribute('aria-pressed', 'true');
-        await expect(app.page.locator('.job-row .badge').first()).toHaveText('Message wait');
-        const filteredStates = await app.page.locator('.job-row .badge').allTextContents();
+        await app.page.locator('#jobs-status-filter').selectOption('MSGW');
+        await expect(app.page.locator('#jobs-status-filter')).toHaveValue('MSGW');
+        await expect(app.page.locator('.job-row .job-condition > span').first()).toHaveText('Message wait');
+        const filteredStates = await app.page.locator('.job-row .job-condition > span').allTextContents();
         expect(filteredStates.length).toBeGreaterThan(0);
         expect(filteredStates.every((status) => status.trim() === 'Message wait')).toBe(true);
         // Focus Next must escape an unrelated filter and open a critical wait.
         await app.page.getByTestId('jobs-search-input').fill('no-matching-job');
         await expect(app.page.locator('#system-stats tbody')).toContainText('No jobs match');
         const task = await openTaskWindow(app, () => app.page.locator('#superpanel-focus-next').click());
-        await expect(app.page.getByTestId('jobs-filter-all')).toHaveAttribute('aria-pressed', 'true');
+        await expect(app.page.locator('#jobs-status-filter')).toHaveValue('ALL');
         await expect(app.page.getByTestId('jobs-search-input')).toHaveValue('');
         await expect(task.locator('#task-issue-state')).toContainText('CRITICAL');
         await expect(task.locator('#task-status')).toHaveText(/MSGW|LCKW/);

@@ -39,3 +39,6 @@
 
 /* Evidence-first support outcome reporting. */
 @import url("./styles/support-metrics.css");
+
+/* Approved minimal daily workspace (UI-02); isolated from other app windows. */
+@import url("./styles/board-workspace.css");

@@ -45,6 +45,7 @@ test('loads the source browser and preview without renderer errors', async () =>
     app.page.on('pageerror', (error) => errors.push(error.message));
     try {
         await app.page.locator('#connect').click();
+        await app.page.locator('#board-workspace-menu > summary').click();
         await app.page.locator('#open-object-analysis').click();
         const source = app.page.locator('[data-analysis-file="true"]').filter({ hasText: 'ORDENTR.rpgle' });
         await expect(source).toBeVisible();
@@ -63,6 +64,7 @@ test('ignores a delayed source response after another member is selected', async
     const app = await launchTestApp();
     try {
         await app.page.locator('#connect').click();
+        await app.page.locator('#board-workspace-menu > summary').click();
         await app.page.locator('#open-object-analysis').click();
         await app.electronApp.evaluate(({ ipcMain }) => {
             ipcMain.removeHandler('load-object-analysis-source');
@@ -89,6 +91,7 @@ test('generates a saved compile plan and keeps report approval disabled while AI
     const app = await launchTestApp();
     try {
         await app.page.locator('#connect').click();
+        await app.page.locator('#board-workspace-menu > summary').click();
         await app.page.locator('#open-object-analysis').click();
         await app.page.locator('[data-analysis-file="true"]').filter({ hasText: 'ORDENTR.rpgle' }).click();
         await expect(app.page.locator('#generate-compile-plan')).toBeDisabled();
@@ -122,7 +125,8 @@ test('opens demo object analysis and traces an RPGLE source', async () => {
         await expect(app.page.locator('#open-object-analysis')).toHaveCount(0);
         await app.page.locator('#connect').click();
         await expect(app.page.getByRole('heading', { name: 'iMonitor ActionBoard', exact: true })).toBeVisible();
-        await expect(app.page.locator('#open-object-analysis')).toBeVisible();
+        await expect(app.page.locator('#open-object-analysis')).toHaveCount(1);
+        await app.page.locator('#board-workspace-menu > summary').click();
         await app.page.locator('#open-object-analysis').click();
         await expect(app.page.getByRole('heading', { name: 'Object analysis', exact: true })).toBeVisible();
         await expect(app.page.locator('[data-analysis-source="local"]')).toHaveAttribute('aria-pressed', 'true');
@@ -176,6 +180,7 @@ test('runs analysis directly from a source row action', async () => {
 
     try {
         await app.page.locator('#connect').click();
+        await app.page.locator('#board-workspace-menu > summary').click();
         await app.page.locator('#open-object-analysis').click();
         const sourceRow = app.page.locator('[data-analysis-file="true"]').filter({ hasText: 'ORDENTR.rpgle' });
         await sourceRow.locator('[data-analysis-action="true"]').click();
@@ -190,6 +195,7 @@ test('loads source and builds the mapped modernization analysis', async () => {
 
     try {
         await app.page.locator('#connect').click();
+        await app.page.locator('#board-workspace-menu > summary').click();
         await app.page.locator('#open-object-analysis').click();
         const sourceRow = app.page.locator('[data-analysis-file="true"]').filter({ hasText: 'ORDENTR.rpgle' });
         await sourceRow.click();
@@ -216,6 +222,7 @@ test('resizes the source browser with keyboard controls', async () => {
 
     try {
         await app.page.locator('#connect').click();
+        await app.page.locator('#board-workspace-menu > summary').click();
         await app.page.locator('#open-object-analysis').click();
         const resizer = app.page.locator('#analysis-sidebar-resizer');
         const initialWidth = Number(await resizer.getAttribute('aria-valuenow'));
@@ -232,6 +239,7 @@ test('keeps source browsing independent of the object search library list', asyn
 
     try {
         await app.page.locator('#connect').click();
+        await app.page.locator('#board-workspace-menu > summary').click();
         await app.page.locator('#open-object-analysis').click();
         await expect(app.page.locator('[data-analysis-file="true"]').filter({ hasText: 'PRICING.rpgle' })).toBeVisible();
 
@@ -250,6 +258,7 @@ test('allows operators to edit and reorder the object search library list', asyn
 
     try {
         await app.page.locator('#connect').click();
+        await app.page.locator('#board-workspace-menu > summary').click();
         await app.page.locator('#open-object-analysis').click();
         await expect(app.page.locator('#analysis-library-order .analysis-library-order-item strong')).toHaveText([
             'ORDERLIB', 'COMMONLIB', 'INVENTORY'
@@ -274,6 +283,7 @@ test('explains that IBM i source needs a live connection in demo mode', async ()
 
     try {
         await app.page.locator('#connect').click();
+        await app.page.locator('#board-workspace-menu > summary').click();
         await app.page.locator('#open-object-analysis').click();
         await app.page.locator('[data-analysis-source="ibmi"]').click();
         await expect(app.page.locator('#analysis-status')).toContainText('live IBM i system');

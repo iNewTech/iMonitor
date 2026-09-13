@@ -64,7 +64,7 @@ This is where you select or create IBM i profiles. It also shows the current pla
 
 ### ActionBoard
 
-This is the daily operator screen. It contains the live connection state, system summary, active jobs, job filters, AI composer, support outcomes, and the separate Job Queues panel.
+This is the daily operator screen. It contains the live connection state, a slim system strip, one active-jobs list, job filters, and a compact AI composer. Job Queues stays collapsed below the list. Less frequent tools open from the **⋯** workspace menu.
 
 ### Job task window
 
@@ -80,49 +80,40 @@ Object analysis is a separate workspace for RPG or database source. It explains 
 
 ## 5. Monitor the system
 
-### Read the ActionBoard header
+### Read the system strip
 
-The header shows:
+The top strip shows the connection state, saved system name, **Peak job CPU**, active-job count, and work needing attention. Peak job CPU is the highest CPU value among active jobs, not total system CPU. The observation time and polling interval are below the table. Check that observation time continues to advance; changing filters does not make old data look new.
 
-- whether the connection is **Live** or disconnected
-- the active system and operator
-- the last update time
-- **Object analysis**, **Outcomes**, **Settings**, **Disconnect**, and theme controls
-
-The page is healthy only when the connection is live and the update time continues to change. If polling fails, read the status message and use **Retry** or reconnect as directed.
-
-### Read the system cards
-
-The Active Jobs panel places the high-signal cards at the top:
-
-- total active jobs
-- peak CPU
-- running jobs
-- waiting jobs
-- latest poll time
-
-These cards describe the current poll. They are not a historical performance report; use **Outcomes** for a date range.
+**Settings** and the theme control stay in the header. Open **⋯** for Object analysis, Support outcomes, Activity trends, Incident history, the optional floating IBMEye, or Disconnect. **Knowledge** is marked as planned; existing Resolution Memory remains available in job tasks.
 
 ### Use the active jobs list
 
-The **WRKACTJOB · Active Jobs** list is the main work surface. It shows the job, user, subsystem, CPU, business or technical function, and health/state.
+The four columns show **Job**, **Current condition**, **CPU**, and **Owner**. The job's subsystem and function appear under its name; open the job for its full identity, technical user, evidence, and actions.
 
-Use the controls to:
+1. Search by job, subsystem, user, function, status code, or owner. Direct matches take precedence; typo-tolerant search is used when there is no direct match.
+2. Use **All jobs** to select Needs attention, High CPU, Running, or a specific wait state.
+3. Select **My work** to show incidents owned by the connected operator; it combines with the other filters.
+4. Open the **sliders** menu for subsystem filtering, polling intervals, **Custom seconds** (2–3600), **Pause/Resume**, and Comfortable/Compact row spacing.
+5. Select **Focus next** to open the highest-priority job, clearing conflicting filters.
+6. Select a row, or focus it with the keyboard and press Enter or Space, to open its independent task window.
 
-1. Choose the polling interval: `5 seconds`, `10 seconds`, `30 seconds`, `1 minute`, or **Custom**.
-2. For Custom, enter seconds within the allowed range and wait for the polling label to update.
-3. Filter by subsystem.
-4. Search by job, subsystem, user, function, `MSGW`, `LCKW`, or another visible term.
-5. Use the quick filters for running, waiting, `MSGW`, `LCKW`, `DLYW`, and `DEQW`.
-6. Use **Focus Next Job** to bring the highest-priority incident into the task workflow.
+The list scrolls inside its own area. Polling preserves keyboard focus, selected job, view filters, and your AI draft. Search, filters, density, selection, and scroll position also survive navigation or reconnect to the same profile during the app session. Incident ownership, notes, and history continue to use durable storage and survive app restarts.
 
-### Understand “Running” and “Issue” together
+### Read the current condition
 
-A job can be **Running** and still have an issue. Running describes the IBM i job state. An issue badge describes a condition that needs attention, such as high CPU, a lock wait, a message wait, or a queue condition.
+An incident row names its actual condition, such as **High CPU**, **Message wait**, or **Lock wait**. High CPU can occur while the job executes; its technical Running state is available in task details. The board avoids presenting that as a second healthy-looking badge.
 
-For example, `Running + High CPU` means the job is active but consuming more CPU than the configured threshold. It does not mean the job is stopped. Open the row to see the actual condition, evidence, and recommended next check.
+If the observed state has changed but recovery is not verified, the row says so. Monitoring-confirmed recovery still controls incident removal. An owner names the operator responsible for that work; **Unassigned** indicates an active incident without an owner, and **—** indicates no linked active incident.
 
-If a row shows an owner, that named operator currently has the work claimed. If no owner is shown, the work is available to an authorised operator.
+### Ask IBMEye from the board
+
+Write in the full-width input below the jobs list. It grows for longer questions. **Enter** sends; **Shift+Enter** inserts a new line. The **+** menu holds the existing incident summary, shift handoff, SQL activity, and job-health prompts.
+
+The lower-left context label names the system or selected job. Opening a job selects it for AI; click its context label to return to the whole system. Job-scoped requests use the same backend scope checks as the job helper. The compact model label opens provider/model choices and **Configure AI**. Unavailable providers/models cannot be selected; configure them in Settings first. Setup and request failures remain visible.
+
+The conversation appears after a question and can be hidden or shown without losing the messages. Routine provider-ready messages do not occupy the idle composer. The floating chatbot is optional: **⋯ → Show floating IBMEye** opens the existing quick chat, and **Hide floating IBMEye** removes it from view. Both chat surfaces share the conversation. AI helpers inside job tasks remain available.
+
+The footer reports monitoring health and background collection separately. **Background collection off** means the collector is not running; clicking it opens Settings. Closing the window only continues collection when that feature is configured and enabled.
 
 ### Use Job Queues
 
@@ -138,7 +129,7 @@ Automatic queue triage only reads queue, waiting-job, and subsystem evidence. It
 
 ### Review support outcomes
 
-Open **Outcomes** in the ActionBoard header. Choose a **From** and **To** date, then select **Refresh**. The panel shows incident volume, acknowledgement and investigation timing, verified recovery, recurrence, escalation, AI availability, sample sizes, unknown results, and a comparison with the previous equal period.
+Open **⋯ → Support outcomes** in the ActionBoard header. Choose a **From** and **To** date, then select **Refresh**. The panel shows incident volume, acknowledgement and investigation timing, verified recovery, recurrence, escalation, AI availability, sample sizes, unknown results, and a comparison with the previous equal period.
 
 Use **Export JSON** when a support lead needs a customer-owned report. The report is scoped to the connected system. An operator-verified recovery remains separate from future autonomous recovery.
 
@@ -148,7 +139,7 @@ Use this sequence when a row shows an issue.
 
 ### Step 1: Open the job
 
-Select the job row or choose **Focus Next Job**. The task window opens with the job in context. Do not start by opening a different job or relying on a copied screenshot; the task window keeps the current evidence and identity together.
+Select the job row or choose **Focus next**. The task window opens with the job in context. Do not start by opening a different job or relying on a copied screenshot; the task window keeps the current evidence and identity together.
 
 ### Step 2: Read Overview
 
@@ -289,7 +280,7 @@ Open **Settings → IBMEye AI**.
 
 The current provider choices are local **Open Models** and hosted adapters for **Codex / OpenAI**, **Claude**, and **Grok / xAI**, subject to plan and configuration. A model that is not configured or unavailable cannot be selected for use.
 
-The small provider and model controls in the ActionBoard and floating IBMEye helper show the currently usable choices. The main composer is monitor-scoped. A task window’s AI helper is job-scoped and must not answer unrelated questions.
+Click the compact model label below the ActionBoard input to choose a currently usable model or open Configure AI. A job selected in the board supplies job scope; click the context label to return to system scope. A task window’s AI helper always uses job scope and must not answer unrelated questions.
 
 AI can explain and recommend. It cannot claim work, create a ticket, send a message reply, change a queue, end a job, or bypass confirmation.
 
@@ -377,7 +368,7 @@ To remove collected snapshots, select **Purge all records**, review the record a
 
 ## 18. Analyse RPG or database source
 
-Open **Object analysis** from the ActionBoard.
+Open **⋯ → Object analysis** from the ActionBoard.
 
 ### Choose the source
 

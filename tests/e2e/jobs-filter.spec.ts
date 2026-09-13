@@ -43,8 +43,7 @@ async function openDemoMonitor(page: Page) {
     await expect(page.locator('#saved-connections')).toHaveValue('demo-connection');
     await page.locator('#connect').click();
     await expect(page.getByRole('heading', { name: 'iMonitor ActionBoard', exact: true })).toBeVisible();
-    const jobsSummary = page.locator('.table-shell > summary');
-    await expect(jobsSummary).toBeVisible();
+    await expect(page.locator('.actionboard-jobs-panel .jobs-toolbar')).toBeVisible();
     await expect(page.locator('.table-shell')).toHaveAttribute('open', '');
 }
 
@@ -55,30 +54,34 @@ test('filters and searches the active jobs table in demo mode', async () => {
         await openDemoMonitor(app.page);
 
         await expect(app.page.getByTestId('jobs-visible-count')).toContainText('Showing');
+        await app.page.locator('.board-filter-menu > summary').click();
         await app.page.getByTestId('jobs-subsystem-filter').selectOption('QBATCH');
+        await app.page.locator('.board-filter-menu > summary').click();
         await expect(app.page.locator('#system-stats tbody tr')).toHaveCount(3);
         await expect(app.page.locator('#system-stats tbody tr').first()).toContainText('QBATCH/');
         await expect(app.page.locator('#system-stats tbody tr').nth(1)).toContainText('QBATCH/');
         await expect(app.page.locator('#system-stats tbody tr').nth(2)).toContainText('QBATCH/');
         await expect(app.page.getByTestId('jobs-visible-count')).toContainText('Showing 3 of');
 
-        await app.page.getByTestId('jobs-filter-waiting').click();
+        await app.page.locator('#jobs-status-filter').selectOption('WAITING');
         await expect(app.page.locator('#system-stats tbody tr')).toHaveCount(1);
         await expect(app.page.locator('#system-stats tbody tr')).toContainText('LCKW');
         await expect(app.page.getByTestId('jobs-visible-count')).toContainText('Showing 1 of');
 
+        await app.page.locator('.board-filter-menu > summary').click();
         await app.page.getByTestId('jobs-subsystem-filter').selectOption('ALL');
-        await app.page.getByTestId('jobs-filter-running').click();
+        await app.page.locator('.board-filter-menu > summary').click();
+        await app.page.locator('#jobs-status-filter').selectOption('RUN');
         const runningRows = app.page.locator('#system-stats tbody tr.job-row');
         await expect(runningRows).not.toHaveCount(0);
-        const runningStatuses = await runningRows.locator('.badge').allTextContents();
-        expect(runningStatuses.every((status) => status.trim() === 'Running')).toBe(true);
+        const runningStatuses = await runningRows.locator('.job-condition').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-state')));
+        expect(runningStatuses.every((status) => status === 'RUN')).toBe(true);
 
         await app.page.getByTestId('jobs-search-input').fill('interct');
         await expect(app.page.locator('#system-stats tbody tr')).toHaveCount(1);
         await expect(app.page.locator('#system-stats tbody tr')).toContainText('QINTER/INTERACT');
 
-        await app.page.getByTestId('jobs-filter-all').click();
+        await app.page.locator('#jobs-status-filter').selectOption('ALL');
         await expect(app.page.locator('#system-stats tbody tr')).toHaveCount(1);
         await expect(app.page.locator('#system-stats tbody tr')).toContainText('QINTER/INTERACT');
 
@@ -88,7 +91,7 @@ test('filters and searches the active jobs table in demo mode', async () => {
         await app.cleanup();
     }
     });
-test('shows live metrics in the jobs panel without a separate overview', async () => {
+test('shows one health strip and offers activity trends on demand', async () => {
     const app = await launchTestApp();
 
     try {
@@ -96,16 +99,19 @@ test('shows live metrics in the jobs panel without a separate overview', async (
         const overview = app.page.locator('.activity-overview');
         await expect(overview).toBeHidden();
         await expect(app.page.locator('#superpanel-metrics-slot')).toBeVisible();
-        await expect(overview).toHaveAttribute('open', '');
+        await expect(overview).not.toHaveAttribute('open', '');
         await expect(app.page.locator('.table-shell')).toHaveAttribute('open', '');
         await expect(app.page.locator('#total-jobs')).toBeVisible();
         await expect(app.page.locator('#peak-cpu')).toBeVisible();
-        await expect(app.page.locator('#running-jobs')).toBeVisible();
-        await expect(app.page.locator('#waiting-jobs')).toBeVisible();
+        await expect(app.page.locator('#running-jobs')).toBeHidden();
+        await expect(app.page.locator('#waiting-jobs')).toBeHidden();
 
         await expect(app.page.locator('[data-history-view="jobs"]')).toBeHidden();
         await expect(app.page.locator('[data-history-view="cpu"]')).toBeHidden();
         await expect(app.page.locator('[data-history-view="waits"]')).toBeHidden();
+        await app.page.locator('#board-workspace-menu > summary').click();
+        await app.page.getByRole('button', { name: 'Activity trends', exact: true }).click();
+        await expect(app.page.locator('[data-history-view="jobs"]')).toBeVisible();
         await expect(app.page.locator('#total-jobs')).toBeVisible();
     } finally {
         await app.cleanup();

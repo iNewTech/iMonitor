@@ -40,6 +40,16 @@ Build checks TypeScript **and** parses every JavaScript module in `public/`, inc
 
 The standalone task response workspace is split between `src/features/alerts/incident-response.ts`, `src/features/alerts/incident-handoff.ts`, and `public/job-task.js`. The main process builds a deterministic response snapshot from the selected job, linked alert, and status history. Handoffs are versioned records persisted with the alert workflow state. A request validates the recipient, reason, pending checks, and optional ISO response target; acceptance is restricted to the addressed operator. Both events enter the incident timeline, and ownership changes only on acceptance. The renderer keeps the handoff form limited to the fields needed to transfer work. It does not copy or export handoff documents. The main process synchronizes handoff comments, ClickUp status/assignee changes, Jira comments, and optional Slack notifications through bounded delivery keys.
 
+## Minimal ActionBoard workspace (UI-02 / #58)
+
+`public/monitor.html` retains existing IPC element contracts while moving infrequent tools behind the workspace menu. `public/monitor/board-workspace.js` owns disclosure controls, optional companion visibility, collection status, and per-profile session view preferences. It stores no credentials or operational records. The connection name/host/port/operator isolate those preferences; incident persistence remains main-process owned.
+
+`public/monitor/job-rows.js` patches rows by qualified identity and describes active conditions separately from technical states. It preserves focus and scroll even when row order changes. Filtering in `jobs-filter.js` combines subsystem, status, owner and text; direct matches win over fuzzy fallback. Filter/owner updates never advance observation time. `monitor.js` composes these views with the unchanged actions and monitoring services.
+
+`ibmeyeai/panel.js` owns the full-width autogrowing input, on-demand conversation and compact model disclosure. Discovery-backed ready providers/models alone are selectable; configuration stays in Settings. `store.js` passes explicit monitor/job scope. The existing shared widget conversation remains available from the workspace menu and is hidden on initial load. `styles/board-workspace.css` scopes the approved layout to `body.board-minimal`, preserving other windows.
+
+Validation lives in `jobs-workspace.test.ts` and `tests/e2e/board-workspace.spec.ts`, alongside the existing workflow/provider/queue tests. Electron fixtures cover view restoration, polling focus/scroll/drafts, search and ownership, theme/size changes, model setup, and accessible secondary entry points. Screenshots use isolated illustrative data; they do not establish live IBM i or external-service deployment.
+
 ## Local source layout
 
 Supported exports include `root/userlib/LIB/SRCPF/member.rpgle`, `root/LIB/SRCPF/member.rpgle`, or a directly selected library containing source files. `user-libraries` is supported for older exports. Source-file directory names are not prescribed. Disk casing is preserved; IBM i names and lookup lists are normalized for matching.
@@ -141,7 +151,7 @@ Incident handoff IPC uses the same authorization and per-incident lease boundary
 
 ClickUp stores `handoffStatus` and `activeStatus` with each operator's integration settings. A pending handoff uses the first value; an accepted handoff uses the second. Status changes and assignee replacement are separate from the local workflow and use the same bounded delivery registry. Slack handoff notifications use stable keys derived from the incident, handoff ID, and event so retries do not duplicate a notification.
 
-Task-window AI helpers pass `scope: 'job'` through preload and IPC. The main process verifies that the selected job is still present, filters alerts and operator activity to that job, includes only its status history, omits global monitoring history and arbitrary conversation context, and instructs the provider to decline unrelated questions. The main ActionBoard composer remains monitor-scoped.
+Task-window AI helpers pass `scope: 'job'` through preload and IPC. The main process verifies that the selected job is still present, filters alerts and operator activity to that job, includes only its status history, omits global monitoring history and arbitrary conversation context, and instructs the provider to decline unrelated questions. The ActionBoard composer passes monitor scope by default and explicit job scope after selecting a job; its context control clears the selection. Task helpers always pass job scope.
 
 The initial RPG parser recognizes common declarations, calls, files, SQL, and runtime resources. It is not a complete RPG/COBOL/CL compiler. Local catalogs help resolve references but do not prove runtime execution. Live metadata collection depends on available IBM i services and permissions.
 

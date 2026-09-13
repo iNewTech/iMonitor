@@ -1,5 +1,6 @@
 import { loadIBMEyeAiPreferences, saveIBMEyeAiPreferences } from './prefs.js';
 import {
+    canUseProvider,
     getAiProviderOption,
     getProviderCatalog,
     getProviderModels,
@@ -70,7 +71,7 @@ export function initIBMEyeAiWidget(dependencies) {
 
     function render(snapshot) {
         const providerMarkup = getProviderCatalog(snapshot).map((provider) => (
-            `<option value="${provider.id}">${provider.symbol} ${provider.label}</option>`
+            `<option value="${provider.id}" ${canUseProvider(snapshot, provider.id) ? '' : 'disabled'}>${provider.symbol} ${provider.label}</option>`
         )).join('');
         providerInput.innerHTML = providerMarkup;
         providerInput.value = snapshot.settings?.provider || 'ollama';
@@ -85,7 +86,8 @@ export function initIBMEyeAiWidget(dependencies) {
             ].join('')
             : '<option value="" selected disabled>Set up a model first</option>';
         modelInput.value = selectedModel;
-        modelInput.disabled = !modelNames.length;
+        modelInput.disabled = snapshot.pendingReply || !canUseProvider(snapshot, activeProvider);
+        providerInput.disabled = snapshot.pendingReply;
         setElementText(modelSource, getProviderModelSourceHint(snapshot, activeProvider));
 
         transcript.innerHTML = buildAiTranscriptMarkup(
@@ -95,6 +97,7 @@ export function initIBMEyeAiWidget(dependencies) {
         );
         transcript.scrollTop = transcript.scrollHeight;
         setBusy(snapshot.pendingReply);
+        submitButton.disabled = snapshot.pendingReply || !canUseProvider(snapshot, activeProvider);
         const modelLabel = snapshot.availability?.selectedModel || 'provider model';
         const statusText = snapshot.pendingReply
             ? `IBMEye AI: ${modelLabel} replying...`
@@ -127,10 +130,13 @@ export function initIBMEyeAiWidget(dependencies) {
     }
 
     function open() {
+        widget.hidden = false;
         toggle(true);
     }
 
     function submitCurrentPrompt() {
+        const snapshot = aiState.getSnapshot();
+        if (!canUseProvider(snapshot, snapshot.settings?.provider)) return;
         const message = input.value || '';
         if (aiState.getSnapshot().pendingReply) {
             return;
@@ -175,7 +181,7 @@ export function initIBMEyeAiWidget(dependencies) {
     providerInput.addEventListener('change', () => {
         const provider = providerInput.value;
         const providerOption = getAiProviderOption(aiState.getSnapshot(), provider);
-        if (!providerOption) {
+        if (!providerOption || !canUseProvider(aiState.getSnapshot(), provider)) {
             return;
         }
         void aiState.saveSettings({
@@ -186,6 +192,8 @@ export function initIBMEyeAiWidget(dependencies) {
     });
 
     modelInput.addEventListener('change', () => {
+        const snapshot = aiState.getSnapshot();
+        if (!canUseProvider(snapshot, snapshot.settings?.provider) || (modelInput.value && !getProviderModels(snapshot, snapshot.settings?.provider).includes(modelInput.value))) return;
         void aiState.saveSettings({
             model: modelInput.value || ''
         });

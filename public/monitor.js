@@ -1,3 +1,5 @@
+import { renderJobRows } from './monitor/job-rows.js';
+import { initBoardWorkspace } from './monitor/board-workspace.js';
 import { escapeHtml, formatTimestamp, formatNumber, formatCpuValue, formatMegabytes, getJobKey, getStatusBadgeClass, createActionRequestId } from './monitor/formatters.js';
 import {
     buildAlertMarkup as buildAlertView,
@@ -62,7 +64,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const heroFocusNextButton = document.getElementById('hero-focus-next');
     const superpanelFocusNextButton = document.getElementById('superpanel-focus-next');
     const superpanelFocusCopy = document.getElementById('superpanel-focus-copy');
-    const superpanelMetricsSlot = document.getElementById('superpanel-metrics-slot');
     const superpanelAiSlot = document.getElementById('superpanel-ai-slot');
     const actionboardQuickLinks = Array.from(document.querySelectorAll('[data-actionboard-target]'));
     const alertsPanel = document.querySelector('.alerts-panel');
@@ -156,7 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const jobsSubsystemFilter = document.getElementById('jobs-subsystem-filter');
     const jobsSearchInput = document.getElementById('jobs-search-input');
     const jobsVisibleCount = document.getElementById('jobs-visible-count');
-    const jobsQuickFilterButtons = Array.from(document.querySelectorAll('[data-job-filter]'));
+    const jobsStatusFilter = document.getElementById('jobs-status-filter');
+    const jobsMineFilter = document.getElementById('jobs-mine-filter');
     const totalJobs = document.getElementById('total-jobs');
     const peakCpu = document.getElementById('peak-cpu');
     const runningJobs = document.getElementById('running-jobs');
@@ -171,14 +173,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const themeMenuOptions = document.getElementById('theme-menu-options');
     const themeDescription = document.getElementById('theme-description');
 
-    const activityMetrics = document.querySelector('.activity-metrics');
     const aiAssistantBody = aiPanel?.querySelector('.panel-disclosure-body');
-    if (superpanelMetricsSlot && activityMetrics) {
-        superpanelMetricsSlot.append(activityMetrics);
-    }
-    if (superpanelAiSlot && aiAssistantBody) {
-        superpanelAiSlot.append(aiAssistantBody);
-    }
+    if (superpanelAiSlot && aiAssistantBody) superpanelAiSlot.append(aiAssistantBody);
 
     let monitoring = false;
     let selectedJobName = null;
@@ -198,7 +194,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let jobFilters = {
         subsystem: 'ALL',
         query: '',
-        status: 'ALL'
+        status: 'ALL',
+        mine: false
     };
     const aiAssistant = initAiAssistant({
         root: document,
@@ -207,6 +204,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const jobQueues = initJobQueues({ root: document, electronAPI: window.electronAPI });
     const queueTriage = initQueueTriage({ root: document, electronAPI: window.electronAPI });
     const supportMetrics = initSupportMetrics({ root: document, electronAPI: window.electronAPI });
+    const workspace = initBoardWorkspace({
+        aiAssistant,
+        getViewState: () => ({ filters: jobFilters, selectedJobName }),
+        restoreViewState: (saved) => {
+            const filters = saved.filters || {};
+            jobFilters = {
+                subsystem: typeof filters.subsystem === 'string' ? filters.subsystem : 'ALL',
+                query: typeof filters.query === 'string' ? filters.query : '',
+                status: Array.from(jobsStatusFilter.options).some(option => option.value === filters.status) ? filters.status : 'ALL',
+                mine: filters.mine === true
+            };
+            selectedJobName = typeof saved.selectedJobName === 'string' ? saved.selectedJobName : null;
+            jobsSearchInput.value = jobFilters.query;
+            syncJobQuickFilters();
+        },
+        clearAiScope: () => {
+            selectedJobName = null;
+            renderJobs({ data: latestJobs }, { updatePollTime: false });
+            workspace.save();
+        }
+    });
+
     const supportOutcomesPanel = document.getElementById('support-outcomes-panel');
 
     document.addEventListener('jobqueues:summary', (event) => {
@@ -330,7 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const criticalCount = activeAlertsOnly.filter((alert) => matchesAlertFilter(alert, 'critical')).length;
 
         if (actionboardAttentionCount) {
-            actionboardAttentionCount.textContent = String(attentionCount);
+            actionboardAttentionCount.textContent = String(new Set(activeAlertsOnly.map(alert => alert.jobName || alert.id)).size);
         }
         if (actionboardWorkingCount) {
             actionboardWorkingCount.textContent = String(workingCount);
@@ -370,8 +389,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (startButton) {
             startButton.disabled = isMonitoring;
             startButton.innerHTML = isMonitoring
-                ? '<i class="bi bi-activity me-2"></i>Monitoring...'
-                : '<i class="bi bi-play-circle-fill me-2"></i>Start Monitoring';
+                ? 'Monitoring'
+                : 'Resume';
         }
 
         if (stopButton) {
@@ -398,7 +417,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        currentRefresh.textContent = `Refresh cadence: ${describeSelectedRefreshInterval()}`;
+        currentRefresh.textContent = `Every ${describeSelectedRefreshInterval()}`;
     }
 
     function getSelectedRefreshInterval() {
@@ -484,7 +503,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         tbody.innerHTML = `
             <tr class="table-placeholder">
-                <td colspan="6" class="text-center py-4 ${textClass}">
+                <td colspan="4" class="text-center py-4 ${textClass}">
                     <i class="bi ${iconClass} fs-2 d-block mb-2"></i>
                     ${escapeHtml(message)}
                 </td>
@@ -497,19 +516,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const options = getSubsystemOptions(jobs);
-        if (jobFilters.subsystem !== 'ALL' && !options.includes(jobFilters.subsystem)) {
-            jobFilters = {
-                ...jobFilters,
-                subsystem: 'ALL'
-            };
-        }
-
+        // Retain a selected subsystem even if a poll temporarily has no jobs in it.
+        if (jobFilters.subsystem !== 'ALL' && !options.includes(jobFilters.subsystem)) options.push(jobFilters.subsystem);
         const nextOptions = ['<option value="ALL">All subsystems</option>']
             .concat(options.map((subsystem) => (
                 `<option value="${escapeHtml(subsystem)}">${escapeHtml(subsystem)}</option>`
             )));
 
-        jobsSubsystemFilter.innerHTML = nextOptions.join('');
+        if (jobsSubsystemFilter.innerHTML !== nextOptions.join('')) jobsSubsystemFilter.innerHTML = nextOptions.join('');
         jobsSubsystemFilter.value = jobFilters.subsystem || 'ALL';
     }
 
@@ -522,32 +536,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function syncJobQuickFilters() {
-        jobsQuickFilterButtons.forEach((button) => {
-            const isActive = button.dataset.jobFilter === (jobFilters.status || 'ALL');
-            button.classList.toggle('is-active', isActive);
-            button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-        });
+        if (jobsStatusFilter) jobsStatusFilter.value = jobFilters.status || 'ALL';
+        jobsMineFilter?.setAttribute('aria-pressed', String(Boolean(jobFilters.mine)));
     }
 
-    function getJobStatusLabel(status) {
-        switch (String(status || '').trim().toUpperCase()) {
-            case 'MSGW':
-                return 'Message wait';
-            case 'LCKW':
-                return 'Lock wait';
-            case 'DEQW':
-                return 'Dequeue wait';
-            case 'DLYW':
-                return 'Delay wait';
-            case 'RUN':
-                return 'Running';
-            case 'END':
-            case 'EOJ':
-                return 'Ended';
-            default:
-                return status || 'Unknown';
-        }
-    }
 
     function getJobAttentionReason(job, linkedAlert = null) {
         const status = String(job?.STATUS || '').trim().toUpperCase();
@@ -624,9 +616,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (superpanelFocusNextButton) {
             superpanelFocusNextButton.disabled = !hasJobs;
-            superpanelFocusNextButton.innerHTML = hasJobs
-                ? '<i class="bi bi-crosshair me-2" aria-hidden="true"></i>Focus Next Job'
-                : '<i class="bi bi-check2-circle me-2" aria-hidden="true"></i>No Jobs';
+            superpanelFocusNextButton.title = nextJob ? `${nextJob.SUBSYSTEM_JOB || nextJobName}: ${nextReason}` : 'Waiting for jobs';
         }
         if (superpanelFocusCopy) {
             superpanelFocusCopy.textContent = nextJob
@@ -662,13 +652,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const jobName = getJobKey(nextJob);
+        selectedJobName = jobName;
         if (activeJobsPanel instanceof HTMLDetailsElement) {
             activeJobsPanel.open = true;
         }
         jobFilters = {
             subsystem: 'ALL',
             query: '',
-            status: 'ALL'
+            status: 'ALL',
+            mine: false
         };
         if (jobsSubsystemFilter) {
             jobsSubsystemFilter.value = 'ALL';
@@ -677,7 +669,8 @@ document.addEventListener('DOMContentLoaded', () => {
             jobsSearchInput.value = '';
         }
         syncJobQuickFilters();
-        renderJobs({ data: latestJobs });
+        renderJobs({ data: latestJobs }, { updatePollTime: false });
+        workspace.save();
         if (window.electronAPI.openJobTaskWindow) {
             void window.electronAPI.openJobTaskWindow(jobName);
         } else {
@@ -698,6 +691,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         latestJobs = Array.isArray(result?.data) ? result.data : [];
+        if (selectedJobName && latestJobs.length && !latestJobs.some(job => getJobKey(job) === selectedJobName)) selectedJobName = null;
+        workspace.afterRender(selectedJobName);
         renderSubsystemFilterOptions(latestJobs);
         syncJobQuickFilters();
         updateSummary(latestJobs);
@@ -723,7 +718,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const visibleJobs = filterVisibleJobs(latestJobs, jobFilters);
+        const visibleJobs = filterVisibleJobs(latestJobs, jobFilters, { findAlert: findAlertForJob, operatorName: currentOperatorName });
         updateVisibleJobsCount(visibleJobs.length, latestJobs.length);
         updateFocusJobControls();
 
@@ -732,62 +727,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        tbody.innerHTML = visibleJobs.map((job) => {
-            const jobName = getJobKey(job);
-            const isSelected = selectedJobName === jobName;
-            const linkedAlert = findAlertForJob(jobName);
-            const reason = getJobAttentionReason(job, linkedAlert);
-            const status = String(job.STATUS || '').trim().toUpperCase();
-            const alertOwner = getAlertOwner(linkedAlert);
-            const ownerChip = linkedAlert && isClaimedAlert(linkedAlert) && alertOwner
-                ? `<span class="job-owner-chip" title="Worked by ${escapeHtml(alertOwner)}"><i class="bi bi-person-check" aria-hidden="true"></i>${escapeHtml(alertOwner)}</span>`
-                : '';
-            const priorityChip = linkedAlert?.correlation?.priority
-                ? `<span class="job-priority-chip is-${escapeHtml(linkedAlert.correlation.priority.band)}" title="${escapeHtml(Array.isArray(linkedAlert.correlation.priority.reasons) ? linkedAlert.correlation.priority.reasons.join(' ') : 'Priority based on current technical evidence.')}">P${escapeHtml(String(linkedAlert.correlation.priority.score))}</span>`
-                : '';
-            const rowTone = linkedAlert
-                ? ` has-incident is-${escapeHtml(linkedAlert.severity || 'warning')}`
-                : ['MSGW', 'LCKW', 'DEQW', 'DLYW'].includes(status)
-                    ? ' has-wait'
-                    : '';
-
-            return `
-                <tr
-                    class="job-row${rowTone}${isSelected ? ' is-selected' : ''}"
-                    data-job-name="${escapeHtml(jobName)}"
-                    tabindex="0"
-                    role="button"
-                    aria-label="Open details for ${escapeHtml(job.SUBSYSTEM_JOB || jobName)}"
-                >
-                    <td>
-                        <div class="job-cell-primary">
-                            <strong>${escapeHtml(job.SUBSYSTEM_JOB || jobName)}</strong>
-                            <small>${escapeHtml(job.JOB_NAME || jobName)}</small>
-                        </div>
-                    </td>
-                    <td>${escapeHtml(job.CURRENT_USER || job.JOB_USER || '-')}</td>
-                    <td>${escapeHtml(job.SUBSYSTEM || job.TYPE || '-')}</td>
-                    <td>${formatCpuValue(job.CPU)}</td>
-                    <td>
-                        <div class="job-cell-primary">
-                            <strong>${escapeHtml(job.FUNCTION_NAME || '-')}</strong>
-                            <small>${escapeHtml(reason)}</small>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="job-state-cell">
-                        ${linkedAlert ? `<span class="job-incident-chip">${escapeHtml(getAlertConditionLabel(linkedAlert))}</span>` : ''}
-                        <span class="badge ${getStatusBadgeClass(status)}">${escapeHtml(getJobStatusLabel(status))}</span>
-                        ${priorityChip}
-                        ${ownerChip}
-                        </div>
-                    </td>
-                </tr>
-            `;
-        }).join('');
-
-        selectedJobName = null;
+        renderJobRows(tbody, visibleJobs, { findAlert: findAlertForJob, selectedJobName });
+        workspace.afterRender(selectedJobName);
     }
+
 
     function setOperatorStatus(message, level = 'info', detail = '') {
         if (appStatusMessage) {
@@ -1056,6 +999,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (target instanceof HTMLDetailsElement) {
+            target.hidden = false;
             target.open = true;
         }
         target.classList.remove('is-command-target');
@@ -1537,6 +1481,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ]);
 
             currentOperatorName = String(appFlags?.operatorName || '').trim() || 'local-operator';
+            document.getElementById('board-operator').textContent = currentOperatorName;
             renderHistory(history);
             renderAlerts(alerts);
             applyAlertSettings(settings);
@@ -1573,7 +1518,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (connectedSystem && state.currentConnection) {
                 const connection = state.currentConnection;
-                connectedSystem.textContent = `${connection.name} | ${connection.host}:${connection.port}`;
+                connectedSystem.textContent = connection.name || connection.host;
+                connectedSystem.title = `${connection.host}:${connection.port}`;
+                workspace.connect(connection);
+                if (latestJobs.length) renderJobs({ data: latestJobs }, { updatePollTime: false });
+                workspace.afterRender(selectedJobName);
             }
 
             return state;
@@ -1594,6 +1543,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (matchingOption) {
                     refreshInterval.value = String(state.interval);
+                } else {
+                    refreshInterval.value = 'custom';
+                    customRefreshSeconds.value = String(state.interval / 1000);
+                    customRefreshSeconds.hidden = false;
                 }
             }
 
@@ -1650,7 +1603,8 @@ document.addEventListener('DOMContentLoaded', () => {
             ...jobFilters,
             subsystem: event.target.value || 'ALL'
         };
-        renderJobs({ data: latestJobs });
+        renderJobs({ data: latestJobs }, { updatePollTime: false });
+        workspace.save();
     });
 
     jobsSearchInput?.addEventListener('input', (event) => {
@@ -1658,18 +1612,25 @@ document.addEventListener('DOMContentLoaded', () => {
             ...jobFilters,
             query: event.target.value || ''
         };
-        renderJobs({ data: latestJobs });
+        renderJobs({ data: latestJobs }, { updatePollTime: false });
+        workspace.save();
     });
 
-    jobsQuickFilterButtons.forEach((button) => {
-        button.addEventListener('click', () => {
-            jobFilters = {
-                ...jobFilters,
-                status: button.dataset.jobFilter || 'ALL'
-            };
-            renderJobs({ data: latestJobs });
-        });
+    jobsStatusFilter?.addEventListener('change', () => {
+        jobFilters.status = jobsStatusFilter.value;
+        renderJobs({ data: latestJobs }, { updatePollTime: false });
+        workspace.save();
     });
+    jobsMineFilter?.addEventListener('click', () => {
+        jobFilters.mine = !jobFilters.mine;
+        renderJobs({ data: latestJobs }, { updatePollTime: false });
+        workspace.save();
+    });
+    document.querySelectorAll('[data-board-filter]').forEach(button => button.addEventListener('click', () => {
+        jobFilters.status = button.dataset.boardFilter;
+        renderJobs({ data: latestJobs }, { updatePollTime: false });
+        workspace.save();
+    }));
 
     alertSearchInput?.addEventListener('input', (event) => {
         alertSearchQuery = String(event.target?.value || '').trim().toLowerCase();
@@ -1824,6 +1785,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        selectedJobName = row.dataset.jobName;
+        renderJobs({ data: latestJobs }, { updatePollTime: false });
+        workspace.save();
         if (window.electronAPI.openJobTaskWindow) {
             void window.electronAPI.openJobTaskWindow(row.dataset.jobName);
             return;
@@ -1843,6 +1807,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         event.preventDefault();
+        selectedJobName = row.dataset.jobName;
+        renderJobs({ data: latestJobs }, { updatePollTime: false });
+        workspace.save();
         if (window.electronAPI.openJobTaskWindow) {
             void window.electronAPI.openJobTaskWindow(row.dataset.jobName);
             return;
@@ -2157,7 +2124,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') {
+        if (event.key === 'Escape' && jobDrawer?.classList.contains('is-open')) {
             closeDrawer();
         }
     });
