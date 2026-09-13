@@ -248,7 +248,15 @@ Unit tests cover domain behavior. Electron tests use temporary application store
 
 ### Settings categories (UI-04 / #60)
 
-`public/settings.html` exposes seven category values: `general`, `monitoring`, `ai`, `integrations`, `skills`, `access`, and `storage`. `public/settings.js` owns category visibility, one-open-panel behavior, compact cross-category routing, and integration catalog placement. Existing feature modules continue to own their forms and persistence. General uses the existing theme IPC contract; Skills & MCP is an honest reserved slot for #50–#52. Storage links to the existing background collector and retention controls without duplicating their state. Category navigation hides inactive views while keeping unsaved DOM form values in memory.
+`public/settings.html` exposes seven category values: `general`, `monitoring`, `ai`, `integrations`, `skills`, `access`, and `storage`. `public/settings.js` owns category visibility, one-open-panel behavior, compact cross-category routing, and integration catalog placement. Existing feature modules continue to own their forms and persistence. General uses the existing theme IPC contract. Storage links to the existing background collector and retention controls without duplicating their state. Category navigation hides inactive views while keeping unsaved DOM form values in memory.
+
+### Skills and MCP registry (AIAB-10 / #50)
+
+`src/features/mcp/mcp-registry.ts` is the small domain boundary for customer-approved skills and MCP connections. It validates a complete manifest before installation, rejects credential markers and unsupported permissions, normalizes persisted records, keeps scope/provider/transport/capability/approval metadata, and makes revoked capabilities irreversible. Newly installed capabilities start disabled; a safe health check only succeeds for enabled read-only capabilities and never runs an IBM i action.
+
+`src/main/ipc/mcp-ipc.ts` is the only mutation boundary. Every registry read or mutation requires the existing authenticated `investigate` permission from the main-process knowledge access context. The AI request paths have no registry mutation access, so AI cannot install, enable, configure, or revoke a capability. Registry state is persisted in the existing encrypted-store location as `mcpRegistry` and returned to the renderer without secrets.
+
+`public/settings/mcp-skills.js` renders separate Installed and Available lists for Skills and MCP connections. Selecting an item opens one compact detail dialog showing version, owner, provider, transport, scopes, approval class, capabilities, status, and health. Remote endpoints must be HTTPS; configuration changes require a new explicit safe test. The UI exposes Install, Enable/Disable, Safe read-only test, Configure, and Revoke only where the capability state allows them. The renderer uses text nodes for registry values and the scoped stylesheet keeps the lists usable at narrow widths.
 
 ### Live activity on the connected board
 

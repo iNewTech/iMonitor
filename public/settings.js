@@ -11,6 +11,7 @@ import { initSupportAccessSettings } from './settings/support-access.js';
 import { initCollectorSettings } from './settings/collector.js';
 import { initBusinessServiceSettings } from './settings/business-services.js';
 import { initKnowledgeIndexSettings } from './settings/knowledge-index.js';
+import { initMcpSkillsSettings } from './settings/mcp-skills.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     void initAppNavigation();
@@ -132,9 +133,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         if (navAiStatus && aiStatus) {
             navAiStatus.textContent = aiStatus;
-        }
-        if (navSkillsStatus) {
-            navSkillsStatus.textContent = 'Coming next';
         }
         if (navStorageStatus && collectorStatus) {
             navStorageStatus.textContent = collectorStatus === 'Off' ? 'Collector off' : `Collector ${collectorStatus.toLowerCase()}`;
@@ -293,6 +291,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const collectorSettings = initCollectorSettings({ root: document });
     const businessServiceSettings = initBusinessServiceSettings({ root: document });
     const knowledgeIndexSettings = initKnowledgeIndexSettings({ root: document });
+    const mcpSkillsSettings = initMcpSkillsSettings({ root: document, navStatus: navSkillsStatus });
 
     const premiumFeaturePanels = new Map([
         ['settings-clickup-panel', 'clickup-integration'],
@@ -469,7 +468,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         supportAccessSettings.refresh(),
         collectorSettings.refresh(),
         businessServiceSettings.refresh(),
-        knowledgeIndexSettings.refresh()
+        knowledgeIndexSettings.refresh(),
+        mcpSkillsSettings.refresh()
     ]);
 
     applyPremiumPreview(entitlements);

@@ -273,16 +273,49 @@
                             <div>
                                 <p class="eyebrow mb-2">AI extension point</p>
                                 <h2 id="settings-skills-title" class="settings-catalog-title">Skills &amp; MCP</h2>
-                                <p class="panel-copy mb-0">Future skills will add verified IBM i context and tools without expanding the ActionBoard itself.</p>
+                                <p class="panel-copy mb-0">Install customer-approved skills and inspect local MCP capabilities without changing the ActionBoard.</p>
                             </div>
                         </div>
-                        <span class="settings-catalog-count">Planned</span>
+                        <span id="settings-mcp-summary" class="settings-catalog-count">Loading</span>
                     </header>
-                    <div class="settings-empty-state">
-                        <i class="bi bi-puzzle" aria-hidden="true"></i>
-                        <strong>No skills configured</strong>
-                        <span>The skills registry and scoped MCP resources will be available in the AI + ActionBoard rollout.</span>
+                    <p id="settings-mcp-status" class="stat-note mb-0" role="status">Skills are loading.</p>
+                    <div class="mcp-registry-grid">
+                        <section class="mcp-registry-column" aria-labelledby="settings-mcp-installed-skills-title">
+                            <header><h3 id="settings-mcp-installed-skills-title">Installed skills</h3><span id="settings-mcp-installed-skill-count">0</span></header>
+                            <div id="settings-mcp-installed-skills" class="settings-mcp-list" aria-live="polite"></div>
+                        </section>
+                        <section class="mcp-registry-column" aria-labelledby="settings-mcp-installed-connections-title">
+                            <header><h3 id="settings-mcp-installed-connections-title">Installed MCP connections</h3><span id="settings-mcp-installed-connection-count">0</span></header>
+                            <div id="settings-mcp-installed-connections" class="settings-mcp-list" aria-live="polite"></div>
+                        </section>
+                        <section class="mcp-registry-column" aria-labelledby="settings-mcp-available-skills-title">
+                            <header><h3 id="settings-mcp-available-skills-title">Available skills</h3><span id="settings-mcp-available-skill-count">0</span></header>
+                            <div id="settings-mcp-available-skills" class="settings-mcp-list" aria-live="polite"></div>
+                        </section>
+                        <section class="mcp-registry-column" aria-labelledby="settings-mcp-available-connections-title">
+                            <header><h3 id="settings-mcp-available-connections-title">Available MCP connections</h3><span id="settings-mcp-available-connection-count">0</span></header>
+                            <div id="settings-mcp-available-connections" class="settings-mcp-list" aria-live="polite"></div>
+                        </section>
                     </div>
+                    <dialog id="settings-mcp-dialog" class="settings-mcp-dialog" aria-labelledby="settings-mcp-dialog-title">
+                        <form id="settings-mcp-form" method="dialog">
+                            <header class="settings-mcp-dialog-header">
+                                <div><p class="eyebrow mb-2">Capability detail</p><h2 id="settings-mcp-dialog-title">Skill</h2><p id="settings-mcp-dialog-copy" class="panel-copy mb-0"></p></div>
+                                <button id="settings-mcp-close" type="button" class="btn btn-outline-ink btn-sm" aria-label="Close capability details"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+                            </header>
+                            <div id="settings-mcp-dialog-meta" class="settings-mcp-meta"></div>
+                            <p id="settings-mcp-dialog-capabilities" class="stat-note mb-0"></p>
+                            <label id="settings-mcp-endpoint-field" class="control-select">Endpoint<input id="settings-mcp-endpoint" class="form-control" type="url" placeholder="https://mcp.example.com"></label>
+                            <p id="settings-mcp-dialog-health" class="settings-mcp-health mb-0" role="status"></p>
+                            <div class="settings-actions">
+                                <button id="settings-mcp-install" type="button" class="btn btn-primary-strong">Install</button>
+                                <button id="settings-mcp-test" type="button" class="btn btn-outline-ink">Safe read-only test</button>
+                                <button id="settings-mcp-toggle" type="button" class="btn btn-outline-ink">Enable</button>
+                                <button id="settings-mcp-revoke" type="button" class="btn btn-outline-danger">Revoke</button>
+                                <button id="settings-mcp-save" type="submit" class="btn btn-primary-strong">Save configuration</button>
+                            </div>
+                        </form>
+                    </dialog>
                 </section>
 
                 <section id="settings-storage-panel" data-settings-view="storage" class="surface-card settings-view-surface settings-category-panel" aria-labelledby="settings-storage-title">

@@ -79,6 +79,7 @@ import {
     normalizeStoredKnowledgeIndexSettings,
     type StoredKnowledgeIndexSettings
 } from '../features/knowledge/knowledge-index';
+import { DEFAULT_MCP_REGISTRY, normalizeMcpRegistryState, type McpRegistryState } from '../features/mcp/mcp-registry';
 
 export interface StoreSchema {
     connections: StoredConnection[];
@@ -105,6 +106,7 @@ export interface StoreSchema {
     runbookExecutions: RunbookExecutionStore;
     problemManagement: ProblemManagementStore;
     knowledgeIndexSettings: StoredKnowledgeIndexSettings;
+    mcpRegistry: McpRegistryState;
     themeId: ThemeId;
     developmentPlan: Plan;
 }
@@ -149,6 +151,7 @@ export function createAppStore() {
             runbookExecutions: DEFAULT_RUNBOOK_EXECUTIONS,
             problemManagement: DEFAULT_PROBLEM_MANAGEMENT,
             knowledgeIndexSettings: DEFAULT_STORED_KNOWLEDGE_INDEX_SETTINGS,
+            mcpRegistry: DEFAULT_MCP_REGISTRY,
             themeId: DEFAULT_THEME_ID,
             developmentPlan: 'premium'
         }
@@ -162,6 +165,23 @@ export function getNormalizedKnowledgeIndexSettings(store: AppStore) {
     if (JSON.stringify(storedSettings) !== JSON.stringify(normalized)) {
         store.set('knowledgeIndexSettings', normalized);
     }
+    return normalized;
+}
+
+/** Loads and normalizes the customer-controlled skills and MCP registry. */
+export function getNormalizedMcpRegistry(store: AppStore) {
+    const storedRegistry = store.get('mcpRegistry');
+    const normalized = normalizeMcpRegistryState(storedRegistry);
+    if (JSON.stringify(storedRegistry) !== JSON.stringify(normalized)) {
+        store.set('mcpRegistry', normalized);
+    }
+    return normalized;
+}
+
+/** Persists a validated skills and MCP registry snapshot. */
+export function saveMcpRegistry(store: AppStore, candidate: unknown) {
+    const normalized = normalizeMcpRegistryState(candidate);
+    store.set('mcpRegistry', normalized);
     return normalized;
 }
 

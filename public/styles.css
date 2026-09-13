@@ -45,3 +45,6 @@
 
 /* UI-01 shared navigation, compact Connect and Knowledge entry point. */
 @import url("./styles/app-shell.css");
+
+/* Customer-controlled Skills and MCP registry. */
+@import url("./styles/mcp-skills.css");

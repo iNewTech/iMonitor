@@ -117,6 +117,7 @@ import { registerIncidentReplayIpc } from './main/ipc/incident-replay-ipc';
 import { registerSupportMetricsIpc } from './main/ipc/support-metrics-ipc';
 import { registerKnowledgeIpc } from './main/ipc/knowledge-ipc';
 import { registerKnowledgeIndexIpc } from './main/ipc/knowledge-index-ipc';
+import { registerMcpIpc } from './main/ipc/mcp-ipc';
 import { createAiRuntime } from './main/runtime/ai-runtime';
 import { createEmailNotificationRuntime } from './main/runtime/email-notification-runtime';
 import { createClickUpRuntime } from './main/runtime/clickup-runtime';
@@ -175,7 +176,9 @@ import {
     saveRunbookExecutions,
     getNormalizedProblemManagement,
     saveProblemManagement,
-    getNormalizedKnowledgeIndexSettings
+    getNormalizedKnowledgeIndexSettings,
+    getNormalizedMcpRegistry,
+    saveMcpRegistry
 } from './main/store';
 import type { CollectorSettings } from './features/collector/collector-model';
 import { registerCollectorIpc } from './main/ipc/collector-ipc';
@@ -1483,6 +1486,13 @@ registerKnowledgeIndexIpc({
     getSettings: getKnowledgeIndexSettings,
     saveSettings: saveKnowledgeIndexSettings,
     testConnection: () => knowledgeIndexGateway.health()
+});
+
+registerMcpIpc({
+    getRegistry: () => getNormalizedMcpRegistry(store),
+    saveRegistry: (candidate) => saveMcpRegistry(store, candidate),
+    getAccessContext: getKnowledgeAccessContext,
+    recordActivity: loggingRuntime.recordActivity
 });
 
 registerNavigationIpc({

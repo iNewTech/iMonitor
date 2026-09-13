@@ -100,11 +100,13 @@ Settings is organized into seven compact categories:
 - **Monitoring:** alert rules, notification channels, and business service mappings.
 - **AI & knowledge:** provider and model setup.
 - **Integrations:** installed and available ClickUp, Slack, Jira, Email, and SMS connections.
-- **Skills & MCP:** the reserved home for reviewed skills and scoped MCP connections.
+- **Skills & MCP:** customer-approved skills and scoped MCP connections.
 - **Access:** client-controlled support invitations, permissions, and revocation.
 - **Storage:** the entry point for background collection, retention, inventory, and purge controls.
 
 Only the selected category is shown. Category changes keep unsaved form values in the current page session; save a form before leaving the app if you want the change to persist.
+
+In **Skills & MCP**, installed and approved available capabilities are shown in separate lists. Select a capability to inspect its version, owner, provider, transport, scopes, permissions, capabilities, status, and health. Select **Install** for an approved available capability; new installs start disabled. Enable it only after reviewing the detail, then run **Safe read-only test**. Remote connections must use an HTTPS endpoint. You can disable or revoke an installed capability from the same detail window; revocation cannot be undone from the app. These controls are operator actions and are never performed by AI.
 
 ### Object analysis
 

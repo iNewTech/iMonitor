@@ -961,6 +961,42 @@ contextBridge.exposeInMainWorld('electronAPI', {
         health?: { backend: string; state: string; message: string; checkedAt: string; fallbackUsed?: boolean };
         error?: string;
     }>,
+    getMcpRegistry: () => ipcRenderer.invoke('get-mcp-registry') as Promise<{
+        success: boolean;
+        installed?: Array<Record<string, unknown>>;
+        available?: Array<Record<string, unknown>>;
+        error?: string;
+    }>,
+    installMcpCapability: (manifest: Record<string, unknown>) => ipcRenderer.invoke('install-mcp-capability', manifest) as Promise<{
+        success: boolean;
+        installed?: Array<Record<string, unknown>>;
+        available?: Array<Record<string, unknown>>;
+        error?: string;
+    }>,
+    configureMcpCapability: (payload: { id: string; endpoint: string }) => ipcRenderer.invoke('configure-mcp-capability', payload) as Promise<{
+        success: boolean;
+        installed?: Array<Record<string, unknown>>;
+        available?: Array<Record<string, unknown>>;
+        error?: string;
+    }>,
+    setMcpCapabilityEnabled: (payload: { id: string; enabled: boolean }) => ipcRenderer.invoke('set-mcp-capability-enabled', payload) as Promise<{
+        success: boolean;
+        installed?: Array<Record<string, unknown>>;
+        available?: Array<Record<string, unknown>>;
+        error?: string;
+    }>,
+    testMcpCapability: (id: string) => ipcRenderer.invoke('test-mcp-capability', id) as Promise<{
+        success: boolean;
+        installed?: Array<Record<string, unknown>>;
+        available?: Array<Record<string, unknown>>;
+        error?: string;
+    }>,
+    revokeMcpCapability: (id: string) => ipcRenderer.invoke('revoke-mcp-capability', id) as Promise<{
+        success: boolean;
+        installed?: Array<Record<string, unknown>>;
+        available?: Array<Record<string, unknown>>;
+        error?: string;
+    }>,
     openJobTaskWindow: (jobName: string) => ipcRenderer.invoke('open-job-task-window', jobName) as Promise<{ success: boolean; }>,
     openExternalUrl: (target: string) => ipcRenderer.invoke('open-external-url', target) as Promise<{ success: boolean; }>,
 

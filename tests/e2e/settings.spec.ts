@@ -275,7 +275,8 @@ test('keeps the seven settings categories compact and preserves draft values', a
         await app.page.locator('#settings-ai-endpoint').fill('http://draft.local');
         await app.page.getByTestId('settings-page-skills').click();
         await expect(app.page.getByRole('heading', { name: 'Skills & MCP', exact: true })).toBeVisible();
-        await expect(app.page.getByText('No skills configured', { exact: true })).toBeVisible();
+        await expect(app.page.locator('#settings-mcp-installed-skills')).toContainText('IBM i Monitoring');
+        await expect(app.page.locator('#settings-mcp-available-skills')).toContainText('IBM i Runbook Review');
         await expect(app.page.locator('#settings-ai-panel')).toBeHidden();
 
         await app.page.getByTestId('settings-page-storage').click();
@@ -287,6 +288,38 @@ test('keeps the seven settings categories compact and preserves draft values', a
 
         await app.page.getByTestId('settings-page-ai').click();
         await expect(app.page.locator('#settings-ai-endpoint')).toHaveValue('http://draft.local');
+    } finally {
+        await app.cleanup();
+    }
+});
+
+test('manages approved Skills and MCP capabilities from the settings workspace', async () => {
+    const app = await launchTestApp();
+
+    try {
+        await app.page.locator('#connect').click();
+        await app.page.locator('#open-settings').click();
+        await app.page.getByTestId('settings-page-skills').click();
+        await expect(app.page.locator('#settings-mcp-installed-skills .settings-mcp-card')).toHaveCount(1);
+        await expect(app.page.locator('#settings-mcp-available-skills .settings-mcp-card')).toHaveCount(1);
+        await expect(app.page.locator('#settings-mcp-available-connections .settings-mcp-card')).toHaveCount(1);
+        await expect(app.page.locator('#settings-mcp-summary')).toHaveText('1 installed · 2 available');
+
+        await app.page.locator('#settings-mcp-available-skills [data-mcp-action="inspect"]').click();
+        await expect(app.page.locator('#settings-mcp-dialog')).toBeVisible();
+        await expect(app.page.locator('#settings-mcp-dialog-title')).toHaveText('IBM i Runbook Review');
+        await expect(app.page.locator('#settings-mcp-install')).toBeVisible();
+        await app.page.locator('#settings-mcp-install').click();
+        await expect(app.page.locator('#settings-mcp-installed-skills')).toContainText('IBM i Runbook Review');
+        await expect(app.page.locator('#settings-mcp-summary')).toHaveText('2 installed · 1 available');
+
+        await app.page.locator('#settings-mcp-toggle').click();
+        await expect(app.page.locator('#settings-mcp-dialog-health')).toContainText('unknown');
+        await app.page.locator('#settings-mcp-test').click();
+        await expect(app.page.locator('#settings-mcp-dialog-health')).toContainText('ready');
+
+        await app.page.setViewportSize({ width: 560, height: 700 });
+        expect(await app.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     } finally {
         await app.cleanup();
     }
