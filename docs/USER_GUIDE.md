@@ -68,7 +68,7 @@ This is where you select or create IBM i profiles. The form stays compact on a l
 
 Select **Knowledge → Analyze code** to open object analysis. The knowledge library itself is not indexed or searchable yet. No retrieved documents or connections are implied by this page.
 
-The AI + ActionBoard foundation now records the scope and provenance rules that future knowledge search will use. Operational evidence must identify both the customer and IBM i system, and AI context will show source status and citations. Search and retrieval are not enabled by this contract ticket yet.
+The AI + ActionBoard foundation records the scope and provenance rules that knowledge search uses. Operational evidence must identify both the customer and IBM i system. Every future knowledge read is checked in the main process against the connected scope and the current operator's permission. Client owners can read their active system; outsourced support must use an accepted, unexpired grant for that customer and system. Records outside that boundary are removed before search and again before the result reaches AI or the screen. Search and retrieval are added by later tickets, but this protection is already the required boundary for them.
 
 ### ActionBoard
 
