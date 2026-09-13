@@ -83,5 +83,6 @@ Keep a feature's styles with its existing module. Do not append unrelated fixes 
 - Monitoring/history and developer diagnostics: separate runtime-owned stores; raw developer diagnostics remain outside the renderer bridge.
 - Background collection: local `imonitor-collection/<system>/monitoring/*.jsonl` snapshots plus a tamper-evident purge audit; credentials remain in protected app storage.
 - Widget: summary JSON written by the widget runtime for the native macOS extension.
+- AI + ActionBoard observability: redacted bounded events under `imonitor-observability/observability.json`; scoped knowledge source and index data remain separate so retention and deletion can coordinate both layers.
 
 This is a desktop architecture. Shared multi-operator authorization across machines, server-side coordination, and fully autonomous recovery remain separate product work.

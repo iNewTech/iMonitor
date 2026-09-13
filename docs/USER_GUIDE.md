@@ -497,6 +497,14 @@ Select a source from the left tree, confirm that the selected directory or IBM i
 
 Check that the integration is installed, configured, enabled in **Alert delivery & watch rules**, and allowed by the current plan. Use the integration test control, then read its status. A provider failure is recorded separately from the local incident.
 
+### Checking AI and knowledge health
+
+Open **Settings → Storage** and expand **AI + ActionBoard health**. The compact rows show the scoped knowledge record count, index size, pending index work, model state, MCP readiness, and the last update. A warning message appears only when an operator can act on a degraded provider, pending rebuild, or failed skill.
+
+You can save the telemetry retention period, rebuild the scoped knowledge index, or export the redacted evidence and observability report. **Purge expired** removes only records older than the displayed retention period for the connected customer and IBM i system, after confirmation. Rebuilding and purging keep source records and derived indexes aligned; an unavailable external vector provider does not stop local lexical retrieval.
+
+Telemetry contains measurements and operational audit metadata. iMonitor does not store AI prompts, source content, passwords, API keys, or tokens in the observability ledger. Use export when support needs a sanitized operational report, and purge it when the customer retention policy requires.
+
 ## 21. Safety and data rules
 
 - Treat demo results as practice evidence, not live IBM i validation.

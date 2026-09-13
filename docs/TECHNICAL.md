@@ -244,6 +244,14 @@ Unit tests cover domain behavior. Electron tests use temporary application store
 
 `public/monitor.js` and the preload remain larger integration surfaces. Continue extracting coherent features when changing them; avoid a broad rewrite solely to meet an arbitrary line count.
 
+## AI + ActionBoard observability (AIAB-15 / #55)
+
+`src/features/observability/observability-ledger.ts` is a bounded, redacted ledger for retrieval latency, model latency, context size, cache hits, provider errors, estimated tokens, MCP latency, and operational audit categories. Attribute keys that could carry prompts, content, messages, or credentials are discarded; provider/model labels and numeric measurements remain available. Scope filters use the active customer and IBM i system context.
+
+`src/main/runtime/aiab-observability-runtime.ts` persists the ledger under `imonitor-observability/observability.json` with atomic writes and a customer-controlled retention window. `observability-ipc.ts` exposes health, retention, explicit purge, and JSON export after the normal knowledge authorization check. Knowledge purge deletes source records and passes the same IDs to the configured index gateway, while reindex rebuilds local and configured derived indexes. External indexes remain optional; local storage is authoritative and retrieval falls back safely when a provider is unavailable.
+
+Settings shows compact record count, index size, pending work, model state, MCP health, last update, and actionable degradation reasons. It keeps routine metrics out of the ActionBoard and requires confirmation for scoped evidence or telemetry purge. Exported evidence is already redacted at ingestion, and exported telemetry contains measurements and audit metadata only; prompts and secrets are not exported.
+
 ## UI-01 Connect and shared navigation
 
 `public/shared/app-navigation.js` supplies three destinations to the connected ActionBoard, Knowledge and Settings screens. Connect initializes only disclosure-menu dismissal for theme, plan and Support; it has no workspace navigation. The main-process navigation handlers reject ActionBoard, Settings and Knowledge requests without an active IBM i session, including direct IPC calls. This uses the existing connection state, not a separate app-account login. Allowed navigation never calls disconnect or resets the monitor loop. Knowledge provides the compact source library and Analyze code route; source content is loaded only through the scoped main-process IPC. Independent job windows retain their native title bar and existing lifecycle.

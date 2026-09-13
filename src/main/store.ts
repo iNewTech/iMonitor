@@ -80,6 +80,7 @@ import {
     type StoredKnowledgeIndexSettings
 } from '../features/knowledge/knowledge-index';
 import { DEFAULT_MCP_REGISTRY, normalizeMcpRegistryState, type McpRegistryState } from '../features/mcp/mcp-registry';
+import { DEFAULT_OBSERVABILITY_SETTINGS, normalizeObservabilitySettings, type ObservabilitySettings } from '../features/observability/observability-ledger';
 
 export interface StoreSchema {
     connections: StoredConnection[];
@@ -107,6 +108,7 @@ export interface StoreSchema {
     problemManagement: ProblemManagementStore;
     knowledgeIndexSettings: StoredKnowledgeIndexSettings;
     mcpRegistry: McpRegistryState;
+    observabilitySettings: ObservabilitySettings;
     themeId: ThemeId;
     developmentPlan: Plan;
 }
@@ -152,10 +154,26 @@ export function createAppStore() {
             problemManagement: DEFAULT_PROBLEM_MANAGEMENT,
             knowledgeIndexSettings: DEFAULT_STORED_KNOWLEDGE_INDEX_SETTINGS,
             mcpRegistry: DEFAULT_MCP_REGISTRY,
+            observabilitySettings: DEFAULT_OBSERVABILITY_SETTINGS,
             themeId: DEFAULT_THEME_ID,
             developmentPlan: 'premium'
         }
     }) as AppStore;
+}
+
+/** Loads and normalizes the local AI + ActionBoard telemetry retention policy. */
+export function getNormalizedObservabilitySettings(store: AppStore) {
+    const storedSettings = store.get('observabilitySettings');
+    const normalized = normalizeObservabilitySettings(storedSettings);
+    if (JSON.stringify(storedSettings) !== JSON.stringify(normalized)) store.set('observabilitySettings', normalized);
+    return normalized;
+}
+
+/** Persists the bounded local telemetry retention policy. */
+export function saveObservabilitySettings(store: AppStore, candidate?: Partial<ObservabilitySettings>) {
+    const normalized = normalizeObservabilitySettings({ ...getNormalizedObservabilitySettings(store), ...(candidate || {}) });
+    store.set('observabilitySettings', normalized);
+    return normalized;
 }
 
 /** Loads and normalizes the persisted knowledge-index choice without exposing its secret. */

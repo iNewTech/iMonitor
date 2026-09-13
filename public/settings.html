@@ -347,6 +347,29 @@
                             <div><strong>Retention and purge</strong><small>Keep only the evidence needed for support, review, and audit.</small></div>
                             <button type="button" class="btn btn-outline-ink btn-sm" data-open-collector>Manage retention</button>
                         </div>
+                        <details id="settings-aiab-observability" class="settings-inline-disclosure" open>
+                            <summary><span><strong>AI + ActionBoard health</strong><small>Scoped index, model, MCP, and redacted usage signals.</small></span><span id="settings-aiab-health-summary" class="settings-provider-chip">Checking</span></summary>
+                            <div class="settings-aiab-observability-body">
+                                <div class="settings-aiab-stat-grid" aria-label="AI and ActionBoard health">
+                                    <div><span>Knowledge records</span><strong id="settings-aiab-record-count">—</strong></div>
+                                    <div><span>Index size</span><strong id="settings-aiab-index-size">—</strong></div>
+                                    <div><span>Pending index</span><strong id="settings-aiab-pending">—</strong></div>
+                                    <div><span>Model</span><strong id="settings-aiab-model-health">—</strong></div>
+                                    <div><span>MCP skills</span><strong id="settings-aiab-mcp-health">—</strong></div>
+                                    <div><span>Last update</span><strong id="settings-aiab-last-update">—</strong></div>
+                                </div>
+                                <p id="settings-aiab-observability-status" class="stat-note mb-0" role="status">Loading health.</p>
+                                <div class="settings-aiab-controls">
+                                    <label class="control-select"><span class="control-label">Keep telemetry for</span><div class="input-group"><input id="settings-aiab-retention" type="number" min="1" max="3650" class="form-control"><span class="input-group-text">days</span></div></label>
+                                    <div class="settings-actions settings-aiab-actions">
+                                        <button type="button" id="settings-aiab-save-retention" class="btn btn-outline-ink btn-sm">Save</button>
+                                        <button type="button" id="settings-aiab-reindex" class="btn btn-outline-ink btn-sm">Rebuild index</button>
+                                        <button type="button" id="settings-aiab-export" class="btn btn-outline-ink btn-sm">Export evidence</button>
+                                        <button type="button" id="settings-aiab-purge" class="btn btn-outline-danger btn-sm">Purge expired</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </details>
                     </div>
                 </section>
 

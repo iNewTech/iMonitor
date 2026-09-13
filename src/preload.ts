@@ -952,6 +952,44 @@ contextBridge.exposeInMainWorld('electronAPI', {
         stats?: Record<string, unknown>;
         error?: string;
     }>,
+    purgeKnowledge: (payload: { before: string; confirmed: boolean }) => ipcRenderer.invoke('purge-knowledge', payload) as Promise<{
+        success: boolean;
+        deletedCount?: number;
+        stats?: Record<string, unknown>;
+        error?: string;
+    }>,
+    exportKnowledge: () => ipcRenderer.invoke('export-knowledge') as Promise<{
+        success: boolean;
+        canceled?: boolean;
+        filePath?: string;
+        recordCount?: number;
+        error?: string;
+    }>,
+    getAiabObservability: () => ipcRenderer.invoke('get-aiab-observability') as Promise<{
+        success: boolean;
+        snapshot?: Record<string, unknown>;
+        knowledge?: Record<string, unknown>;
+        model?: Record<string, unknown>;
+        mcp?: Record<string, unknown>;
+        settings?: { retentionDays: number; maxEvents: number };
+        error?: string;
+    }>,
+    saveAiabObservabilitySettings: (settings: { retentionDays: number }) => ipcRenderer.invoke('save-aiab-observability-settings', settings) as Promise<{
+        success: boolean;
+        settings?: { retentionDays: number; maxEvents: number };
+        error?: string;
+    }>,
+    purgeAiabObservability: (payload: { before: string; confirmed: boolean }) => ipcRenderer.invoke('purge-aiab-observability', payload) as Promise<{
+        success: boolean;
+        deletedCount?: number;
+        error?: string;
+    }>,
+    exportAiabObservability: () => ipcRenderer.invoke('export-aiab-observability') as Promise<{
+        success: boolean;
+        canceled?: boolean;
+        filePath?: string;
+        error?: string;
+    }>,
     getKnowledgeIndexSettings: () => ipcRenderer.invoke('get-knowledge-index-settings') as Promise<{
         success: boolean;
         settings?: { backend: string; endpoint: string; collection: string; apiKeyConfigured: boolean };

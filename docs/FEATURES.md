@@ -35,6 +35,7 @@ iMonitor uses a simple Free/Premium feature boundary. The application keeps Prem
 - Knowledge provides a compact library with source search, Needs review filtering, add-source validation, source details and version history, delete, index refresh, and a secondary Analyze code entry. It groups chunks into one source row so operational context stays easy to scan.
 - MCP action capabilities expose approved IBM i job operations through the selected Job Task. The action catalog shows risk, effect, required evidence, and availability; preview, explicit operator approval, fresh scope/evidence checks, a short action lease, cancellation/deadline handling, independent verification, and an audit record are required before a command can run.
 - The ActionBoard planner combines current operator actions, versioned runbooks, approved Resolution Memory, and MCP proposals into one job-scoped recommendation. It shows effect, risk, permissions, evidence, verification, citations, and escalation state while keeping RAG advisory and production execution behind the existing approval gateway (#53, AIAB-13, Project 8).
+- AI + ActionBoard observability records redacted retrieval/model/MCP timings, context size, provider failures, estimated usage, and audit continuity for ingestion, reads, approvals, actions, purge, export, and failures. Storage settings show scoped index health and offer retention, rebuild, export, and confirmed purge controls without storing prompts or credentials (#55, AIAB-15, Project 8).
 
 ## Free plan
 

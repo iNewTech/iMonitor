@@ -120,6 +120,7 @@ import { registerSupportMetricsIpc } from './main/ipc/support-metrics-ipc';
 import { registerKnowledgeIpc } from './main/ipc/knowledge-ipc';
 import { registerKnowledgeIndexIpc } from './main/ipc/knowledge-index-ipc';
 import { registerMcpIpc } from './main/ipc/mcp-ipc';
+import { registerObservabilityIpc } from './main/ipc/observability-ipc';
 import { createAiRuntime } from './main/runtime/ai-runtime';
 import { createEmailNotificationRuntime } from './main/runtime/email-notification-runtime';
 import { createClickUpRuntime } from './main/runtime/clickup-runtime';
@@ -128,6 +129,7 @@ import { createQueueTriageRuntime } from './main/runtime/queue-triage-runtime';
 import { createObjectAnalysisRuntime } from './main/runtime/object-analysis-runtime';
 import { createWidgetSummaryRuntime } from './main/runtime/widget-summary-runtime';
 import { createLoggingRuntime } from './main/runtime/logging-runtime';
+import { createAiabObservabilityRuntime } from './main/runtime/aiab-observability-runtime';
 import { createCollectionRuntime } from './main/runtime/collection-runtime';
 import { createBackgroundCollectorRuntime } from './main/runtime/background-collector-runtime';
 import { createSessionRuntime } from './main/runtime/session-runtime';
@@ -180,7 +182,9 @@ import {
     saveProblemManagement,
     getNormalizedKnowledgeIndexSettings,
     getNormalizedMcpRegistry,
-    saveMcpRegistry
+    saveMcpRegistry,
+    getNormalizedObservabilitySettings,
+    saveObservabilitySettings
 } from './main/store';
 import type { CollectorSettings } from './features/collector/collector-model';
 import { registerCollectorIpc } from './main/ipc/collector-ipc';
@@ -1023,6 +1027,30 @@ function getKnowledgeAccessContext(): KnowledgeAccessContext {
     };
 }
 
+const aiabObservabilityRuntime = createAiabObservabilityRuntime({
+    userDataPath: app.getPath('userData'),
+    getSettings: () => getNormalizedObservabilitySettings(store),
+    getScope: () => {
+        const context = getKnowledgeAccessContext();
+        return { customerScope: context.customerScope, systemScope: context.systemScope, operatorId: context.operatorId };
+    }
+});
+
+function recordOperationalActivity(entry: Parameters<typeof loggingRuntime.recordActivity>[0]) {
+    loggingRuntime.recordActivity(entry);
+    const message = entry.message.toLowerCase();
+    const category = message.includes('mcp') ? 'mcp'
+        : message.includes('knowledge') || message.includes('index') ? 'ingestion'
+            : message.includes('action') || message.includes('claim') || message.includes('handoff') ? 'action'
+                : message.includes('approval') || message.includes('approve') ? 'approval'
+                    : message.includes('export') ? 'export'
+                        : message.includes('purge') || message.includes('delete') ? 'purge'
+                            : message.includes('failed') || entry.level === 'error' ? 'failure'
+                                : 'system';
+    const outcome = entry.level === 'error' ? 'failure' : entry.level === 'warning' ? 'warning' : 'success';
+    aiabObservabilityRuntime.recordAudit(category, entry.message, outcome, { area: entry.area });
+}
+
 const widgetSummaryRuntime = createWidgetSummaryRuntime({
     userDataPath: app.getPath('userData'),
     appGroupIdentifier: 'group.com.inewtech.imonitor',
@@ -1348,7 +1376,9 @@ const aiRuntime = createAiRuntime({
     },
     getKnowledgeAccessContext,
     getKnowledgeIndexGateway: () => knowledgeIndexGateway,
-    recordActivity: loggingRuntime.recordActivity
+    recordActivity: recordOperationalActivity,
+    recordMetric: (name, value, attributes) => aiabObservabilityRuntime.recordMetric(name, value, attributes),
+    recordAudit: (category, name, outcome, attributes) => aiabObservabilityRuntime.recordAudit(category, name, outcome, attributes)
 });
 
 function emitAlertSettings() {
@@ -1650,7 +1680,12 @@ registerKnowledgeIpc({
     getStore: () => knowledgeStore,
     getIndexGateway: () => knowledgeIndexGateway,
     getAccessContext: getKnowledgeAccessContext,
-    recordActivity: loggingRuntime.recordActivity
+    recordActivity: recordOperationalActivity,
+    recordObservability: {
+        audit: (category, name, outcome, attributes) => aiabObservabilityRuntime.recordAudit(category, name, outcome, attributes)
+    },
+    showSaveDialog: (options) => dialog.showSaveDialog(options),
+    getDownloadsPath: () => app.getPath('downloads')
 });
 
 registerKnowledgeIndexIpc({
@@ -1667,15 +1702,49 @@ registerMcpIpc({
     getActionContext: getMcpActionContext,
     executeMcpAction: executeMcpAction,
     verifyMcpAction: verifyMcpAction,
-    recordActivity: loggingRuntime.recordActivity,
+    recordActivity: recordOperationalActivity,
+    recordMetric: (name, value, attributes) => aiabObservabilityRuntime.recordMetric(name, value, attributes),
     recordActionAudit: (entry) => {
-        loggingRuntime.recordActivity({
+        recordOperationalActivity({
             area: 'monitoring',
             level: entry.result === 'success' ? 'success' : 'error',
             message: `MCP action ${entry.result}: ${entry.action}.`,
             detail: [`operator=${entry.operator}`, `job=${entry.jobName}`, entry.detail].filter(Boolean).join(' | ')
         });
+        aiabObservabilityRuntime.recordAudit('action', `mcp:${entry.action}`, entry.result === 'success' ? 'success' : 'failure');
     }
+});
+
+registerObservabilityIpc({
+    getAccessContext: getKnowledgeAccessContext,
+    getRuntime: () => aiabObservabilityRuntime,
+    getKnowledgeStats: () => knowledgeIndexGateway.stats({ customerScope: getKnowledgeAccessContext().customerScope, systemScope: getKnowledgeAccessContext().systemScope }),
+    getModelStatus: async () => {
+        const settings = getAiAssistantSettings();
+        const availability = await aiRuntime.getAiAvailability();
+        return {
+            enabled: settings.enabled,
+            provider: availability.providerLabel,
+            model: availability.selectedModel || settings.model || 'None selected',
+            state: !settings.enabled ? 'disabled' : availability.healthy ? 'ready' : 'unavailable',
+            message: availability.message
+        };
+    },
+    getMcpStatus: () => {
+        const records = getNormalizedMcpRegistry(store).records;
+        const reasons = records.filter((record) => record.status === 'enabled' && record.health.state !== 'ready').map((record) => `${record.manifest.name}: ${record.health.message}`).slice(0, 8);
+        return {
+            installed: records.length,
+            enabled: records.filter((record) => record.status === 'enabled').length,
+            ready: records.filter((record) => record.status === 'enabled' && record.health.state === 'ready').length,
+            degraded: records.filter((record) => record.status === 'enabled' && record.health.state !== 'ready').length,
+            reasons
+        };
+    },
+    getSettings: () => getNormalizedObservabilitySettings(store),
+    saveSettings: (candidate) => saveObservabilitySettings(store, candidate),
+    showSaveDialog: (options) => dialog.showSaveDialog(options),
+    getDownloadsPath: () => app.getPath('downloads')
 });
 
 registerNavigationIpc({

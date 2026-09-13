@@ -93,4 +93,17 @@ describe('knowledge IPC', () => {
         expect(oversized.success).toBe(false);
         expect((await handlers.get('get-knowledge-library')!()).records).toHaveLength(0);
     });
+
+    it('requires confirmation and removes expired source chunks from the scoped store', async () => {
+        const add = await handlers.get('add-knowledge-source')!(null, {
+            sourceName: 'Expired runbook', sourceType: 'runbook', fileName: 'expired.md', content: 'Check the job state.'
+        });
+        expect(add.success).toBe(true);
+        expect(await handlers.get('purge-knowledge')!(null, { before: '2099-01-01T00:00:00.000Z' })).toEqual({
+            success: false, error: 'Knowledge purge requires explicit confirmation.'
+        });
+        const purged = await handlers.get('purge-knowledge')!(null, { before: '2099-01-01T00:00:00.000Z', confirmed: true });
+        expect(purged).toMatchObject({ success: true, deletedCount: 1 });
+        expect((await handlers.get('get-knowledge-library')!()).records).toHaveLength(0);
+    });
 });

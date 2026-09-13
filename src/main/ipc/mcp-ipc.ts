@@ -12,6 +12,7 @@ import {
     setMcpCapabilityEnabled,
     type McpRegistryState
 } from '../../features/mcp/mcp-registry';
+import type { ObservabilityMetricName } from '../../features/observability/observability-ledger';
 
 type ActivityEntry = {
     area: 'monitoring';
@@ -29,6 +30,7 @@ export interface McpIpcDependencies {
     executeMcpAction: (request: McpActionExecutionRequest) => Promise<{ output?: string }>;
     verifyMcpAction: (request: McpActionExecutionRequest) => Promise<McpActionVerification>;
     recordActivity: (entry: ActivityEntry) => void;
+    recordMetric?: (name: ObservabilityMetricName, value: number, attributes?: Record<string, string | number | boolean>) => void;
     recordActionAudit?: (entry: ReturnType<typeof createActionAuditEntry>) => void;
 }
 
@@ -161,6 +163,7 @@ export function registerMcpIpc(dependencies: McpIpcDependencies) {
     });
 
     ipcMain.handle('read-mcp-resource', async (_event, payload: unknown): Promise<McpResourceResponse> => {
+        const startedAt = Date.now();
         const input = payload && typeof payload === 'object' ? payload as Record<string, unknown> : {};
         const request: McpResourceRequest = {
             capabilityId: String(input.capabilityId || ''),
@@ -173,6 +176,7 @@ export function registerMcpIpc(dependencies: McpIpcDependencies) {
         const access = denied(dependencies);
         if (access) return { success: false, requestId: 'mcp-read-denied', items: [], error: access.error };
         const result = await readMcpResource(dependencies.getRegistry(), dependencies.getAccessContext(), request, { getItems: dependencies.getResourceItems });
+        dependencies.recordMetric?.('mcp_latency_ms', Date.now() - startedAt, { operation: request.kind, success: result.success });
         dependencies.recordActivity({ area: 'monitoring', level: result.success ? 'info' : 'warning', message: result.success ? 'MCP read-only resource tested.' : 'MCP read-only resource test failed.', detail: result.success ? `${request.kind}=${request.name}` : result.error });
         return result;
     });
@@ -190,6 +194,7 @@ export function registerMcpIpc(dependencies: McpIpcDependencies) {
     });
 
     ipcMain.handle('preview-mcp-action', async (_event, payload: unknown) => {
+        const startedAt = Date.now();
         const input = payload && typeof payload === 'object' && !Array.isArray(payload) ? payload as Record<string, unknown> : {};
         const request: McpActionRequest = {
             capabilityId: String(input.capabilityId || ''),
@@ -201,17 +206,20 @@ export function registerMcpIpc(dependencies: McpIpcDependencies) {
         const access = authorizeKnowledgeRead(dependencies.getAccessContext(), 'execute');
         if (!access.allowed) return { success: false, error: access.reason || 'The operator cannot request MCP actions.' };
         const result = await actionGateway.preview(dependencies.getRegistry(), request);
+        dependencies.recordMetric?.('mcp_latency_ms', Date.now() - startedAt, { operation: 'preview', success: result.success });
         recordAction(result, 'preview', request.jobName, request.tool);
         return result;
     });
 
     ipcMain.handle('run-mcp-action', async (_event, payload: unknown) => {
+        const startedAt = Date.now();
         const input = payload && typeof payload === 'object' && !Array.isArray(payload) ? payload as Record<string, unknown> : {};
         const previewId = typeof input.previewId === 'string' ? input.previewId : '';
         const approved = input.approved === true;
         const access = authorizeKnowledgeRead(dependencies.getAccessContext(), 'execute');
         if (!access.allowed) return { success: false, error: access.reason || 'The operator cannot execute MCP actions.' };
         const result = await actionGateway.approveAndExecute(dependencies.getRegistry(), previewId, approved);
+        dependencies.recordMetric?.('mcp_latency_ms', Date.now() - startedAt, { operation: 'execute', success: result.success });
         recordAction(result, 'execute', result.preview?.jobName || '', result.preview?.tool || 'unknown');
         return result;
     });

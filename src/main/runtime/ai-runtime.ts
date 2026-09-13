@@ -20,6 +20,7 @@ import type { ActivityLogEntry, MonitorMode } from '../types';
 import type { KnowledgeAccessContext } from '../../features/knowledge/knowledge-access';
 import type { KnowledgeIndexGateway } from '../../features/knowledge/knowledge-index';
 import { retrieveJobKnowledgeContext, type JobKnowledgeContextResult } from '../../features/ibmeyeai/job-knowledge';
+import type { ObservabilityAuditCategory, ObservabilityMetricName } from '../../features/observability/observability-ledger';
 
 interface AiRuntimeDependencies {
     appName: string;
@@ -44,6 +45,8 @@ interface AiRuntimeDependencies {
     getKnowledgeAccessContext?: () => KnowledgeAccessContext;
     getKnowledgeIndexGateway?: () => Pick<KnowledgeIndexGateway, 'search' | 'health'>;
     recordActivity: (entry: Omit<ActivityLogEntry, 'id' | 'timestamp'>) => void;
+    recordMetric?: (name: ObservabilityMetricName, value: number, attributes?: Record<string, string | number | boolean>) => void;
+    recordAudit?: (category: ObservabilityAuditCategory, name: string, outcome?: 'success' | 'failure' | 'denied' | 'warning', attributes?: Record<string, string | number | boolean>) => void;
     fetchImpl?: typeof fetch;
 }
 
@@ -149,6 +152,7 @@ export function createAiRuntime(dependencies: AiRuntimeDependencies) {
             })
             : undefined;
         let groundedKnowledge: JobKnowledgeContextResult | undefined;
+        const retrievalStartedAt = Date.now();
         if (isJobScoped && selectedJob && dependencies.getKnowledgeAccessContext && dependencies.getKnowledgeIndexGateway) {
             groundedKnowledge = await retrieveJobKnowledgeContext({
                 job: selectedJob,
@@ -156,6 +160,7 @@ export function createAiRuntime(dependencies: AiRuntimeDependencies) {
                 access: dependencies.getKnowledgeAccessContext(),
                 index: dependencies.getKnowledgeIndexGateway()
             });
+            dependencies.recordMetric?.('retrieval_latency_ms', Date.now() - retrievalStartedAt, { resultCount: groundedKnowledge.contextPack.records.length, fallback: groundedKnowledge.retrievalHealth?.fallbackUsed === true });
         }
         const context = buildAiAssistantContext({
             appName: dependencies.appName,
@@ -185,6 +190,8 @@ export function createAiRuntime(dependencies: AiRuntimeDependencies) {
             scope: payload.scope,
             replyStyle: settings.replyStyle
         });
+        dependencies.recordMetric?.('context_characters', enrichedContext.length, { scope: payload.scope || 'monitor' });
+        const modelStartedAt = Date.now();
 
         try {
             const providerClient = providerRegistry.getProviderClient(settings);
@@ -206,6 +213,9 @@ export function createAiRuntime(dependencies: AiRuntimeDependencies) {
                 message: 'IBMEye AI analysis completed.',
                 detail: `${availability.providerLabel} / ${model} analyzed the current monitor context.${validation.valid ? '' : ` Missing sections or citations: ${[...validation.missingSections, ...validation.missingCitations].join(', ')}.`}`
             });
+            dependencies.recordMetric?.('model_latency_ms', Date.now() - modelStartedAt, { provider: availability.providerLabel, model });
+            dependencies.recordMetric?.('estimated_tokens', Math.ceil((enrichedContext.length + validation.reply.length) / 4), { provider: availability.providerLabel, model });
+            dependencies.recordAudit?.('provider', 'model-request', 'success', { provider: availability.providerLabel, model });
 
             return {
                 success: true,
@@ -225,6 +235,8 @@ export function createAiRuntime(dependencies: AiRuntimeDependencies) {
                 message: 'IBMEye AI analysis failed.',
                 detail: message
             });
+            dependencies.recordMetric?.('provider_error', 1, { provider: availability.providerLabel, model: model || 'unavailable' });
+            dependencies.recordAudit?.('provider', 'model-request', 'failure', { provider: availability.providerLabel, model: model || 'unavailable' });
 
             return {
                 success: false,

@@ -1,5 +1,8 @@
 import { createHash } from 'node:crypto';
 import { ipcMain } from 'electron/main';
+import { writeFile } from 'node:fs/promises';
+import { type SaveDialogOptions, type SaveDialogReturnValue } from 'electron/main';
+import * as path from 'node:path';
 import { type KnowledgeRecord, type KnowledgeSourceType } from '../../features/knowledge/knowledge-contract';
 import {
     authorizeKnowledgeRead,
@@ -29,6 +32,11 @@ interface KnowledgeIpcDependencies {
     getIndexGateway?: () => KnowledgeIndexGateway;
     getAccessContext: () => KnowledgeAccessContext;
     recordActivity: (entry: ActivityEntry) => void;
+    recordObservability?: {
+        audit: (category: 'ingestion' | 'retrieval' | 'purge' | 'export' | 'failure', name: string, outcome?: 'success' | 'failure' | 'denied' | 'warning', attributes?: Record<string, string | number | boolean>) => void;
+    };
+    showSaveDialog?: (options: SaveDialogOptions) => Promise<SaveDialogReturnValue>;
+    getDownloadsPath?: () => string;
 }
 
 interface AddKnowledgeSourcePayload {
@@ -124,6 +132,7 @@ export function registerKnowledgeIpc(dependencies: KnowledgeIpcDependencies) {
             retrievalQuery,
             result.health.backend === 'local' || result.fallbackUsed ? 'lexical' : 'semantic'
         );
+        dependencies.recordObservability?.audit('retrieval', 'knowledge-search', 'success', { returned: retrieval.matches.length, fallback: result.fallbackUsed });
         return {
             success: true,
             records: recordSourceRows(retrieval.matches.map((match) => match.record)),
@@ -182,10 +191,12 @@ export function registerKnowledgeIpc(dependencies: KnowledgeIpcDependencies) {
             await index().delete(result.retiredRecordIds);
             await index().upsert(result.records);
             dependencies.recordActivity({ area: 'monitoring', level: 'success', message: 'Knowledge source saved.', detail: `source=${result.sourceId}` });
+            dependencies.recordObservability?.audit('ingestion', 'knowledge-source', 'success', { chunks: result.records.length, redacted: result.redacted });
             return { success: true, result, stats: await store().getStats(scopeOf(current)) };
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Unable to save the knowledge source.';
             dependencies.recordActivity({ area: 'monitoring', level: 'error', message: 'Knowledge source save failed.', detail: `source=${input.sourceId} | ${message}` });
+            dependencies.recordObservability?.audit('failure', 'knowledge-source', 'failure');
             return { success: false, error: message };
         }
     });
@@ -201,7 +212,49 @@ export function registerKnowledgeIpc(dependencies: KnowledgeIpcDependencies) {
         const sourceRecords = (await store().list(scopeOf(current))).filter((record) => record.sourceRef.id === sourceId);
         await index().delete(sourceRecords.map((record) => record.id));
         dependencies.recordActivity({ area: 'monitoring', level: 'success', message: 'Knowledge source deleted.', detail: `source=${sourceId}` });
+        dependencies.recordObservability?.audit('purge', 'knowledge-source', 'success', { deleted: sourceRecords.length });
         return { success: true, deletedCount: sourceRecords.length, stats: await store().getStats(scopeOf(current)) };
+    });
+
+    ipcMain.handle('purge-knowledge', async (_event, payload: unknown) => {
+        const current = context();
+        const decision = authorizeKnowledgeRead(current, 'investigate');
+        if (!decision.allowed) return { success: false, error: decision.reason || 'Knowledge purge requires investigation access.' };
+        const input = payload && typeof payload === 'object' && !Array.isArray(payload) ? payload as Record<string, unknown> : {};
+        if (input.confirmed !== true) return { success: false, error: 'Knowledge purge requires explicit confirmation.' };
+        const before = typeof input.before === 'string' ? input.before : new Date(Date.now() - 30 * 86400000).toISOString();
+        try {
+            const result = await store().purge(scopeOf(current), before);
+            await index().delete(result.deletedIds);
+            dependencies.recordActivity({ area: 'monitoring', level: 'success', message: 'Knowledge records purged.', detail: `deleted=${result.deletedCount}` });
+            dependencies.recordObservability?.audit('purge', 'knowledge-records', 'success', { deleted: result.deletedCount });
+            return { success: true, ...result, stats: await index().stats(scopeOf(current)) };
+        } catch (error) {
+            dependencies.recordObservability?.audit('failure', 'knowledge-purge', 'failure');
+            return { success: false, error: error instanceof Error ? error.message : 'Unable to purge knowledge records.' };
+        }
+    });
+
+    ipcMain.handle('export-knowledge', async () => {
+        const current = context();
+        const decision = authorizeKnowledgeRead(current);
+        if (!decision.allowed) return { success: false, error: decision.reason || 'Knowledge export requires read access.' };
+        if (!dependencies.showSaveDialog || !dependencies.getDownloadsPath) return { success: false, error: 'Export is unavailable in this environment.' };
+        try {
+            const records = recordSourceRows(await store().list(scopeOf(current)));
+            const selection = await dependencies.showSaveDialog({
+                title: 'Export scoped knowledge',
+                defaultPath: path.join(dependencies.getDownloadsPath(), 'imonitor-knowledge.json'),
+                filters: [{ name: 'JSON report', extensions: ['json'] }]
+            });
+            if (selection.canceled || !selection.filePath) return { success: false, canceled: true };
+            await writeFile(selection.filePath, `${JSON.stringify({ exportedAt: new Date().toISOString(), scope: scopeOf(current), records }, null, 2)}\n`, 'utf8');
+            dependencies.recordObservability?.audit('export', 'knowledge-records', 'success', { records: records.length });
+            return { success: true, filePath: selection.filePath, recordCount: records.length };
+        } catch (error) {
+            dependencies.recordObservability?.audit('failure', 'knowledge-export', 'failure');
+            return { success: false, error: error instanceof Error ? error.message : 'Unable to export knowledge records.' };
+        }
     });
 
     ipcMain.handle('reindex-knowledge', async () => {
@@ -212,6 +265,7 @@ export function registerKnowledgeIpc(dependencies: KnowledgeIpcDependencies) {
         await index().rebuild(scope);
         const records = await store().list(scope);
         dependencies.recordActivity({ area: 'monitoring', level: 'success', message: 'Knowledge index refreshed.', detail: `records=${records.length}` });
+        dependencies.recordObservability?.audit('retrieval', 'knowledge-reindex', 'success', { records: records.length });
         return { success: true, stats: await index().stats(scope) };
     });
 

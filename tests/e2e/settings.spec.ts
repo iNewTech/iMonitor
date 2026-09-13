@@ -255,6 +255,39 @@ test('manages the local knowledge index without exposing provider secrets', asyn
     }
 });
 
+test('shows scoped AI + ActionBoard health and keeps observability controls compact', async () => {
+    const app = await launchTestApp();
+
+    try {
+        await app.page.locator('#connect').click();
+        await app.page.locator('#open-settings').click();
+        await app.page.getByTestId('settings-page-storage').click();
+        const panel = app.page.locator('#settings-aiab-observability');
+        await expect(panel).toBeVisible();
+        await expect(app.page.locator('#settings-aiab-record-count')).toHaveText('0');
+        await expect(app.page.locator('#settings-aiab-index-size')).toHaveText('0 B');
+        await expect(app.page.locator('#settings-aiab-model-health')).not.toHaveText('—');
+        await expect(app.page.locator('#settings-aiab-mcp-health')).toHaveText(/\d+\/\d+ ready/);
+
+        const added = await app.page.evaluate(() => window.electronAPI.addKnowledgeSource({
+            sourceName: 'Retention test runbook', sourceType: 'runbook', fileName: 'retention.md', content: 'Check the selected job and verify the next poll.'
+        }));
+        expect(added.success).toBe(true);
+        await app.page.locator('#settings-aiab-reindex').click();
+        await expect(app.page.locator('#settings-aiab-record-count')).toHaveText('1');
+        await app.page.locator('#settings-aiab-retention').fill('14');
+        await app.page.locator('#settings-aiab-save-retention').click();
+        await expect(app.page.locator('#settings-aiab-observability-status')).toContainText('Telemetry events');
+
+        const health = await app.page.evaluate(() => window.electronAPI.getAiabObservability());
+        expect(health.success).toBe(true);
+        expect(JSON.stringify(health)).not.toContain('selected job');
+        expect(health.settings?.retentionDays).toBe(14);
+    } finally {
+        await app.cleanup();
+    }
+});
+
 test('keeps the seven settings categories compact and preserves draft values', async () => {
     const app = await launchTestApp();
 

@@ -12,6 +12,7 @@ import { initCollectorSettings } from './settings/collector.js';
 import { initBusinessServiceSettings } from './settings/business-services.js';
 import { initKnowledgeIndexSettings } from './settings/knowledge-index.js';
 import { initMcpSkillsSettings } from './settings/mcp-skills.js';
+import { initObservabilitySettings } from './settings/observability.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     void initAppNavigation();
@@ -292,6 +293,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const businessServiceSettings = initBusinessServiceSettings({ root: document });
     const knowledgeIndexSettings = initKnowledgeIndexSettings({ root: document });
     const mcpSkillsSettings = initMcpSkillsSettings({ root: document, navStatus: navSkillsStatus });
+    const observabilitySettings = initObservabilitySettings({ root: document });
 
     const premiumFeaturePanels = new Map([
         ['settings-clickup-panel', 'clickup-integration'],
@@ -469,7 +471,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         collectorSettings.refresh(),
         businessServiceSettings.refresh(),
         knowledgeIndexSettings.refresh(),
-        mcpSkillsSettings.refresh()
+        mcpSkillsSettings.refresh(),
+        observabilitySettings.refresh()
     ]);
 
     applyPremiumPreview(entitlements);

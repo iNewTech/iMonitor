@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added scoped AI + ActionBoard observability for RAG/MCP health, redacted metrics, audit continuity, retention, export, purge, and index rebuild controls (#55, AIAB-15, Project 8).
+
 ### 2026-09-14
 
 - Added reviewed Resolution Memory lifecycle for verified outcomes, including operator/source-incident lineage, approve/revise/reject/retire actions, review history, freshness and environment signals, conflict detection, scoped retrieval protection, and compact task-window review controls (#54, AIAB-14, Project 8).
