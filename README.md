@@ -93,6 +93,7 @@ UI tests exercise the development demo, not a production IBM i host. Live comman
 - [Technical guide and maintenance rules](docs/TECHNICAL.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Incident lifecycle and integrations](docs/ALERT_WORKFLOW.md)
+- [Pilot validation and compatibility matrix](docs/PILOT_VALIDATION.md)
 - [Mapepire setup](docs/MAPEPIRE_SETUP.md)
 - [Change log](CHANGELOG.md)
 

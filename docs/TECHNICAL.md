@@ -89,6 +89,8 @@ Records include the system identity, safe connection metadata, timestamp, interv
 
 `src/main/ipc/support-metrics-ipc.ts` builds the report from the local incident ledger, scopes AI activity records to the current system, enforces read authorization, and writes a customer-scoped JSON export through the native save dialog. The renderer panel defaults to the last seven local calendar days, includes a previous equal-window comparison, and does not display a percentage when its denominator is zero. Exported reports contain no credentials, raw job logs, or command payloads.
 
+`PILOT_VALIDATION.md` is the evidence-first compatibility and pilot record for Project 7 issue #29. It separates automated demo evidence from live IBM i observations, records exact client/IBM i releases, PTFs, authorities, scale, provider versions, and integration results, and provides the scenario, defect, approval, and release exit records. A target package or passing demo test never becomes a certified compatibility claim by itself.
+
 ## Integration delivery
 
 `src/features/integrations/delivery.ts` is the shared outbound delivery contract for external incident and work-item events. `buildDeliveryEventKey()` combines provider, event, source ID, and event revision into a stable key. `createDeliveryRegistry()` persists `pending`, `sent`, `skipped`, and `failed` states, suppresses a successful duplicate, retries a failed operation at most twice by default, and bounds the ledger size. Stored errors are truncated and credential-shaped values are redacted.
