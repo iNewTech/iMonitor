@@ -68,6 +68,8 @@ This is where you select or create IBM i profiles. The form stays compact on a l
 
 Select **Knowledge → Analyze code** to open object analysis. The knowledge library itself is not indexed or searchable yet. No retrieved documents or connections are implied by this page.
 
+The AI + ActionBoard foundation now records the scope and provenance rules that future knowledge search will use. Operational evidence must identify both the customer and IBM i system, and AI context will show source status and citations. Search and retrieval are not enabled by this contract ticket yet.
+
 ### ActionBoard
 
 This is the daily operator screen. It contains the live connection state, a slim system strip, one active-jobs list, job filters, and a compact AI composer. Job Queues stays collapsed below the list. Less frequent tools open from the **⋯** workspace menu.
