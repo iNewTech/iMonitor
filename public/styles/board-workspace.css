@@ -125,6 +125,23 @@ body.board-minimal[data-theme="aurora-mist"] { --board-paper: #fbfefd; --board-s
 .board-minimal #job-queues-panel .panel-disclosure-icon { width: 22px; height: 22px; border: 0; background: none; }
 .board-minimal .board-secondary-panel:not([hidden]) { display: block; margin: 12px 0; border-radius: 10px; border: 1px solid var(--board-line); background: var(--board-paper); box-shadow: none; }
 .board-minimal .board-secondary-panel .activity-overview-summary { gap: 12px; }
+.board-minimal #board-history-panel { margin: 0 0 14px; }
+.board-minimal #board-history-panel > summary { padding: 10px 12px; }
+.board-minimal #board-history-panel > summary :is(.panel-heading-icon,.panel-copy) { display: none; }
+.board-minimal #board-history-panel > summary .eyebrow { font: inherit; font-size: 11px; color: var(--board-muted); letter-spacing: 0; margin: 0 0 3px !important; }
+.board-minimal #board-history-panel > summary .section-title { font-size: 15px; font-weight: 550; margin: 0; }
+.board-minimal #board-history-panel .panel-disclosure-icon { width: 24px; height: 24px; border: 0; background: none; }
+.board-minimal #board-history-panel .activity-overview-body { padding: 0 12px 12px; }
+.board-minimal #board-history-panel .history-views-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.board-minimal #board-history-panel .history-view { padding: 10px; gap: 6px; border: 0; border-radius: 7px; background: var(--board-soft); }
+.board-minimal #board-history-panel .history-card-header { display: flex; flex-wrap: wrap; gap: 4px 8px; padding: 0; }
+.board-minimal #board-history-panel .history-card-header .section-title { font-size: 13px; font-weight: 500; margin: 0; color: var(--board-ink); }
+.board-minimal #board-history-panel .table-caption { font-size: 12px; font-weight: 500; color: var(--board-ink); background: none; border: 0; padding: 0; min-height: 0; }
+.board-minimal #board-history-panel .trend-chart { height: 64px; border-radius: 0; background: none; }
+.board-minimal #board-history-panel :is(.trend-axis,.trend-grid) { stroke: var(--board-line); }
+.board-minimal #board-history-panel .trend-empty { fill: var(--board-muted); }
+.board-minimal #board-history-panel .stat-note { font-size: 11px; color: var(--board-muted); }
+.board-minimal:has(#board-history-panel[open]) #system-stats { max-height: clamp(180px, calc(100vh - 565px), 480px); }
 .board-minimal .app-footer { background: none; box-shadow: none; border: 0; border-radius: 0; display: flex; gap: 15px; flex-wrap: wrap; align-items: center; padding: 12px 0; margin: 0; }
 body.board-minimal .app-status-bar { position: static; display: flex; gap: 6px; transform: none; width: auto; max-width: none; border: 0; border-radius: 0; box-shadow: none; padding: 0; margin: 0; background: none; font-size: 11.5px; min-height: 0; color: var(--board-muted); }
 .board-minimal .app-status-detail { font-size: 11.5px; }

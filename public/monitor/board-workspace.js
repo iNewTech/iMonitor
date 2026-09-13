@@ -28,7 +28,7 @@ export function initBoardWorkspace({ getViewState, restoreViewState, clearAiScop
         }
     });
     root.querySelectorAll('[data-board-target]').forEach(button => button.addEventListener('click', () => {
-        const target = { jobs: '.actionboard-jobs-panel', history: '#board-history-panel', incidents: '.alerts-panel' }[button.dataset.boardTarget];
+        const target = { jobs: '.actionboard-jobs-panel', incidents: '.alerts-panel' }[button.dataset.boardTarget];
         const panel = root.querySelector(target);
         if (!panel) return;
         panel.hidden = false;

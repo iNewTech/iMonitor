@@ -19,7 +19,8 @@ Screenshots include the full page and use the host display scale; image pixel di
 | AI explanations, runbooks, Resolution Memory, L3 problems and replay | Existing task tabs; unchanged action and permission boundaries |
 | Board/job AI, presets, model setup | Full-width composer, + menu, explicit context label, compact model menu |
 | Floating IBMEye | Workspace ⋯ menu; optional, hidden on entry |
-| Activity trends, incident history including system incidents, support outcomes | Workspace ⋯ menu |
+| Live activity: Job volume, Peak job CPU, Wait states | Expanded above jobs on connection; select the overview heading to collapse/expand |
+| Incident history including system incidents, support outcomes | Workspace ⋯ menu |
 | Object analysis, source loading, call graph, compile plan and reports | Workspace ⋯ → Object analysis |
 | Integrations, support access, collection/retention | Settings; footer collection status opens Settings |
 | Queue search, triage, inspection and safe actions | Queued work, collapsed below the composer |
@@ -40,3 +41,9 @@ The source of the board is `public/monitor.html`. Workspace state lives in `publ
 ## Current acceptance status
 
 Implementation and automated test evidence are recorded above. #58 is open in **UAT**, pending user acceptance before Done. This stage does not imply client deployment.
+
+## Live activity entry-screen update
+
+The user requested System activity on the first screen after connection. The overview now opens above jobs with compact Job volume, Peak job CPU and Wait states charts. It remains keyboard collapsible, receives history updates while collapsed, and starts expanded again after reconnecting. The redundant Activity trends menu entry is removed. Chart backgrounds follow the board theme; accessible chart names include the latest value.
+
+Validation: build and all 44 renderer modules passed; four monitoring unit checks passed; all ten focused board/Connect Electron scenarios passed. After the dark-theme chart-background correction, all five board scenarios passed again. Coverage includes three native window sizes, light/dark screenshots, first entry, empty history, multiple snapshots, keyboard collapse, updates while collapsed, reconnect, drafts, model availability and connection gates. These are isolated automated checks; user UAT remains pending.

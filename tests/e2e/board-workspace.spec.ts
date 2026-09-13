@@ -50,6 +50,14 @@ async function pushSnapshot(app: ElectronApplication, data = jobs) {
     await app.evaluate(({ BrowserWindow }, value) => {
         const page = BrowserWindow.getAllWindows().find(win => win.webContents.getURL().endsWith('/monitor.html'))!;
         page.webContents.send('status-update', { data: value.jobs, generatedAt: '2026-09-13T10:30:00.000Z' });
+        page.webContents.send('monitoring-history-updated', [{
+            timestamp: '2026-09-13T10:30:00.000Z', totalJobs: value.jobs.length,
+            peakCpu: Math.max(0, ...value.jobs.map(job => job.CPU)),
+            runningJobs: value.jobs.filter(job => job.STATUS === 'RUN').length,
+            waitingJobs: value.jobs.filter(job => job.STATUS === 'MSGW').length,
+            messageWaitJobs: value.jobs.filter(job => job.STATUS === 'MSGW').length,
+            lockWaitJobs: 0, highCpuJobs: value.jobs.filter(job => job.CPU > 80).length
+        }]);
         page.webContents.send('alerts-updated', value.alerts);
     }, { jobs: data, alerts });
 }
@@ -61,6 +69,8 @@ test('keeps one compact workspace at desktop sizes, with accessible secondary fe
     await expect(page.locator('#system-stats th')).toHaveText(['Job', 'Current condition', 'CPU', 'Owner']);
     await expect(page.locator('.job-row').first().locator('.job-condition > span')).toHaveText('High CPU');
     await expect(page.locator('.job-row').first().locator('.job-owner-chip')).toHaveText('reviewer');
+    await expect(page.locator('#board-history-panel')).toHaveAttribute('open', '');
+    await expect(page.getByRole('heading', { name: 'Live activity overview' })).toBeVisible();
     for (const [width, height] of [[560, 600], [1024, 768], [1440, 900]]) {
         await app.evaluate(({ BrowserWindow }, size) => BrowserWindow.getAllWindows()[0].setSize(size[0], size[1]), [width, height]);
         const form = await page.locator('#ai-assistant-form').boundingBox();
@@ -70,6 +80,12 @@ test('keeps one compact workspace at desktop sizes, with accessible secondary fe
         expect(controls!.y).toBeGreaterThanOrEqual(input!.y + input!.height);
         expect(form!.height).toBeLessThan(130);
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+        const overview = (await page.locator('#board-history-panel').boundingBox())!;
+        const jobsToolbar = (await page.locator('.actionboard-jobs-panel .jobs-toolbar').boundingBox())!;
+        expect(overview.y + overview.height).toBeLessThanOrEqual(jobsToolbar.y);
+        expect(overview.height).toBeLessThan(250);
+        await expect(page.locator('#board-history-panel .trend-chart')).toHaveCount(3);
+        for (const chart of await page.locator('#board-history-panel .trend-chart').all()) await expect(chart).toBeVisible();
         const shot = testInfo.outputPath(`board-${width}.png`);
         await page.screenshot({ path: shot, fullPage: true });
         await testInfo.attach(`Board ${width}`, { path: shot, contentType: 'image/png' });
@@ -95,6 +111,40 @@ test('keeps one compact workspace at desktop sizes, with accessible secondary fe
     await page.locator('#board-companion-toggle').click();
     await expect(page.locator('#ibmeyeai-widget')).toBeHidden();
     expect(await page.evaluate(() => Boolean(document.querySelector('#job-queues-panel')!.compareDocumentPosition(document.querySelector('.app-footer')!) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+});
+
+test('shows live activity on entry, updates while collapsed and restores the overview on reconnect', async ({ board }) => {
+    const { app, page } = board;
+    const overview = page.locator('#board-history-panel');
+    await expect(overview).toHaveAttribute('open', '');
+    const sendHistory = async (history: unknown[]) => app.evaluate(({ BrowserWindow }, history) => {
+        BrowserWindow.getAllWindows()[0].webContents.send('monitoring-history-updated', history);
+    }, history);
+    await sendHistory([]);
+    await expect(page.locator('#jobs-history-chart')).toContainText('No data yet');
+    await expect(page.locator('#jobs-history-note')).toHaveText('Waiting for snapshot history.');
+    await page.locator('#ai-assistant-input').fill('Keep my investigation');
+    await overview.locator(':scope > summary').focus();
+    await overview.locator(':scope > summary').press('Enter');
+    await expect(overview).not.toHaveAttribute('open', '');
+    await sendHistory([
+        { totalJobs: 12, peakCpu: 25, runningJobs: 10, waitingJobs: 2, messageWaitJobs: 1, lockWaitJobs: 1 },
+        { totalJobs: 18, peakCpu: 42.5, runningJobs: 15, waitingJobs: 3, messageWaitJobs: 2, lockWaitJobs: 1 }
+    ]);
+    await expect(page.locator('#jobs-history-value')).toHaveText('18 jobs');
+    await expect(overview).not.toHaveAttribute('open', '');
+    await overview.locator(':scope > summary').press('Enter');
+    await expect(page.locator('#cpu-history-value')).toHaveText('42.50%');
+    await expect(page.locator('#wait-history-value')).toHaveText('3 waits');
+    await expect(page.locator('#wait-history-note')).toContainText('2 MSGW and 1 LCKW');
+    await expect(page.locator('#jobs-history-chart .trend-line')).toHaveAttribute('d', /L /);
+    await expect(page.locator('#cpu-history-chart')).toHaveAccessibleName(/Peak job CPU 42.50%/);
+    await expect(page.locator('#ai-assistant-input')).toHaveValue('Keep my investigation');
+    await overview.locator(':scope > summary').click();
+    await page.evaluate(() => window.electronAPI.disconnect());
+    await page.locator('#connect').click();
+    await expect(overview).toHaveAttribute('open', '');
+    await expect(page.locator('#jobs-history-chart')).toBeVisible();
 });
 
 test('preserves row identity, scroll, keyboard focus, filters and drafts across polling', async ({ board }) => {

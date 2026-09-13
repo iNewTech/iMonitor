@@ -95,7 +95,7 @@ Moving between ActionBoard, Knowledge, and Settings keeps the IBM i connection a
 
 The top strip shows the connection state, saved system name, **Peak job CPU**, active-job count, and work needing attention. Peak job CPU is the highest CPU value among active jobs, not total system CPU. The observation time and polling interval are below the table. Check that observation time continues to advance; changing filters does not make old data look new.
 
-**Settings** and the theme control stay in the header. Open **⋯** for Object analysis, Support outcomes, Activity trends, Incident history, the optional floating IBMEye, or Disconnect. **Knowledge** opens a clearly marked library placeholder with **Analyze code** for the existing source browser, graphs, compile plans, and reports. Search and ingestion will arrive in later tickets; existing Resolution Memory remains available in job tasks.
+**Settings** and the theme control stay in the header. The **System activity → Live activity overview** opens above the jobs list after connecting, with live Job volume, Peak job CPU and Wait states charts. Select its heading to collapse or expand it; polling continues while collapsed. Reconnecting opens it again. Open **⋯** for Object analysis, Support outcomes, Incident history, the optional floating IBMEye, or Disconnect. **Knowledge** opens a clearly marked library placeholder with **Analyze code** for the existing source browser, graphs, compile plans, and reports. Search and ingestion will arrive in later tickets; existing Resolution Memory remains available in job tasks.
 
 ### Use the active jobs list
 
