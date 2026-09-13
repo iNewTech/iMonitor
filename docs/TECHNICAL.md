@@ -91,6 +91,8 @@ Records include the system identity, safe connection metadata, timestamp, interv
 
 `PILOT_VALIDATION.md` is the evidence-first compatibility and pilot record for Project 7 issue #29. It separates automated demo evidence from live IBM i observations, records exact client/IBM i releases, PTFs, authorities, scale, provider versions, and integration results, and provides the scenario, defect, approval, and release exit records. A target package or passing demo test never becomes a certified compatibility claim by itself.
 
+`P2_RELEASE_GATE.md` records the shared-support candidate for issue #17. It keeps the automated evidence for shared incidents, authenticated ownership, accepted handoffs, integration delivery, scoped support access, and background collection separate from the live two-client, permission, IBM i, outage, and deployment results that still require named UAT.
+
 ## Integration delivery
 
 `src/features/integrations/delivery.ts` is the shared outbound delivery contract for external incident and work-item events. `buildDeliveryEventKey()` combines provider, event, source ID, and event revision into a stable key. `createDeliveryRegistry()` persists `pending`, `sent`, `skipped`, and `failed` states, suppresses a successful duplicate, retries a failed operation at most twice by default, and bounds the ledger size. Stored errors are truncated and credential-shaped values are redacted.
