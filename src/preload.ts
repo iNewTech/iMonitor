@@ -894,6 +894,52 @@ contextBridge.exposeInMainWorld('electronAPI', {
     navigateToKnowledge: () => ipcRenderer.invoke('navigate-to-knowledge'),
     navigateToSettings: () => ipcRenderer.invoke('navigate-to-settings'),
     navigateToObjectAnalysis: () => ipcRenderer.invoke('navigate-to-object-analysis'),
+    getKnowledgeLibrary: () => ipcRenderer.invoke('get-knowledge-library') as Promise<{
+        success: boolean;
+        records: Array<Record<string, unknown>>;
+        excluded: Array<{ recordId: string; reason: string }>;
+        stats?: Record<string, unknown>;
+        error?: string;
+    }>,
+    searchKnowledge: (query: string, limit?: number) => ipcRenderer.invoke('search-knowledge', query, limit) as Promise<{
+        success: boolean;
+        records: Array<Record<string, unknown>>;
+        excluded: Array<{ recordId: string; reason: string }>;
+        error?: string;
+    }>,
+    getKnowledgeRecord: (recordId: string) => ipcRenderer.invoke('get-knowledge-record', recordId) as Promise<{
+        success: boolean;
+        record?: Record<string, unknown>;
+        history?: Array<Record<string, unknown>>;
+        error?: string;
+    }>,
+    addKnowledgeSource: (payload: {
+        sourceName: string;
+        sourceType?: 'incident' | 'evidence' | 'job' | 'runbook' | 'resolution' | 'object-analysis' | 'operator-guide' | 'integration-history';
+        fileName?: string;
+        content: string;
+    }) => ipcRenderer.invoke('add-knowledge-source', payload) as Promise<{
+        success: boolean;
+        result?: Record<string, unknown>;
+        stats?: Record<string, unknown>;
+        error?: string;
+    }>,
+    deleteKnowledgeRecord: (recordId: string) => ipcRenderer.invoke('delete-knowledge-record', recordId) as Promise<{
+        success: boolean;
+        deletedCount?: number;
+        stats?: Record<string, unknown>;
+        error?: string;
+    }>,
+    reindexKnowledge: () => ipcRenderer.invoke('reindex-knowledge') as Promise<{
+        success: boolean;
+        stats?: Record<string, unknown>;
+        error?: string;
+    }>,
+    getKnowledgeStats: () => ipcRenderer.invoke('get-knowledge-stats') as Promise<{
+        success: boolean;
+        stats?: Record<string, unknown>;
+        error?: string;
+    }>,
     openJobTaskWindow: (jobName: string) => ipcRenderer.invoke('open-job-task-window', jobName) as Promise<{ success: boolean; }>,
     openExternalUrl: (target: string) => ipcRenderer.invoke('open-external-url', target) as Promise<{ success: boolean; }>,
 

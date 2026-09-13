@@ -1,7 +1,87 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>iMonitor Knowledge</title><link href="../node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet"><link href="../node_modules/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet"><link rel="stylesheet" href="styles.css"></head>
-<body class="app-body minimal-shell knowledge-body"><main class="app-shell"><section class="knowledge-frame">
-<header class="app-chrome"><span class="app-brand"><img src="assets/ibm-eye.svg" alt="" width="24" height="24">iMonitor</span><nav data-app-nav="knowledge" aria-label="Main navigation"></nav></header>
-<div class="knowledge-heading"><div><h1>Knowledge</h1><p id="knowledge-scope">Checking system…</p></div><button id="knowledge-analyze" class="btn btn-outline-ink" type="button"><i class="bi bi-code-square" aria-hidden="true"></i> Analyze code</button></div>
-<section class="knowledge-placeholder"><h2>Your knowledge library is coming next</h2><p>Document search, ingestion, and source review are planned. No knowledge index is connected here yet.</p><p>Existing approved Resolution Memory remains available inside a job task. Analyze code opens the current source browser, call graph, compile plan, and mapped reports.</p></section>
-</section></main><script type="module" src="knowledge.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>iMonitor Knowledge</title>
+    <link href="../node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="../node_modules/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="app-body minimal-shell knowledge-body">
+    <main class="app-shell">
+        <section class="knowledge-frame">
+            <header class="app-chrome">
+                <span class="app-brand"><img src="assets/ibm-eye.svg" alt="" width="24" height="24">iMonitor</span>
+                <nav data-app-nav="knowledge" aria-label="Main navigation"></nav>
+            </header>
+
+            <section class="knowledge-heading" aria-labelledby="knowledge-title">
+                <div>
+                    <p class="knowledge-kicker">LOCAL OPERATIONS MEMORY</p>
+                    <h1 id="knowledge-title">Knowledge</h1>
+                    <p id="knowledge-scope">Checking system…</p>
+                </div>
+                <div class="knowledge-heading-actions">
+                    <button id="knowledge-reindex" class="btn" type="button"><i class="bi bi-arrow-repeat" aria-hidden="true"></i> Refresh index</button>
+                    <button id="knowledge-analyze" class="btn" type="button"><i class="bi bi-code-square" aria-hidden="true"></i> Analyze code</button>
+                    <button id="knowledge-add" class="btn knowledge-primary" type="button"><i class="bi bi-plus-lg" aria-hidden="true"></i> Add knowledge</button>
+                </div>
+            </section>
+
+            <section class="knowledge-stats" aria-label="Knowledge index status">
+                <div><span>Sources</span><strong id="knowledge-source-count">—</strong></div>
+                <div><span>Records</span><strong id="knowledge-record-count">—</strong></div>
+                <div><span>Index</span><strong id="knowledge-index-state">—</strong></div>
+                <div><span>Last updated</span><strong id="knowledge-last-updated">—</strong></div>
+            </section>
+
+            <section class="knowledge-library" aria-labelledby="knowledge-library-title">
+                <div class="knowledge-library-heading">
+                    <div>
+                        <h2 id="knowledge-library-title">Your library</h2>
+                        <p>Evidence, runbooks, and approved guidance for this IBM i system.</p>
+                    </div>
+                    <span id="knowledge-result-count" class="knowledge-count">0 sources</span>
+                </div>
+                <div class="knowledge-controls">
+                    <label class="knowledge-search"><i class="bi bi-search" aria-hidden="true"></i><span class="visually-hidden">Search knowledge</span><input id="knowledge-search" type="search" placeholder="Search by job, message, runbook, or topic" autocomplete="off"></label>
+                    <label class="knowledge-review-filter"><input id="knowledge-review-filter" type="checkbox"> Needs review</label>
+                </div>
+                <div id="knowledge-status" class="knowledge-status" role="status" aria-live="polite"></div>
+                <div id="knowledge-list" class="knowledge-list"></div>
+                <div id="knowledge-empty" class="knowledge-empty" hidden>
+                    <i class="bi bi-journal-text" aria-hidden="true"></i>
+                    <h3 id="knowledge-empty-title">Your library is empty</h3>
+                    <p id="knowledge-empty-copy">Add a runbook, incident note, or approved document to give IBMEye useful local context.</p>
+                    <button id="knowledge-empty-add" class="btn knowledge-primary" type="button">Add knowledge</button>
+                </div>
+            </section>
+        </section>
+    </main>
+
+    <dialog id="knowledge-add-dialog" class="knowledge-dialog" aria-labelledby="knowledge-add-title">
+        <form id="knowledge-add-form" method="dialog" novalidate>
+            <div class="knowledge-dialog-heading"><div><p class="knowledge-kicker">ADD TO LIBRARY</p><h2 id="knowledge-add-title">Add knowledge</h2></div><button class="knowledge-dialog-close" type="button" data-dialog-close="knowledge-add-dialog" aria-label="Close">×</button></div>
+            <p class="knowledge-dialog-copy">Save a bounded text source for the connected system. Credentials are removed before it is stored.</p>
+            <label>Source name<input id="knowledge-source-name" name="sourceName" required maxlength="240" placeholder="Night batch recovery runbook"></label>
+            <label>Type<select id="knowledge-source-type" name="sourceType"><option value="operator-guide">Operator guide</option><option value="runbook">Runbook</option><option value="resolution">Approved resolution</option><option value="evidence">Incident evidence</option><option value="job">Job context</option><option value="object-analysis">Object analysis</option></select></label>
+            <label>Text file <span class="knowledge-muted">optional</span><input id="knowledge-file" type="file" accept=".txt,.md,.markdown,.json,.cl,.clle,.rpg,.rpgle,.sql,.csv"></label>
+            <label>Content<textarea id="knowledge-content" name="content" required maxlength="200000" rows="8" placeholder="Paste a runbook or evidence note, or choose a supported text file."></textarea></label>
+            <div id="knowledge-add-status" class="knowledge-status" role="status" aria-live="polite"></div>
+            <div class="knowledge-dialog-actions"><button class="btn" type="button" data-dialog-close="knowledge-add-dialog">Cancel</button><button id="knowledge-add-submit" class="btn knowledge-primary" type="submit">Save source</button></div>
+        </form>
+    </dialog>
+
+    <dialog id="knowledge-detail-dialog" class="knowledge-dialog knowledge-detail-dialog" aria-labelledby="knowledge-detail-title">
+        <div class="knowledge-dialog-heading"><div><p class="knowledge-kicker">SOURCE DETAILS</p><h2 id="knowledge-detail-title">Knowledge source</h2></div><button class="knowledge-dialog-close" type="button" data-dialog-close="knowledge-detail-dialog" aria-label="Close">×</button></div>
+        <div id="knowledge-detail-meta" class="knowledge-detail-meta"></div>
+        <div class="knowledge-detail-content"><h3>Stored context</h3><pre id="knowledge-detail-text"></pre></div>
+        <div class="knowledge-detail-history"><h3>Source history</h3><div id="knowledge-detail-history-list" class="knowledge-detail-history-list"></div></div>
+        <div id="knowledge-detail-status" class="knowledge-status" role="status" aria-live="polite"></div>
+        <div class="knowledge-dialog-actions"><button id="knowledge-detail-reindex" class="btn" type="button">Refresh index</button><button id="knowledge-detail-delete" class="btn knowledge-danger" type="button">Delete source</button></div>
+    </dialog>
+
+    <script type="module" src="knowledge.js"></script>
+</body>
+</html>

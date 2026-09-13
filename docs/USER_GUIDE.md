@@ -66,7 +66,13 @@ This is where you select or create IBM i profiles. The form stays compact on a l
 
 ### Knowledge
 
-Select **Knowledge → Analyze code** to open object analysis. The knowledge library itself is not indexed or searchable yet. No retrieved documents or connections are implied by this page.
+Knowledge is the local operations library for the connected IBM i system. It holds runbooks, incident evidence, approved resolutions, job context, object-analysis notes, and customer guides. It is scoped to the active system, so connect before opening it.
+
+To add a source, select **Knowledge → Add knowledge**, enter a short name and type, then paste the text or choose a supported text file. Save only after reviewing the content. iMonitor accepts text, Markdown, JSON, CL, CLLE, RPG/RPGLE, SQL, and CSV files up to 200 KB from the screen. Credentials, bearer tokens, and connection-shaped values are removed before the source is stored.
+
+The library shows one row per source even when the source is stored as several operational chunks. Search by job, message, runbook, or topic. Select **Needs review** to focus on observed, draft, stale, or unknown sources. Select a row to read the stored context and see its source history. **Refresh index** rebuilds the local search state. **Delete source** removes the source and all of its stored chunks after the main process checks your permission.
+
+Select **Knowledge → Analyze code** when you need object analysis, a call graph, a conversion plan, or a compile plan. Analysis remains a separate, secondary workflow so the knowledge library stays small and easy to scan.
 
 The AI + ActionBoard foundation records the scope and provenance rules that knowledge search uses. Operational evidence must identify both the customer and IBM i system. Every knowledge read is checked in the main process against the connected scope and the current operator's permission. Client owners can read their active system; outsourced support must use an accepted, unexpired grant for that customer and system. Records outside that boundary are removed before search and again before the result reaches AI or the screen. The local knowledge store keeps a rebuildable copy and still supports keyword search if a vector service is unavailable; later screens will show whether it is empty, ready, rebuilding, or degraded.
 

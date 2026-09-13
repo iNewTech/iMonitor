@@ -30,7 +30,8 @@ iMonitor uses a simple Free/Premium feature boundary. The application keeps Prem
 - Evidence-first Support outcomes panel with date windows, incident/stage samples, unknown outcomes, AI request availability, previous-window comparison, and customer-scoped JSON export. Operator-verified recovery is measured separately from future autonomous recovery.
 - Local and IBM i source analysis, evidence-based call graphs, approved reports mapped to source programs, and saved compile plans. Compile commands are never run automatically.
 - A macOS WidgetKit scaffold is available under `macos-widget/`; signing and native installation remain separate from the Electron app.
-- The AI + ActionBoard knowledge layer defines scoped records, evidence references, review statuses, freshness, a local-first rebuildable lexical store, and one main-process access boundary that filters before and after retrieval for local owners and delegated support (#41–#43, AIAB-01–03, Project 8).
+- The AI + ActionBoard knowledge layer defines scoped records, evidence references, review statuses, freshness, incremental redacted ingestion, a local-first rebuildable lexical store, and one main-process access boundary that filters before and after retrieval for local owners and delegated support (#41–#44, AIAB-01–04, Project 8).
+- Knowledge provides a compact library with source search, Needs review filtering, add-source validation, source details and version history, delete, index refresh, and a secondary Analyze code entry. It groups chunks into one source row so operational context stays easy to scan.
 
 ## Free plan
 

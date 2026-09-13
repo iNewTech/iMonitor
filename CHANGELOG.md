@@ -8,6 +8,7 @@
 - Added the versioned scoped knowledge/evidence contract for future RAG and MCP work, including source validation, review lifecycle, freshness, citations, and credential-free support context (#41, AIAB-01, Project 8).
 - Added the main-process knowledge access boundary for exact customer/system scope, local-owner and delegated grants, expiry/revocation checks, pre/post retrieval filtering, safe exclusion diagnostics, citation sanitization, and fail-closed search behavior (#42, AIAB-02, Project 8).
 - Added the local-first rebuildable knowledge store with content-hash deduplication, atomic persistence, offline lexical search, lifecycle controls, scoped purge/delete, reindex markers, and degraded-state statistics (#43, AIAB-03, Project 8).
+- Added incremental Knowledge ingestion for incident evidence, runbooks, approved resolutions, job context, object analysis, and customer documents, with operational chunk boundaries, secret redaction, idempotent versioning, partial-failure isolation, cancellation, and a compact library/detail UI (#44, AIAB-04, Project 8).
 - Refined job tasks into compact independent windows with only Overview/History tabs, contextual actions and AI, expandable technical details, saved theme inheritance, and per-job window reuse (#59, UI-03, Project 8).
 - Show the compact live activity overview above jobs by default after connecting; retain live chart updates while collapsed (#58, UI-02, Project 8).
 

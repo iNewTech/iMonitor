@@ -79,7 +79,9 @@ import {
     type AuthorizationResult,
     type ProtectedAction
 } from './features/action-board/operator-access';
-import { authorizeSupportAccess, isClientOwner, listSupportAccessGrants } from './features/action-board/support-access';
+import { authorizeSupportAccess, getEffectiveSupportAccessGrant, isClientOwner, listSupportAccessGrants } from './features/action-board/support-access';
+import { toKnowledgeGrantSnapshot, type KnowledgeAccessContext } from './features/knowledge/knowledge-access';
+import { createKnowledgeStore } from './features/knowledge/knowledge-store';
 import {
     ALWAYS_ON_SUPPORT_WINDOW,
     buildRoutingRecommendation,
@@ -112,6 +114,7 @@ import { registerRunbookIpc } from './main/ipc/runbook-ipc';
 import { registerProblemManagementIpc } from './main/ipc/problem-management-ipc';
 import { registerIncidentReplayIpc } from './main/ipc/incident-replay-ipc';
 import { registerSupportMetricsIpc } from './main/ipc/support-metrics-ipc';
+import { registerKnowledgeIpc } from './main/ipc/knowledge-ipc';
 import { createAiRuntime } from './main/runtime/ai-runtime';
 import { createEmailNotificationRuntime } from './main/runtime/email-notification-runtime';
 import { createClickUpRuntime } from './main/runtime/clickup-runtime';
@@ -800,6 +803,24 @@ const loggingRuntime = createLoggingRuntime({
 });
 
 const collectionRuntime = createCollectionRuntime(() => app.getPath('userData'));
+const knowledgeStore = createKnowledgeStore(() => app.getPath('userData'));
+
+function getKnowledgeAccessContext(): KnowledgeAccessContext {
+    const operatorId = getCurrentOperatorName();
+    const systemScope = getCurrentSystemId() || '';
+    const owner = isClientOwner(operatorId, getClientOwnerName());
+    const grant = owner
+        ? undefined
+        : getEffectiveSupportAccessGrant(getNormalizedSupportAccessGrants(store), operatorId, systemScope);
+    return {
+        customerScope: owner ? 'local' : grant?.organizationId || '',
+        systemScope,
+        operatorId,
+        operatorPermissions: owner ? ['read', 'investigate', 'execute'] : grant?.permissions || [],
+        identity: owner ? 'local-owner' : 'delegated',
+        grant: grant ? toKnowledgeGrantSnapshot(grant) : undefined
+    };
+}
 
 const widgetSummaryRuntime = createWidgetSummaryRuntime({
     userDataPath: app.getPath('userData'),
@@ -1408,6 +1429,12 @@ registerCollectorIpc({
     applySettings: (settings) => backgroundCollectorRuntime.applySettings(settings),
     getStatus: backgroundCollectorRuntime.getStatus,
     collectionRuntime
+});
+
+registerKnowledgeIpc({
+    getStore: () => knowledgeStore,
+    getAccessContext: getKnowledgeAccessContext,
+    recordActivity: loggingRuntime.recordActivity
 });
 
 registerNavigationIpc({

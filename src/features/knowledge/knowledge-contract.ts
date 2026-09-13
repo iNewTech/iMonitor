@@ -151,7 +151,8 @@ function requiredText(value: unknown, name: string, max: number, errors: string[
     }
     const normalized = value.trim();
     if (normalized.length > max) errors.push(`${name} exceeds ${max} characters.`);
-    if (/\p{Cc}/u.test(normalized)) errors.push(`${name} contains control characters.`);
+    // Newlines and tabs are valid in source/evidence content; reject the remaining control range.
+    if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(normalized)) errors.push(`${name} contains control characters.`);
     return normalized;
 }
 

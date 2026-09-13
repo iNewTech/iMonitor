@@ -78,7 +78,7 @@ test('blocks disconnected workspace routes, allows them after connecting, and bl
     await page.locator('[data-app-destination="settings"]').click();
     await expect(page.locator('[data-app-destination="settings"]')).toHaveAttribute('aria-current', 'page');
     await page.locator('[data-app-destination="knowledge"]').click();
-    await expect(page.locator('.knowledge-placeholder')).toBeVisible();
+    await expect(page.locator('#knowledge-empty')).toBeVisible();
     await page.locator('[data-app-destination="board"]').click();
     await expect(page.locator('.job-row').first()).toBeVisible();
     await page.evaluate(() => window.electronAPI.disconnect());
@@ -167,7 +167,7 @@ test('keeps monitoring, job windows, selection, filters and the unsent AI draft 
     await page.locator('#jobs-search-input').fill('QBATCH');
     await page.locator('#ai-assistant-input').fill('Keep this unfinished investigation');
     await page.locator('[data-app-destination="knowledge"]').click();
-    await expect(page.locator('.knowledge-placeholder')).toContainText('No knowledge index is connected');
+    await expect(page.locator('#knowledge-empty')).toContainText('Your library is empty');
     await page.locator('#knowledge-analyze').click();
     await expect(page.locator('h1')).toContainText('Object analysis');
     await page.evaluate(() => window.electronAPI.navigateToKnowledge());
