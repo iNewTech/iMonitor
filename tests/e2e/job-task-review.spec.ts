@@ -309,8 +309,10 @@ test('shows compact cited sources and an unavailable-source state on demand', as
     await configure(app, { 'ask-ai-assistant': { value: {
         success: true,
         reply: '## Observed facts\nThe selected job is waiting.\n## Interpretation\nThe cause is not confirmed.\n## Missing evidence\nThe current owner is unknown.\n## Suggested checks\nInspect the lock owner.',
+        retrievalHealth: { backend: 'local', state: 'ready', message: 'Local lexical retrieval is ready.', checkedAt: '2026-09-11T10:00:00Z' },
         contextPack: {
             scope: { customerScope: 'customer-a', systemScope: 'system-a', qualifiedJob: jobName },
+            freshness: 'mixed',
             citations: [
                 { id: 'citation:job', recordId: 'job-1', label: 'Current job snapshot', status: 'current', observedAt: '2026-09-11T10:00:00Z', excerpt: 'Job is waiting on a lock.', sourceRef: { kind: 'job', id: jobName, locator: `job://${jobName}` } },
                 { id: 'citation:gone', recordId: 'gone-1', label: 'Deleted runbook', status: 'unavailable', observedAt: '2026-09-01T10:00:00Z', sourceRef: { kind: 'file', id: 'gone-1', locator: 'local://deleted.md' } }
@@ -322,6 +324,8 @@ test('shows compact cited sources and an unavailable-source state on demand', as
     } } });
     await page.getByRole('button', { name: 'How To Resolve', exact: true }).click();
     await expect(page.locator('#task-ai-citations')).toBeVisible();
+    await expect(page.locator('#task-ai-citations')).toContainText('Knowledge ready');
+    await expect(page.locator('#task-ai-citations')).toContainText('Evidence mixed');
     await expect(page.locator('.ai-citation-chip')).toHaveCount(2);
     await page.locator('.ai-citation-chip').first().click();
     await expect(page.locator('#task-ai-citation-dialog')).toBeVisible();

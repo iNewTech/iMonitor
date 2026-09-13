@@ -123,7 +123,13 @@ function renderAiCitations(result) {
     currentAiCitationScope = contextPack?.scope || result?.scope || null;
     if (!aiCitations) return;
     aiCitations.hidden = currentAiCitations.length === 0;
-    aiCitations.innerHTML = renderAiCitationChips(currentAiCitations);
+    aiCitations.innerHTML = renderAiCitationChips(
+        currentAiCitations,
+        result?.retrievalHealth,
+        contextPack?.freshness,
+        contextPack?.missingEvidence
+    );
+    aiCitations.hidden = !aiCitations.innerHTML;
 }
 
 function getJobKey(job) {

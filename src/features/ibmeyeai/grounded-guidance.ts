@@ -90,23 +90,47 @@ export interface GroundedReplyValidation {
     reply: string;
     valid: boolean;
     missingSections: string[];
+    missingCitations: string[];
     redacted: boolean;
 }
 
+export const JOB_REPLY_SECTIONS = [
+    'Observed facts',
+    'Matching evidence',
+    'Interpretation',
+    'Missing evidence',
+    'Suggested checks',
+    'Approved procedure',
+    'Next safe action'
+] as const;
+
 /** Bounds and checks provider output before it reaches the task renderer. */
-export function validateGroundedReply(reply: string, required = true): GroundedReplyValidation {
+export function validateGroundedReply(
+    reply: string,
+    required = true,
+    requiredSections: readonly string[] = ['Observed facts', 'Interpretation', 'Missing evidence', 'Suggested checks'],
+    requiredCitations: readonly string[] = []
+): GroundedReplyValidation {
     const original = String(reply || '');
     const cleaned = redactPromptSecrets(original).slice(0, 12000);
-    const sectionNames = ['Observed facts', 'Interpretation', 'Missing evidence', 'Suggested checks'];
     const missingSections = required
-        ? sectionNames.filter((name) => !new RegExp(`^\\s*(?:#+\\s*)?${name}\\b`, 'im').test(cleaned))
+        ? requiredSections.filter((name) => !hasHeading(cleaned, name))
+        : [];
+    const missingCitations = required && requiredCitations.length && !requiredCitations.some((id) => cleaned.includes(`[${id}]`))
+        ? ['Matching evidence citations']
         : [];
     return {
         reply: cleaned,
-        valid: missingSections.length === 0,
+        valid: missingSections.length === 0 && missingCitations.length === 0,
         missingSections,
+        missingCitations,
         redacted: cleaned !== original
     };
+}
+
+function hasHeading(value: string, name: string) {
+    const heading = name === 'Approved procedure' ? 'Approved procedures?' : name;
+    return new RegExp(`^\\s*(?:#+\\s*)?${heading}\\b`, 'im').test(value);
 }
 
 function interpretationFor(alert?: MonitorAlert | null) {

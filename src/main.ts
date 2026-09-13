@@ -1172,6 +1172,8 @@ const aiRuntime = createAiRuntime({
     getHighCpuThreshold: () => getAlertSettings().highCpuThreshold,
     getCurrentSystemId,
     getResolutionMemory: () => getNormalizedResolutionMemory(store),
+    getKnowledgeAccessContext,
+    getKnowledgeIndexGateway: () => knowledgeIndexGateway,
     recordActivity: loggingRuntime.recordActivity
 });
 

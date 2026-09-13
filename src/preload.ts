@@ -1076,6 +1076,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }) => ipcRenderer.invoke('ask-ai-assistant', payload) as Promise<{
         success: boolean;
         reply?: string;
+        supportContext?: Record<string, unknown>;
+        retrievalHealth?: {
+            backend?: string;
+            state?: string;
+            message?: string;
+            checkedAt?: string;
+            fallbackUsed?: boolean;
+        };
         citations?: Array<Record<string, unknown>>;
         contextPack?: {
             scope?: Record<string, unknown>;
@@ -1085,7 +1093,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
             missingEvidence?: string[];
         };
         availability?: AiAssistantAvailability;
-        validation?: { valid: boolean; missingSections: string[]; redacted: boolean };
+        validation?: { valid: boolean; missingSections: string[]; missingCitations?: string[]; redacted: boolean };
         error?: string;
     }>,
     getMonitoringState: () => ipcRenderer.invoke('get-monitoring-state') as Promise<MonitoringState>,

@@ -215,9 +215,9 @@ Fresh evidence is required before a production action. An old screenshot, an ear
 
 ### Step 7: Ask the job-scoped AI helper
 
-Open **AI helper** and choose **Job health summary** or **How to resolve**. These buttons use only the selected job, its linked incident, its evidence, status history, and matching approved procedures.
+Open **AI helper** and choose **Job health summary** or **How to resolve**. These buttons use only the selected job, its linked incident, its evidence, status history, and matching scoped knowledge. The response shows observed facts, matching evidence, interpretation, missing evidence, suggested checks, an approved procedure when available, and the next safe action. The source strip also shows retrieval health and stale or unavailable evidence.
 
-The answer should separate observed facts, interpretation, missing evidence, suggested checks, and approved procedures. Treat the interpretation as advice. Verify every important fact in the task window before acting.
+The answer should separate observed facts, matching evidence, interpretation, missing evidence, suggested checks, an approved procedure, and the next safe action. Treat the interpretation as advice. Verify every important fact in the task window before acting. If the knowledge status is stale, degraded, or unavailable, use the live job evidence and confirm the condition before relying on a stored procedure.
 
 ### Step 8: Choose an approved action
 

@@ -38,12 +38,19 @@ export function normalizeAiCitations(value, relevanceReasons = []) {
         }));
 }
 
-export function renderAiCitationChips(citations) {
+export function renderAiCitationChips(citations, retrievalHealth, freshness = 'unknown', missingEvidence = []) {
     const items = normalizeAiCitations(citations);
-    if (!items.length) return '';
+    const healthState = text(retrievalHealth?.state, 40);
+    const healthMessage = text(retrievalHealth?.message, 240);
+    const freshnessLabel = text(freshness, 40).replace(/[-_]/g, ' ');
+    const missing = Array.isArray(missingEvidence) ? missingEvidence.filter((item) => typeof item === 'string').slice(0, 1) : [];
+    if (!items.length && !healthState && !missing.length) return '';
     return `<div class="ai-citation-strip" aria-label="Answer sources">
         <span class="ai-citation-label">Sources</span>
+        ${healthState ? `<span class="ai-citation-health" title="${escapeHtml(healthMessage)}">Knowledge ${escapeHtml(healthState)}${retrievalHealth?.fallbackUsed ? ' · local fallback' : ''}</span>` : ''}
+        ${freshnessLabel !== 'unknown' ? `<span class="ai-citation-health">Evidence ${escapeHtml(freshnessLabel)}</span>` : ''}
         ${items.map((citation, index) => `<button type="button" class="ai-citation-chip" data-ai-citation-id="${escapeHtml(citation.id)}">${index + 1} · ${escapeHtml(citation.label)}</button>`).join('')}
+        ${missing.map((item) => `<span class="ai-citation-missing">${escapeHtml(item)}</span>`).join('')}
     </div>`;
 }
 

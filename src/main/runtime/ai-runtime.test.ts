@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ActiveJobRecord } from '../../services/ibmi';
 import { DEFAULT_AI_ASSISTANT_SETTINGS } from '../../features/ibmeyeai/ai-model';
+import type { KnowledgeAccessContext } from '../../features/knowledge/knowledge-access';
+import type { KnowledgeRecord } from '../../features/knowledge/knowledge-contract';
 import { createAiRuntime } from './ai-runtime';
 
 describe('ai-runtime', () => {
@@ -187,6 +189,66 @@ describe('ai-runtime', () => {
         });
 
         expect(result.success).toBe(true);
+    });
+
+    it('adds scoped retrieved knowledge and citations to the selected-job prompt', async () => {
+        const selectedJob = {
+            JOB_NAME: '123/USER/GROUNDED', SUBSYSTEM_JOB: 'QINTER/GROUNDED', CURRENT_USER: 'USER',
+            SUBSYSTEM: 'QINTER', FUNCTION_NAME: 'Review orders', STATUS: 'MSGW', CPU: 4,
+            SQL_STATEMENT_TEXT: null
+        } as ActiveJobRecord;
+        const access: KnowledgeAccessContext = {
+            customerScope: 'customer-a', systemScope: 'system-a', operatorId: 'operator-a',
+            operatorPermissions: ['read', 'investigate'], identity: 'local-owner', now: '2026-09-13T10:00:00.000Z'
+        };
+        const knowledgeRecord: KnowledgeRecord = {
+            id: 'knowledge-1', schemaVersion: 1, sourceType: 'runbook', title: 'MSGW response guide',
+            content: 'Inspect the captured message before replying.', operational: true,
+            customerScope: 'customer-a', systemScope: 'system-a', permissions: ['read'],
+            sourceRef: { kind: 'file', id: 'msgw.md', locator: 'local://msgw.md' }, evidenceRefs: [],
+            observedAt: access.now!, contentHash: 'b'.repeat(64), redactionProfile: 'ibmi-default', confidence: 'high',
+            status: 'approved', reviewer: 'operator-a', reviewAt: access.now!, qualifiedJob: selectedJob.JOB_NAME || undefined, objectNames: []
+        };
+        const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
+            if (url.endsWith('/api/tags')) return new Response(JSON.stringify({ models: [{ name: 'gemma3:latest' }] }), { status: 200 });
+            if (url.endsWith('/api/chat')) {
+                const payload = JSON.parse(String(init?.body ?? '{}'));
+                const userMessage = payload.messages.at(-1).content;
+                expect(userMessage).toContain('Matching evidence');
+                expect(userMessage).toContain('[citation:knowledge-1]');
+                expect(userMessage).toContain('Inspect the captured message before replying.');
+                return new Response(JSON.stringify({ message: { content: [
+                    'Observed facts: [citation:knowledge-1] The job is in message wait.',
+                    'Matching evidence: [citation:knowledge-1] MSGW response guide.',
+                    'Interpretation: The reply is not yet confirmed.',
+                    'Missing evidence: [citation:knowledge-1] Message details require review.',
+                    'Suggested checks: [citation:knowledge-1] Inspect the message.',
+                    'Approved procedure: [citation:knowledge-1] Follow the response guide.',
+                    'Next safe action: [citation:knowledge-1] Review before replying.'
+                ].join('\\n') } }));
+            }
+            throw new Error(`Unexpected fetch: ${url}`);
+        });
+        const runtime = createAiRuntime({
+            appName: 'iMonitor', getSettings: () => DEFAULT_AI_ASSISTANT_SETTINGS,
+            getConnection: () => null, getMonitorMode: () => 'live',
+            getLatestJobs: () => [selectedJob], getJob: () => selectedJob,
+            getActiveAlerts: () => [{
+                id: 'alert-1', kind: 'messageWait', severity: 'warning', timestamp: access.now!, title: 'MSGW detected',
+                message: 'The selected job needs a reply.', jobName: selectedJob.JOB_NAME || undefined, workflowStatus: 'new', notes: [], timeline: [], workflowUpdatedAt: access.now!
+            }],
+            getMonitoringHistory: () => [], getActivityLog: () => [], getKnowledgeAccessContext: () => access,
+            getKnowledgeIndexGateway: () => ({
+                search: async () => ({ records: [knowledgeRecord], excluded: [], health: { backend: 'local', state: 'ready', message: 'Local lexical retrieval is ready.', checkedAt: access.now! }, fallbackUsed: false }),
+                health: async () => ({ backend: 'local', state: 'ready', message: 'Local lexical retrieval is ready.', checkedAt: access.now! })
+            }),
+            recordActivity: vi.fn(), fetchImpl: fetchImpl as typeof fetch
+        });
+
+        const result = await runtime.askAssistant({ message: 'How should I resolve this?', selectedJobName: selectedJob.JOB_NAME || undefined, scope: 'job' });
+        expect(result.success).toBe(true);
+        expect(result.contextPack?.citations[0].id).toBe('citation:knowledge-1');
+        expect(result.retrievalHealth?.state).toBe('ready');
     });
 
     it('rejects a job helper request when the selected job is unavailable', async () => {

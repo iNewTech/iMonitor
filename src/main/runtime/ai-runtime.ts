@@ -5,7 +5,7 @@ import { buildAiAssistantContext } from '../../features/ibmeyeai/ai-context';
 import { buildAiAssistantPrompt } from '../../features/ibmeyeai/ai-prompt';
 import { buildAlertDiagnosticPrompt } from '../../features/ibmeyeai/alert-diagnostic';
 import { findApplicableResolutions, type ResolutionMemoryStore } from '../../features/action-board/resolution-memory';
-import { validateGroundedReply, type GroundedReplyValidation } from '../../features/ibmeyeai/grounded-guidance';
+import { JOB_REPLY_SECTIONS, validateGroundedReply, type GroundedReplyValidation } from '../../features/ibmeyeai/grounded-guidance';
 import type {
     AiAssistantAvailability,
     AiAssistantMessage,
@@ -14,6 +14,9 @@ import type {
 import type { JobStatusHistoryEntry } from '../../features/monitoring/monitoring-model';
 import { createAiProviderRegistry } from './ibmeyeai/providers';
 import type { ActivityLogEntry, MonitorMode } from '../types';
+import type { KnowledgeAccessContext } from '../../features/knowledge/knowledge-access';
+import type { KnowledgeIndexGateway } from '../../features/knowledge/knowledge-index';
+import { retrieveJobKnowledgeContext, type JobKnowledgeContextResult } from '../../features/ibmeyeai/job-knowledge';
 
 interface AiRuntimeDependencies {
     appName: string;
@@ -34,6 +37,8 @@ interface AiRuntimeDependencies {
     getHighCpuThreshold?: () => number;
     getCurrentSystemId?: () => string | undefined;
     getResolutionMemory?: () => ResolutionMemoryStore;
+    getKnowledgeAccessContext?: () => KnowledgeAccessContext;
+    getKnowledgeIndexGateway?: () => Pick<KnowledgeIndexGateway, 'search' | 'health'>;
     recordActivity: (entry: Omit<ActivityLogEntry, 'id' | 'timestamp'>) => void;
     fetchImpl?: typeof fetch;
 }
@@ -125,6 +130,15 @@ export function createAiRuntime(dependencies: AiRuntimeDependencies) {
                 alert: linkedAlert
             }, dependencies.getResolutionMemory())
             : [];
+        let groundedKnowledge: JobKnowledgeContextResult | undefined;
+        if (isJobScoped && selectedJob && dependencies.getKnowledgeAccessContext && dependencies.getKnowledgeIndexGateway) {
+            groundedKnowledge = await retrieveJobKnowledgeContext({
+                job: selectedJob,
+                alert: linkedAlert,
+                access: dependencies.getKnowledgeAccessContext(),
+                index: dependencies.getKnowledgeIndexGateway()
+            });
+        }
         const context = buildAiAssistantContext({
             appName: dependencies.appName,
             connection: dependencies.getConnection(),
@@ -140,7 +154,8 @@ export function createAiRuntime(dependencies: AiRuntimeDependencies) {
                 : undefined,
             scope: payload.scope,
             highCpuThreshold: dependencies.getHighCpuThreshold?.(),
-            approvedResolutions
+            approvedResolutions,
+            knowledgeContextPack: groundedKnowledge?.contextPack
         });
         const enrichedContext = !isJobScoped && payload.additionalContext?.trim()
             ? `${context}\n\n${payload.additionalContext.trim()}`
@@ -161,19 +176,27 @@ export function createAiRuntime(dependencies: AiRuntimeDependencies) {
                 throw new Error(`${availability.providerLabel} returned an empty response.`);
             }
 
-            const validation: GroundedReplyValidation = validateGroundedReply(reply, isJobScoped);
+            const validation: GroundedReplyValidation = validateGroundedReply(
+                reply,
+                isJobScoped,
+                isJobScoped ? JOB_REPLY_SECTIONS : undefined,
+                isJobScoped ? groundedKnowledge?.contextPack.citations.map((citation) => citation.id) : undefined
+            );
             dependencies.recordActivity({
                 area: 'ai',
                 level: 'info',
                 message: 'IBMEye AI analysis completed.',
-                detail: `${availability.providerLabel} / ${model} analyzed the current monitor context.${validation.valid ? '' : ` Missing sections: ${validation.missingSections.join(', ')}.`}`
+                detail: `${availability.providerLabel} / ${model} analyzed the current monitor context.${validation.valid ? '' : ` Missing sections or citations: ${[...validation.missingSections, ...validation.missingCitations].join(', ')}.`}`
             });
 
             return {
                 success: true,
                 reply: validation.reply,
                 availability,
-                validation
+                validation,
+                supportContext: groundedKnowledge?.supportContext,
+                contextPack: groundedKnowledge?.contextPack,
+                retrievalHealth: groundedKnowledge?.retrievalHealth
             };
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);

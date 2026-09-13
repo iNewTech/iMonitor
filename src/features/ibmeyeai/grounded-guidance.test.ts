@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildGroundedGuidanceSections, validateGroundedReply } from './grounded-guidance';
+import { buildGroundedGuidanceSections, JOB_REPLY_SECTIONS, validateGroundedReply } from './grounded-guidance';
 import type { ActiveJobRecord } from '../../services/ibmi';
 import type { MonitorAlert } from '../alerts/alert-model';
 import type { ResolutionMemoryEntry } from '../action-board/resolution-memory';
@@ -94,5 +94,17 @@ describe('grounded guidance', () => {
         expect(untrusted.reply).toContain('password=[REDACTED]');
         expect(untrusted.valid).toBe(false);
         expect(untrusted.missingSections).toContain('Suggested checks');
+    });
+
+    it('can enforce the complete selected-job response shape and a matching citation', () => {
+        const reply = JOB_REPLY_SECTIONS.map((section) => `${section}: [citation:job-1] observed or recommended.`).join('\n');
+        const valid = validateGroundedReply(reply, true, JOB_REPLY_SECTIONS, ['citation:job-1']);
+        expect(valid.valid).toBe(true);
+        expect(valid.missingSections).toEqual([]);
+        expect(valid.missingCitations).toEqual([]);
+
+        const missingCitation = validateGroundedReply(reply.replace(/\[citation:job-1\]/g, ''), true, JOB_REPLY_SECTIONS, ['citation:job-1']);
+        expect(missingCitation.valid).toBe(false);
+        expect(missingCitation.missingCitations).toEqual(['Matching evidence citations']);
     });
 });
