@@ -15,6 +15,7 @@ import {
 } from '../../features/knowledge/knowledge-ingestion';
 import { createKnowledgeStore, type KnowledgeScope } from '../../features/knowledge/knowledge-store';
 import { createKnowledgeIndexGateway, createLocalKnowledgeIndexAdapter, type KnowledgeIndexGateway } from '../../features/knowledge/knowledge-index';
+import { buildKnowledgeRetrievalQuery, rankKnowledgeRecords } from '../../features/knowledge/knowledge-retrieval';
 
 type ActivityEntry = {
     area: 'monitoring';
@@ -110,13 +111,33 @@ export function registerKnowledgeIpc(dependencies: KnowledgeIpcDependencies) {
         if (!decision.allowed) return denied(current, 'read');
         const requested = safeText(query, 500);
         if (!requested) return { success: true, records: [], excluded: [] };
-        const result = await index().search({ ...scopeOf(current), query: requested, limit: Number(limit) || 20 }, current);
+        const retrievalQuery = buildKnowledgeRetrievalQuery({
+            ...scopeOf(current),
+            operatorId: current.operatorId,
+            operatorPermissions: current.operatorPermissions,
+            query: requested,
+            limit: Number(limit) || 20
+        });
+        const result = await index().search(retrievalQuery.indexRequest, current);
+        const retrieval = rankKnowledgeRecords(
+            result.records,
+            retrievalQuery,
+            result.health.backend === 'local' || result.fallbackUsed ? 'lexical' : 'semantic'
+        );
         return {
             success: true,
-            records: recordSourceRows(result.records),
+            records: recordSourceRows(retrieval.matches.map((match) => match.record)),
             excluded: result.excluded,
             health: result.health,
-            fallbackUsed: result.fallbackUsed
+            fallbackUsed: result.fallbackUsed,
+            citations: retrieval.citations,
+            relevanceReasons: retrieval.matches.map((match) => ({
+                recordId: match.record.id,
+                reasons: match.reasons,
+                reviewState: match.reviewState,
+                source: match.source
+            })),
+            noMatchReason: retrieval.noMatchReason
         };
     });
 

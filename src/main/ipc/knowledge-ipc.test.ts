@@ -59,6 +59,11 @@ describe('knowledge IPC', () => {
 
         const search = await handlers.get('search-knowledge')!(null, 'night batch');
         expect(search.records).toHaveLength(2);
+        expect(search.citations).toHaveLength(2);
+        expect(search.relevanceReasons).toEqual(expect.arrayContaining([
+            expect.objectContaining({ recordId: search.records[0].id, source: 'lexical' })
+        ]));
+        expect(search.noMatchReason).toBeUndefined();
 
         const detail = await handlers.get('get-knowledge-record')!(null, library.records[0].id);
         expect(detail.success).toBe(true);

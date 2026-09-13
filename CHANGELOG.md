@@ -10,6 +10,7 @@
 - Added the local-first rebuildable knowledge store with content-hash deduplication, atomic persistence, offline lexical search, lifecycle controls, scoped purge/delete, reindex markers, and degraded-state statistics (#43, AIAB-03, Project 8).
 - Added incremental Knowledge ingestion for incident evidence, runbooks, approved resolutions, job context, object analysis, and customer documents, with operational chunk boundaries, secret redaction, idempotent versioning, partial-failure isolation, cancellation, and a compact library/detail UI (#44, AIAB-04, Project 8).
 - Added the pluggable knowledge-index contract with a local lexical adapter, explicit future vector-provider catalog, scoped provider payloads, protected settings, and degraded local fallback when a provider is unavailable or returns unsafe data (#45, AIAB-05, Project 8).
+- Added hybrid IBM i knowledge retrieval with bounded job/incident query context, exact identifier ranking, provider-backed semantic source labelling, deduplication, freshness/review states, relevance reasons, stable citations, no-match states, and local fallback (#46, AIAB-06, Project 8).
 - Refined job tasks into compact independent windows with only Overview/History tabs, contextual actions and AI, expandable technical details, saved theme inheritance, and per-job window reuse (#59, UI-03, Project 8).
 - Show the compact live activity overview above jobs by default after connecting; retain live chart updates while collapsed (#58, UI-02, Project 8).
 
