@@ -1415,6 +1415,7 @@ registerNavigationIpc({
     loadMonitorPage: windowRuntime.loadMonitorPage,
     loadConnectionPage: windowRuntime.loadConnectionPage,
     loadSettingsPage: windowRuntime.loadSettingsPage,
+    loadKnowledgePage: windowRuntime.loadKnowledgePage,
     loadObjectAnalysisPage: windowRuntime.loadObjectAnalysisPage,
     openJobTaskWindow: windowRuntime.openJobTaskWindow,
     openExternalUrl: (target) => shell.openExternal(target),

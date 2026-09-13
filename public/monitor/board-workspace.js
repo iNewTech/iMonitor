@@ -6,6 +6,7 @@ export function initBoardWorkspace({ getViewState, restoreViewState, clearAiScop
     const companion = get('board-companion-toggle');
     const density = get('board-density');
     const scrollArea = get('system-stats');
+    const draft = get('ai-assistant-input');
     let storageKey = '';
     let systemName = 'System';
     let restoredScroll = null;
@@ -59,10 +60,11 @@ export function initBoardWorkspace({ getViewState, restoreViewState, clearAiScop
 
     function save() {
         if (!storageKey) return;
-        try { sessionStorage.setItem(storageKey, JSON.stringify({ ...getViewState(), density: density.value, scrollTop: scrollArea.scrollTop })); } catch { /* View preferences are optional. */ }
+        try { sessionStorage.setItem(storageKey, JSON.stringify({ ...getViewState(), draft: draft.value, density: density.value, scrollTop: scrollArea.scrollTop })); } catch { /* View preferences are optional. */ }
     }
     scrollArea?.addEventListener('scroll', save, { passive: true });
     window.addEventListener('pagehide', save);
+    draft.addEventListener('input', save);
     return {
         save,
         connect(connection) {
@@ -73,6 +75,10 @@ export function initBoardWorkspace({ getViewState, restoreViewState, clearAiScop
                 const saved = JSON.parse(sessionStorage.getItem(storageKey) || 'null');
                 if (saved && typeof saved === 'object') {
                     restoreViewState(saved);
+                    if (typeof saved.draft === 'string') {
+                        draft.value = saved.draft;
+                        draft.dispatchEvent(new Event('input'));
+                    }
                     density.value = saved.density === 'compact' ? 'compact' : 'comfortable';
                     document.body.dataset.density = density.value;
                     restoredScroll = Number(saved.scrollTop) || 0;

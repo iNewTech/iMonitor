@@ -28,6 +28,10 @@ export function createWindowRuntime(dependencies: WindowRuntimeDependencies) {
         mainWindow?.loadFile(path.join(__dirname, '../../../public/settings.html'));
     };
 
+    const loadKnowledgePage = () => {
+        mainWindow?.loadFile(path.join(__dirname, '../../../public/knowledge.html'));
+    };
+
     const loadObjectAnalysisPage = () => {
         mainWindow?.loadFile(path.join(__dirname, '../../../public/object-analysis.html'));
     };
@@ -83,6 +87,7 @@ export function createWindowRuntime(dependencies: WindowRuntimeDependencies) {
         loadConnectionPage,
         loadMonitorPage,
         loadSettingsPage,
+        loadKnowledgePage,
         loadObjectAnalysisPage,
         openJobTaskWindow,
         createWindow() {

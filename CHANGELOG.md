@@ -4,6 +4,9 @@
 
 ### 2026-09-13
 
+- Added the compact Connect screen and shared ActionBoard/Knowledge/Settings navigation (#57, UI-01, Project 8).
+- Fixed saved-profile rename identity and retained board drafts across destination navigation; protected unfinished edits and added profile loading retries.
+
 - Added customer-scoped support outcome reporting with stage definitions, unknown samples, previous-window comparison, AI availability, and JSON export.
 - Added a pilot validation and compatibility record for exact client, IBM i release/PTF, authority, scale, provider, integration, defect, and approval evidence.
 - Added P2, P3, and P4 release-gate records with candidate, automated-test, UAT, review, deployment, smoke, and rollback checklists.

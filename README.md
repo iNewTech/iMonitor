@@ -6,7 +6,7 @@ The product flow is **Connect → Monitor → Detect → Explain with AI → App
 
 ## Operator workflow
 
-- Connect through Mapepire using a saved system profile.
+- Connect through Mapepire using a saved system profile. Edit or Add another system reveals the compact connection form; renaming preserves the profile identity.
 - Scan active jobs, filter by subsystem/status, or use **Focus next** to inspect a priority job.
 - Open a job in its own task window. Multiple job windows can stay open together.
 - In **Details**, load an observed resource call graph for the selected job, including linked incidents, queues, subsystems, message waits, and lock owners when IBM i evidence provides them.
@@ -44,6 +44,8 @@ npm start
 `npm start` builds TypeScript, checks browser JavaScript syntax/imports, and launches Electron from this checkout. In development, the saved **Demo connection** lets you connect without an IBM i host. Packaged builds disable demo access.
 
 For renderer-only edits, reload the app window. Main-process/preload changes require an app restart. When using a Git worktree, launch from the checkout containing your changes.
+
+The shared **ActionBoard / Knowledge / Settings** navigation keeps monitoring and independent task windows running. The board restores its per-profile filters, selection and unsent input within the window session. **Knowledge → Analyze code** opens existing object analysis; document ingestion and retrieval remain planned.
 
 ## AI and integrations
 

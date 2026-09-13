@@ -1,90 +1,28 @@
 <!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>iMonitor Connect</title>
-    <link href="../node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="../node_modules/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body class="app-body connection-body">
-    <main class="app-shell">
-        <section class="screen-frame connection-frame">
-            <div class="connection-layout">
-                <section class="workspace-panel surface-card">
-                    <div class="panel-header connection-header">
-                        <div class="workspace-header-copy">
-                            <div class="connection-brand-line">
-                                <img src="assets/ibm-eye.svg" alt="" aria-hidden="true">
-                                <p class="eyebrow mb-0">iMonitor Connect</p>
-                            </div>
-                            <h1 class="panel-title">Connect to IBM i</h1>
-                            <p class="panel-copy mb-0">
-                                Choose a saved system or enter connection details to start monitoring.
-                            </p>
-                        </div>
-                        <div class="workspace-header-meta">
-                            <span id="saved-count" class="panel-badge">0 saved profiles</span>
-                            <details class="plan-panel" id="plan-panel">
-                                <summary><span><i class="bi bi-stars me-2"></i><strong id="plan-label">Free plan</strong></span><i class="bi bi-chevron-down"></i></summary>
-                                <div class="plan-panel-body">
-                                    <label class="form-footnote" for="development-plan-select">Development plan preview</label>
-                                    <select id="development-plan-select" class="form-select form-select-sm mb-2">
-                                        <option value="free">Free plan</option>
-                                        <option value="premium">Premium plan</option>
-                                    </select>
-                                    <p id="plan-copy" class="mb-2">Monitoring, information, alert ownership, and desktop notifications are included.</p>
-                                    <p class="plan-preview mb-2"><span class="premium-badge">Premium</span> IBM i job actions and external integrations.</p>
-                                    <div class="plan-license-row">
-                                        <input id="development-license-key" class="form-control form-control-sm" type="password" placeholder="Development license key">
-                                        <button id="activate-development-license" type="button" class="btn btn-outline-ink btn-sm">Activate</button>
-                                    </div>
-                                    <small id="plan-status" class="form-footnote">Premium activation is available only in development builds.</small>
-                                </div>
-                            </details>
-                            <details id="theme-menu" class="theme-menu">
-                                <summary class="theme-menu-summary" aria-label="Open theme menu" title="Change theme">
-                                    <i class="bi bi-palette"></i>
-                                </summary>
-                                <div id="theme-menu-options" class="theme-menu-panel"></div>
-                            </details>
-                        </div>
-                    </div>
-
-                    <div class="saved-connections-panel">
-                        <div class="saved-connections-header">
-                                <div>
-                                <h2 class="section-title">Saved systems</h2>
-                                <p id="saved-hint" class="saved-connections-hint mb-0">
-                                    Choose a saved system or enter connection details below.
-                                </p>
-                            </div>
-                        </div>
-                        <div class="saved-profile-selector">
-                            <select id="saved-connections" class="form-select">
-                                <option value="">-- Select Saved Connection --</option>
-                            </select>
-                            <div class="saved-profile-actions" aria-label="Saved connection actions">
-                                <button id="edit-connection" type="button" class="btn btn-outline-ink btn-icon-label" hidden title="Edit selected connection">
-                                    <i class="bi bi-pencil" aria-hidden="true"></i><span>Edit</span>
-                                </button>
-                                <button id="delete-connection" type="button" class="btn btn-soft-danger btn-icon-label" hidden title="Delete selected connection">
-                                    <i class="bi bi-trash" aria-hidden="true"></i><span>Delete</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <form id="connection-form" class="connection-form-grid" novalidate>
-                        <div class="connection-form-shell">
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>iMonitor Connect</title><link href="../node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="../node_modules/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet"><link rel="stylesheet" href="styles.css"></head>
+<body class="app-body connection-body minimal-shell connect-minimal">
+<main class="app-shell"><section class="screen-frame connection-frame">
+<header class="app-chrome"><span class="app-brand"><img src="assets/ibm-eye.svg" alt="" width="24" height="24">iMonitor</span><nav data-app-nav="connect" aria-label="Main navigation"></nav></header>
+<div class="connection-layout"><section class="workspace-panel surface-card" aria-labelledby="connect-heading">
+<div class="connection-header"><div><h1 id="connect-heading" class="panel-title">Connect to IBM i</h1><p class="panel-copy">Choose your system. Get straight to work.</p></div></div>
+<div class="saved-connections-panel">
+<label for="saved-connections">Saved system</label>
+<div class="saved-profile-selector"><select id="saved-connections" class="form-select" aria-describedby="saved-hint"><option value="">Loading systems…</option></select>
+<div class="saved-profile-actions"><button id="edit-connection" class="btn btn-outline-ink" type="button" hidden>Edit</button><button id="delete-connection" class="btn btn-soft-danger" type="button" hidden>Delete</button></div></div>
+<p id="saved-hint" class="saved-connections-hint" aria-live="polite">Loading your profiles…</p>
+</div>
+<form id="connection-form" novalidate>
+<div id="connection-fields" class="connection-form-shell" hidden>
+<div class="connection-editor-heading"><h2 id="connection-editor-title">Add system</h2><button id="cancel-edit-connection" type="button" class="btn btn-outline-ink">Cancel</button></div>
                         <div class="form-row-split">
                             <div class="form-floating">
                                 <input type="text" class="form-control" id="connection-name" placeholder="Connection Name" required>
                                 <label for="connection-name">Connection Name *</label>
                             </div>
                             <div class="form-floating">
-                                <input type="number" class="form-control" id="port" placeholder="Port" value="8076">
+                                <input type="number" class="form-control" id="port" placeholder="Port" value="8076" min="1" max="65535" step="1">
                                 <label for="port">Mapepire Port</label>
                             </div>
                         </div>
@@ -110,28 +48,36 @@
                         <p class="form-footnote connection-form-note mb-0">
                             Profiles are stored locally on this machine. The default Mapepire port is <code>8076</code>. Use a unique name for each system and operator combination.
                         </p>
-                        </div>
-
-                        <div class="primary-actions">
-                            <button type="submit" id="connect" class="btn btn-primary-strong">
-                                <i class="bi bi-plug-fill me-2"></i>Connect &amp; Monitor
-                            </button>
-                            <button type="button" id="save-connection" class="btn btn-outline-ink">
-                                <i class="bi bi-bookmark-plus me-2"></i>Save Profile
-                            </button>
-                        </div>
-
-                        <div id="connection-action-bar" class="connection-action-bar" hidden>
-                            <div class="connection-action-indicator"></div>
-                            <div>
-                                <strong id="connection-action-message">Idle</strong>
-                                <p id="connection-action-detail" class="mb-0"></p>
-                            </div>
-                        </div>
-                    </form>
-                </section>
-            </div>
-            <footer class="app-footer surface-card">
+</div>
+<div class="primary-actions"><button type="submit" id="connect" class="btn btn-primary-strong" disabled>Connect &amp; Monitor</button><button type="button" id="save-connection" class="btn btn-outline-ink" hidden>Save Profile</button></div>
+<div class="connection-secondary-actions"><button type="button" id="add-connection" class="btn btn-outline-ink" disabled>+ Add another system</button><span id="saved-count"></span><button type="button" id="retry-profiles" class="btn btn-outline-ink" hidden>Retry loading profiles</button></div>
+<div id="connection-action-bar" class="connection-action-bar" role="status" hidden><div class="connection-action-indicator"></div><div><strong id="connection-action-message"></strong><p id="connection-action-detail"></p></div></div>
+</form>
+<div class="connection-utilities connection-header">                            <details class="plan-panel" id="plan-panel">
+                                <summary><span><i class="bi bi-stars me-2"></i><strong id="plan-label">Free plan</strong></span><i class="bi bi-chevron-down"></i></summary>
+                                <div class="plan-panel-body">
+                                    <label class="form-footnote" for="development-plan-select">Development plan preview</label>
+                                    <select id="development-plan-select" class="form-select form-select-sm mb-2">
+                                        <option value="free">Free plan</option>
+                                        <option value="premium">Premium plan</option>
+                                    </select>
+                                    <p id="plan-copy" class="mb-2">Monitoring, information, alert ownership, and desktop notifications are included.</p>
+                                    <p class="plan-preview mb-2"><span class="premium-badge">Premium</span> IBM i job actions and external integrations.</p>
+                                    <div class="plan-license-row">
+                                        <input id="development-license-key" class="form-control form-control-sm" type="password" placeholder="Development license key">
+                                        <button id="activate-development-license" type="button" class="btn btn-outline-ink btn-sm">Activate</button>
+                                    </div>
+                                    <small id="plan-status" class="form-footnote">Premium activation is available only in development builds.</small>
+                                </div>
+                            </details>
+                            <details id="theme-menu" class="theme-menu">
+                                <summary class="theme-menu-summary" aria-label="Open theme menu" title="Change theme">
+                                    <i class="bi bi-palette"></i>
+                                </summary>
+                                <div id="theme-menu-options" class="theme-menu-panel"></div>
+                            </details>
+</div>
+</section></div>            <footer class="app-footer surface-card">
                 <div class="app-footer-meta">
                     <span id="app-version-label" class="app-version-label">iMonitor</span>
                     <p class="app-footer-copy mb-0">Support is available before and after you connect.</p>
@@ -151,10 +97,5 @@
                 </details>
                 <p id="support-status" class="support-status" hidden></p>
             </footer>
-        </section>
-    </main>
-    <script src="../node_modules/@popperjs/core/dist/umd/popper.min.js"></script>
-    <script src="../node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
-    <script type="module" src="renderer.js"></script>
-</body>
-</html>
+</section></main>
+<script src="../node_modules/bootstrap/dist/js/bootstrap.min.js"></script><script type="module" src="renderer.js"></script></body></html>

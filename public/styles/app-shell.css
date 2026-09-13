@@ -1,0 +1,78 @@
+/* Shared UI-01 tokens and main-screen chrome. Operational feature styling stays local. */
+body.minimal-shell { --shell-paper: #fff; --shell-soft: #f8faf9; --shell-line: #e2e7e5; --shell-ink: #222c2a; --shell-muted: #66736f; --shell-accent: #0d7666; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; font-size: 14px; }
+body.minimal-shell[data-theme="night-console"] { --shell-paper: #171d20; --shell-soft: #20282c; --shell-line: #344044; --shell-ink: #e9efed; --shell-muted: #a0ada8; --shell-accent: #72d8c6; }
+body.minimal-shell[data-theme="paper-terminal"] { --shell-paper: #fffcf5; --shell-soft: #f8f2e8; }
+body.minimal-shell[data-theme="aurora-mist"] { --shell-paper: #fbfefd; --shell-soft: #f1f7f5; }
+.minimal-shell [hidden] { display: none !important; }
+.minimal-shell .app-chrome { display: flex; align-items: center; gap: 24px; min-height: 66px; border-bottom: 1px solid var(--shell-line); color: var(--shell-ink); }
+.minimal-shell .app-brand { display: inline-flex; gap: 9px; align-items: center; color: var(--shell-ink); font-size: 16px; font-weight: 650; text-decoration: none; }
+.minimal-shell .app-navigation { display: flex; gap: 3px; flex-wrap: wrap; }
+.minimal-shell .app-navigation button { background: transparent; border: 0; border-radius: 7px; box-shadow: none; min-height: 32px; padding: 6px 10px; color: var(--shell-ink); font-size: 13px; font-weight: 450; }
+.minimal-shell .app-navigation button[aria-current="page"] { background: var(--shell-soft); color: var(--shell-accent); font-weight: 600; }
+.minimal-shell .app-navigation button:hover { background: var(--shell-soft); }
+.minimal-shell :is(button,summary,input,select,textarea):focus-visible { outline: 2px solid var(--shell-accent); outline-offset: 3px; }
+.minimal-shell .navigation-error { color: var(--danger); font-size: 13px; margin: 12px 0; }
+body:is(.connect-minimal,.knowledge-body) { background: var(--shell-paper); color: var(--shell-ink); }
+body:is(.connect-minimal,.knowledge-body)::before, body:is(.connect-minimal,.knowledge-body)::after { display: none; }
+.minimal-shell:is(.connect-minimal,.knowledge-body) .app-shell { padding: 0 28px; max-width: 1500px; margin: auto; }
+body.connect-minimal .connection-frame { width: 100%; padding: 0; display: flex; flex-direction: column; min-height: 100vh; max-width: none; gap: 0; }
+body.connect-minimal .connection-layout { width: min(450px,100%); margin: auto; padding: 40px 0; display: block; }
+body.connect-minimal .workspace-panel { margin: 0; padding: 0; background: transparent; border: 0; border-radius: 0; box-shadow: none; animation: none; overflow: visible; }
+body.connect-minimal .connection-header { display: block; margin: 0 0 24px; }
+body.connect-minimal .connection-header .panel-title { font-size: 26px; font-weight: 600; letter-spacing: -.6px; color: var(--shell-ink); }
+body.connect-minimal .panel-copy { margin: 8px 0 0; font-size: 14px; line-height: 1.5; color: var(--shell-muted); }
+body.connect-minimal .saved-connections-panel { margin: 0; padding: 0; border: 0; border-radius: 0; background: none; }
+body.connect-minimal .saved-connections-panel > label { display: block; margin-bottom: 7px; font-size: 13px; font-weight: 550; color: var(--shell-ink); }
+body.connect-minimal .saved-profile-selector { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; }
+body.connect-minimal .saved-profile-actions { display: flex; gap: 0; }
+body.connect-minimal .saved-connections-hint { font-size: 12px; line-height: 1.5; color: var(--shell-muted); margin: 9px 0 16px; overflow-wrap: anywhere; }
+body.connect-minimal .connection-form-shell { grid-template-columns: minmax(0,1fr); gap: 12px; padding: 16px 0; margin-bottom: 12px; background: transparent; border: 0; border-top: 1px solid var(--shell-line); border-radius: 0; }
+body.connect-minimal .connection-editor-heading { display: flex; justify-content: space-between; align-items: center; }
+body.connect-minimal .connection-editor-heading h2 { margin: 0; font-size: 16px; font-weight: 600; }
+body.connect-minimal .form-row-split { grid-template-columns: minmax(0,1fr) 110px; gap: 10px; }
+body.connect-minimal .workspace-panel .form-control, body.connect-minimal .workspace-panel .form-select { min-height: 40px; border-radius: 8px; background-color: var(--shell-paper); color: var(--shell-ink); border-color: var(--shell-line); font-size: 14px; }
+body.connect-minimal .workspace-panel .form-floating > .form-control { height: 52px; padding: 21px 12px 7px; }
+body.connect-minimal .form-floating > label { padding: 12px; color: var(--shell-muted); }
+body.connect-minimal .form-floating > label::after { background-color: var(--shell-paper) !important; }
+body.connect-minimal .workspace-panel .password-toggle { min-height: 30px; height: 30px; width: 30px; right: 8px; color: var(--shell-muted); }
+body.connect-minimal .connection-form-note { font-size: 12px; color: var(--shell-muted); line-height: 1.5; }
+body.connect-minimal .workspace-panel .btn, body.connect-minimal .app-footer .btn { min-height: 34px; padding: 7px 10px; border-radius: 7px; width: auto; font-size: 13px; font-weight: 500; box-shadow: none; transform: none; }
+body.connect-minimal .btn-outline-ink { background: transparent; color: var(--shell-ink); border-color: transparent; }
+body.connect-minimal .btn-outline-ink:hover { background: var(--shell-soft); }
+body.connect-minimal .btn-soft-danger { background: transparent; border-color: transparent; }
+body.connect-minimal .primary-actions { display: flex; flex-direction: column; gap: 8px; }
+body.connect-minimal .primary-actions #connect { min-height: 42px; width: 100%; background: #0d7666; color: #fff; }
+body.connect-minimal .primary-actions #save-connection { border: 1px solid var(--shell-line); width: 100%; }
+body.connect-minimal .connection-secondary-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+body.connect-minimal #saved-count { margin-left: auto; font-size: 11px; color: var(--shell-muted); }
+body.connect-minimal .connection-utilities { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin: 24px 0 0; }
+body.connect-minimal .connection-utilities .plan-panel > summary, body.connect-minimal .theme-menu > summary { min-height: 32px; height: 32px; padding: 6px 10px; font-size: 12px; background: transparent; border: 1px solid var(--shell-line); border-radius: 8px; color: var(--shell-muted); }
+body.connect-minimal .plan-panel-body, body.connect-minimal .theme-menu-panel { background: var(--shell-paper); color: var(--shell-ink); border-color: var(--shell-line); box-shadow: 0 8px 30px #0002; }
+body.connect-minimal .theme-menu-option { color: var(--shell-ink); font-size: 13px; }
+body.connect-minimal .plan-panel-body { top: auto; bottom: calc(100% + 8px); }
+body.connect-minimal .theme-menu-panel { top: auto; bottom: calc(100% + 8px); }
+body.connect-minimal .connection-action-bar { padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 13px; }
+body.connect-minimal .connection-action-bar p { margin: 0; }
+body.connect-minimal .app-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; animation: none; opacity: 1; transform: none; margin: 0; padding: 14px 0; background: none; border: 0; border-top: 1px solid var(--shell-line); border-radius: 0; box-shadow: none; }
+body.connect-minimal .app-footer-copy { display: none; }
+body.connect-minimal .app-version-label { font-size: 11px; font-weight: 500; letter-spacing: 0; color: var(--shell-muted); }
+body.connect-minimal .support-menu { width: auto; margin-left: auto; }
+body.connect-minimal .support-menu-summary { padding: 5px; background: transparent; border: 0; font-size: 13px; color: var(--shell-muted); }
+body.connect-minimal .support-menu-panel { background: var(--shell-paper); color: var(--shell-ink); }
+.knowledge-body .knowledge-frame { max-width: 1100px; margin: auto; }
+.knowledge-body .knowledge-heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin: 32px 0; }
+.knowledge-body h1 { font-size: 26px; font-weight: 600; }
+.knowledge-body h2 { font-size: 18px; font-weight: 550; }
+.knowledge-body p { color: var(--shell-muted); line-height: 1.65; }
+.knowledge-body .knowledge-placeholder { max-width: 660px; padding: 24px 0; border-top: 1px solid var(--shell-line); }
+.knowledge-body .btn { font-size: 13px; min-height: 34px; padding: 8px 12px; background: var(--shell-soft); color: var(--shell-ink); border: 1px solid var(--shell-line); border-radius: 8px; box-shadow: none; }
+@media(max-width:650px) {
+    .minimal-shell:is(.connect-minimal,.knowledge-body) .app-shell { padding: 0 16px; }
+    .minimal-shell .app-chrome { gap: 12px; flex-wrap: wrap; padding: 12px 0; }
+    body.connect-minimal .connection-layout { padding: 28px 0; }
+    body.connect-minimal .saved-profile-selector { grid-template-columns: minmax(0,1fr); }
+    body.connect-minimal .saved-profile-actions { justify-content: flex-end; }
+    .knowledge-body .knowledge-heading { align-items: flex-start; flex-wrap: wrap; }
+}
+
+body.connect-minimal .connection-header .plan-panel-body { left: auto; right: 0; max-width: calc(100vw - 40px); }

@@ -8,9 +8,10 @@
     <link href="../node_modules/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
-<body class="app-body settings-body">
+<body class="app-body settings-body minimal-shell">
     <main class="app-shell">
         <section class="screen-frame settings-frame">
+            <header class="app-chrome"><span class="app-brand"><img src="assets/ibm-eye.svg" alt="" width="24" height="24">iMonitor</span><nav data-app-nav="settings" aria-label="Main navigation"></nav></header>
             <header class="surface-card settings-hero">
                 <div class="settings-hero-main">
                     <div class="settings-brand-lockup">
@@ -122,7 +123,7 @@
                             </div>
                             <details class="email-settings-disclosure">
                                 <summary class="email-settings-summary"><span><strong>Email notification setup</strong><small>SMTP settings and test delivery</small></span><span class="email-settings-summary-meta"><span id="email-settings-summary-status" class="settings-inline-status">Not configured</span><i class="bi bi-chevron-down"></i></span></summary>
-                                <div class="email-settings-body">
+                                <div class="email-settings-body minimal-shell">
                                     <div class="settings-field-grid settings-field-grid-two">
                                         <label class="control-select"><span class="control-label">SMTP host</span><input id="email-smtp-host" type="text" class="form-control" placeholder="smtp.example.com"></label>
                                         <label class="control-select"><span class="control-label">SMTP port</span><input id="email-smtp-port" type="number" class="form-control" min="1" max="65535" value="587"></label>

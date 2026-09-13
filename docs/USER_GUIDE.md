@@ -35,18 +35,20 @@ Start with the **Demo connection** if you are learning the screens. Demo data is
 ### Use a saved profile
 
 1. Open iMonitor.
-2. In **Saved systems**, select the profile.
-3. Check the system name, host, port, and operator shown in the form.
+2. In **Saved system**, select the profile.
+3. Check the system name and the operator, address, and port shown underneath. Connection fields stay collapsed until you select **Edit**.
 4. Select **Connect & Monitor**.
 
 ### Create a profile
 
-1. Enter a clear **Connection Name**.
+1. Select **Add another system**, then enter a clear **Connection Name**. With no saved profiles, the form opens automatically.
 2. Enter the **System Address**.
 3. Enter the **Mapepire Port**. Leave `8076` unless your Mapepire service uses another port.
 4. Enter the IBM i **Username** and **Password**.
 5. Select **Save Profile** if you want to reuse it.
 6. Select **Connect & Monitor**.
+
+**Edit** lets you rename the profile or update its connection details. **Update Profile** keeps the same profile identity; it does not create a second system. **Cancel** restores the saved values. **Delete** removes the selected local profile. Save or cancel unfinished profile edits before switching workspaces. If profiles fail to load, select **Retry loading profiles**; a connection failure leaves your entries available for retry.
 
 Profiles are stored locally on this computer. The password is protected by the operating system secure-storage facility. Do not send a profile or password in a ticket, chat message, screenshot, or AI prompt.
 
@@ -60,7 +62,11 @@ After a disconnect, select the same saved profile and reconnect. Reconnection re
 
 ### Connect screen
 
-This is where you select or create IBM i profiles. It also shows the current plan, theme control, and support link.
+This is where you select or create IBM i profiles. The form stays compact on a large screen. Plan, theme, version, and pre-connection Support remain available. The shared navigation opens ActionBoard, Knowledge, or Settings; ActionBoard returns to Connect until a system is connected.
+
+### Knowledge
+
+Select **Knowledge → Analyze code** to open object analysis. The knowledge library itself is not indexed or searchable yet. No retrieved documents or connections are implied by this page.
 
 ### ActionBoard
 
@@ -78,13 +84,18 @@ Settings contains four areas: **Alerts**, **IBMEye AI**, **Integrations**, and *
 
 Object analysis is a separate workspace for RPG or database source. It explains source evidence, dependencies, business logic, program flow, call graph, and conversion readiness.
 
+### Moving between workspaces
+
+Moving between ActionBoard, Knowledge, and Settings keeps the IBM i connection and monitoring active. Returning to the board restores its selected job, filters, scroll position, and unsent AI input for the same profile/operator during this app-window session. Independent task windows stay open. An AI reply in progress finishes before the main navigation allows you to leave. Profile passwords are kept out of browser storage; only the existing protected profile store persists them. Closing the app ends the temporary board draft.
+
+
 ## 5. Monitor the system
 
 ### Read the system strip
 
 The top strip shows the connection state, saved system name, **Peak job CPU**, active-job count, and work needing attention. Peak job CPU is the highest CPU value among active jobs, not total system CPU. The observation time and polling interval are below the table. Check that observation time continues to advance; changing filters does not make old data look new.
 
-**Settings** and the theme control stay in the header. Open **⋯** for Object analysis, Support outcomes, Activity trends, Incident history, the optional floating IBMEye, or Disconnect. **Knowledge** is marked as planned; existing Resolution Memory remains available in job tasks.
+**Settings** and the theme control stay in the header. Open **⋯** for Object analysis, Support outcomes, Activity trends, Incident history, the optional floating IBMEye, or Disconnect. **Knowledge** opens a clearly marked library placeholder with **Analyze code** for the existing source browser, graphs, compile plans, and reports. Search and ingestion will arrive in later tickets; existing Resolution Memory remains available in job tasks.
 
 ### Use the active jobs list
 

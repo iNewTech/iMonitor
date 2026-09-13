@@ -6,6 +6,7 @@ interface RegisterNavigationIpcDependencies {
     loadMonitorPage: () => void;
     loadConnectionPage: () => void;
     loadSettingsPage: () => void;
+    loadKnowledgePage: () => void;
     loadObjectAnalysisPage: () => void;
     openJobTaskWindow: (jobName: string) => void;
     openExternalUrl: (target: string) => Promise<void> | void;
@@ -52,6 +53,12 @@ export function registerNavigationIpc(dependencies: RegisterNavigationIpcDepende
             level: 'info',
             message: 'Opened the settings workspace.'
         });
+        return { success: true };
+    });
+
+    ipcMain.handle('navigate-to-knowledge', async () => {
+        dependencies.loadKnowledgePage();
+        dependencies.recordActivity({ area: 'navigation', level: 'info', message: 'Opened the Knowledge workspace.' });
         return { success: true };
     });
 

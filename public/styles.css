@@ -42,3 +42,6 @@
 
 /* Approved minimal daily workspace (UI-02); isolated from other app windows. */
 @import url("./styles/board-workspace.css");
+
+/* UI-01 shared navigation, compact Connect and Knowledge entry point. */
+@import url("./styles/app-shell.css");

@@ -8,16 +8,12 @@
     <link href="../node_modules/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
-<body class="app-body monitor-body board-minimal">
+<body class="app-body monitor-body board-minimal minimal-shell">
     <main class="app-shell">
         <section class="screen-frame monitor-frame">
             <header class="board-header">
                 <h1 class="board-brand"><img src="assets/ibm-eye.svg" alt="" width="24" height="24"><span>iMonitor<span class="visually-hidden"> ActionBoard</span></span></h1>
-                <nav class="board-nav" aria-label="Main navigation">
-                    <button type="button" class="board-nav-current" aria-current="page" data-board-target="jobs">ActionBoard</button>
-                    <button type="button" disabled title="The Knowledge library is planned. Existing Resolution Memory is available in each job task.">Knowledge <span class="visually-hidden">(planned)</span></button>
-                    <button id="open-settings" type="button">Settings</button>
-                </nav>
+                <nav class="board-nav" data-app-nav="board" aria-label="Main navigation"></nav>
                 <span id="board-operator" class="board-operator"></span>
                 <details class="board-menu" id="board-workspace-menu">
                     <summary aria-label="More workspace actions" title="More workspace actions"><i class="bi bi-three-dots" aria-hidden="true"></i></summary>

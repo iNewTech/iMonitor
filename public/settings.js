@@ -1,3 +1,4 @@
+import { initAppNavigation } from './shared/app-navigation.js';
 import { applyTheme } from './connection/shared.js';
 import { initSupportPanel } from './shared/support.js';
 import { initAiProvidersSettings } from './settings/ai-providers.js';
@@ -11,6 +12,7 @@ import { initCollectorSettings } from './settings/collector.js';
 import { initBusinessServiceSettings } from './settings/business-services.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
+    void initAppNavigation();
     const backButton = document.getElementById('settings-back');
     const backLabel = document.getElementById('settings-back-label');
     const themeDescription = document.getElementById('settings-theme-description');

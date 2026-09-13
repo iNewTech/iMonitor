@@ -1,3 +1,4 @@
+import { initAppNavigation } from './shared/app-navigation.js';
 import { renderJobRows } from './monitor/job-rows.js';
 import { initBoardWorkspace } from './monitor/board-workspace.js';
 import { escapeHtml, formatTimestamp, formatNumber, formatCpuValue, formatMegabytes, getJobKey, getStatusBadgeClass, createActionRequestId } from './monitor/formatters.js';
@@ -37,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const stopButton = document.getElementById('stop-monitoring');
     const disconnectButton = document.getElementById('disconnect');
     const openObjectAnalysisButton = document.getElementById('open-object-analysis');
-    const openSettingsButton = document.getElementById('open-settings');
+    void initAppNavigation();
     const openSupportOutcomesButton = document.getElementById('open-support-outcomes');
     const openAiSettingsButton = document.getElementById('open-ai-settings');
     const refreshInterval = document.getElementById('refresh-interval');
@@ -1855,10 +1856,6 @@ document.addEventListener('DOMContentLoaded', () => {
             executionId: createActionRequestId('incident'),
             expectedUpdatedAt: currentAlert?.workflowUpdatedAt
         });
-    });
-
-    openSettingsButton?.addEventListener('click', () => {
-        void window.electronAPI.navigateToSettings();
     });
 
     openObjectAnalysisButton?.addEventListener('click', () => {

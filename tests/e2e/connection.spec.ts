@@ -51,6 +51,7 @@ test('collapses connection controls cleanly on a narrow window', async () => {
         await page.setViewportSize({ width: 560, height: 820 });
         await expect(page.getByRole('heading', { name: 'Connect to IBM i', exact: true })).toBeVisible();
 
+        await page.locator('#edit-connection').click();
         const layout = await page.evaluate(() => {
             const formShell = document.querySelector('.connection-form-shell');
             const savedSelector = document.querySelector('.saved-profile-selector');

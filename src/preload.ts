@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 interface IBMiConfig {
+    id?: string;
     name: string;
     host: string;
     user: string;
@@ -890,6 +891,7 @@ interface EntitlementState {
 contextBridge.exposeInMainWorld('electronAPI', {
     navigateToMonitor: () => ipcRenderer.invoke('navigate-to-monitor'),
     navigateToConnection: () => ipcRenderer.invoke('navigate-to-connection'),
+    navigateToKnowledge: () => ipcRenderer.invoke('navigate-to-knowledge'),
     navigateToSettings: () => ipcRenderer.invoke('navigate-to-settings'),
     navigateToObjectAnalysis: () => ipcRenderer.invoke('navigate-to-object-analysis'),
     openJobTaskWindow: (jobName: string) => ipcRenderer.invoke('open-job-task-window', jobName) as Promise<{ success: boolean; }>,

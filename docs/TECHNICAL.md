@@ -42,7 +42,7 @@ The standalone task response workspace is split between `src/features/alerts/inc
 
 ## Minimal ActionBoard workspace (UI-02 / #58)
 
-`public/monitor.html` retains existing IPC element contracts while moving infrequent tools behind the workspace menu. `public/monitor/board-workspace.js` owns disclosure controls, optional companion visibility, collection status, and per-profile session view preferences. It stores no credentials or operational records. The connection name/host/port/operator isolate those preferences; incident persistence remains main-process owned.
+`public/monitor.html` retains existing IPC element contracts while moving infrequent tools behind the workspace menu. `public/monitor/board-workspace.js` owns disclosure controls, optional companion visibility, collection status, and per-profile session view preferences. It stores no profile credentials or incident records. Its per-profile session data includes the unsent AI draft, which expires with the window. The connection name/host/port/operator isolate those preferences; incident persistence remains main-process owned.
 
 `public/monitor/job-rows.js` patches rows by qualified identity and describes active conditions separately from technical states. It preserves focus and scroll even when row order changes. Filtering in `jobs-filter.js` combines subsystem, status, owner and text; direct matches win over fuzzy fallback. Filter/owner updates never advance observation time. `monitor.js` composes these views with the unchanged actions and monitoring services.
 
@@ -175,3 +175,11 @@ Compile plans order supported dependencies, validate names, and turn unsupported
 Unit tests cover domain behavior. Electron tests use temporary application stores, demo jobs, and mocked external services. They exercise loading, window navigation, workflow failures, AI feedback, source selection, graphs, and responsive layouts. They do not establish successful live IBM i compilation, external delivery, or signed widget installation.
 
 `public/monitor.js` and the preload remain larger integration surfaces. Continue extracting coherent features when changing them; avoid a broad rewrite solely to meet an arbitrary line count.
+
+## UI-01 Connect and shared navigation
+
+`public/shared/app-navigation.js` supplies the same three destinations to Connect, ActionBoard, Knowledge and Settings. Navigation uses allowlisted main-process handlers and never calls disconnect or resets the monitor loop. Knowledge is an honest library placeholder with the existing Analyze code route; knowledge ingestion and retrieval are separate tickets. Independent job windows retain their native title bar and existing lifecycle.
+
+`public/connection/saved-connections.js` owns profile selection, edit/add/cancel/save/delete and load retry. The entry module retains connection execution, themes, entitlements and Support. A save includes the existing profile ID during edits, preserving backend duplicate checks and encryption. Background profile notifications do not replace unfinished input. Busy operations lock profile controls; unfinished edits block destination navigation until saved or cancelled. Credentials stay in renderer memory and the existing protected profile store, never browser session storage.
+
+`public/styles/app-shell.css` scopes shared tokens, navigation and compact form patterns to migrated screens. The board keeps its feature styles. Settings categories and job-window layout remain separate tickets (#60 and #59). The shared navigation prevents departure while a board AI request is pending, and board session preferences restore its unsent draft after navigation without automatically sending it.

@@ -1,7 +1,8 @@
 import { applyTheme } from './shared.js';
 import { getConnectionPageModel } from './layout.js';
 import { showAlert, setConnectionAction } from './feedback.js';
-import { clearForm, fillForm, renderSavedConnections } from './saved-connections.js';
+import { initSavedProfiles } from './saved-connections.js';
+import { initAppNavigation } from '../shared/app-navigation.js';
 import { initSupportPanel } from '../shared/support.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -35,8 +36,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         activateDevelopmentLicense: document.getElementById('activate-development-license')
     };
 
-    let savedConnections = [];
-    let editingConnectionId = '';
+    const profiles = initSavedProfiles(elements);
+    void initAppNavigation({ canLeave: profiles.canLeave });
     let availableThemes = [];
 
     function renderThemeSettings(settings) {
@@ -83,28 +84,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         void saveTheme(themeButton.dataset.themeId);
     });
 
-    async function loadSavedConnections(selectedId = '') {
-        try {
-            savedConnections = await window.electronAPI.loadConnections();
-            const demoConnection = savedConnections.find((connection) => connection.name === 'Demo connection');
-            const preferredId = selectedId || demoConnection?.id || '';
-            renderSavedConnections(elements, savedConnections, preferredId);
-            editingConnectionId = '';
-            const preferredConnection = savedConnections.find((connection) => connection.id === preferredId);
-            if (preferredConnection) {
-                fillForm(elements, preferredConnection);
-                if (elements.savedHint) {
-                    elements.savedHint.textContent = `Profile ready: ${preferredConnection.name} (${preferredConnection.host}:${preferredConnection.port || 8076})`;
-                }
-            } else if (elements.savedHint) {
-                elements.savedHint.textContent = pageModel.savedProfilesHint;
-            }
-        } catch (error) {
-            console.error('Error loading saved connections:', error);
-            showAlert(elements.connectionForm, 'Unable to load saved connections.');
-        }
-    }
-
     window.electronAPI.onConnectionTestStatus((status) => {
         const variant = status.status === 'failed'
             ? 'danger'
@@ -112,10 +91,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 ? 'success'
                 : 'info';
         showAlert(elements.connectionForm, status.message, variant, status.detail);
-    });
-
-    window.electronAPI.onConnectionsUpdated(() => {
-        void loadSavedConnections(elements.savedConnectionsSelect.value);
     });
 
     window.electronAPI.onConnectionActionStatus((status) => {
@@ -130,8 +105,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     const [appFlags, themeSettings] = await Promise.all([
-        window.electronAPI.getAppFlags(),
-        window.electronAPI.getThemeSettings()
+        window.electronAPI.getAppFlags().catch(() => ({})),
+        window.electronAPI.getThemeSettings().catch(() => null)
     ]);
     const renderEntitlements = (entitlements) => {
         const premium = entitlements?.plan === 'premium';
@@ -144,7 +119,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             ? `Active${entitlements.expiresAt ? ` until ${new Date(entitlements.expiresAt).toLocaleDateString()}` : ''}.`
             : 'Premium activation is available only in development builds.';
     };
-    renderEntitlements(await window.electronAPI.getEntitlements());
+    renderEntitlements(await window.electronAPI.getEntitlements().catch(() => null));
     elements.developmentPlanSelect?.addEventListener('change', async () => {
         const entitlements = await window.electronAPI.setDevelopmentPlan(elements.developmentPlanSelect.value);
         renderEntitlements(entitlements);
@@ -169,26 +144,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         elements.launchDemoButton?.remove();
     }
 
-    await loadSavedConnections();
+    await profiles.load();
     setConnectionAction(elements.connectionActionBar, elements.connectionActionMessage, elements.connectionActionDetail, '', '', false);
 
     elements.connectionForm?.addEventListener('submit', async (event) => {
         event.preventDefault();
 
         if (!elements.connectionForm.checkValidity()) {
+            profiles.reveal();
             event.stopPropagation();
             elements.connectionForm.classList.add('was-validated');
             return;
         }
 
-        const connectionData = {
-            name: elements.connectionNameInput.value.trim(),
-            host: elements.systemInput.value.trim(),
-            port: parseInt(elements.portInput.value, 10) || 8076,
-            user: elements.usernameInput.value.trim(),
-            password: elements.passwordInput.value
-        };
-        if (editingConnectionId) connectionData.id = editingConnectionId;
+        const connectionData = profiles.getData();
+        profiles.setBusy(true);
 
         elements.connectButton.disabled = true;
         setConnectionAction(elements.connectionActionBar, elements.connectionActionMessage, elements.connectionActionDetail, 'Connecting…', 'Checking server state and preparing the remote Mapepire service.', true);
@@ -209,7 +179,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             showAlert(elements.connectionForm, error.message || 'Connection error. Please try again.');
             setConnectionAction(elements.connectionActionBar, elements.connectionActionMessage, elements.connectionActionDetail, error.message || 'Connection error. Please try again.', '', true);
         } finally {
-            elements.connectButton.disabled = false;
+            profiles.setBusy(false);
         }
     });
 
@@ -257,95 +227,4 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    elements.saveConnectionButton?.addEventListener('click', async () => {
-        if (!elements.connectionNameInput.value.trim() || !elements.systemInput.value.trim()
-            || !elements.usernameInput.value.trim() || !elements.passwordInput.value) {
-            showAlert(elements.connectionForm, 'Please fill in all required fields before saving the connection.');
-            return;
-        }
-
-        const connectionData = {
-            name: elements.connectionNameInput.value.trim(),
-            host: elements.systemInput.value.trim(),
-            port: parseInt(elements.portInput.value, 10) || 8076,
-            user: elements.usernameInput.value.trim(),
-            password: elements.passwordInput.value
-        };
-
-        elements.saveConnectionButton.disabled = true;
-        try {
-            const result = await window.electronAPI.saveConnection(connectionData);
-            if (!result.success) {
-                showAlert(elements.connectionForm, result.error || 'Error saving connection. Please try again.', 'danger', result.detail);
-                return;
-            }
-
-            await loadSavedConnections(result.id);
-            showAlert(elements.connectionForm, `Connection "${connectionData.name}" has been ${editingConnectionId ? 'updated' : 'saved'} successfully.`, 'success');
-        } catch (error) {
-            showAlert(elements.connectionForm, error.message || 'Error saving connection. Please try again.');
-        } finally {
-            elements.saveConnectionButton.disabled = false;
-        }
-    });
-
-    elements.editConnectionButton?.addEventListener('click', () => {
-        const selectedConnection = savedConnections.find((connection) => connection.id === elements.savedConnectionsSelect.value);
-        if (!selectedConnection) return;
-        editingConnectionId = selectedConnection.id;
-        fillForm(elements, selectedConnection);
-        elements.saveConnectionButton.innerHTML = '<i class="bi bi-check2 me-2"></i>Update Profile';
-        elements.connectionNameInput.focus();
-    });
-
-    elements.deleteConnectionButton?.addEventListener('click', async () => {
-        const selectedId = elements.savedConnectionsSelect.value;
-        if (!selectedId) {
-            return;
-        }
-
-        elements.deleteConnectionButton.disabled = true;
-        try {
-            const result = await window.electronAPI.deleteConnection(selectedId);
-            if (!result.success) {
-                showAlert(elements.connectionForm, result.error || 'Error deleting connection. Please try again.');
-                return;
-            }
-
-            elements.savedConnectionsSelect.value = '';
-            editingConnectionId = '';
-            clearForm(elements);
-            await loadSavedConnections();
-            showAlert(elements.connectionForm, 'Saved connection deleted.', 'success');
-        } catch (error) {
-            showAlert(elements.connectionForm, error.message || 'Error deleting connection. Please try again.');
-        } finally {
-            elements.deleteConnectionButton.disabled = false;
-        }
-    });
-
-    elements.savedConnectionsSelect?.addEventListener('change', () => {
-        const selectedConnection = savedConnections.find((connection) => connection.id === elements.savedConnectionsSelect.value);
-        if (selectedConnection) {
-            editingConnectionId = '';
-            elements.saveConnectionButton.innerHTML = '<i class="bi bi-bookmark-plus me-2"></i>Save Profile';
-            elements.editConnectionButton.hidden = false;
-            elements.deleteConnectionButton.hidden = false;
-            fillForm(elements, selectedConnection);
-            if (elements.savedHint) {
-                elements.savedHint.textContent = `Profile ready: ${selectedConnection.name} (${selectedConnection.host}:${selectedConnection.port || 8076})`;
-            }
-        } else {
-            editingConnectionId = '';
-            elements.editConnectionButton.hidden = true;
-            elements.deleteConnectionButton.hidden = true;
-            elements.saveConnectionButton.innerHTML = '<i class="bi bi-bookmark-plus me-2"></i>Save Profile';
-            clearForm(elements);
-            if (elements.savedHint) {
-                elements.savedHint.textContent = savedConnections.length
-                    ? 'Select a saved profile to refill the form or remove one you no longer use.'
-                    : 'Save frequent systems here for quick reconnects.';
-            }
-        }
-    });
 });

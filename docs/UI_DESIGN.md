@@ -29,11 +29,13 @@ The sketch is a design reference with illustrative data and local interactions. 
 
 ### 1. Connect
 
+UI-01 (#57) delivers this bounded form, shared destination navigation, profile edit identity fix, retry states, and per-profile board draft restoration. [Validation and screenshots](design/ui57/README.md) record the implementation.
+
 The form stays near 450 CSS px on a large desktop and reflows within smaller windows. Show the selected saved system, operator, and **Connect & monitor**. Edit reveals existing connection fields; Add another system opens the new-profile flow. With no profiles, show that flow immediately. Keep profile rename/delete, connection failure/retry, protected credentials, version, entitlement, theme, and pre-connection Support accessible through compact controls.
 
 ### 2. ActionBoard
 
-UI-02 implements the subsequently approved [minimal board sketch](design/minimal-actionboard.html); see [implementation screenshots and feature entry points](design/ui58/README.md). The operator chose this board as the first runtime delivery; the Connect screen in #57, job window redesign in #59, and Settings categories in #60 remain separate. Knowledge stays disabled and labelled planned until its library is implemented. Existing Resolution Memory is available in job tasks.
+UI-02 implements the subsequently approved [minimal board sketch](design/minimal-actionboard.html); see [implementation screenshots and feature entry points](design/ui58/README.md). The operator chose this board as the first runtime delivery; Connect/shared navigation is now delivered in #57; the job-window redesign (#59) and Settings categories (#60) remain separate. UI-01 now opens Knowledge as a clearly labelled library placeholder with Analyze code; no ingestion or retrieval is claimed. Existing Resolution Memory is available in job tasks.
 
 Move basic system information into one top strip. Show CPU, job count, incident count, connection state, and observation time without duplicate statistic cards. Keep one search/filter toolbar and the jobs table. Show the specific condition, such as **Lock wait** or **High CPU · 62%**, instead of a generic ISSUE badge alongside a reassuring Running badge. Technical execution state remains available in details.
 
