@@ -4,8 +4,12 @@ import {
     approveResolution,
     createResolutionDraft,
     exportScopedResolutionMemory,
+    findApplicableResolutionMatches,
+    rejectResolution,
+    reviseResolution,
     retireResolution,
     type ResolutionMemoryEntry,
+    type ResolutionMemoryRevisionInput,
     type ResolutionMemoryStore
 } from '../../features/action-board/resolution-memory';
 import type { ActiveJobRecord } from '../../services/ibmi';
@@ -23,32 +27,49 @@ interface ResolutionMemoryIpcDependencies {
     recordActivity?: (entry: { area: 'monitoring'; level: 'info'; message: string; detail?: string }) => void;
 }
 
-/** Registers the explicit draft, approve, retire, and export resolution-memory workflow. */
+/** Registers the scoped resolution-memory draft, review, retrieval, and export workflow. */
 export function registerResolutionMemoryIpc(dependencies: ResolutionMemoryIpcDependencies) {
-    const authorize = () => dependencies.authorizeAction('read', dependencies.getSystemId());
+    const authorizeRead = () => dependencies.authorizeAction('read', dependencies.getSystemId());
+    const authorizeReview = () => dependencies.authorizeAction('incident-workflow', dependencies.getSystemId());
     const currentEntries = () => {
         const systemId = dependencies.getSystemId();
         return dependencies.getMemory().entries.filter((entry) => entry.systemId === systemId || entry.systemId === '*');
     };
 
-    ipcMain.handle('get-resolution-memory', () => {
-        const authorization = authorize();
+    ipcMain.handle('get-resolution-memory', (_event, jobName?: string) => {
+        const authorization = authorizeRead();
         if (!authorization.allowed) return { success: false, entries: [], error: authorization.reason || 'The operator cannot inspect resolution memory.' };
-        return { success: true, entries: currentEntries() };
+        const entries = currentEntries();
+        const systemId = dependencies.getSystemId();
+        const job = jobName ? dependencies.getJob(String(jobName).trim()) : undefined;
+        const alert = jobName ? dependencies.getAlert(String(jobName).trim()) : undefined;
+        const matches = systemId && job
+            ? findApplicableResolutionMatches({ systemId, job, alert, now: new Date().toISOString() }, dependencies.getMemory()).map((match) => ({
+                entryId: match.entry.id,
+                confidence: match.confidence,
+                freshness: match.freshness,
+                environmentCompatible: match.environmentCompatible,
+                conflict: match.conflict,
+                reasons: match.reasons
+            }))
+            : [];
+        return { success: true, entries, matches };
     });
 
     ipcMain.handle('save-resolution-memory-draft', (_event, jobName: string) => {
-        const authorization = authorize();
+        const authorization = authorizeReview();
         if (!authorization.allowed) return { success: false, error: authorization.reason || 'The operator cannot save resolution memory.' };
         const systemId = dependencies.getSystemId();
         const job = dependencies.getJob(jobName);
         const alert = dependencies.getAlert(jobName);
         if (!systemId || !job || !alert) return { success: false, error: 'A current incident and system are required to prepare a resolution draft.' };
+        if (alert.isActive !== false) return { success: false, error: 'Monitoring must confirm that the incident is resolved before saving reusable knowledge.' };
         const entry = createResolutionDraft({
             systemId,
             systemLabel: dependencies.getSystemLabel(),
             job,
             alert,
+            operator: dependencies.getOperatorName(),
             now: new Date().toISOString()
         });
         const memory = dependencies.getMemory();
@@ -58,10 +79,12 @@ export function registerResolutionMemoryIpc(dependencies: ResolutionMemoryIpcDep
     });
 
     ipcMain.handle('approve-resolution-memory', (_event, entryId: string) => mutateEntry(entryId, (entry) => approveResolution(entry, dependencies.getOperatorName(), new Date().toISOString()), 'approved'));
+    ipcMain.handle('reject-resolution-memory', (_event, payload: { entryId: string; note?: string }) => mutateEntry(payload?.entryId, (entry) => rejectResolution(entry, dependencies.getOperatorName(), new Date().toISOString(), payload?.note), 'rejected'));
+    ipcMain.handle('revise-resolution-memory', (_event, payload: { entryId: string; revision: ResolutionMemoryRevisionInput }) => mutateEntry(payload?.entryId, (entry) => reviseResolution(entry, payload?.revision || {}, dependencies.getOperatorName(), new Date().toISOString()), 'revised'));
     ipcMain.handle('retire-resolution-memory', (_event, entryId: string) => mutateEntry(entryId, (entry) => retireResolution(entry, new Date().toISOString()), 'retired'));
 
     ipcMain.handle('export-resolution-memory', () => {
-        const authorization = authorize();
+        const authorization = authorizeRead();
         if (!authorization.allowed) return { success: false, error: authorization.reason || 'The operator cannot export resolution memory.' };
         const systemId = dependencies.getSystemId();
         if (!systemId) return { success: false, error: 'Connect to an IBM i system before exporting memory.' };
@@ -69,7 +92,7 @@ export function registerResolutionMemoryIpc(dependencies: ResolutionMemoryIpcDep
     });
 
     function mutateEntry(id: string, update: (entry: ResolutionMemoryEntry) => ResolutionMemoryEntry, status: string) {
-        const authorization = authorize();
+        const authorization = authorizeReview();
         if (!authorization.allowed) return { success: false, error: authorization.reason || 'The operator cannot change resolution memory.' };
         const systemId = dependencies.getSystemId();
         const memory = dependencies.getMemory();

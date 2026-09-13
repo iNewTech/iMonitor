@@ -438,7 +438,7 @@ interface ResolutionMemoryEntryPayload {
     id: string;
     procedureKey: string;
     version: number;
-    status: 'draft' | 'approved' | 'retired';
+    status: 'draft' | 'approved' | 'rejected' | 'retired';
     systemId: string;
     serviceName?: string;
     incidentKind: string;
@@ -451,12 +451,24 @@ interface ResolutionMemoryEntryPayload {
     successfulAction: string;
     verifiedOutcome: string;
     environment: { systemLabel?: string; jobType?: string; subsystem?: string };
+    operator?: string;
+    sourceIncidentId?: string;
     reviewer?: string;
     createdAt: string;
     approvedAt?: string;
     retiredAt?: string;
     reviewDueAt?: string;
     supersedesId?: string;
+    reviewHistory?: Array<{ action: 'created' | 'approved' | 'revised' | 'rejected' | 'retired'; actor: string; at: string; note?: string; version: number }>;
+}
+
+interface ResolutionMemoryMatchPayload {
+    entryId: string;
+    confidence: 'high' | 'medium' | 'low';
+    freshness: 'current' | 'due' | 'stale';
+    environmentCompatible: boolean;
+    conflict?: string;
+    reasons: string[];
 }
 
 interface ProblemRecordPayload {
@@ -1305,9 +1317,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     saveBusinessServiceSettings: (settings: Partial<BusinessServiceSettingsPayload>) => (
         ipcRenderer.invoke('save-business-service-settings', settings) as Promise<BusinessServiceSettingsPayload>
     ),
-    getResolutionMemory: () => ipcRenderer.invoke('get-resolution-memory') as Promise<{ success: boolean; entries: ResolutionMemoryEntryPayload[]; error?: string }>,
+    getResolutionMemory: (jobName?: string) => ipcRenderer.invoke('get-resolution-memory', jobName) as Promise<{ success: boolean; entries: ResolutionMemoryEntryPayload[]; matches?: ResolutionMemoryMatchPayload[]; error?: string }>,
     saveResolutionMemoryDraft: (jobName: string) => ipcRenderer.invoke('save-resolution-memory-draft', jobName) as Promise<{ success: boolean; entry?: ResolutionMemoryEntryPayload; entries?: ResolutionMemoryEntryPayload[]; error?: string }>,
     approveResolutionMemory: (entryId: string) => ipcRenderer.invoke('approve-resolution-memory', entryId) as Promise<{ success: boolean; entry?: ResolutionMemoryEntryPayload; entries?: ResolutionMemoryEntryPayload[]; error?: string }>,
+    rejectResolutionMemory: (entryId: string, note?: string) => ipcRenderer.invoke('reject-resolution-memory', { entryId, note }) as Promise<{ success: boolean; entry?: ResolutionMemoryEntryPayload; entries?: ResolutionMemoryEntryPayload[]; error?: string }>,
+    reviseResolutionMemory: (entryId: string, revision: { title: string; successfulAction: string; verifiedOutcome: string }) => ipcRenderer.invoke('revise-resolution-memory', { entryId, revision }) as Promise<{ success: boolean; entry?: ResolutionMemoryEntryPayload; entries?: ResolutionMemoryEntryPayload[]; error?: string }>,
     retireResolutionMemory: (entryId: string) => ipcRenderer.invoke('retire-resolution-memory', entryId) as Promise<{ success: boolean; entry?: ResolutionMemoryEntryPayload; entries?: ResolutionMemoryEntryPayload[]; error?: string }>,
     exportResolutionMemory: () => ipcRenderer.invoke('export-resolution-memory') as Promise<{ success: boolean; export?: unknown; error?: string }>,
     getProblemWorkspace: (jobName: string) => ipcRenderer.invoke('get-problem-workspace', jobName) as Promise<{

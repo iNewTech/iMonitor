@@ -130,11 +130,8 @@ test('launches the demo monitor and renders live incidents in active jobs', asyn
         await expect(task.locator('#task-runbook-status')).toHaveText('Running');
         await task.locator('#task-runbook-step').click();
         await expect(task.locator('#task-runbook-summary')).toContainText('1/3 checkpoints complete');
-        await task.locator('#task-memory-save').click();
-        await expect(task.locator('.resolution-memory-item')).toContainText(incident.title);
-        await expect(task.locator('.resolution-memory-item')).toContainText('Draft');
-        await task.locator('.resolution-memory-item [data-memory-action="approve"]').click();
-        await expect(task.locator('.resolution-memory-item')).toContainText('Approved');
+        await expect(task.locator('#task-memory-save')).toBeDisabled();
+        await expect(task.locator('#task-memory-status')).toHaveText('Available after verified recovery');
         await task.locator('#task-panel-details > summary').click();
         await task.locator('#task-load-graph').click();
         await expect(task.getByTestId('task-resource-graph')).toContainText('Observed resource relationships');

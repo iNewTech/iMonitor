@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### 2026-09-14
+
+- Added reviewed Resolution Memory lifecycle for verified outcomes, including operator/source-incident lineage, approve/revise/reject/retire actions, review history, freshness and environment signals, conflict detection, scoped retrieval protection, and compact task-window review controls (#54, AIAB-14, Project 8).
+
 ### 2026-09-13
 
 - Organized Settings into seven compact categories with General theme management, honest Skills & MCP and Storage entry points, and preserved existing alert, AI, integration, collector, and access flows (#60, UI-04, Project 8).

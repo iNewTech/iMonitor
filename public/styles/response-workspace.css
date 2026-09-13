@@ -285,6 +285,64 @@
     gap: 6px;
 }
 
+.resolution-memory-item-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    color: var(--muted);
+    font-size: .78rem;
+}
+
+.resolution-memory-item-details {
+    display: grid;
+    gap: 2px;
+    margin-top: 4px;
+}
+
+.resolution-memory-item-details summary,
+.resolution-memory-reviews summary {
+    cursor: pointer;
+    color: var(--ink-soft);
+    font-size: .78rem;
+}
+
+.resolution-memory-reviews {
+    margin-top: 4px;
+}
+
+.resolution-memory-revise-form {
+    display: grid;
+    gap: 7px;
+    margin-bottom: 8px;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--surface-muted, #f5f9f8);
+}
+
+.resolution-memory-revise-form label {
+    display: grid;
+    gap: 3px;
+    color: var(--muted);
+    font-size: .78rem;
+}
+
+.resolution-memory-revise-form input,
+.resolution-memory-revise-form textarea {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--surface-elevated);
+    color: var(--ink);
+}
+
+.resolution-memory-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
 .resource-graph {
     margin-top: 1rem;
     padding: .9rem 1rem;

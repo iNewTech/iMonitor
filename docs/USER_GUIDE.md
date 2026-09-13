@@ -296,9 +296,13 @@ After recovery is verified, use **Save resolution draft** in the Actions tab.
 1. Review the symptoms, evidence references, attempts, action, outcome, environment, and operator.
 2. Keep the entry as a draft while the information is uncertain.
 3. Select **Approve** only when the procedure is reviewed and safe to reuse.
-4. Select **Retire** when it is no longer valid.
+4. Select **Revise** when the title, action, or verification needs correction. The revision becomes a new draft and must be reviewed again.
+5. Select **Reject** when the draft should not become reusable knowledge.
+6. Select **Retire** when an approved procedure is no longer valid.
 
-Approved knowledge is customer- and system-scoped. It is suggested only when the current incident and environment match. AI cannot publish a runbook by itself.
+Each entry keeps a compact review history with the operator, source incident, reviewer, version, and timestamps. Similar approved procedures show confidence, review freshness, and environment compatibility. A changed runtime fingerprint or environment is shown as a conflict and is withheld from AI retrieval until a reviewer checks it.
+
+Approved knowledge is customer- and system-scoped. It is suggested only when the current incident, current environment, and review freshness are acceptable. AI cannot approve, revise, reject, retire, or publish a runbook by itself.
 
 ## 11. Practise with Incident replay
 

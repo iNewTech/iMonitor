@@ -139,6 +139,15 @@
                     </div>
                     <p class="stat-note mb-2">Save this incident as a draft after the operator verifies the outcome. Approval makes it reusable for matching jobs.</p>
                     <div id="task-memory-list" class="resolution-memory-list" aria-live="polite"></div>
+                    <div id="task-memory-revise-form" class="resolution-memory-revise-form" hidden>
+                        <label>Title<input id="task-memory-revise-title" type="text" maxlength="160"></label>
+                        <label>Successful action<textarea id="task-memory-revise-action" rows="2" maxlength="2000"></textarea></label>
+                        <label>Verified outcome<textarea id="task-memory-revise-outcome" rows="2" maxlength="2000"></textarea></label>
+                        <div class="resolution-memory-form-actions">
+                            <button id="task-memory-revise-save" type="button" class="btn btn-primary-strong btn-sm">Save revision for review</button>
+                            <button id="task-memory-revise-cancel" type="button" class="btn btn-outline-ink btn-sm">Cancel</button>
+                        </div>
+                    </div>
                     <button id="task-memory-save" type="button" class="btn btn-outline-ink btn-sm">Save resolution draft</button>
                 </section>
                 <section id="task-problem-panel" class="job-detail-section problem-management-panel" aria-labelledby="task-problem-title" hidden>

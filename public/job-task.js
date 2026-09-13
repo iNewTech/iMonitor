@@ -92,6 +92,12 @@ const detailsOutput = $('task-details-output');
 const memoryList = $('task-memory-list');
 const memoryStatus = $('task-memory-status');
 const memorySave = $('task-memory-save');
+const memoryReviseForm = $('task-memory-revise-form');
+const memoryReviseTitle = $('task-memory-revise-title');
+const memoryReviseAction = $('task-memory-revise-action');
+const memoryReviseOutcome = $('task-memory-revise-outcome');
+const memoryReviseSave = $('task-memory-revise-save');
+const memoryReviseCancel = $('task-memory-revise-cancel');
 const problemPanel = $('task-problem-panel');
 const problemStatus = $('task-problem-status');
 const problemMatch = $('task-problem-match');
@@ -120,6 +126,8 @@ const handoffFields = {
 };
 let handoffDraftKey = '';
 let resolutionMemoryEntries = [];
+let resolutionMemoryMatches = [];
+let resolutionMemoryRevisionId = '';
 let runbookData = { definition: null, execution: null };
 let mcpActionCatalog = [];
 let mcpActionSelection = null;
@@ -613,19 +621,46 @@ function renderResolutionMemory() {
     ));
     memoryList.innerHTML = entries.length ? entries.map((entry) => `
         <article class="resolution-memory-item" data-memory-id="${escapeHtml(entry.id)}">
-            <div><strong>${escapeHtml(entry.title)}</strong><small>${escapeHtml(formatWorkflowLabel(entry.status))} · v${escapeHtml(String(entry.version))}${entry.reviewer ? ` · ${escapeHtml(entry.reviewer)}` : ''}</small></div>
+            <div>
+                <strong>${escapeHtml(entry.title)}</strong>
+                <small>${escapeHtml(formatWorkflowLabel(entry.status))} · v${escapeHtml(String(entry.version))}${entry.reviewer ? ` · reviewer ${escapeHtml(entry.reviewer)}` : ''}</small>
+                <div class="resolution-memory-item-meta">
+                    ${entry.operator ? `<span>Operator: ${escapeHtml(entry.operator)}</span>` : ''}
+                    ${entry.sourceIncidentId ? `<span>Source: ${escapeHtml(entry.sourceIncidentId)}</span>` : ''}
+                </div>
+                ${entry.status === 'approved' && resolutionMemoryMatches.find((match) => match.entryId === entry.id) ? (() => {
+                    const match = resolutionMemoryMatches.find((item) => item.entryId === entry.id);
+                    return `<div class="resolution-memory-item-meta"><span>${escapeHtml(match.confidence)} confidence</span><span>${escapeHtml(match.freshness)} review</span><span>${match.environmentCompatible ? 'Environment compatible' : 'Environment differs'}</span></div>${match.conflict ? `<small class="text-danger">${escapeHtml(match.conflict)}</small>` : ''}`;
+                })() : ''}
+                <details class="resolution-memory-item-details">
+                    <summary>Evidence and review history</summary>
+                    <small>${escapeHtml(entry.environment?.jobType || 'Unknown type')} · ${escapeHtml(entry.environment?.subsystem || 'Unknown subsystem')} · ${entry.evidenceRefs?.length || 0} evidence references</small>
+                    <small>Outcome: ${escapeHtml(entry.verifiedOutcome || 'Not recorded')}</small>
+                    <details class="resolution-memory-reviews">
+                        <summary>${entry.reviewHistory?.length || 0} review event${entry.reviewHistory?.length === 1 ? '' : 's'}</summary>
+                        ${(entry.reviewHistory || []).map((event) => `<small>${escapeHtml(formatWorkflowLabel(event.action))} · ${escapeHtml(event.actor)} · ${escapeHtml(formatTimestamp(event.at))}${event.note ? ` · ${escapeHtml(event.note)}` : ''}</small>`).join('') || '<small>No review events recorded.</small>'}
+                    </details>
+                </details>
+            </div>
             <div class="resolution-memory-item-actions">
-                ${entry.status === 'draft' ? '<button type="button" class="btn btn-outline-ink btn-sm" data-memory-action="approve">Approve</button>' : ''}
+                ${entry.status === 'draft' ? '<button type="button" class="btn btn-primary-strong btn-sm" data-memory-action="approve">Approve</button>' : ''}
+                ${['draft', 'approved', 'rejected'].includes(entry.status) ? '<button type="button" class="btn btn-outline-ink btn-sm" data-memory-action="revise">Revise</button>' : ''}
+                ${entry.status === 'draft' ? '<button type="button" class="btn btn-outline-danger btn-sm" data-memory-action="reject">Reject</button>' : ''}
                 ${entry.status === 'approved' ? '<button type="button" class="btn btn-outline-danger btn-sm" data-memory-action="retire">Retire</button>' : ''}
             </div>
         </article>`).join('') : '<p class="stat-note mb-2">No saved procedure matches this incident yet.</p>';
-    if (memoryStatus) memoryStatus.textContent = entries.length ? `${entries.length} matching entr${entries.length === 1 ? 'y' : 'ies'}` : 'No match';
+    if (memoryStatus) {
+        memoryStatus.textContent = entries.length ? `${entries.length} matching entr${entries.length === 1 ? 'y' : 'ies'}` : 'No match';
+        if (alert?.isActive !== false) memoryStatus.textContent = 'Available after verified recovery';
+    }
+    if (memorySave) memorySave.textContent = alert?.isActive === false ? 'Save resolution draft' : 'Save after verified recovery';
 }
 
 async function refreshResolutionMemory() {
     if (!selectedJobName || !window.electronAPI.getResolutionMemory) return;
-    const result = requireSuccess(await window.electronAPI.getResolutionMemory(), 'Unable to load resolution memory.');
+    const result = requireSuccess(await window.electronAPI.getResolutionMemory(selectedJobName), 'Unable to load resolution memory.');
     resolutionMemoryEntries = Array.isArray(result.entries) ? result.entries : [];
+    resolutionMemoryMatches = Array.isArray(result.matches) ? result.matches : [];
     renderResolutionMemory();
 }
 
@@ -890,7 +925,11 @@ function updateControls() {
     $('task-accept-handoff').disabled = mutationBlocked
         || handoff?.status !== 'pending'
         || handoff.toOperator?.toLowerCase() !== currentOperatorName.toLowerCase();
-    if (memorySave) memorySave.disabled = pending.has('memory') || mutationBlocked || !findLinkedAlert();
+    if (memorySave) memorySave.disabled = pending.has('memory') || mutationBlocked || findLinkedAlert()?.isActive !== false;
+    document.querySelectorAll('[data-memory-action]').forEach((button) => {
+        button.disabled = pending.has('memory') || mutationBlocked;
+    });
+    if (memoryReviseSave) memoryReviseSave.disabled = pending.has('memory') || mutationBlocked || !resolutionMemoryRevisionId;
     if (runbookStart) runbookStart.disabled = pending.has('runbook') || Boolean(runbookData.execution && ['ready', 'running', 'paused'].includes(runbookData.execution.status));
     if (runbookStepButton) {
         const execution = runbookData.execution;
@@ -1265,6 +1304,41 @@ memorySave?.addEventListener('click', () => void runRequest('memory', async () =
 }, (error) => {
     memoryStatus.textContent = errorMessage(error, 'Unable to save resolution draft.');
 }));
+
+function openResolutionRevision(entry) {
+    resolutionMemoryRevisionId = entry.id;
+    memoryReviseTitle.value = entry.title || '';
+    memoryReviseAction.value = entry.successfulAction || '';
+    memoryReviseOutcome.value = entry.verifiedOutcome || '';
+    memoryReviseForm.hidden = false;
+    memoryReviseTitle.focus();
+    updateControls();
+}
+
+function closeResolutionRevision() {
+    resolutionMemoryRevisionId = '';
+    memoryReviseForm.hidden = true;
+    updateControls();
+}
+
+memoryReviseCancel?.addEventListener('click', closeResolutionRevision);
+memoryReviseSave?.addEventListener('click', () => {
+    if (!resolutionMemoryRevisionId) return;
+    void runRequest('memory', async () => {
+        memoryStatus.textContent = 'Saving revision…';
+        const result = await window.electronAPI.reviseResolutionMemory(resolutionMemoryRevisionId, {
+            title: memoryReviseTitle.value,
+            successfulAction: memoryReviseAction.value,
+            verifiedOutcome: memoryReviseOutcome.value
+        });
+        requireSuccess(result, 'Unable to save the memory revision.');
+        closeResolutionRevision();
+        await refreshResolutionMemory();
+    }, (error) => {
+        memoryStatus.textContent = errorMessage(error, 'Unable to save the memory revision.');
+    });
+});
+
 memoryList?.addEventListener('click', (event) => {
     const button = event.target instanceof Element ? event.target.closest('[data-memory-action]') : null;
     const item = button?.closest('[data-memory-id]');
@@ -1272,12 +1346,21 @@ memoryList?.addEventListener('click', (event) => {
     const entryId = item.dataset.memoryId;
     const action = button.dataset.memoryAction;
     if (!entryId || !action) return;
+    const entry = resolutionMemoryEntries.find((item) => item.id === entryId);
+    if (!entry) return;
+    if (action === 'revise') {
+        openResolutionRevision(entry);
+        return;
+    }
     if (action === 'retire' && !window.confirm('Retire this approved procedure?')) return;
+    if (action === 'reject' && !window.confirm('Reject this draft so it cannot be retrieved?')) return;
     void runRequest('memory', async () => {
-        memoryStatus.textContent = action === 'approve' ? 'Approving…' : 'Retiring…';
+        memoryStatus.textContent = action === 'approve' ? 'Approving…' : action === 'reject' ? 'Rejecting…' : 'Retiring…';
         const result = action === 'approve'
             ? await window.electronAPI.approveResolutionMemory(entryId)
-            : await window.electronAPI.retireResolutionMemory(entryId);
+            : action === 'reject'
+                ? await window.electronAPI.rejectResolutionMemory(entryId)
+                : await window.electronAPI.retireResolutionMemory(entryId);
         requireSuccess(result, 'Unable to update resolution memory.');
         await refreshResolutionMemory();
     }, (error) => {

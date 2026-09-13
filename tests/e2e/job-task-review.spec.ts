@@ -13,6 +13,13 @@ const alert = {
         { id: 'created', timestamp: '2026-09-11T10:00:00Z', action: 'created', label: 'Incident created', detail: 'CPU reached 95%.' }
     ]
 };
+const resolutionMemoryEntry = {
+    id: 'resolution-review-1', procedureKey: `system-a:highCpu:${jobName}`, version: 1, status: 'draft', systemId: 'system-a', incidentKind: 'highCpu',
+    jobPattern: jobName, title: 'High CPU recovery', symptoms: ['CPU stayed high.'], evidenceRefs: ['trigger @ 2026-09-11T10:00:00Z'],
+    failedAttempts: [], successfulAction: 'Hold after evidence review.', verifiedOutcome: 'Monitoring confirmed recovery.',
+    environment: { systemLabel: 'Test system', jobType: 'BATCH', subsystem: 'QBATCH' }, operator: 'l2-operator', sourceIncidentId: 'review-alert',
+    createdAt: '2026-09-11T10:03:00Z', reviewHistory: [{ action: 'created', actor: 'l2-operator', at: '2026-09-11T10:03:00Z', version: 1 }]
+};
 const payload = {
     job: { JOB_NAME: jobName, SUBSYSTEM_JOB: 'REVIEWJOB', SUBSYSTEM: 'QBATCH', CURRENT_USER: 'OPERATOR',
         STATUS: 'RUN', CPU: 95, ELAPSED_CPU_TIME: 1200, THREAD_COUNT: 2, TEMPORARY_STORAGE: 20,
@@ -96,6 +103,7 @@ const test = base.extend<{ task: TestHandle }>({
                 }
             }, {
                 'get-job-details': { value: payload }, 'get-active-alerts': { value: [alert] },
+                'get-resolution-memory': { value: { success: true, entries: [resolutionMemoryEntry], matches: [] } },
                 'get-app-flags': { value: { operatorName: 'reviewer' } },
                 'get-entitlements': { value: { features: {} } },
                 'get-mcp-action-catalog': { value: { success: true, actions: [
@@ -123,6 +131,9 @@ const test = base.extend<{ task: TestHandle }>({
                 'record-problem-occurrence': { value: { success: true } },
                 'create-problem-candidate': { value: { success: true } },
                 'resolve-problem-record': { value: { success: true } },
+                'approve-resolution-memory': { value: { success: true, entry: { ...resolutionMemoryEntry, status: 'approved', reviewer: 'reviewer' }, entries: [{ ...resolutionMemoryEntry, status: 'approved', reviewer: 'reviewer' }] } },
+                'reject-resolution-memory': { value: { success: true, entry: { ...resolutionMemoryEntry, status: 'rejected', reviewer: 'reviewer' }, entries: [{ ...resolutionMemoryEntry, status: 'rejected', reviewer: 'reviewer' }] } },
+                'revise-resolution-memory': { value: { success: true, entry: { ...resolutionMemoryEntry, status: 'draft', version: 2, title: 'Reviewed high CPU recovery' }, entries: [{ ...resolutionMemoryEntry, status: 'draft', version: 2, title: 'Reviewed high CPU recovery' }] } },
                 'get-incident-replay-catalog': { value: {
                     success: true,
                     scenarios: [{ schema: 'imonitor-replay-scenario', version: 1, id: 'msgw-stale-reply', title: 'Stale reply is blocked', kind: 'messageWait', description: 'Stale evidence.', evidence: [{ source: 'messages', status: 'stale', summary: 'Old inquiry.' }], checks: [{ id: 'current', label: 'Current message is verified', expected: 'Fresh evidence.' }], permittedResponses: ['investigate', 'replyMessage', 'escalate'], expectedOutcome: 'unsafe-blocked', expectedSummary: 'The response is blocked.' }]
@@ -242,6 +253,29 @@ test('shows one grounded next best action with compact proposal context', async 
     await expect(page.locator('#task-action-planner-list')).toContainText('Hold Job');
     await expect(page.locator('#task-action-planner-list')).toContainText('medium risk');
     await expect(page.locator('#task-action-planner-list')).toContainText('The next monitoring poll must show the requested hold state.');
+});
+
+test('keeps resolution review compact and records a revision for approval', async ({ task: { app, page } }) => {
+    const memoryItem = page.locator('[data-memory-id="resolution-review-1"]');
+    await expect(memoryItem).toContainText('Draft');
+    await expect(memoryItem).toContainText('Operator: l2-operator');
+    await expect(memoryItem).toContainText('Source: review-alert');
+    await memoryItem.getByRole('button', { name: 'Revise' }).click();
+    await expect(page.locator('#task-memory-revise-form')).toBeVisible();
+    await page.locator('#task-memory-revise-title').fill('Reviewed high CPU recovery');
+    await page.locator('#task-memory-revise-action').fill('Hold after current evidence review.');
+    await page.locator('#task-memory-revise-outcome').fill('Verified on the next monitoring poll.');
+    await page.locator('#task-memory-revise-save').click();
+    await expect.poll(() => calls(app, 'revise-resolution-memory')).toHaveLength(1);
+    expect((await calls(app, 'revise-resolution-memory'))[0]).toEqual([{
+        entryId: 'resolution-review-1',
+        revision: {
+            title: 'Reviewed high CPU recovery',
+            successfulAction: 'Hold after current evidence review.',
+            verifiedOutcome: 'Verified on the next monitoring poll.'
+        }
+    }]);
+    await expect(page.locator('#task-memory-revise-form')).toBeHidden();
 });
 
 test('previews and runs an approved MCP action inside the selected job task', async ({ task: { app, page } }) => {
