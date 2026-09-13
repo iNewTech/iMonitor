@@ -1,100 +1,488 @@
 # iMonitor user guide
 
-iMonitor is an IBM i operations workspace. It connects to a system, watches active work, explains incidents with evidence, and gives an authorised operator a safe place to take and verify action.
+iMonitor is a desktop workspace for IBM i production support. It watches active work, detects operator-impacting conditions, collects evidence, brings the right job context into one task window, and records what happened.
 
-## Connect
+This guide is written for someone using iMonitor for the first time. Follow the first section once, then use the later sections as a daily operating reference.
 
-1. Open iMonitor and choose a saved IBM i profile, or use the development Demo connection.
-2. Check the system name, address, port, and operator before connecting.
-3. Select **Connect & Monitor**.
+## 1. Understand the workflow
 
-Connection profiles are stored locally on the machine. The password is protected by the operating system's secure storage.
+The normal iMonitor flow is:
 
-To add business context, open **Settings → Alerts → Business service mappings**. Add a service owner and at least one job, resource, queue, or subsystem pattern. Use `*` for a wildcard, and optionally add systems, alert kinds, timezone, operating days, and a response deadline. More specific mappings win; if no mapping matches, iMonitor shows **Unknown impact** rather than guessing.
+**Connect → Monitor → Detect → Investigate → Ask AI → Approve → Act → Verify → Record**
 
-## Monitor
+iMonitor performs first-line observation and read-only preparation automatically. A named, authorised operator remains responsible for production corrections. A command being accepted by IBM i does not by itself mean that the problem is fixed; iMonitor checks the system again and records the result.
 
-The ActionBoard shows the live system in one work area:
+The support model is:
 
-- **Active jobs** lists running and waiting work. Use filters, search, or **Focus Next Job** to find the highest-priority incident.
-- A job can be running and still have an issue, such as high CPU or a lock wait. The incident badge explains what needs attention.
-- A `P##` badge shows the technical priority used by **Focus Next Job**. Open the job and choose **Actions** to see which signals were grouped and why the score was assigned. The score is provisional until a business service is mapped.
-- **Job queues** stays separate so waiting work can be inspected without hiding the active-job feed.
-- Open a job to work in its own task window. The main board continues monitoring while task windows are open.
+- **L1 is automatic.** iMonitor detects enabled conditions, creates one incident, groups related observations, captures evidence, runs bounded read-only checks, and prepares the AI context.
+- **L2 is operator-led.** One authorised client or delegated support person claims the work, reviews the evidence, asks AI for guidance, chooses an approved action, and verifies recovery.
+- **L3 handles uncertainty and risk.** A specialist investigates recurrence, records the root cause and workaround, reviews known problems, and turns successful solutions into approved knowledge.
+- **Fully autonomous recovery is future scope.** This release does not independently reply to messages, release queues, end jobs, or run corrective commands.
 
-To keep monitoring available when the dashboard is closed, open **Settings → Alerts → Background collector**. Enable collection, choose a saved profile, set the polling interval, and choose whether iMonitor starts with the computer. The collector stores read-only poll snapshots locally for each system and shows its last successful write, record count, storage size, retention period, and any connection or write issue. Use **Purge all records** only after reviewing the confirmation; purge is permanent and does not remove saved credentials.
+## 2. Before first use
 
-Open **Outcomes** in the ActionBoard header to review support performance for a selected date window. The panel reports incident volume, resolution and recurrence, average stage times, escalation, AI request availability, and the previous equal window. Every stage shows its measured and unknown sample count. An unresolved incident, missing timestamp, or zero sample stays visible as unknown or unavailable. Recovery is labelled as monitoring-confirmed and operator-verified; the report never presents an operator action as autonomous recovery. **Export JSON** saves only the connected system’s report for customer-owned analysis.
+You need:
 
-## Work an incident
+1. An IBM i host and an operator account that Mapepire can use.
+2. The Mapepire port, normally `8076`.
+3. Permission from the client owner for the IBM i reads and actions your role needs.
+4. Optional provider or integration credentials if your team wants AI, ClickUp, Jira, Slack, email, or SMS delivery.
 
-The task window keeps the selected job in context:
+Start with the **Demo connection** if you are learning the screens. Demo data is safe for practice, but it does not prove that a live IBM i account, command permission, or external integration works.
 
-1. **Overview** shows the current issue, owner, job state, and captured evidence.
-2. **Actions** lets an operator acknowledge, claim, add a note, mark work done, and use approved IBM i actions when available.
-3. **AI helper** explains the selected job and suggests checks or a resolution using its incident evidence.
-4. **History** shows the incident timeline, operator actions, and evidence changes.
-5. **Details** shows the underlying job context. Use **Resource relationships** to load the observed relationship flow for the job and its linked incident, queue, subsystem, message wait, or lock owner when that evidence is available. Expand **Accessible relationship details** for a table view.
+## 3. Connect to IBM i
 
-Claiming work assigns it to the current named operator. Configured ClickUp workflows can create a linked work item. An incident remains visible until monitoring or a manual recheck confirms the underlying condition is clear.
+### Use a saved profile
 
-The Actions brief shows the applicable versioned scenario policy. For MSGW it requires the current message identity and queue before a reply can be accepted. For LCKW it points to lock investigation before disruptive actions. High CPU and monitoring disconnects require fresh evidence and separate workload verification. Reconnecting the monitor alone never proves that the original workload recovered.
+1. Open iMonitor.
+2. In **Saved systems**, select the profile.
+3. Check the system name, host, port, and operator shown in the form.
+4. Select **Connect & Monitor**.
 
-When a supported policy is available, **Guided recovery checkpoints** appears below the response brief. Choose **Start runbook**, then run one checkpoint at a time. The MSGW flow confirms the current inquiry, asks for explicit confirmation before sending the reply, and performs a fresh job read afterward. A still-blocked result pauses the runbook for another verification; an unknown or failed result escalates it. The task keeps the operator, step history, evidence version, and outcome after the window is reopened. No runbook step performs an automatic rollback or a disruptive action.
+### Create a profile
 
-For L3 work, **Known problem & recurrence** appears for a linked incident. It explains a compatible match using the connected system, job, condition, and runtime shape. Choose **Track candidate** for a new problem, or **Add recurrence** for an existing match. Add the confirmed **Root cause** and **Workaround / fix**, optionally link the ClickUp, Jira, vendor, or GitHub ticket, and choose **Confirm known problem**. After the fix has been verified, choose **Mark fix verified**. A later occurrence changes a resolved record to **Reopened** so the specialist can review the fix; the app never closes it because of a matching message alone.
+1. Enter a clear **Connection Name**.
+2. Enter the **System Address**.
+3. Enter the **Mapepire Port**. Leave `8076` unless your Mapepire service uses another port.
+4. Enter the IBM i **Username** and **Password**.
+5. Select **Save Profile** if you want to reuse it.
+6. Select **Connect & Monitor**.
 
-Use **Incident replay** in the task window to train or review a support response. Select one of the ten prepared scenarios and the permitted response, then choose **Run replay**. The result shows sanitized evidence, passed or blocked checks, and the expected recovery or escalation outcome. The panel is labelled **Training only** and never sends IBM i commands or external integration updates.
+Profiles are stored locally on this computer. The password is protected by the operating system secure-storage facility. Do not send a profile or password in a ticket, chat message, screenshot, or AI prompt.
 
-When an incident has a useful verified outcome, open **Actions → Resolution memory** and choose **Save verified knowledge**. iMonitor stores the symptoms, captured evidence references, failed attempts, action, outcome, environment, and current operator as a **Draft**. Review the draft before choosing **Approve**; approved entries are versioned and can be suggested again only for the same customer/system scope and matching incident/job pattern. Choose **Retire** when a procedure is no longer valid. Resolution memory stays customer-owned and can be exported from the main process for that system.
+During connection, iMonitor checks for Mapepire. Depending on the host, it can use an existing service, start an installed copy, or deploy Mapepire through SSH. The current automatic setup expects SSH on port `22`. If the service is not reachable, read the message shown on the connection page before retrying.
 
-When the current operator needs another person, use **Send handoff** in the task window. Choose the recipient, add the reason and pending checks, and optionally set a response target. The current owner remains accountable while the handoff is pending. The recipient opens the same incident and selects **Accept handoff**; only then does ownership move to that operator. The timeline records both the request and acceptance. Handoff context stays inside the incident workflow and is synchronized through configured integrations.
+### Reconnect safely
 
-The Actions view also shows a routing recommendation for an active incident. It checks active support access, IBM i system scope, incident skills, availability, support window, and the response SLA. The recommendation is guidance only: the receiving operator must still accept or claim the work. If access is expired, no operator matches, or the SLA is overdue, the view explains why the incident should be escalated.
+After a disconnect, select the same saved profile and reconnect. Reconnection restores the local incident records and history for that system. Reconnection alone does not prove that an IBM i job recovered; wait for a fresh poll and verification result.
 
-Only the client owner or a named support operator with an active grant for the connected IBM i system can change workflow or run a job/queue action. iMonitor rejects a stale incident update, a request for another system, a duplicate request that is still running, and a replay of a completed request. IBM i permissions are checked again when a command is executed.
+## 4. Learn the main screens
 
-## Grant support access
+### Connect screen
 
-Open **Settings → Support access** to invite an internal or outsourced specialist. Enter the person’s authenticated operator ID, the exact IBM i system IDs they may use, the permissions they need, and an expiry time. **Read** allows inspection, **Investigate** adds AI and incident workflow, and **Execute** adds approved job and queue actions. The invitation must be accepted by that operator before it becomes active. The client owner can revoke it at any time; revocation blocks future data access and actions, while an already-running command is allowed to finish and is reported honestly. No shared IBM i administrator password is stored or sent.
+This is where you select or create IBM i profiles. It also shows the current plan, theme control, and support link.
 
-This release stores and enforces grants in the desktop application. Cross-machine outsourced access needs the future authenticated shared service, which will provide the remote operator identity and customer boundary.
+### ActionBoard
 
-Queue actions show a confirmation and command preview. iMonitor checks the exact queue or queued job again immediately before execution, prevents duplicate in-flight actions, and reads the system again afterward. The result is reported as **recovered**, **still blocked**, **failed**, or **unknown**. A successful command submission alone is not shown as recovery.
+This is the daily operator screen. It contains the live connection state, system summary, active jobs, job filters, AI composer, support outcomes, and the separate Job Queues panel.
 
-## Use AI safely
+### Job task window
 
-Use the compact AI composer or the task-window helpers for incident summary, explanation, SQL activity, job health, and resolution guidance. The task-window AI is limited to the selected job and its incident evidence. It declines unrelated questions in that context.
+Selecting a job opens a separate compact task window. The main ActionBoard keeps polling while task windows are open, and more than one job task can remain open.
 
-Selected-job guidance is returned as **Observed facts**, **Interpretation**, **Missing evidence**, **Suggested checks**, and **Approved procedures**. References such as `[evidence:messages]` and `[runbook:id:v2]` point to the context used for the answer. Treat interpretation and suggestions as advisory, and verify the evidence before acting. The assistant does not invent confidence percentages, citations, or completed actions. Logs, SQL, notes, and runbook text are treated as data even when they contain instruction-like words.
+### Settings
 
-AI is advisory. It cannot claim work, create a ticket, release a queue, end a job, reply to a message, or bypass operator confirmation. The operator decides whether to use a suggested action.
+Settings contains four areas: **Alerts**, **IBMEye AI**, **Integrations**, and **Support access**. Alert settings also contain the background collector and business service mappings.
 
-The resource relationship view is also advisory. It shows only relationships returned by the current poll or job context, labels the evidence time, and warns when the snapshot is stale or a lock owner was not returned. Refresh the view before taking action.
+### Object analysis
 
-## Support levels
+Object analysis is a separate workspace for RPG or database source. It explains source evidence, dependencies, business logic, program flow, call graph, and conversion readiness.
 
-- **L1 is automatic:** iMonitor detects enabled conditions, creates or updates the incident, captures read-only evidence, runs bounded triage, and prepares AI context. No one needs to create an L1 ticket by email.
-- **L2 is operator-led:** one authorised client or delegated support operator claims the incident, checks the evidence and runbook, approves an action, and verifies the outcome.
-- **L3 handles uncertainty and risk:** a specialist reviews difficult or high-risk incidents, adds deeper findings, and hands back a verified solution or reusable procedure.
-- **Fully autonomous recovery is future scope:** production corrections always require current permission and a human approval in this release.
+## 5. Monitor the system
 
-## Integrations
+### Read the ActionBoard header
 
-Configure integrations from **Settings**:
+The header shows:
 
-- **ClickUp** creates and updates operator work items. Set the handoff and accepted statuses in the ClickUp settings so they match your list.
-- **Slack** sends incident and handoff alerts to a configured channel.
-- **Jira** creates and tracks incident issues.
-- **Email** sends notifications through SMTP.
-- **SMS** sends notifications through a compatible provider-neutral HTTP API.
+- whether the connection is **Live** or disconnected
+- the active system and operator
+- the last update time
+- **Object analysis**, **Outcomes**, **Settings**, **Disconnect**, and theme controls
 
-Integration credentials and settings are kept separate for the named operator where supported. Test controls can send real messages or create real work items.
+The page is healthy only when the connection is live and the update time continues to change. If polling fails, read the status message and use **Retry** or reconnect as directed.
 
-iMonitor keeps the incident record locally even when an integration is disabled or unavailable. Configured outbound events show a durable delivery outcome internally, retry short-lived failures within a bounded limit, and do not create a second external ticket when the same event is retried. Linked Jira and ClickUp work items receive approved claim, handoff, and recovery updates from the iMonitor workflow.
+### Read the system cards
 
-## Data and support
+The Active Jobs panel places the high-signal cards at the top:
 
-Incident records, action history, and monitoring summaries are retained locally for the current desktop workflow. The shared incident service is designed for customer-controlled storage and synchronisation between clients; its scope is always tied to an organisation and IBM i system, and it reports offline or stale state when synchronisation is unavailable.
+- total active jobs
+- peak CPU
+- running jobs
+- waiting jobs
+- latest poll time
 
-Use the support tools when a provider or connection fails. Record whether a result came from the Demo connection or a live IBM i system. Demo success does not prove live IBM i permissions, recovery, or external delivery.
+These cards describe the current poll. They are not a historical performance report; use **Outcomes** for a date range.
+
+### Use the active jobs list
+
+The **WRKACTJOB · Active Jobs** list is the main work surface. It shows the job, user, subsystem, CPU, business or technical function, and health/state.
+
+Use the controls to:
+
+1. Choose the polling interval: `5 seconds`, `10 seconds`, `30 seconds`, `1 minute`, or **Custom**.
+2. For Custom, enter seconds within the allowed range and wait for the polling label to update.
+3. Filter by subsystem.
+4. Search by job, subsystem, user, function, `MSGW`, `LCKW`, or another visible term.
+5. Use the quick filters for running, waiting, `MSGW`, `LCKW`, `DLYW`, and `DEQW`.
+6. Use **Focus Next Job** to bring the highest-priority incident into the task workflow.
+
+### Understand “Running” and “Issue” together
+
+A job can be **Running** and still have an issue. Running describes the IBM i job state. An issue badge describes a condition that needs attention, such as high CPU, a lock wait, a message wait, or a queue condition.
+
+For example, `Running + High CPU` means the job is active but consuming more CPU than the configured threshold. It does not mean the job is stopped. Open the row to see the actual condition, evidence, and recommended next check.
+
+If a row shows an owner, that named operator currently has the work claimed. If no owner is shown, the work is available to an authorised operator.
+
+### Use Job Queues
+
+**WRKJOBQ · Job Queues** remains a separate panel below the main workflow.
+
+1. Open the panel.
+2. Search by queue, library, job, or user.
+3. Filter by **All queues**, **Released**, or **Held**.
+4. Expand a queue to inspect waiting jobs and its subsystem.
+5. Use a queue action only when the action is available, your permission is active, and the confirmation describes the exact queue or job.
+
+Automatic queue triage only reads queue, waiting-job, and subsystem evidence. It does not release or hold a queue. Queue changes require a separate confirmation and a fresh verification read.
+
+### Review support outcomes
+
+Open **Outcomes** in the ActionBoard header. Choose a **From** and **To** date, then select **Refresh**. The panel shows incident volume, acknowledgement and investigation timing, verified recovery, recurrence, escalation, AI availability, sample sizes, unknown results, and a comparison with the previous equal period.
+
+Use **Export JSON** when a support lead needs a customer-owned report. The report is scoped to the connected system. An operator-verified recovery remains separate from future autonomous recovery.
+
+## 6. Work a job or incident as an L2 operator
+
+Use this sequence when a row shows an issue.
+
+### Step 1: Open the job
+
+Select the job row or choose **Focus Next Job**. The task window opens with the job in context. Do not start by opening a different job or relying on a copied screenshot; the task window keeps the current evidence and identity together.
+
+### Step 2: Read Overview
+
+The **Overview** tab shows the current job state, wait reason, issue summary, owner, and captured evidence. Confirm that the job name, user, subsystem, and issue are the one you intend to work on.
+
+### Step 3: Acknowledge the issue
+
+Choose **Acknowledge** when you have seen the issue. This records awareness in the incident timeline. Acknowledgement does not claim the work and does not change the IBM i job.
+
+### Step 4: Claim the work
+
+Choose **Claim Work** to assign the incident to the current named operator. The owner appears in the task window and in the ActionBoard job row. If ClickUp is configured and available, iMonitor creates or reuses the linked work item from the main workflow.
+
+Do not use a shared operator identity. If you should not own the work, leave it unclaimed or use a handoff.
+
+### Step 5: Read the Actions brief
+
+Open **Actions**. The response brief groups the work into **Respond**, **Investigate**, and **Resolve** and shows:
+
+- technical or business impact
+- current owner and workflow status
+- business service and deadline when a mapping matches
+- the next check
+- evidence used to build the recommendation
+- routing and runbook guidance
+
+If business context says **Unknown impact**, do not guess the business priority. Ask the client owner to add a mapping in Settings.
+
+### Step 6: Inspect evidence and history
+
+Use **History** for the incident timeline and recent job status changes. Use **Details** to load information only when needed:
+
+- **Load job log** for the selected job’s log
+- **Load MSGW context** for the current message identity and queue
+- **Resource relationships** for the observed relationship flow and accessible table
+
+Fresh evidence is required before a production action. An old screenshot, an earlier poll, or a successful command submission is not a recovery proof.
+
+### Step 7: Ask the job-scoped AI helper
+
+Open **AI helper** and choose **Job health summary** or **How to resolve**. These buttons use only the selected job, its linked incident, its evidence, status history, and matching approved procedures.
+
+The answer should separate observed facts, interpretation, missing evidence, suggested checks, and approved procedures. Treat the interpretation as advice. Verify every important fact in the task window before acting.
+
+### Step 8: Choose an approved action
+
+Available operations depend on the job state, plan, IBM i permission, incident type, and fresh evidence. Possible actions include:
+
+- **Reply to MSGW** after the current message identity and inquiry queue are checked
+- **Hold Job**
+- **Release Job**
+- **End Job**
+- **Inspect Locks**
+
+The action may be unavailable because the plan, permission, evidence, or current state does not allow it. A confirmation and command preview appear before a production mutation. Read the target carefully and confirm only when you intend to run it.
+
+### Step 9: Verify the result
+
+After an action, iMonitor reads the job or queue again. The result is reported as **Recovered**, **Still blocked**, **Failed**, or **Unknown**. If verification is unknown, investigate or hand off; do not report recovery to the business as a fact.
+
+### Step 10: Mark work done and wait for clearing
+
+Choose **Mark Work Done** when your operator work is complete. This records progress; it does not clear the incident. The issue remains visible until monitoring or a manual recheck confirms that the underlying condition is resolved. Remove claim only when the work should return to the queue.
+
+## 7. Use guided recovery and runbooks
+
+When a supported procedure matches, the Actions tab shows **Guided recovery checkpoints**.
+
+1. Read the runbook policy and required evidence.
+2. Select **Start runbook**.
+3. Complete one checkpoint at a time.
+4. Enter the requested values, such as the current MSGW message key, message queue, and approved reply.
+5. Select **Run current checkpoint**.
+6. Read the independent verification result before continuing.
+
+For MSGW, iMonitor checks the current message identity and inquiry queue and asks for explicit confirmation before sending a reply. A still-blocked result pauses the runbook. An unknown or failed verification escalates it. A runbook never silently retries a production mutation and does not provide automatic rollback.
+
+## 8. Hand off work to another support person
+
+Use the handoff area in **Actions** when the incident needs another operator.
+
+1. Enter the named recipient.
+2. Explain why the work needs another operator.
+3. List the pending checks.
+4. Add a response target if one is useful.
+5. Select **Send handoff**.
+
+The current owner remains accountable while the handoff is pending. The recipient opens the same incident and selects **Accept handoff**. Ownership changes only after acceptance, and both events are recorded in History.
+
+If configured, ClickUp receives the handoff and assignee update, Jira receives the workflow comment, and Slack receives the focused notification. A delivery failure does not erase the local handoff. Handoff context stays in the incident workflow; there is no copy or export handoff document in the current release.
+
+## 9. Perform L3 problem management
+
+For recurring or uncertain incidents, the Actions tab can show **Known problem & recurrence**.
+
+1. Select **Track candidate** for a new possible problem, or **Add recurrence** for an existing compatible problem.
+2. Confirm the match: same customer system, job, condition, and runtime shape.
+3. Record the confirmed **Root cause** and **Workaround / fix**.
+4. Add a related ClickUp, Jira, vendor, GitHub, or other ticket when useful.
+5. Select **Confirm known problem** only after reviewing the evidence.
+6. After the fix is independently verified, select **Mark fix verified**.
+
+A later matching occurrence reopens a resolved problem for review. A similar message on another job or system is not silently grouped.
+
+## 10. Save reusable Resolution Memory
+
+After recovery is verified, use **Save resolution draft** in the Actions tab.
+
+1. Review the symptoms, evidence references, attempts, action, outcome, environment, and operator.
+2. Keep the entry as a draft while the information is uncertain.
+3. Select **Approve** only when the procedure is reviewed and safe to reuse.
+4. Select **Retire** when it is no longer valid.
+
+Approved knowledge is customer- and system-scoped. It is suggested only when the current incident and environment match. AI cannot publish a runbook by itself.
+
+## 11. Practise with Incident replay
+
+**Incident replay** is training mode.
+
+1. Choose a prepared scenario.
+2. Choose the response you want to practise.
+3. Select **Run replay**.
+4. Read the sanitized evidence, passed or blocked checks, and expected result.
+
+Replay is labelled **Training only**. It never calls IBM i and never sends updates to ClickUp, Jira, or Slack.
+
+## 12. Configure IBMEye AI
+
+Open **Settings → IBMEye AI**.
+
+1. Turn on **Enable IBMEye AI**.
+2. Choose a provider family.
+3. Choose a model that is shown as available or installed.
+4. Select **Refresh** if the provider status is stale.
+5. Enter the endpoint and API key when the provider requires them.
+6. Set the response style, history limit, and default reply style if needed.
+7. Select **Save AI Settings**.
+
+The current provider choices are local **Open Models** and hosted adapters for **Codex / OpenAI**, **Claude**, and **Grok / xAI**, subject to plan and configuration. A model that is not configured or unavailable cannot be selected for use.
+
+The small provider and model controls in the ActionBoard and floating IBMEye helper show the currently usable choices. The main composer is monitor-scoped. A task window’s AI helper is job-scoped and must not answer unrelated questions.
+
+AI can explain and recommend. It cannot claim work, create a ticket, send a message reply, change a queue, end a job, or bypass confirmation.
+
+## 13. Configure alerts and notifications
+
+Open **Settings → Alerts**.
+
+### Choose what to watch
+
+Enable only the conditions your team needs:
+
+- High CPU
+- MSGW
+- LCKW
+- DLYW
+- DEQW
+- Poll failures
+- Disconnects
+
+Set the **High CPU threshold** and the number of healthy polls required before recovery when those controls are relevant. Save with **Save Alert Settings**.
+
+### Choose notification channels
+
+Available channels are **Desktop**, **Slack**, **Email**, **Jira**, and **SMS**. Enable a channel here only after its connection is configured. Premium channels remain visible with a clear plan indicator when they are unavailable.
+
+### Configure email
+
+Expand **Email notification setup**, enter the SMTP host, port, security option, sender, and recipients, then save. Use **Send Test Email** only when you are ready to send a real message.
+
+## 14. Configure integrations
+
+Open **Settings → Integrations**. Installed apps appear in the installed section. Available apps appear separately. Select an available app, choose **Install**, enter its configuration, and save; after a successful configuration it appears as installed.
+
+The current catalog provides:
+
+- **ClickUp action tracking:** creates or updates operator work items from the incident workflow. Configure the workspace, space, list, operator, and handoff/accepted statuses.
+- **Slack channel alerts:** sends incident and handoff notifications through an Incoming Webhook. Configure the webhook URL and channel label.
+- **Jira incident tracking:** creates and tracks incident issues through Jira Cloud REST API. Configure the site, account email, API token, project key, and issue type.
+- **Email:** sends alerts through the SMTP setup in Alerts.
+- **SMS alerts:** sends messages through a compatible HTTP API. Configure the endpoint, recipients, authentication, body format, templates, and headers.
+
+Use each integration’s **Send Test**, **Create Test Issue**, or equivalent test control carefully; test delivery may contact a real external system. Integration failure does not remove the local incident record.
+
+## 15. Give an outsourced support person limited access
+
+The client owner controls access from **Settings → Support access**.
+
+1. Enter the person’s display name and authenticated operator ID.
+2. Enter the exact IBM i system IDs they may access.
+3. Choose only the permissions required:
+   - **Read:** jobs, alerts, logs, and evidence
+   - **Investigate:** AI context, incident workflow, and handoff
+   - **Execute:** approved job and queue actions
+4. Set an expiry date and time.
+5. Select **Create invitation**.
+
+The named operator must accept the invitation before access starts. The client can revoke it at any time. Revocation blocks future reads and actions. Never share a common administrator password. The current desktop release enforces grants locally; a future shared service will extend this across machines.
+
+## 16. Add business service context
+
+Open **Settings → Alerts → Business service mappings**.
+
+1. Enter a business service and owner.
+2. Add one or more matching job, resource, queue, or subsystem patterns.
+3. Optionally specify systems, alert kinds, timezone, working days, expected start/end, and response deadline.
+4. Select **Add mapping**.
+
+Use `*` for a wildcard. More specific mappings win. When no mapping matches, iMonitor shows **Unknown impact** instead of inventing a business priority.
+
+## 17. Keep monitoring after closing the dashboard
+
+Open **Settings → Alerts → Background collector**.
+
+1. Turn on **Keep collecting in the background**.
+2. Choose a saved IBM i profile.
+3. Set the polling interval in seconds.
+4. Set how many days to retain records.
+5. Set the storage limit in MB.
+6. Optionally enable **Start with this computer**.
+7. Select **Save collector settings**.
+
+The collector stores read-only poll snapshots locally for each system. The panel shows its state, last successful write, record count, storage size, and errors. It does not run corrective IBM i actions while the desktop is closed.
+
+To remove collected snapshots, select **Purge all records**, review the record and size preview, and confirm. Purge is permanent and does not delete saved connection profiles.
+
+## 18. Analyse RPG or database source
+
+Open **Object analysis** from the ActionBoard.
+
+### Choose the source
+
+1. Choose **Local directory** to inspect an exported source tree, or **IBM i library** when connected to a live system.
+2. Use the ordered library list to control object lookup.
+3. Use **Apply for this session** for a temporary list or **Save permanently** to write the setup for future sessions.
+4. Select a source file in the loaded source tree.
+5. Select **Load source** to read the source, or **Analyze object** to build the report.
+
+If the source tree is empty, confirm the selected directory, library list, connection, and source format. Demo mode uses its bundled source tree; live IBM i source needs a live connection and suitable read permission.
+
+### Read the result
+
+The analysis includes:
+
+- conversion readiness, blockers, review notes, and confirmed evidence
+- business logic findings
+- program flow steps
+- dependency inventory
+- a call graph showing the selected program calling other programs, modules, procedures, and subprocedures when those relationships are evidenced
+- source signals and conversion actions
+
+The graph is a call graph only. It does not invent a relationship when source or catalog evidence is missing. Use the accessible relationship table when the visual graph is difficult to read.
+
+### Explain, approve, and compile
+
+- **Explain with IBMEye AI** adds an optional evidence-based explanation. Review it as an interpretation, not as source truth.
+- **Approve & map report** saves the reviewed report under the source program’s analysis folder and maps it to that program.
+- **Compile plan** becomes available after analysis. It generates the dependency order and saves `*.build.json` and `*.cl` under the same `imonitor-analysis` area.
+- **Download report** saves the operator-facing report.
+
+Compile plan generation only writes the order and CL commands. It does not execute compilation automatically. Cycles, missing sources, unsupported commands, or uncertain metadata stay visible for manual review.
+
+## 19. Use the macOS widget
+
+The repository includes a native WidgetKit scaffold for a small or medium macOS widget. When the signed native widget is installed and the App Group is configured:
+
+1. Let iMonitor connect and complete at least one poll.
+2. Open macOS widget editing and choose the iMonitor widget.
+3. Add the small or medium widget to the desktop or Notification Center.
+4. Read live/idle state, peak CPU, total/running/waiting jobs, MSGW count, and the top issue or CPU job.
+5. Select the widget to open the ActionBoard.
+
+iMonitor writes the latest summary after each poll, but macOS controls when the widget redraws. The widget is not automatically installed by the Electron app; native signing and App Group setup are required.
+
+## 20. Common problems
+
+### The connection fails
+
+Check the host, Mapepire port, IBM i username, password, and SSH availability. If automatic setup reports that Mapepire cannot be started, ask the IBM i administrator to verify the service and port. Reconnect only after correcting the reported cause.
+
+### The page shows no jobs
+
+Confirm that the connection is live, monitoring is started, and the subsystem, status, or search filters are not hiding all rows. Clear the search and choose **All**. Check the last poll status.
+
+### A running job also shows an issue
+
+This is expected when the job is active but has a condition such as high CPU or a lock wait. Open the row and read the issue summary and evidence.
+
+### AI has no usable model
+
+Open **Settings → IBMEye AI**, enable a provider, refresh provider status, choose an available model, and save. Hosted providers also need a valid endpoint or API key. The composer will not offer an unavailable model.
+
+### An action is disabled
+
+The plan, current job state, IBM i permission, support grant, evidence freshness, or required confirmation may prevent the action. Read the task message. AI advice cannot unlock a restricted action.
+
+### The issue does not disappear after work is done
+
+**Mark Work Done** records the operator’s work. Monitoring must observe the underlying condition as clear before the incident is removed from the active issue view.
+
+### Source is not loading
+
+Select a source from the left tree, confirm that the selected directory or IBM i library is correct, and check the active library list. Local analysis needs readable source files. IBM i analysis needs a live connection and source permission.
+
+### Notifications or tickets are missing
+
+Check that the integration is installed, configured, enabled in **Alert delivery & watch rules**, and allowed by the current plan. Use the integration test control, then read its status. A provider failure is recorded separately from the local incident.
+
+## 21. Safety and data rules
+
+- Treat demo results as practice evidence, not live IBM i validation.
+- Verify the system, job, message, queue, and operator before every production action.
+- Never share passwords, API keys, or administrator identities.
+- AI suggestions are advisory and may be incomplete.
+- A command accepted by IBM i is not the same as verified recovery.
+- Training replay never touches production.
+- Customer incident records and approved knowledge stay scoped to the connected system.
+- Background collection is read-only and can be purged only after confirmation.
+
+## 22. Quick glossary
+
+- **ActionBoard:** the main iMonitor screen for active jobs, issues, AI, outcomes, and queues.
+- **WRKACTJOB:** IBM i active-job information shown in the main job list.
+- **WRKJOBQ:** IBM i job-queue information shown in the separate queue panel.
+- **MSGW:** message wait; a job is waiting for a message response.
+- **LCKW:** lock wait; a job is waiting for a resource lock.
+- **DLYW:** delay wait.
+- **DEQW:** dequeue wait.
+- **Mapepire:** the service boundary iMonitor uses to communicate with IBM i.
+- **Incident:** the durable record for an operator-impacting condition, its evidence, owner, actions, and timeline.
+- **Runbook:** a reviewed sequence of checks, an approved action, and independent verification.
+- **Resolution Memory:** customer-scoped verified knowledge that can help with a matching future incident.
+- **UAT:** user acceptance testing against the intended environment and operator workflow.
+
+## 23. Getting help
+
+Use the support area in the footer to contact support or send encrypted diagnostics. Tell support whether the problem occurred with the Demo connection or a live IBM i system, and include the visible status message, system label, time, and affected job if safe to share. Do not include passwords, API keys, or unredacted logs.
