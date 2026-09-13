@@ -219,6 +219,42 @@ test('configures the read-only background collector and shows its local inventor
     }
 });
 
+test('manages the local knowledge index without exposing provider secrets', async () => {
+    const app = await launchTestApp();
+
+    try {
+        await app.page.locator('#connect').click();
+        await expect(app.page.getByRole('heading', { name: 'iMonitor ActionBoard', exact: true })).toBeVisible();
+        await app.page.locator('#open-settings').click();
+        await app.page.getByTestId('settings-page-ai').click();
+
+        const knowledgePanel = app.page.locator('#settings-knowledge-index-panel');
+        await expect(knowledgePanel).toBeVisible();
+        await expect(app.page.locator('#settings-knowledge-index-summary-status')).toHaveText('Ready');
+        await expect(app.page.locator('#settings-knowledge-index-name')).toHaveText('Local lexical index');
+
+        const settings = await app.page.evaluate(() => window.electronAPI.getKnowledgeIndexSettings());
+        expect(settings.settings).toMatchObject({ backend: 'local', apiKeyConfigured: false });
+        expect(settings.settings).not.toHaveProperty('apiKey');
+
+        await app.page.getByTestId('knowledge-index-manage').click();
+        await expect(app.page.locator('#settings-knowledge-index-dialog')).toBeVisible();
+        await expect(app.page.locator('#settings-knowledge-index-backend')).toHaveValue('local');
+        await expect(app.page.locator('#settings-knowledge-index-backend option[value="qdrant"]')).toHaveAttribute('disabled', '');
+        await app.page.locator('#settings-knowledge-index-collection').fill('imonitor-knowledge-test');
+        await app.page.getByTestId('knowledge-index-test').click();
+        await expect(app.page.locator('#settings-knowledge-index-dialog-status')).toContainText('ready');
+        await app.page.getByTestId('knowledge-index-save').click();
+        await expect(app.page.locator('#settings-knowledge-index-dialog')).toBeHidden();
+
+        await app.page.getByTestId('knowledge-index-manage').click();
+        await expect(app.page.locator('#settings-knowledge-index-collection')).toHaveValue('imonitor-knowledge-test');
+        await app.page.getByRole('button', { name: 'Cancel', exact: true }).click();
+    } finally {
+        await app.cleanup();
+    }
+});
+
 test('keeps the seven settings categories compact and preserves draft values', async () => {
     const app = await launchTestApp();
 

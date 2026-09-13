@@ -10,6 +10,7 @@ import { initAlertSettings } from './settings/alerts.js';
 import { initSupportAccessSettings } from './settings/support-access.js';
 import { initCollectorSettings } from './settings/collector.js';
 import { initBusinessServiceSettings } from './settings/business-services.js';
+import { initKnowledgeIndexSettings } from './settings/knowledge-index.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     void initAppNavigation();
@@ -291,6 +292,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     const collectorSettings = initCollectorSettings({ root: document });
     const businessServiceSettings = initBusinessServiceSettings({ root: document });
+    const knowledgeIndexSettings = initKnowledgeIndexSettings({ root: document });
 
     const premiumFeaturePanels = new Map([
         ['settings-clickup-panel', 'clickup-integration'],
@@ -466,7 +468,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         alertSettings.refresh(),
         supportAccessSettings.refresh(),
         collectorSettings.refresh(),
-        businessServiceSettings.refresh()
+        businessServiceSettings.refresh(),
+        knowledgeIndexSettings.refresh()
     ]);
 
     applyPremiumPreview(entitlements);

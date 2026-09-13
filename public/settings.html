@@ -390,6 +390,72 @@
                     </div>
                 </details>
 
+                <details id="settings-knowledge-index-panel" data-settings-view="ai" class="surface-card settings-card settings-disclosure settings-knowledge-index-panel">
+                    <summary class="settings-card-summary">
+                        <div class="settings-heading-lockup">
+                            <span class="settings-heading-icon"><i class="bi bi-database-check" aria-hidden="true"></i></span>
+                            <div>
+                                <p class="eyebrow mb-2">AI &amp; knowledge</p>
+                                <h2 class="section-title">Knowledge storage</h2>
+                                <p class="panel-copy mb-0">Choose the index used to find approved operational knowledge.</p>
+                            </div>
+                        </div>
+                        <div class="settings-card-summary-meta">
+                            <span id="settings-knowledge-index-summary-status" class="settings-provider-chip">Loading</span>
+                            <button id="settings-knowledge-index-manage" type="button" class="btn btn-outline-ink btn-sm" data-testid="knowledge-index-manage">Manage</button>
+                            <i class="bi bi-chevron-down settings-card-chevron" aria-hidden="true"></i>
+                        </div>
+                    </summary>
+                    <div class="settings-disclosure-body settings-knowledge-index-body">
+                        <div class="settings-knowledge-index-summary">
+                            <div>
+                                <strong id="settings-knowledge-index-name">Local lexical index</strong>
+                                <p id="settings-knowledge-index-copy" class="stat-note mb-0">Private on this machine and available offline for exact IBM i identifiers.</p>
+                            </div>
+                            <span id="settings-knowledge-index-health" class="settings-provider-chip">Checking</span>
+                        </div>
+                        <p id="settings-knowledge-index-status" class="stat-note mb-0" role="status">Knowledge storage is loading.</p>
+                    </div>
+                </details>
+
+                <dialog id="settings-knowledge-index-dialog" class="settings-knowledge-index-dialog" aria-labelledby="settings-knowledge-index-dialog-title">
+                    <form id="settings-knowledge-index-form" class="settings-form-grid">
+                        <div class="settings-knowledge-index-dialog-heading">
+                            <div>
+                                <p class="eyebrow mb-2">AI &amp; knowledge</p>
+                                <h2 id="settings-knowledge-index-dialog-title" class="section-title mb-1">Knowledge storage</h2>
+                                <p class="panel-copy mb-0">Local storage is the safe first-use option. A provider cannot be selected until its adapter is installed.</p>
+                            </div>
+                            <button id="settings-knowledge-index-close" type="button" class="btn btn-outline-ink btn-sm" aria-label="Close knowledge storage settings"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+                        </div>
+                        <label class="control-select">
+                            <span class="control-label">Storage adapter</span>
+                            <select id="settings-knowledge-index-backend" class="form-select" data-testid="knowledge-index-backend"></select>
+                        </label>
+                        <div class="settings-field-grid settings-field-grid-two">
+                            <label class="control-select">
+                                <span class="control-label">Endpoint</span>
+                                <input id="settings-knowledge-index-endpoint" type="url" class="form-control" autocomplete="off" placeholder="Only required for an external adapter">
+                            </label>
+                            <label class="control-select">
+                                <span class="control-label">Collection or database</span>
+                                <input id="settings-knowledge-index-collection" type="text" class="form-control" autocomplete="off">
+                            </label>
+                        </div>
+                        <label class="control-select">
+                            <span class="control-label">Provider API key</span>
+                            <input id="settings-knowledge-index-api-key" type="password" class="form-control" autocomplete="new-password" placeholder="Leave blank to keep the saved key">
+                            <small id="settings-knowledge-index-secret-note" class="stat-note">No key is currently configured. Secrets stay in protected main-process storage.</small>
+                        </label>
+                        <p id="settings-knowledge-index-dialog-status" class="stat-note mb-0" role="status"></p>
+                        <div class="settings-actions">
+                            <button id="settings-knowledge-index-test" type="button" class="btn btn-outline-ink" data-testid="knowledge-index-test"><i class="bi bi-plug me-2" aria-hidden="true"></i>Test connection</button>
+                            <button id="settings-knowledge-index-cancel" type="button" class="btn btn-outline-ink">Cancel</button>
+                            <button type="submit" class="btn btn-primary-strong" data-testid="knowledge-index-save"><i class="bi bi-save2 me-2" aria-hidden="true"></i>Save</button>
+                        </div>
+                    </form>
+                </dialog>
+
                 <section id="settings-support-access" data-settings-view="access" class="surface-card settings-support-access settings-view-surface" aria-labelledby="settings-support-access-title">
                     <header class="settings-catalog-header">
                         <div class="settings-heading-lockup">

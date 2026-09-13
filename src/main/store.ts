@@ -74,6 +74,11 @@ import { DEFAULT_BUSINESS_SERVICE_SETTINGS, normalizeBusinessServiceSettings, ty
 import { DEFAULT_RESOLUTION_MEMORY, normalizeResolutionMemory, type ResolutionMemoryStore } from '../features/action-board/resolution-memory';
 import { DEFAULT_RUNBOOK_EXECUTIONS, normalizeRunbookExecutions, type RunbookExecutionStore } from '../features/action-board/runbook-execution';
 import { DEFAULT_PROBLEM_MANAGEMENT, normalizeProblemManagement, type ProblemManagementStore } from '../features/action-board/problem-management';
+import {
+    DEFAULT_STORED_KNOWLEDGE_INDEX_SETTINGS,
+    normalizeStoredKnowledgeIndexSettings,
+    type StoredKnowledgeIndexSettings
+} from '../features/knowledge/knowledge-index';
 
 export interface StoreSchema {
     connections: StoredConnection[];
@@ -99,6 +104,7 @@ export interface StoreSchema {
     resolutionMemory: ResolutionMemoryStore;
     runbookExecutions: RunbookExecutionStore;
     problemManagement: ProblemManagementStore;
+    knowledgeIndexSettings: StoredKnowledgeIndexSettings;
     themeId: ThemeId;
     developmentPlan: Plan;
 }
@@ -142,10 +148,21 @@ export function createAppStore() {
             resolutionMemory: DEFAULT_RESOLUTION_MEMORY,
             runbookExecutions: DEFAULT_RUNBOOK_EXECUTIONS,
             problemManagement: DEFAULT_PROBLEM_MANAGEMENT,
+            knowledgeIndexSettings: DEFAULT_STORED_KNOWLEDGE_INDEX_SETTINGS,
             themeId: DEFAULT_THEME_ID,
             developmentPlan: 'premium'
         }
     }) as AppStore;
+}
+
+/** Loads and normalizes the persisted knowledge-index choice without exposing its secret. */
+export function getNormalizedKnowledgeIndexSettings(store: AppStore) {
+    const storedSettings = store.get('knowledgeIndexSettings');
+    const normalized = normalizeStoredKnowledgeIndexSettings(storedSettings);
+    if (JSON.stringify(storedSettings) !== JSON.stringify(normalized)) {
+        store.set('knowledgeIndexSettings', normalized);
+    }
+    return normalized;
 }
 
 /** Loads and normalizes customer-owned business service mappings. */

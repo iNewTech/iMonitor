@@ -1,14 +1,9 @@
 import { createHash } from 'node:crypto';
 import { ipcMain } from 'electron/main';
-import {
-    KNOWLEDGE_SCHEMA_VERSION,
-    type KnowledgeRecord,
-    type KnowledgeSourceType
-} from '../../features/knowledge/knowledge-contract';
+import { type KnowledgeRecord, type KnowledgeSourceType } from '../../features/knowledge/knowledge-contract';
 import {
     authorizeKnowledgeRead,
     filterKnowledgeRecords,
-    runScopedKnowledgeSearch,
     type KnowledgeAccessContext
 } from '../../features/knowledge/knowledge-access';
 import {
@@ -19,6 +14,7 @@ import {
     type KnowledgeSourceInput
 } from '../../features/knowledge/knowledge-ingestion';
 import { createKnowledgeStore, type KnowledgeScope } from '../../features/knowledge/knowledge-store';
+import { createKnowledgeIndexGateway, createLocalKnowledgeIndexAdapter, type KnowledgeIndexGateway } from '../../features/knowledge/knowledge-index';
 
 type ActivityEntry = {
     area: 'monitoring';
@@ -29,6 +25,7 @@ type ActivityEntry = {
 
 interface KnowledgeIpcDependencies {
     getStore: () => ReturnType<typeof createKnowledgeStore>;
+    getIndexGateway?: () => KnowledgeIndexGateway;
     getAccessContext: () => KnowledgeAccessContext;
     recordActivity: (entry: ActivityEntry) => void;
 }
@@ -81,51 +78,6 @@ function recordSourceRows(records: readonly KnowledgeRecord[]) {
     return records.filter((record) => record.status !== 'retired');
 }
 
-function lexicalSearch(records: KnowledgeRecord[], query: string, limit = 20) {
-    const tokens = Array.from(new Set(query.toLocaleLowerCase().match(/[a-z0-9_:#./-]+/g) || []));
-    if (!tokens.length) return records.slice(0, Math.min(Math.max(limit, 1), 100));
-    return records
-        .map((record) => {
-            const searchable = [
-                record.title,
-                record.content,
-                record.sourceType,
-                record.incidentKind,
-                record.qualifiedJob,
-                record.subsystem,
-                record.queue,
-                record.runbookId,
-                ...record.objectNames
-            ].filter(Boolean).join(' ').toLocaleLowerCase();
-            const score = tokens.reduce((total, token) => total + (searchable.includes(token) ? 1 : 0), 0);
-            return { record, score };
-        })
-        .filter((item) => item.score > 0 && item.record.status !== 'retired' && item.record.status !== 'blocked')
-        .sort((left, right) => right.score - left.score || right.record.observedAt.localeCompare(left.record.observedAt))
-        .slice(0, Math.min(Math.max(limit, 1), 100))
-        .map((item) => item.record);
-}
-
-function searchPack(records: KnowledgeRecord[], query: string, limit?: number) {
-    const selected = lexicalSearch(records, query, limit);
-    return {
-        schemaVersion: KNOWLEDGE_SCHEMA_VERSION,
-        generatedAt: new Date().toISOString(),
-        records: selected,
-        citations: selected.map((record) => ({
-            id: `citation:${record.id}`,
-            recordId: record.id,
-            label: record.title,
-            sourceRef: record.sourceRef,
-            status: record.status,
-            observedAt: record.observedAt
-        })),
-        excluded: [],
-        freshness: 'unknown' as const,
-        missingEvidence: []
-    };
-}
-
 function denied(context: KnowledgeAccessContext, permission: string) {
     const decision = authorizeKnowledgeRead(context, permission);
     return { success: false, records: [], excluded: [], error: decision.reason || 'Knowledge access is not available.' };
@@ -135,6 +87,10 @@ function denied(context: KnowledgeAccessContext, permission: string) {
 export function registerKnowledgeIpc(dependencies: KnowledgeIpcDependencies) {
     const context = () => dependencies.getAccessContext();
     const store = () => dependencies.getStore();
+    const index = (): KnowledgeIndexGateway => dependencies.getIndexGateway?.() || createKnowledgeIndexGateway({
+        local: createLocalKnowledgeIndexAdapter(store()),
+        config: { backend: 'local', endpoint: '', collection: 'imonitor-knowledge', apiKeyConfigured: false }
+    });
 
     ipcMain.handle('get-knowledge-library', async () => {
         const current = context();
@@ -154,13 +110,14 @@ export function registerKnowledgeIpc(dependencies: KnowledgeIpcDependencies) {
         if (!decision.allowed) return denied(current, 'read');
         const requested = safeText(query, 500);
         if (!requested) return { success: true, records: [], excluded: [] };
-        const candidates = await store().list(scopeOf(current));
-        const result = await runScopedKnowledgeSearch(candidates, current, (records) => searchPack(records, requested, Number(limit) || 20));
-        if (!result.success) {
-            dependencies.recordActivity({ area: 'monitoring', level: 'warning', message: 'Knowledge search denied or unavailable.' });
-            return { success: false, records: [], excluded: result.excluded, error: result.error };
-        }
-        return { success: true, records: recordSourceRows(result.contextPack?.records || []), excluded: result.excluded };
+        const result = await index().search({ ...scopeOf(current), query: requested, limit: Number(limit) || 20 }, current);
+        return {
+            success: true,
+            records: recordSourceRows(result.records),
+            excluded: result.excluded,
+            health: result.health,
+            fallbackUsed: result.fallbackUsed
+        };
     });
 
     ipcMain.handle('get-knowledge-record', async (_event, recordId: unknown) => {
@@ -201,6 +158,8 @@ export function registerKnowledgeIpc(dependencies: KnowledgeIpcDependencies) {
         };
         try {
             const result = await ingestKnowledgeSource(store(), input);
+            await index().delete(result.retiredRecordIds);
+            await index().upsert(result.records);
             dependencies.recordActivity({ area: 'monitoring', level: 'success', message: 'Knowledge source saved.', detail: `source=${result.sourceId}` });
             return { success: true, result, stats: await store().getStats(scopeOf(current)) };
         } catch (error) {
@@ -219,7 +178,7 @@ export function registerKnowledgeIpc(dependencies: KnowledgeIpcDependencies) {
         if (!filtered.records[0]) return { success: false, error: 'The selected knowledge source is no longer available.' };
         const sourceId = filtered.records[0].sourceRef.id;
         const sourceRecords = (await store().list(scopeOf(current))).filter((record) => record.sourceRef.id === sourceId);
-        for (const record of sourceRecords) await store().delete(record.id);
+        await index().delete(sourceRecords.map((record) => record.id));
         dependencies.recordActivity({ area: 'monitoring', level: 'success', message: 'Knowledge source deleted.', detail: `source=${sourceId}` });
         return { success: true, deletedCount: sourceRecords.length, stats: await store().getStats(scopeOf(current)) };
     });
@@ -229,17 +188,16 @@ export function registerKnowledgeIpc(dependencies: KnowledgeIpcDependencies) {
         const decision = authorizeKnowledgeRead(current, 'investigate');
         if (!decision.allowed) return { success: false, error: decision.reason || 'Knowledge maintenance requires investigation access.' };
         const scope = scopeOf(current);
+        await index().rebuild(scope);
         const records = await store().list(scope);
-        await store().markReindex(scope);
-        await store().completeReindex(records.map((record) => record.id));
         dependencies.recordActivity({ area: 'monitoring', level: 'success', message: 'Knowledge index refreshed.', detail: `records=${records.length}` });
-        return { success: true, stats: await store().getStats(scope) };
+        return { success: true, stats: await index().stats(scope) };
     });
 
     ipcMain.handle('get-knowledge-stats', async () => {
         const current = context();
         const decision = authorizeKnowledgeRead(current);
         if (!decision.allowed) return { success: false, error: decision.reason || 'Knowledge access is not available.' };
-        return { success: true, stats: await store().getStats(scopeOf(current)) };
+        return { success: true, stats: await index().stats(scopeOf(current)) };
     });
 }

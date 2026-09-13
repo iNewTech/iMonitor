@@ -940,6 +940,27 @@ contextBridge.exposeInMainWorld('electronAPI', {
         stats?: Record<string, unknown>;
         error?: string;
     }>,
+    getKnowledgeIndexSettings: () => ipcRenderer.invoke('get-knowledge-index-settings') as Promise<{
+        success: boolean;
+        settings?: { backend: string; endpoint: string; collection: string; apiKeyConfigured: boolean };
+        catalog?: Array<{ backend: string; label: string; description: string; available: boolean }>;
+        health?: { backend: string; state: string; message: string; checkedAt: string; fallbackUsed?: boolean };
+        error?: string;
+    }>,
+    saveKnowledgeIndexSettings: (settings: { backend: string; endpoint: string; collection: string; apiKey?: string }) => (
+        ipcRenderer.invoke('save-knowledge-index-settings', settings) as Promise<{
+            success: boolean;
+            settings?: { backend: string; endpoint: string; collection: string; apiKeyConfigured: boolean };
+            catalog?: Array<{ backend: string; label: string; description: string; available: boolean }>;
+            health?: { backend: string; state: string; message: string; checkedAt: string; fallbackUsed?: boolean };
+            error?: string;
+        }>
+    ),
+    testKnowledgeIndexConnection: () => ipcRenderer.invoke('test-knowledge-index-connection') as Promise<{
+        success: boolean;
+        health?: { backend: string; state: string; message: string; checkedAt: string; fallbackUsed?: boolean };
+        error?: string;
+    }>,
     openJobTaskWindow: (jobName: string) => ipcRenderer.invoke('open-job-task-window', jobName) as Promise<{ success: boolean; }>,
     openExternalUrl: (target: string) => ipcRenderer.invoke('open-external-url', target) as Promise<{ success: boolean; }>,
 

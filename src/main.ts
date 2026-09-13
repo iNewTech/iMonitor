@@ -82,6 +82,7 @@ import {
 import { authorizeSupportAccess, getEffectiveSupportAccessGrant, isClientOwner, listSupportAccessGrants } from './features/action-board/support-access';
 import { toKnowledgeGrantSnapshot, type KnowledgeAccessContext } from './features/knowledge/knowledge-access';
 import { createKnowledgeStore } from './features/knowledge/knowledge-store';
+import { createKnowledgeIndexGateway, createLocalKnowledgeIndexAdapter, getKnowledgeIndexCatalog, normalizeKnowledgeIndexSettings, toStoredKnowledgeIndexSettings, type KnowledgeIndexSettings } from './features/knowledge/knowledge-index';
 import {
     ALWAYS_ON_SUPPORT_WINDOW,
     buildRoutingRecommendation,
@@ -115,6 +116,7 @@ import { registerProblemManagementIpc } from './main/ipc/problem-management-ipc'
 import { registerIncidentReplayIpc } from './main/ipc/incident-replay-ipc';
 import { registerSupportMetricsIpc } from './main/ipc/support-metrics-ipc';
 import { registerKnowledgeIpc } from './main/ipc/knowledge-ipc';
+import { registerKnowledgeIndexIpc } from './main/ipc/knowledge-index-ipc';
 import { createAiRuntime } from './main/runtime/ai-runtime';
 import { createEmailNotificationRuntime } from './main/runtime/email-notification-runtime';
 import { createClickUpRuntime } from './main/runtime/clickup-runtime';
@@ -172,7 +174,8 @@ import {
     getNormalizedRunbookExecutions,
     saveRunbookExecutions,
     getNormalizedProblemManagement,
-    saveProblemManagement
+    saveProblemManagement,
+    getNormalizedKnowledgeIndexSettings
 } from './main/store';
 import type { CollectorSettings } from './features/collector/collector-model';
 import { registerCollectorIpc } from './main/ipc/collector-ipc';
@@ -804,6 +807,42 @@ const loggingRuntime = createLoggingRuntime({
 
 const collectionRuntime = createCollectionRuntime(() => app.getPath('userData'));
 const knowledgeStore = createKnowledgeStore(() => app.getPath('userData'));
+const localKnowledgeIndex = createLocalKnowledgeIndexAdapter(knowledgeStore);
+let knowledgeIndexGateway = createKnowledgeIndexGateway({
+    local: localKnowledgeIndex,
+    config: getNormalizedKnowledgeIndexSettings(store)
+});
+
+async function getKnowledgeIndexSettings() {
+    const stored = getNormalizedKnowledgeIndexSettings(store);
+    return {
+        success: true,
+        settings: normalizeKnowledgeIndexSettings(stored),
+        catalog: getKnowledgeIndexCatalog(),
+        health: await knowledgeIndexGateway.health()
+    };
+}
+
+async function saveKnowledgeIndexSettings(candidate: unknown) {
+    const next = normalizeKnowledgeIndexSettings(candidate);
+    if (next.backend !== 'local') {
+        return {
+            success: false,
+            settings: normalizeKnowledgeIndexSettings(getNormalizedKnowledgeIndexSettings(store)),
+            error: `${next.backend} is not installed yet. Keep Local lexical index selected until an approved adapter is available.`
+        };
+    }
+
+    const previous = getNormalizedKnowledgeIndexSettings(store);
+    const stored = toStoredKnowledgeIndexSettings(
+        candidate as Partial<KnowledgeIndexSettings> & { apiKey?: string },
+        previous,
+        protectSecret
+    );
+    store.set('knowledgeIndexSettings', stored);
+    knowledgeIndexGateway = createKnowledgeIndexGateway({ local: localKnowledgeIndex, config: stored });
+    return getKnowledgeIndexSettings();
+}
 
 function getKnowledgeAccessContext(): KnowledgeAccessContext {
     const operatorId = getCurrentOperatorName();
@@ -1433,8 +1472,15 @@ registerCollectorIpc({
 
 registerKnowledgeIpc({
     getStore: () => knowledgeStore,
+    getIndexGateway: () => knowledgeIndexGateway,
     getAccessContext: getKnowledgeAccessContext,
     recordActivity: loggingRuntime.recordActivity
+});
+
+registerKnowledgeIndexIpc({
+    getSettings: getKnowledgeIndexSettings,
+    saveSettings: saveKnowledgeIndexSettings,
+    testConnection: () => knowledgeIndexGateway.health()
 });
 
 registerNavigationIpc({
