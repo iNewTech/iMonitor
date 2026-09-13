@@ -95,6 +95,7 @@ UI tests exercise the development demo, not a production IBM i host. Live comman
 - [Incident lifecycle and integrations](docs/ALERT_WORKFLOW.md)
 - [Pilot validation and compatibility matrix](docs/PILOT_VALIDATION.md)
 - [P2 release gate](docs/P2_RELEASE_GATE.md)
+- [P3 release gate](docs/P3_RELEASE_GATE.md)
 - [Mapepire setup](docs/MAPEPIRE_SETUP.md)
 - [Change log](CHANGELOG.md)
 

@@ -93,6 +93,8 @@ Records include the system identity, safe connection metadata, timestamp, interv
 
 `P2_RELEASE_GATE.md` records the shared-support candidate for issue #17. It keeps the automated evidence for shared incidents, authenticated ownership, accepted handoffs, integration delivery, scoped support access, and background collection separate from the live two-client, permission, IBM i, outage, and deployment results that still require named UAT.
 
+`P3_RELEASE_GATE.md` records the Resolution Memory and runbook candidate for issue #24. It separates automated graph, mapping, memory, AI, runbook, and recovery evidence from the live IBM i authority, partition, procedure, and deployment checks required for UAT.
+
 ## Integration delivery
 
 `src/features/integrations/delivery.ts` is the shared outbound delivery contract for external incident and work-item events. `buildDeliveryEventKey()` combines provider, event, source ID, and event revision into a stable key. `createDeliveryRegistry()` persists `pending`, `sent`, `skipped`, and `failed` states, suppresses a successful duplicate, retries a failed operation at most twice by default, and bounds the ledger size. Stored errors are truncated and credential-shaped values are redacted.
