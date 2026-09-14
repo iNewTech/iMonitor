@@ -92,6 +92,8 @@ UI tests exercise the development demo, not a production IBM i host. Live comman
 
 ## Documentation
 
+In the app, select **Support → User Guide** on Connect, ActionBoard, or Settings. The guide opens in your default browser without leaving your workspace. It is available before login and requires an internet connection.
+
 - [User guide](docs/USER_GUIDE.md)
 - [AI + ActionBoard plan](docs/AI_ACTIONBOARD_PLAN.md)
 - [Approved UI design and screen sketches](docs/UI_DESIGN.md)

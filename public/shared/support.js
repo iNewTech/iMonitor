@@ -1,3 +1,5 @@
+const USER_GUIDE_URL = 'https://github.com/iNewTech/iMonitor/blob/dev/docs/USER_GUIDE.md';
+
 function setSupportStatus(statusElement, message, isError = false) {
     if (!statusElement) {
         return;
@@ -19,14 +21,15 @@ export async function initSupportPanel(options) {
         statusElement,
         menuElement
     } = options;
+    const guideButton = menuElement?.querySelector('#support-user-guide');
 
     const appInfo = await window.electronAPI.getAppInfo();
     if (versionLabel) {
         versionLabel.textContent = `${appInfo.appName} v${appInfo.appVersion}`;
     }
 
-    async function runSupportAction(button, action, workingMessage, getSuccessMessage) {
-        const allButtons = [contactButton, diagnosticsButton].filter(Boolean);
+    async function runSupportAction(action, workingMessage, getSuccessMessage) {
+        const allButtons = [guideButton, contactButton, diagnosticsButton].filter(Boolean);
         allButtons.forEach((currentButton) => {
             currentButton.disabled = true;
         });
@@ -56,9 +59,16 @@ export async function initSupportPanel(options) {
         }
     }
 
+    guideButton?.addEventListener('click', () => {
+        void runSupportAction(
+            () => window.electronAPI.openExternalUrl(USER_GUIDE_URL),
+            'Opening the user guide...',
+            () => 'User Guide opened in your browser.'
+        );
+    });
+
     contactButton?.addEventListener('click', () => {
         void runSupportAction(
-            contactButton,
             () => window.electronAPI.contactSupport(),
             'Opening your mail app...',
             () => `Opened your mail app for ${appInfo.supportEmail}.`
@@ -67,7 +77,6 @@ export async function initSupportPanel(options) {
 
     diagnosticsButton?.addEventListener('click', () => {
         void runSupportAction(
-            diagnosticsButton,
             () => window.electronAPI.sendSupportDiagnostics(),
             "Preparing today's diagnostics...",
             (result) => (

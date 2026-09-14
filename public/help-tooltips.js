@@ -15,6 +15,7 @@ export const HELP = {
     '#knowledge-analyze, #open-object-analysis': 'Browse program sources, inspect dependencies, and prepare a compile plan without running it.',
     '#support-send-diagnostics': 'Prepare diagnostics and open a mail draft. Review the report before sharing it with support.',
     '#support-contact-only': 'Open the support contact flow without attaching diagnostics.',
+    '#support-user-guide': 'Open the step-by-step user guide in your browser. An internet connection is needed.',
 
     // Daily ActionBoard, job states, and queues.
     '#superpanel-focus-next, #focus-next-alert': { text: 'Open the highest-priority incident job so you can review its evidence and act.', unavailable: 'No eligible incident is ready to focus, or job data is still loading.' },

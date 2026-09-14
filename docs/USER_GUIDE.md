@@ -4,6 +4,8 @@ iMonitor is a desktop workspace for IBM i production support. It watches active 
 
 This guide is written for someone using iMonitor for the first time. Follow the first section once, then use the later sections as a daily operating reference.
 
+To open this guide from iMonitor, choose **Support → User Guide** at the bottom of Connect, ActionBoard, or Settings. It opens in your default browser, so your current workspace and unsaved input stay in place. No IBM i login is needed to read it; the online guide requires an internet connection. If the browser cannot be opened, the Support area shows an error and lets you retry.
+
 ## 1. Understand the workflow
 
 The normal iMonitor flow is:

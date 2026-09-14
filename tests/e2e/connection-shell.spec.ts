@@ -22,6 +22,22 @@ const test = base.extend<{ shell: Handle }>({
     }
 });
 
+async function observeSupportActions(app: ElectronApplication) {
+    await app.evaluate(({ shell, ipcMain }) => {
+        const state = { urls: [] as string[], contacts: 0, diagnostics: 0, pending: false, reject: null as null | ((error: Error) => void) };
+        (globalThis as any).supportReview = state;
+        // Keep the real external-URL IPC validation; only replace the OS browser boundary.
+        shell.openExternal = async (url) => {
+            state.urls.push(url);
+            if (state.pending) await new Promise<void>((_resolve, reject) => { state.reject = reject; });
+        };
+        ipcMain.removeHandler('contact-support');
+        ipcMain.handle('contact-support', () => { state.contacts++; return { success: true }; });
+        ipcMain.removeHandler('send-support-diagnostics');
+        ipcMain.handle('send-support-diagnostics', () => { state.diagnostics++; return { success: true, filePath: '/test/diagnostics.enc' }; });
+    });
+}
+
 test('bounds Connect, reveals fields on request and retains theme/Support at native sizes', async ({ shell }, info) => {
     const { app, page } = shell;
     await expect(page.locator('#connection-fields')).toBeHidden();
@@ -180,4 +196,76 @@ test('keeps monitoring, job windows, selection, filters and the unsent AI draft 
     await expect(page.locator('#board-ai-scope')).toHaveAttribute('title', new RegExp(selected!.replaceAll('/', '\\/')));
     expect((await app.windows()).filter(p => p.url().includes('job-task.html'))).toHaveLength(1);
     expect((await page.evaluate(() => window.electronAPI.getConnectionState())).currentConnection?.name).toBe(identity.currentConnection?.name);
+});
+
+test('opens User Guide before login and from both connected Support menus without losing work', async ({ shell }, info) => {
+    const { app, page } = shell;
+    await observeSupportActions(app);
+    await page.locator('#edit-connection').click();
+    await page.locator('#connection-name').fill('Unfinished profile edit');
+
+    for (const screen of ['connect', 'board', 'settings']) {
+        if (screen === 'board') {
+            await page.locator('#cancel-edit-connection').click();
+            await page.locator('#connect').click();
+            await expect(page.locator('.job-row').first()).toBeVisible();
+            await page.locator('#ai-assistant-input').fill('Keep my investigation draft');
+        } else if (screen === 'settings') {
+            await page.locator('#open-settings').click();
+        }
+        const originalUrl = page.url();
+        await page.locator('#support-menu > summary').click();
+        const guide = page.getByRole('button', { name: 'User Guide', exact: true });
+        await expect(guide).toBeVisible();
+        if (screen === 'connect') await page.screenshot({ path: info.outputPath('support-user-guide.png') });
+        await guide.focus();
+        await expect(page.locator('#imonitor-context-tooltip')).toContainText('internet connection');
+        await guide.press('Enter');
+        await expect(page.locator('#support-status')).toHaveText('User Guide opened in your browser.');
+        await expect(page.locator('#support-menu')).not.toHaveAttribute('open');
+        expect(page.url()).toBe(originalUrl);
+        expect((await page.evaluate(() => window.electronAPI.getConnectionState())).isConnected).toBe(screen !== 'connect');
+        if (screen === 'connect') await expect(page.locator('#connection-name')).toHaveValue('Unfinished profile edit');
+        if (screen === 'board') await expect(page.locator('#ai-assistant-input')).toHaveValue('Keep my investigation draft');
+    }
+    expect(await app.evaluate(() => (globalThis as any).supportReview)).toMatchObject({
+        urls: Array(3).fill('https://github.com/iNewTech/iMonitor/blob/dev/docs/USER_GUIDE.md'),
+        contacts: 0, diagnostics: 0
+    });
+    await page.locator('[data-app-destination="board"]').click();
+    await expect(page.locator('#ai-assistant-input')).toHaveValue('Keep my investigation draft');
+});
+
+test('blocks duplicate guide opens, recovers from browser failure and retains existing support actions', async ({ shell }) => {
+    const { app, page } = shell;
+    await observeSupportActions(app);
+    await app.evaluate(() => { (globalThis as any).supportReview.pending = true; });
+    await page.locator('#support-menu > summary').click();
+    const guide = page.locator('#support-user-guide');
+    await guide.click();
+    await expect(guide).toBeDisabled();
+    await expect(page.locator('#support-contact-only')).toBeDisabled();
+    await expect(page.locator('#support-send-diagnostics')).toBeDisabled();
+    await expect(page.locator('#support-status')).toHaveText('Opening the user guide...');
+    await guide.evaluate((button: HTMLButtonElement) => { button.click(); button.click(); });
+    expect(await app.evaluate(() => (globalThis as any).supportReview.urls.length)).toBe(1);
+    await app.evaluate(() => (globalThis as any).supportReview.reject(new Error('Browser unavailable. Try again.')));
+    await expect(page.locator('#support-status')).toContainText('Browser unavailable');
+    await expect(page.locator('#support-status')).toHaveClass(/is-error/);
+    await expect(guide).toBeEnabled();
+    await expect(page.locator('#support-menu')).toHaveAttribute('open');
+    await app.evaluate(() => { (globalThis as any).supportReview.pending = false; });
+    await guide.click();
+    await expect(page.locator('#support-status')).toHaveText('User Guide opened in your browser.');
+    await expect(page.locator('#support-status')).not.toHaveClass(/is-error/);
+    await page.locator('#support-menu > summary').click();
+    await page.locator('#support-contact-only').click();
+    await expect(page.locator('#support-status')).toContainText('Opened your mail app');
+    await page.locator('#support-menu > summary').click();
+    await page.locator('#support-send-diagnostics').click();
+    await expect(page.locator('#support-status')).toContainText('Diagnostics ready. Attach /test/diagnostics.enc');
+    expect(await app.evaluate(() => (globalThis as any).supportReview)).toMatchObject({
+        urls: Array(2).fill('https://github.com/iNewTech/iMonitor/blob/dev/docs/USER_GUIDE.md'),
+        contacts: 1, diagnostics: 1
+    });
 });

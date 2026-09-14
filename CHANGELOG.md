@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added **Support → User Guide** on Connect, ActionBoard, and Settings, opening the public guide in the default browser before or after login with shared pending/error handling (#63, Project 8).
+
 - Added shared contextual help across Connect, ActionBoard, job tasks, Settings, Knowledge, and object analysis, with delayed hover, keyboard focus, Escape dismissal, live unavailable reasons, and small panel info buttons (#62, Project 8).
 
 - Simplified startup, job-task, and preload responsibilities while preserving the existing UI and IPC API (#61, Project 8).
