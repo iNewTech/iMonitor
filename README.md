@@ -18,6 +18,8 @@ Task Actions recommend an eligible support operator by incident skill, IBM i sco
 
 Polling supports preset intervals and a custom interval in seconds. Job rows show incident context and the assigned operator when available; a running job can still have a high-CPU incident.
 
+Hover or keyboard-focus supported controls for short contextual help. Selected panel headings have a small **ⓘ**; **Escape** dismisses help. Disabled actions explain their restriction without enabling the action. Help copy and behavior are maintained together in `public/help-tooltips.js`.
+
 Each incident row can show a compact technical priority badge. Related signals for the same job are correlated within a five-minute window, and the task window explains the grouping and score factors before an operator acts.
 
 Common incident scenarios show a versioned runbook policy with required evidence, safe checks, verification criteria, and escalation guidance. MSGW replies are checked against the current message identity and inquiry queue immediately before execution.

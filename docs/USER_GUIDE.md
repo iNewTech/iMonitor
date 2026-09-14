@@ -60,6 +60,14 @@ After a disconnect, select the same saved profile and reconnect. Reconnection re
 
 ## 4. Learn the main screens
 
+### Get help without leaving your work
+
+Pause the pointer over a supported button, technical job state, or setting to see a short explanation. Move away to hide it. Keyboard users can focus a control with **Tab** to see the same help, and press **Escape** to dismiss it. Help stays readable if you move the pointer onto the tooltip.
+
+A few panel headings have a small **ⓘ**. Hover, focus, or select it for a brief explanation; select it again or press **Escape** to dismiss. These helpers explain features such as guided recovery, resolution memory, support access, Skills & MCP, and local storage without adding another panel.
+
+Hovering a disabled action explains its current restriction when that information is available, or the setup it needs. Help never enables a blocked action, claims work, sends an AI request, or runs a command. Continue to review the normal confirmation before an operational change. Inside a dialog, the first **Escape** dismisses visible help; a subsequent **Escape** closes the dialog as usual.
+
 ### Connect screen
 
 This is where you select or create IBM i profiles. The form stays compact on a large screen. Plan, theme, version, and pre-connection Support remain available. Workspace navigation appears only after connecting. ActionBoard, Knowledge, and Settings require an active IBM i connection; disconnecting returns you to Connect.

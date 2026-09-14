@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added shared contextual help across Connect, ActionBoard, job tasks, Settings, Knowledge, and object analysis, with delayed hover, keyboard focus, Escape dismissal, live unavailable reasons, and small panel info buttons (#62, Project 8).
+
 - Simplified startup, job-task, and preload responsibilities while preserving the existing UI and IPC API (#61, Project 8).
 - Fixed stale task responses and action previews, duplicate workflow ticket requests, export visibility and permission rechecks, telemetry scope/persistence/retention, and Storage failure/retry feedback (#61).
 - Required fresh monitoring evidence for MCP verification and restricted external links to supported web/email destinations (#61).

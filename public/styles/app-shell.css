@@ -1,4 +1,51 @@
 /* Shared UI-01 tokens and main-screen chrome. Operational feature styling stays local. */
+/* Shared contextual help: one overlay, with no reserved space in the layout. */
+body .context-tooltip {
+    position: fixed;
+    inset: auto;
+    z-index: 2147483647;
+    margin: 0;
+    padding: 9px 12px;
+    width: max-content;
+    max-width: min(320px, calc(100vw - 24px));
+    max-height: calc(100vh - 16px);
+    overflow: auto;
+    box-sizing: border-box;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-soft, #fbf7ef);
+    color: var(--ink, #18212b);
+    box-shadow: 0 4px 16px rgb(0 0 0 / 14%);
+    font: 400 12px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    text-align: left;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+.context-tooltip[hidden] { display: none !important; }
+.context-help-target:disabled { pointer-events: auto; }
+body .context-help-heading { display: inline; }
+body .context-help-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    width: 20px;
+    min-width: 20px;
+    height: 20px;
+    min-height: 20px;
+    padding: 0;
+    margin: 0 0 0 5px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    box-shadow: none;
+    color: var(--muted-strong, #475460);
+    font: 400 15px/1 sans-serif;
+    cursor: help;
+}
+body .context-help-icon:hover { background: var(--accent-soft); color: var(--ink); }
+body .context-help-icon:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
 body.minimal-shell { --shell-paper: #fff; --shell-soft: #f8faf9; --shell-line: #e2e7e5; --shell-ink: #222c2a; --shell-muted: #66736f; --shell-accent: #0d7666; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; font-size: 14px; }
 body.minimal-shell[data-theme="night-console"] { --shell-paper: #171d20; --shell-soft: #20282c; --shell-line: #344044; --shell-ink: #e9efed; --shell-muted: #a0ada8; --shell-accent: #72d8c6; }
 body.minimal-shell[data-theme="paper-terminal"] { --shell-paper: #fffcf5; --shell-soft: #f8f2e8; }

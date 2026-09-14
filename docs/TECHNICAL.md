@@ -37,10 +37,19 @@ Build checks TypeScript **and** parses every JavaScript module in `public/`, inc
 | `public/job-task.js` | Standalone task behavior and request coordination |
 | `public/job-task/` | Job actions/runbooks and Resolution Memory review |
 | `public/styles/` | Feature styles loaded by the ordered `styles.css` manifest |
+| `public/help-tooltips.js` | Central help copy, selector bindings, and the delegated tooltip controller |
 | `tests/e2e/` | Isolated Electron integration and UI tests |
 | `macos-widget/` | Native WidgetKit scaffold and setup instructions |
 
 The standalone task response workspace is split between `src/features/alerts/incident-response.ts`, `src/features/alerts/incident-handoff.ts`, and `public/job-task.js`. The main process builds a deterministic response snapshot from the selected job, linked alert, and status history. Handoffs are versioned records persisted with the alert workflow state. A request validates the recipient, reason, pending checks, and optional ISO response target; acceptance is restricted to the addressed operator. Both events enter the incident timeline, and ownership changes only on acceptance. The renderer keeps the handoff form limited to the fields needed to transfer work. It does not copy or export handoff documents. The main process synchronizes handoff comments, ClickUp status/assignee changes, Jira comments, and optional Slack notifications through bounded delivery keys.
+
+### Contextual help (#62)
+
+All six main HTML pages load `public/help-tooltips.js` as a module. Its `HELP` catalog is the single place for authored tooltip text: map a stable control selector to a short string, or use `{ text, unavailable, info }`. `unavailable` explains a missing prerequisite; `info` adds a small, accessibly named info button beside a panel heading. Prefer help on existing controls; reserve icons for concepts that need an explanation. Add no help copy to page controllers.
+
+The controller uses one tooltip and delegated listeners per document, including controls inserted later. Mouse hover waits 350 ms; keyboard focus opens immediately. Pointer travel onto the tooltip keeps it readable. Pointer clicks on info icons preserve the current input focus and scroll position. Escape dismisses help before an underlying dialog, while compact menus retain their existing single-Escape dismissal. Normal clicks and command confirmations retain their existing behavior. Disabled controls remain disabled and use their live `title` reason when available. Existing native titles and `aria-describedby` values are restored on dismissal. Dynamic text is rendered with `textContent`.
+
+The overlay uses the browser popover layer and belongs to the active modal when necessary. Positioning stays within the viewport; removed anchors, scrolling, and window blur dismiss stale help. Ordinary job-cell markup is not decorated, preserving polling reuse. Styles live in the existing `public/styles/app-shell.css`; no new dependency or feature controller is required. `tests/e2e/help-tooltips.spec.ts` covers real Electron navigation, dynamic/disabled states, focus, dismissal, modal layering, themes, narrow windows, and unchanged actions using isolated demo storage.
 
 ### Review boundaries (#61)
 

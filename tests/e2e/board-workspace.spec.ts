@@ -203,9 +203,11 @@ test('keeps conversation on demand, model setup guarded and AI context explicit'
     const options = await page.locator('#ai-provider-quick option').evaluateAll(nodes => nodes.map(node => ({ value: (node as HTMLOptionElement).value, disabled: (node as HTMLOptionElement).disabled })));
     expect(options.filter(option => option.value !== 'ollama').every(option => option.disabled)).toBe(true);
     await page.locator('#ai-provider-quick').focus();
+    await expect(page.locator('#imonitor-context-tooltip')).toBeVisible();
     await page.locator('#ai-provider-quick').press('Escape');
     await expect(page.locator('#ai-model-menu')).not.toHaveAttribute('open', '');
     await expect(page.locator('#ai-model-menu > summary')).toBeFocused();
+    await expect(page.locator('#imonitor-context-tooltip')).toBeHidden();
     await page.locator('#ai-assistant-input').fill('Explain current system issues');
     await page.locator('#ai-assistant-input').press('Enter');
     await expect(page.locator('#ai-chat-transcript')).toContainText('Check current job evidence');
