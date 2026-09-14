@@ -118,6 +118,9 @@ const test = base.extend<{ task: TestHandle }>({
                 'update-alert-workflow': { value: { success: true } },
                 'create-clickup-task-for-alert': { value: { success: true } },
                 'run-job-action': { value: { success: true, message: 'Job held.' } },
+                'get-verified-runbook': { value: { success: true, definition: null, execution: null } },
+                'start-verified-runbook': { value: { success: true } },
+                'run-verified-runbook-step': { value: { success: true } },
                 'ask-ai-assistant': { value: { success: true, reply: '## Evidence\nReview the job log.' } },
                 'get-job-log': { value: { success: true, records: [] } },
                 'get-job-messages': { value: { success: true, records: [] } },
@@ -504,4 +507,175 @@ test('task panels stay usable at the minimum window size', async ({ task: { page
     await page.getByRole('tab', { name: 'Overview', exact: true }).click();
     await expect(page.locator('#task-panel-actions')).toBeVisible();
     await page.screenshot({ path: testInfo.outputPath('task-actions-560.png'), fullPage: true });
+});
+
+test('MCP preview cancellation and input edits discard late approval responses', async ({ task: { app, page } }) => {
+    const tool = page.locator('[data-mcp-tool="hold-job"]');
+    await configure(app, { 'preview-mcp-action': { hold: true, value: { success: true, preview: {
+        previewId: 'late-preview', state: 'awaiting-approval', effect: 'Hold job'
+    } } } });
+    await tool.click();
+    await expect.poll(() => calls(app, 'preview-mcp-action')).toHaveLength(1);
+    await expect(page.locator('#task-mcp-action-cancel')).toBeVisible();
+    await page.locator('#task-mcp-action-cancel').click();
+    await release(app, 'preview-mcp-action');
+    await expect(tool).toBeEnabled();
+    await expect(page.locator('#task-mcp-action-preview')).toBeHidden();
+    await expect(page.locator('#task-mcp-action-run')).toBeDisabled();
+
+    await configure(app, { 'get-mcp-action-catalog': { value: { success: true, actions: [{
+        capabilityId: 'ibmi-job-control', tool: 'end-job', available: true, label: 'End job', riskClass: 'high', effect: 'End job'
+    }] } } });
+    await page.locator('#task-refresh').click();
+    await page.locator('[data-mcp-tool="end-job"]').click();
+    await expect.poll(() => calls(app, 'preview-mcp-action')).toHaveLength(2);
+    await page.locator('#task-mcp-action-input').fill('{"endOption":"controlled"}');
+    await release(app, 'preview-mcp-action');
+    await expect(page.locator('[data-mcp-tool="end-job"]')).toBeEnabled();
+    await expect(page.locator('#task-mcp-action-preview')).toBeHidden();
+    await page.locator('#task-mcp-action-run').dispatchEvent('click');
+    expect(await calls(app, 'run-mcp-action')).toHaveLength(0);
+});
+
+test('a refresh invalidates in-flight MCP previews and failures still refresh job evidence', async ({ task: { app, page } }) => {
+    await configure(app, { 'preview-mcp-action': { hold: true, value: { success: true, preview: {
+        previewId: 'stale-preview', state: 'awaiting-approval', effect: 'Hold job'
+    } } } });
+    await page.locator('[data-mcp-tool="hold-job"]').click();
+    await expect.poll(() => calls(app, 'preview-mcp-action')).toHaveLength(1);
+    await page.locator('#task-refresh').dispatchEvent('click');
+    await expect.poll(() => calls(app, 'get-job-details')).toHaveLength(2);
+    // Wait for the complete batch, not just the initial job read.
+    await expect.poll(() => calls(app, 'get-resolution-memory')).toHaveLength(3);
+    await release(app, 'preview-mcp-action');
+    await expect(page.locator('[data-mcp-tool="hold-job"]')).toBeEnabled();
+    await expect(page.locator('#task-mcp-action-preview')).toBeHidden();
+    await configure(app, { 'preview-mcp-action': { value: { success: true, preview: {
+        previewId: 'current-preview', state: 'awaiting-approval', effect: 'Hold job'
+    } } }, 'run-mcp-action': { value: { success: false, error: 'Verification unknown.' } },
+    'get-job-details': { value: { ...payload, job: { ...payload.job, STATUS: 'HLD' } } } });
+    await page.locator('[data-mcp-tool="hold-job"]').click();
+    await expect(page.locator('#task-mcp-action-run')).toBeEnabled();
+    page.once('dialog', (dialog) => dialog.accept());
+    await page.locator('#task-mcp-action-run').click();
+    await expect(page.locator('#task-mcp-action-note')).toHaveText('Verification unknown.');
+    await expect(page.locator('#task-status')).toHaveText('HLD');
+    await expect(page.locator('#task-mcp-action-run')).toBeDisabled();
+});
+
+test('job mutations and runbook checkpoints share protection with MCP actions', async ({ task: { app, page } }) => {
+    const definition = { title: 'Recovery', steps: [{ title: 'Verify job', kind: 'verify', expectedOutcome: 'Current evidence', confirmationRequired: false }] };
+    const execution = { id: 'runbook-1', operator: 'reviewer', status: 'running', currentStepIndex: 0, steps: [] };
+    await configure(app, {
+        'get-job-details': { value: { ...payload, runbook: { id: 'recovery' } } },
+        'get-verified-runbook': { value: { success: true, definition, execution } },
+        'run-verified-runbook-step': { hold: true, value: { success: true, definition, execution } }
+    });
+    await page.locator('#task-refresh').click();
+    await expect(page.locator('#task-runbook-step')).toBeEnabled();
+    await page.locator('#task-runbook-step').click();
+    await expect.poll(() => calls(app, 'run-verified-runbook-step')).toHaveLength(1);
+    await pushAlerts(app, [alert]);
+    await expect(page.locator('[data-action-kind="holdJob"]')).toBeDisabled();
+    await expect(page.locator('[data-mcp-tool="hold-job"]')).toBeDisabled();
+    await page.locator('[data-action-kind="holdJob"]').dispatchEvent('click');
+    await page.locator('[data-mcp-tool="hold-job"]').dispatchEvent('click');
+    expect(await calls(app, 'run-job-action')).toHaveLength(0);
+    expect(await calls(app, 'preview-mcp-action')).toHaveLength(0);
+    await release(app, 'run-verified-runbook-step');
+    await expect(page.locator('[data-action-kind="holdJob"]')).toBeEnabled();
+
+    await configure(app, { 'run-job-action': { hold: true, value: { success: true } } });
+    page.once('dialog', (dialog) => dialog.accept());
+    await page.locator('[data-action-kind="holdJob"]').click();
+    await expect.poll(() => calls(app, 'run-job-action')).toHaveLength(1);
+    await expect(page.locator('#task-runbook-step')).toBeDisabled();
+    await page.locator('#task-runbook-step').dispatchEvent('click');
+    expect(await calls(app, 'run-verified-runbook-step')).toHaveLength(1);
+    await release(app, 'run-job-action');
+    await expect(page.locator('#task-runbook-step')).toBeEnabled();
+});
+
+test('late resolution memory reads cannot restore a draft after approval', async ({ task: { app, page } }) => {
+    const memory = page.locator('[data-memory-id="resolution-review-1"]');
+    await configure(app, { 'get-resolution-memory': { hold: true, value: { success: true, entries: [resolutionMemoryEntry] } } });
+    const before = (await calls(app, 'get-resolution-memory')).length;
+    await pushAlerts(app, [alert]);
+    await expect.poll(() => calls(app, 'get-resolution-memory')).toHaveLength(before + 1);
+    await configure(app, { 'get-resolution-memory': { value: { success: true, entries: [{ ...resolutionMemoryEntry, status: 'approved' }] } } });
+    await memory.locator('[data-memory-action="approve"]').click();
+    await expect(memory).toContainText('Approved');
+    await release(app, 'get-resolution-memory');
+    // Cross another renderer event-loop turn after the old response is delivered.
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
+    await expect(memory).toContainText('Approved');
+    await expect(memory.locator('[data-memory-action="approve"]')).toHaveCount(0);
+});
+
+test('memory refreshes keep pending review controls disabled and preserve the revision draft', async ({ task: { app, page } }) => {
+    const memory = page.locator('[data-memory-id="resolution-review-1"]');
+    await memory.locator('[data-memory-action="revise"]').click();
+    await page.locator('#task-memory-revise-title').fill('Unsaved operator draft');
+    await pushAlerts(app, [alert]);
+    await expect(page.locator('#task-memory-revise-title')).toHaveValue('Unsaved operator draft');
+    await configure(app, { 'revise-resolution-memory': { hold: true, value: { success: false, error: 'Revision rejected.' } } });
+    await page.locator('#task-memory-revise-save').click();
+    await expect.poll(() => calls(app, 'revise-resolution-memory')).toHaveLength(1);
+    await pushAlerts(app, [alert]);
+    await expect(memory.locator('[data-memory-action="revise"]')).toBeDisabled();
+    await expect(page.locator('#task-memory-revise-cancel')).toBeDisabled();
+    await memory.locator('[data-memory-action="revise"]').dispatchEvent('click');
+    await expect(page.locator('#task-memory-revise-title')).toHaveValue('Unsaved operator draft');
+    await release(app, 'revise-resolution-memory');
+    await expect(page.locator('#task-memory-status')).toHaveText('Revision rejected.');
+    await expect(page.locator('#task-memory-revise-save')).toBeEnabled();
+    await pushAlerts(app, [alert]);
+    await expect(page.locator('#task-memory-status')).toHaveText('Revision rejected.');
+});
+
+test('a mutation invalidates a refresh already waiting on runbook evidence', async ({ task: { app, page } }) => {
+    const definition = { title: 'Recovery', steps: [{ title: 'Verify job', kind: 'verify', expectedOutcome: 'Current evidence' }] };
+    await configure(app, {
+        'get-job-details': { value: { ...payload, job: { ...payload.job, STATUS: 'STALE' }, runbook: { id: 'recovery' } } },
+        'get-verified-runbook': { hold: true, value: { success: true, definition, execution: null } },
+        'run-job-action': { hold: true, value: { success: true, message: 'Job held.' } }
+    });
+    await page.locator('#task-refresh').click();
+    await expect.poll(() => calls(app, 'get-verified-runbook')).toHaveLength(1);
+    page.once('dialog', (dialog) => dialog.accept());
+    await page.locator('[data-action-kind="holdJob"]').click();
+    await expect.poll(() => calls(app, 'run-job-action')).toHaveLength(1);
+    await release(app, 'get-verified-runbook');
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
+    await expect(page.locator('#task-status')).toHaveText('RUN');
+    await configure(app, { 'get-job-details': { value: { ...payload, job: { ...payload.job, STATUS: 'HLD' } } } });
+    await release(app, 'run-job-action');
+    await expect(page.locator('#task-status')).toHaveText('HLD');
+    await expect(page.locator('#task-action-note')).toHaveText('Job held.');
+});
+
+test('offline task state disables every protected action including runbooks and MCP', async ({ task: { app, page } }) => {
+    await configure(app, {
+        'get-job-details': { value: { ...payload, runbook: { id: 'recovery' } } },
+        'get-verified-runbook': { value: { success: true,
+            definition: { title: 'Recovery', steps: [{ title: 'Verify', kind: 'verify' }] },
+            execution: { id: 'runbook-1', status: 'running', currentStepIndex: 0, steps: [] }
+        } }
+    });
+    await page.locator('#task-refresh').click();
+    await expect(page.locator('#task-runbook-step')).toBeEnabled();
+    await page.locator('[data-mcp-tool="hold-job"]').click();
+    await expect(page.locator('#task-mcp-action-run')).toBeEnabled();
+    await configure(app, { 'get-job-details': { error: 'Connection unavailable.' } });
+    await page.locator('#task-refresh').click();
+    await expect(page.locator('#task-sync-state')).toContainText('Offline');
+    for (const selector of ['#task-runbook-step', '#task-runbook-start', '#task-mcp-action-run', '[data-mcp-tool="hold-job"]', '[data-action-kind="holdJob"]', '[data-memory-action="approve"]']) {
+        await expect(page.locator(selector)).toBeDisabled();
+        await page.locator(selector).dispatchEvent('click');
+    }
+    expect(await calls(app, 'run-job-action')).toHaveLength(0);
+    expect(await calls(app, 'run-mcp-action')).toHaveLength(0);
+    expect(await calls(app, 'run-verified-runbook-step')).toHaveLength(0);
+    expect(await calls(app, 'approve-resolution-memory')).toHaveLength(0);
+    expect(await calls(app, 'preview-mcp-action')).toHaveLength(1);
 });

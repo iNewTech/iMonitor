@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Simplified startup, job-task, and preload responsibilities while preserving the existing UI and IPC API (#61, Project 8).
+- Fixed stale task responses and action previews, duplicate workflow ticket requests, export visibility and permission rechecks, telemetry scope/persistence/retention, and Storage failure/retry feedback (#61).
+- Required fresh monitoring evidence for MCP verification and restricted external links to supported web/email destinations (#61).
+- Applied data-directory overrides before initializing storage and added a bounded telemetry flush on explicit Quit (#61).
+
 - Added scoped AI + ActionBoard observability for RAG/MCP health, redacted metrics, audit continuity, retention, export, purge, and index rebuild controls (#55, AIAB-15, Project 8).
 - Added the Project 8 AI + ActionBoard release record with automated evidence boundaries, pilot scenarios, UAT fields, deployment smoke, rollback, and documentation links (#56, AIAB-16, Project 8).
 

@@ -27,21 +27,32 @@ interface ObservabilityIpcDependencies {
     getDownloadsPath?: () => string;
 }
 
-function canRead(dependencies: ObservabilityIpcDependencies) {
-    return authorizeKnowledgeRead(dependencies.getAccessContext(), 'read');
-}
+type ObservabilityIdentity = Pick<KnowledgeAccessContext, 'customerScope' | 'systemScope' | 'operatorId' | 'identity'>;
 
-function canInvestigate(dependencies: ObservabilityIpcDependencies) {
-    return authorizeKnowledgeRead(dependencies.getAccessContext(), 'investigate');
+function isExpectedContext(value: unknown): value is ObservabilityIdentity {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    const candidate = value as Partial<ObservabilityIdentity>;
+    return [candidate.customerScope, candidate.systemScope, candidate.operatorId].every((item) => typeof item === 'string' && item.trim())
+        && (candidate.identity === 'local-owner' || candidate.identity === 'delegated');
 }
 
 /** Exposes redacted health, retention, and maintenance controls for the Storage screen. */
 export function registerObservabilityIpc(dependencies: ObservabilityIpcDependencies) {
+    function requireAccess(original: ObservabilityIdentity, permission = 'read') {
+        const current = dependencies.getAccessContext();
+        if (current.customerScope !== original.customerScope || current.systemScope !== original.systemScope
+            || current.operatorId !== original.operatorId || current.identity !== original.identity) {
+            throw new Error('The active connection changed. Retry from the current system.');
+        }
+        const access = authorizeKnowledgeRead(current, permission);
+        if (!access.allowed) throw new Error(access.reason || 'Observability access is unavailable.');
+    }
+
     ipcMain.handle('get-aiab-observability', async (): Promise<AiabObservabilityResponse> => {
-        const access = canRead(dependencies);
-        if (!access.allowed) return { success: false, error: access.reason || 'Observability access is unavailable.' };
+        const context = { ...dependencies.getAccessContext() };
         try {
-            return {
+            requireAccess(context);
+            const result = {
                 success: true,
                 snapshot: await dependencies.getRuntime().getSnapshot(),
                 knowledge: await dependencies.getKnowledgeStats(),
@@ -49,29 +60,41 @@ export function registerObservabilityIpc(dependencies: ObservabilityIpcDependenc
                 mcp: dependencies.getMcpStatus(),
                 settings: dependencies.getSettings()
             };
+            requireAccess(context);
+            return result;
         } catch (error) {
             return { success: false, error: error instanceof Error ? error.message : 'Unable to load AI + ActionBoard health.' };
         }
     });
 
     ipcMain.handle('save-aiab-observability-settings', async (_event, candidate: unknown) => {
-        const access = canInvestigate(dependencies);
-        if (!access.allowed) return { success: false, error: access.reason || 'Observability settings require investigation access.' };
-        const value = candidate && typeof candidate === 'object' && !Array.isArray(candidate) ? candidate as Partial<ObservabilitySettings> : {};
-        const settings = dependencies.saveSettings(normalizeObservabilitySettings(value));
-        await dependencies.getRuntime().setSettings(settings);
-        dependencies.getRuntime().recordAudit('system', 'retention-settings-saved', 'success');
-        return { success: true, settings };
+        try {
+            requireAccess(dependencies.getAccessContext(), 'investigate');
+            const value = candidate && typeof candidate === 'object' && !Array.isArray(candidate) ? candidate as Partial<ObservabilitySettings> : {};
+            const settings = dependencies.saveSettings(normalizeObservabilitySettings({ ...dependencies.getSettings(), ...value }));
+            await dependencies.getRuntime().setSettings(settings);
+            dependencies.getRuntime().recordAudit('system', 'retention-settings-saved', 'success');
+            return { success: true, settings };
+        } catch (error) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unable to save telemetry retention.' };
+        }
     });
 
     ipcMain.handle('purge-aiab-observability', async (_event, payload: unknown) => {
-        const access = canInvestigate(dependencies);
+        const context = { ...dependencies.getAccessContext() };
+        const access = authorizeKnowledgeRead(context, 'investigate');
         if (!access.allowed) return { success: false, error: access.reason || 'Observability purge requires investigation access.' };
         const input = payload && typeof payload === 'object' && !Array.isArray(payload) ? payload as Record<string, unknown> : {};
         if (input.confirmed !== true) return { success: false, error: 'Observability purge requires explicit confirmation.' };
         try {
+            // Standalone callers may omit this; a supplied context must be complete.
+            if ('expectedContext' in input && !isExpectedContext(input.expectedContext)) {
+                throw new Error('The confirmed purge context is missing or invalid. Retry from the current system.');
+            }
             const before = typeof input.before === 'string' ? input.before : new Date(Date.now() - dependencies.getSettings().retentionDays * 86400000).toISOString();
-            const result = await dependencies.getRuntime().purge(before);
+            const runtime = dependencies.getRuntime();
+            requireAccess((input.expectedContext as ObservabilityIdentity | undefined) || context, 'investigate');
+            const result = await runtime.purge(before);
             dependencies.getRuntime().recordAudit('purge', 'observability', 'success', { deletedCount: result.deletedCount });
             return { success: true, ...result };
         } catch (error) {
@@ -81,17 +104,20 @@ export function registerObservabilityIpc(dependencies: ObservabilityIpcDependenc
     });
 
     ipcMain.handle('export-aiab-observability', async () => {
-        const access = canRead(dependencies);
-        if (!access.allowed) return { success: false, error: access.reason || 'Observability export requires read access.' };
+        const context = { ...dependencies.getAccessContext() };
         if (!dependencies.showSaveDialog || !dependencies.getDownloadsPath) return { success: false, error: 'Export is unavailable in this environment.' };
         try {
+            requireAccess(context);
             const selection = await dependencies.showSaveDialog({
                 title: 'Export AI + ActionBoard observability',
                 defaultPath: `${dependencies.getDownloadsPath()}/imonitor-observability.json`,
                 filters: [{ name: 'JSON report', extensions: ['json'] }]
             });
             if (selection.canceled || !selection.filePath) return { success: false, canceled: true };
-            await writeFile(selection.filePath, `${JSON.stringify(await dependencies.getRuntime().export(), null, 2)}\n`, 'utf8');
+            requireAccess(context);
+            const report = await dependencies.getRuntime().export();
+            requireAccess(context);
+            await writeFile(selection.filePath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
             dependencies.getRuntime().recordAudit('export', 'observability', 'success');
             return { success: true, filePath: selection.filePath };
         } catch (error) {

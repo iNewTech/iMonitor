@@ -100,6 +100,27 @@ function normalizeScope(scope?: ObservabilityScope): ObservabilityScope {
     };
 }
 
+function normalizeAttributes(value: unknown): ObservabilityEvent['attributes'] {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+    const attributes: ObservabilityEvent['attributes'] = {};
+    for (const [key, item] of Object.entries(value).slice(0, 20)) {
+        if (SECRET_KEY.test(key)) continue;
+        const name = boundedText(key, 80);
+        if (typeof item === 'string') attributes[name] = boundedText(item);
+        else if (typeof item === 'boolean' || (typeof item === 'number' && Number.isFinite(item))) attributes[name] = item;
+    }
+    return attributes;
+}
+
+function copyEvent(event: ObservabilityEvent): ObservabilityEvent {
+    return { ...event, scope: { ...event.scope }, attributes: { ...event.attributes } };
+}
+
+function matchesScope(event: ObservabilityEvent, scope: ObservabilityScope) {
+    return (!scope.customerScope || event.scope.customerScope === scope.customerScope)
+        && (!scope.systemScope || event.scope.systemScope === scope.systemScope);
+}
+
 export function normalizeObservabilitySettings(candidate?: Partial<ObservabilitySettings>): ObservabilitySettings {
     return {
         retentionDays: Math.min(Math.max(Math.round(number(candidate?.retentionDays, DEFAULT_OBSERVABILITY_SETTINGS.retentionDays)), 1), 3_650),
@@ -114,22 +135,13 @@ export function normalizeObservabilityState(candidate: unknown): ObservabilityLe
     const events = Array.isArray(value.events) ? value.events.flatMap((item) => {
         if (!item || typeof item !== 'object' || Array.isArray(item)) return [];
         const raw = item as Partial<ObservabilityEvent>;
-        if (typeof raw.id !== 'string' || typeof raw.timestamp !== 'string' || !ISO_DATE.test(raw.timestamp)
+        if (typeof raw.id !== 'string' || typeof raw.timestamp !== 'string' || !ISO_DATE.test(raw.timestamp) || !Number.isFinite(Date.parse(raw.timestamp))
             || (raw.kind !== 'metric' && raw.kind !== 'audit') || typeof raw.name !== 'string') return [];
-        const attributes = raw.attributes && typeof raw.attributes === 'object' && !Array.isArray(raw.attributes)
-            ? Object.entries(raw.attributes).slice(0, 20).reduce<Record<string, string | number | boolean>>((result, [key, rawValue]) => {
-                if (SECRET_KEY.test(key) || typeof rawValue === 'object' || rawValue === null) return result;
-                if (typeof rawValue === 'string') result[boundedText(key, 80)] = boundedText(rawValue);
-                else if (typeof rawValue === 'boolean') result[boundedText(key, 80)] = rawValue;
-                else if (Number.isFinite(rawValue)) result[boundedText(key, 80)] = rawValue;
-                return result;
-            }, {})
-            : {};
         return [{
-            id: boundedText(raw.id, 120), timestamp: raw.timestamp, scope: normalizeScope(raw.scope), kind: raw.kind,
+            id: boundedText(raw.id, 120), timestamp: new Date(raw.timestamp).toISOString(), scope: normalizeScope(raw.scope), kind: raw.kind,
             name: boundedText(raw.name, 120), value: raw.value === undefined ? undefined : number(raw.value),
             outcome: ['success', 'failure', 'denied', 'warning'].includes(String(raw.outcome)) ? raw.outcome : undefined,
-            attributes
+            attributes: normalizeAttributes(raw.attributes)
         } satisfies ObservabilityEvent];
     }) : [];
     return { schemaVersion: OBSERVABILITY_SCHEMA_VERSION, events };
@@ -142,7 +154,8 @@ function average(events: ObservabilityEvent[]) {
 /** Bounded, redacted metrics and audit ledger used by the local AI + ActionBoard runtime. */
 export function createObservabilityLedger(
     settings: Partial<ObservabilitySettings> = {},
-    initialState: unknown = { schemaVersion: OBSERVABILITY_SCHEMA_VERSION, events: [] }
+    initialState: unknown = { schemaVersion: OBSERVABILITY_SCHEMA_VERSION, events: [] },
+    now = new Date()
 ) {
     const normalizedSettings = normalizeObservabilitySettings(settings);
     let state = normalizeObservabilityState(initialState);
@@ -152,6 +165,8 @@ export function createObservabilityLedger(
         const cutoff = now.getTime() - normalizedSettings.retentionDays * 24 * 60 * 60 * 1000;
         state.events = state.events.filter((event) => Date.parse(event.timestamp) >= cutoff).slice(-normalizedSettings.maxEvents);
     }
+
+    prune(now);
 
     function add(event: Omit<ObservabilityEvent, 'id' | 'timestamp'>, now = new Date()) {
         sequence += 1;
@@ -163,10 +178,10 @@ export function createObservabilityLedger(
             name: boundedText(event.name, 120),
             value: event.value === undefined ? undefined : number(event.value),
             outcome: event.outcome,
-            attributes: normalizeObservabilityState({ events: [{ ...event, id: 'temporary', timestamp: now.toISOString() }] }).events[0]?.attributes || {}
+            attributes: normalizeAttributes(event.attributes)
         });
         prune(now);
-        return state.events[state.events.length - 1];
+        return copyEvent(state.events[state.events.length - 1]);
     }
 
     return {
@@ -178,8 +193,7 @@ export function createObservabilityLedger(
         },
         list(scope?: ObservabilityScope) {
             const normalized = normalizeScope(scope);
-            return state.events.filter((event) => (!normalized.customerScope || event.scope.customerScope === normalized.customerScope)
-                && (!normalized.systemScope || event.scope.systemScope === normalized.systemScope)).slice();
+            return state.events.filter((event) => matchesScope(event, normalized)).map(copyEvent);
         },
         snapshot(scope?: ObservabilityScope): ObservabilitySnapshot {
             const events = this.list(scope);
@@ -188,8 +202,8 @@ export function createObservabilityLedger(
             const models = metric('model_latency_ms');
             const contexts = metric('context_characters');
             const mcp = metric('mcp_latency_ms');
-            const oldestAt = events.map((event) => event.timestamp).sort()[0] || null;
             const sortedTimestamps = events.map((event) => event.timestamp).sort();
+            const oldestAt = sortedTimestamps[0] || null;
             const newestAt = sortedTimestamps[sortedTimestamps.length - 1] || null;
             return {
                 state: events.length ? 'ready' : 'empty', retentionDays: normalizedSettings.retentionDays, eventCount: events.length,
@@ -207,16 +221,13 @@ export function createObservabilityLedger(
             if (!ISO_DATE.test(before) || Number.isNaN(Date.parse(before))) throw new Error('Observability purge requires an ISO UTC cutoff.');
             const beforeCount = state.events.length;
             const normalized = normalizeScope(scope);
-            state.events = state.events.filter((event) => {
-                const inSelectedScope = (!normalized.customerScope || event.scope.customerScope === normalized.customerScope)
-                    && (!normalized.systemScope || event.scope.systemScope === normalized.systemScope);
-                return !(inSelectedScope && event.timestamp < before);
-            });
+            const cutoff = Date.parse(before);
+            state.events = state.events.filter((event) => !matchesScope(event, normalized) || Date.parse(event.timestamp) >= cutoff);
             return { deletedCount: beforeCount - state.events.length, snapshot: this.snapshot(scope) };
         },
         export(scope?: ObservabilityScope) {
             return { schemaVersion: OBSERVABILITY_SCHEMA_VERSION, exportedAt: new Date().toISOString(), scope: normalizeScope(scope), events: this.list(scope) };
         },
-        state() { return { schemaVersion: OBSERVABILITY_SCHEMA_VERSION, events: state.events.slice() }; }
+        state() { return { schemaVersion: OBSERVABILITY_SCHEMA_VERSION, events: state.events.map(copyEvent) }; }
     };
 }

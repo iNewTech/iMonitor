@@ -499,9 +499,13 @@ Check that the integration is installed, configured, enabled in **Alert delivery
 
 ### Checking AI and knowledge health
 
-Open **Settings → Storage** and expand **AI + ActionBoard health**. The compact rows show the scoped knowledge record count, index size, pending index work, model state, MCP readiness, and the last update. A warning message appears only when an operator can act on a degraded provider, pending rebuild, or failed skill.
+Open **Settings → Storage** and expand **AI + ActionBoard health**. The compact rows show the scoped knowledge record count, index size, pending index work, model state, MCP readiness, and the last update. Warnings explain degraded providers, pending rebuilds, failed skills, or telemetry storage problems. For a storage warning, check available disk space and access to the application data folder, then retry.
 
 You can save the telemetry retention period, rebuild the scoped knowledge index, or export the redacted evidence and observability report. **Purge expired** removes only records older than the displayed retention period for the connected customer and IBM i system, after confirmation. Rebuilding and purging keep source records and derived indexes aligned; an unavailable external vector provider does not stop local lexical retrieval.
+
+Use a whole number from 1 to 3,650 days for retention. While a Storage action runs, its controls are temporarily disabled to prevent duplicate requests. A completion or error message remains visible afterwards; failed actions can be retried. Canceling an export dialog is safe. If the connection, operator, or access permission changes during export, start the export again from the intended system.
+
+Purge runs in two steps: knowledge, then telemetry. If your connection or identity changes between them, the second step stops and the message states what was already removed. Return to the intended system before retrying. Canceling purge keeps the retention value you entered.
 
 Telemetry contains measurements and operational audit metadata. iMonitor does not store AI prompts, source content, passwords, API keys, or tokens in the observability ledger. Use export when support needs a sanitized operational report, and purge it when the customer retention policy requires.
 

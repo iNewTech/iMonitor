@@ -7,6 +7,7 @@ import { type KnowledgeRecord, type KnowledgeSourceType } from '../../features/k
 import {
     authorizeKnowledgeRead,
     filterKnowledgeRecords,
+    type KnowledgeAccessDecision,
     type KnowledgeAccessContext
 } from '../../features/knowledge/knowledge-access';
 import {
@@ -52,7 +53,7 @@ const SOURCE_TYPES: KnowledgeSourceType[] = [
 const SOURCE_NAME = /^[^\u0000-\u001f\u007f]{1,240}$/u;
 const FILE_NAME = /^[^\u0000-\u001f\u007f]{1,240}$/u;
 
-function scopeOf(context: KnowledgeAccessContext): KnowledgeScope {
+function scopeOf(context: Pick<KnowledgeAccessContext, 'customerScope' | 'systemScope'>): KnowledgeScope {
     return { customerScope: context.customerScope, systemScope: context.systemScope };
 }
 
@@ -90,6 +91,18 @@ function recordSourceRows(records: readonly KnowledgeRecord[]) {
 function denied(context: KnowledgeAccessContext, permission: string) {
     const decision = authorizeKnowledgeRead(context, permission);
     return { success: false, records: [], excluded: [], error: decision.reason || 'Knowledge access is not available.' };
+}
+
+type KnowledgeExportIdentity = Pick<KnowledgeAccessContext, 'customerScope' | 'systemScope' | 'operatorId' | 'identity'>;
+
+function authorizeKnowledgeExport(current: KnowledgeAccessContext, original: KnowledgeExportIdentity): KnowledgeAccessDecision {
+    if (current.customerScope !== original.customerScope
+        || current.systemScope !== original.systemScope
+        || current.operatorId !== original.operatorId
+        || current.identity !== original.identity) {
+        return { allowed: false, reason: 'Knowledge export canceled because the active scope or operator identity changed.' };
+    }
+    return authorizeKnowledgeRead(current);
 }
 
 /** Main-process boundary for scoped knowledge reads, ingestion, and maintenance. */
@@ -223,12 +236,13 @@ export function registerKnowledgeIpc(dependencies: KnowledgeIpcDependencies) {
         const input = payload && typeof payload === 'object' && !Array.isArray(payload) ? payload as Record<string, unknown> : {};
         if (input.confirmed !== true) return { success: false, error: 'Knowledge purge requires explicit confirmation.' };
         const before = typeof input.before === 'string' ? input.before : new Date(Date.now() - 30 * 86400000).toISOString();
+        const expectedContext = { ...scopeOf(current), operatorId: current.operatorId, identity: current.identity };
         try {
-            const result = await store().purge(scopeOf(current), before);
+            const result = await store().purge(scopeOf(expectedContext), before);
             await index().delete(result.deletedIds);
             dependencies.recordActivity({ area: 'monitoring', level: 'success', message: 'Knowledge records purged.', detail: `deleted=${result.deletedCount}` });
             dependencies.recordObservability?.audit('purge', 'knowledge-records', 'success', { deleted: result.deletedCount });
-            return { success: true, ...result, stats: await index().stats(scopeOf(current)) };
+            return { success: true, ...result, expectedContext, stats: await index().stats(scopeOf(expectedContext)) };
         } catch (error) {
             dependencies.recordObservability?.audit('failure', 'knowledge-purge', 'failure');
             return { success: false, error: error instanceof Error ? error.message : 'Unable to purge knowledge records.' };
@@ -240,15 +254,27 @@ export function registerKnowledgeIpc(dependencies: KnowledgeIpcDependencies) {
         const decision = authorizeKnowledgeRead(current);
         if (!decision.allowed) return { success: false, error: decision.reason || 'Knowledge export requires read access.' };
         if (!dependencies.showSaveDialog || !dependencies.getDownloadsPath) return { success: false, error: 'Export is unavailable in this environment.' };
+        const original: KnowledgeExportIdentity = {
+            ...scopeOf(current), operatorId: current.operatorId, identity: current.identity
+        };
         try {
-            const records = recordSourceRows(await store().list(scopeOf(current)));
             const selection = await dependencies.showSaveDialog({
                 title: 'Export scoped knowledge',
                 defaultPath: path.join(dependencies.getDownloadsPath(), 'imonitor-knowledge.json'),
                 filters: [{ name: 'JSON report', extensions: ['json'] }]
             });
             if (selection.canceled || !selection.filePath) return { success: false, canceled: true };
-            await writeFile(selection.filePath, `${JSON.stringify({ exportedAt: new Date().toISOString(), scope: scopeOf(current), records }, null, 2)}\n`, 'utf8');
+            const afterDialog = authorizeKnowledgeExport(context(), original);
+            if (!afterDialog.allowed) return { success: false, error: afterDialog.reason };
+
+            const candidates = await store().list(scopeOf(original));
+            const latest = context();
+            const beforeWrite = authorizeKnowledgeExport(latest, original);
+            if (!beforeWrite.allowed) return { success: false, error: beforeWrite.reason };
+            const filtered = filterKnowledgeRecords(recordSourceRows(candidates), latest);
+            if (!filtered.decision.allowed) return { success: false, error: filtered.decision.reason };
+            const records = filtered.records;
+            await writeFile(selection.filePath, `${JSON.stringify({ exportedAt: new Date().toISOString(), scope: scopeOf(original), records }, null, 2)}\n`, 'utf8');
             dependencies.recordObservability?.audit('export', 'knowledge-records', 'success', { records: records.length });
             return { success: true, filePath: selection.filePath, recordCount: records.length };
         } catch (error) {

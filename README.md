@@ -45,7 +45,7 @@ npm start
 
 For renderer-only edits, reload the app window. Main-process/preload changes require an app restart. When using a Git worktree, launch from the checkout containing your changes.
 
-The shared **ActionBoard / Knowledge / Settings** navigation keeps monitoring and independent task windows running. The board restores its per-profile filters, selection and unsent input within the window session. **Knowledge → Analyze code** opens existing object analysis; document ingestion and retrieval remain planned.
+The shared **ActionBoard / Knowledge / Settings** navigation keeps monitoring and independent task windows running. The board restores its per-profile filters, selection and unsent input within the window session. **Knowledge** imports supported text documents, manages source review, and searches scoped evidence; **Analyze code** opens object analysis. Selected-job AI can cite matching knowledge. Local lexical search is available now; external vector adapters remain future options.
 
 ## AI and integrations
 

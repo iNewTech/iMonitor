@@ -1,8 +1,9 @@
+import { createTaskActions } from './job-task/actions.js';
+import { createResolutionMemory } from './job-task/resolution-memory.js';
 import { escapeHtml, formatTimestamp, formatCpuValue, formatNumber, formatMegabytes, createActionRequestId } from './monitor/formatters.js';
 import {
     renderJobLog,
     renderJobMessages,
-    renderOperatorActions,
     renderStatusHistory
 } from './monitor/job-details.js';
 import {
@@ -31,8 +32,7 @@ let refreshPromise = null;
 let stateRevision = 0;
 let alertsRevision = 0;
 let stateFresh = false;
-let actionFeedback = '';
-
+const actionGroups = new Set(['mutation', 'runbook', 'mcp-action']);
 
 const $ = (id) => document.getElementById(id);
 const title = $('task-title');
@@ -56,30 +56,6 @@ const waitReason = $('task-wait-reason');
 const tempStorage = $('task-temp-storage');
 const diskIo = $('task-disk-io');
 const incidentActions = $('task-incident-actions');
-const jobActions = $('task-job-actions');
-const actionNote = $('task-action-note');
-const mcpActionSection = $('task-mcp-actions');
-const mcpActionList = $('task-mcp-action-list');
-const mcpActionState = $('task-mcp-action-state');
-const mcpActionInputWrap = $('task-mcp-action-input-wrap');
-const mcpActionInput = $('task-mcp-action-input');
-const mcpActionPreviewOutput = $('task-mcp-action-preview');
-const mcpActionRun = $('task-mcp-action-run');
-const mcpActionCancel = $('task-mcp-action-cancel');
-const mcpActionNote = $('task-mcp-action-note');
-const actionPlannerSection = $('task-action-planner');
-const actionPlannerPrimary = $('task-action-planner-title');
-const actionPlannerReason = $('task-action-planner-reason');
-const actionPlannerMeta = $('task-action-planner-meta');
-const actionPlannerList = $('task-action-planner-list');
-const runbookSection = $('task-runbook-section');
-const runbookStatus = $('task-runbook-status');
-const runbookSummary = $('task-runbook-summary');
-const runbookSteps = $('task-runbook-steps');
-const runbookStart = $('task-runbook-start');
-const runbookStepButton = $('task-runbook-step');
-const runbookNote = $('task-runbook-note');
-const runbookReply = $('task-runbook-reply');
 const statusHistory = $('task-status-history');
 const aiOutput = $('task-ai-output');
 const aiStatus = $('task-ai-status');
@@ -89,15 +65,6 @@ const aiCitationDialog = $('task-ai-citation-dialog');
 const aiCitationDetail = $('task-ai-citation-detail');
 const aiCitationClose = $('task-ai-citation-close');
 const detailsOutput = $('task-details-output');
-const memoryList = $('task-memory-list');
-const memoryStatus = $('task-memory-status');
-const memorySave = $('task-memory-save');
-const memoryReviseForm = $('task-memory-revise-form');
-const memoryReviseTitle = $('task-memory-revise-title');
-const memoryReviseAction = $('task-memory-revise-action');
-const memoryReviseOutcome = $('task-memory-revise-outcome');
-const memoryReviseSave = $('task-memory-revise-save');
-const memoryReviseCancel = $('task-memory-revise-cancel');
 const problemPanel = $('task-problem-panel');
 const problemStatus = $('task-problem-status');
 const problemMatch = $('task-problem-match');
@@ -125,20 +92,34 @@ const handoffFields = {
     pendingChecks: $('task-handoff-pending-checks')
 };
 let handoffDraftKey = '';
-let resolutionMemoryEntries = [];
-let resolutionMemoryMatches = [];
-let resolutionMemoryRevisionId = '';
-let runbookData = { definition: null, execution: null };
-let mcpActionCatalog = [];
-let mcpActionSelection = null;
-let mcpActionPreview = null;
-let aiActionPlanner = null;
 let problemWorkspace = { records: [], matches: [], currentOccurrence: null, recurringSignal: false };
 let selectedProblemId = '';
 let problemFormRecordId = '';
 let replayScenarios = [];
 let currentAiCitations = [];
 let currentAiCitationScope = null;
+
+const taskActions = createTaskActions({
+    document, api: window.electronAPI, jobName: selectedJobName,
+    getPayload: () => latestPayload, isBlocked: actionsBlocked,
+    runRequest, mutateTask, requireSuccess, errorMessage,
+    confirm: (message) => window.confirm(message)
+});
+const resolutionMemory = createResolutionMemory({
+    document, api: window.electronAPI, jobName: selectedJobName,
+    getAlert: findLinkedAlert, getJobName: () => getJobKey(latestPayload?.job),
+    isBlocked: () => actionsBlocked() || pending.has('memory'),
+    runRequest, requireSuccess, errorMessage, formatWorkflowLabel,
+    confirm: (message) => window.confirm(message)
+});
+
+function hasActionRequest() {
+    return [...actionGroups].some((group) => pending.has(group));
+}
+
+function actionsBlocked() {
+    return hasActionRequest() || !stateFresh || !latestPayload?.job;
+}
 
 function renderAiCitations(result) {
     const contextPack = result?.contextPack;
@@ -438,232 +419,6 @@ function renderResponseWorkspace(response) {
         : 'No handoff';
 }
 
-function renderRunbook() {
-    if (!runbookSection || !runbookSteps) return;
-    const definition = runbookData.definition;
-    const execution = runbookData.execution;
-    runbookSection.hidden = !definition;
-    if (!definition) return;
-    const statusLabel = String(execution?.status || 'not started').replace(/[-_]/g, ' ');
-    runbookStatus.textContent = statusLabel.replace(/\b\w/g, (letter) => letter.toUpperCase());
-    runbookSummary.textContent = execution
-        ? `${definition.title} · ${execution.operator} · ${execution.steps.filter((step) => step.status === 'succeeded').length}/${definition.steps.length} checkpoints complete.`
-        : `${definition.title}. Start the runbook to record each checkpoint before the protected action is offered.`;
-    runbookSteps.innerHTML = definition.steps.map((step, index) => {
-        const record = execution?.steps?.[index];
-        const current = Boolean(execution && execution.currentStepIndex === index && ['running', 'paused'].includes(execution.status));
-        const state = record?.status || 'pending';
-        return `<li class="runbook-step is-${escapeHtml(state)}${current ? ' is-current' : ''}">
-            <div><strong>${escapeHtml(step.title)}</strong><small>${escapeHtml(step.kind)} · ${escapeHtml(state)}</small></div>
-            <p>${escapeHtml(step.expectedOutcome)}</p>
-            ${record?.output ? `<small class="runbook-step-output">${escapeHtml(record.output)}</small>` : ''}
-        </li>`;
-    }).join('');
-    const currentStep = execution ? definition.steps[execution.currentStepIndex] : null;
-    runbookReply.hidden = currentStep?.action !== 'replyMessage';
-    runbookStart.disabled = pending.has('runbook') || Boolean(execution && ['ready', 'running', 'paused'].includes(execution.status));
-    runbookStepButton.disabled = pending.has('runbook') || !execution || !['running', 'paused'].includes(execution.status) || !currentStep;
-    runbookStepButton.textContent = execution?.status === 'paused' ? 'Retry checkpoint' : 'Run current checkpoint';
-    if (execution?.outcome) {
-        runbookNote.textContent = `${execution.outcome.summary} ${execution.outcome.evidence.join(' ')}`;
-    } else if (execution?.status === 'succeeded') {
-        runbookNote.textContent = 'Runbook completed and recovery was verified.';
-    } else {
-        runbookNote.textContent = currentStep?.stopCondition || '';
-    }
-}
-
-async function loadRunbookData() {
-    if (!latestPayload?.runbook || typeof window.electronAPI.getVerifiedRunbook !== 'function') {
-        runbookData = { definition: null, execution: null };
-        return;
-    }
-    try {
-        const result = await window.electronAPI.getVerifiedRunbook(selectedJobName);
-        runbookData = result?.success ? { definition: result.definition, execution: result.execution } : { definition: null, execution: null };
-    } catch {
-        runbookData = { definition: null, execution: null };
-    }
-}
-
-function renderMcpActions() {
-    if (!mcpActionSection || !mcpActionList) return;
-    mcpActionSection.hidden = !mcpActionCatalog.length;
-    mcpActionList.innerHTML = mcpActionCatalog.map((action) => `<button type="button" class="btn btn-outline-ink btn-sm task-mcp-action-button" data-mcp-capability="${escapeHtml(action.capabilityId)}" data-mcp-tool="${escapeHtml(action.tool)}" ${action.available ? '' : 'disabled'} title="${escapeHtml(action.reason || action.effect)}">${escapeHtml(action.label)}<small>${escapeHtml(action.available ? `${action.riskClass} risk · preview` : action.reason || 'Unavailable')}</small></button>`).join('');
-    if (mcpActionState) mcpActionState.textContent = mcpActionPreview?.state ? String(mcpActionPreview.state).replace(/-/g, ' ') : 'Preview required';
-    if (mcpActionInputWrap) mcpActionInputWrap.hidden = mcpActionSelection?.tool !== 'end-job' && mcpActionSelection?.tool !== 'reply-message';
-    if (mcpActionPreviewOutput) {
-        mcpActionPreviewOutput.hidden = !mcpActionPreview;
-        if (mcpActionPreview) {
-            mcpActionPreviewOutput.innerHTML = `<strong>${escapeHtml(mcpActionPreview.effect || 'Controlled action')}</strong><span>${escapeHtml(mcpActionPreview.riskClass || 'unknown')} risk · ${escapeHtml(mcpActionPreview.scope?.operatorId || 'operator')} · ${escapeHtml(mcpActionPreview.scope?.systemScope || 'system')}</span><small>Evidence: ${escapeHtml(mcpActionPreview.evidence?.summary || 'current job evidence')} · Verify: ${escapeHtml(mcpActionPreview.verificationRule || 'next monitoring poll')}</small>`;
-        }
-    }
-    if (mcpActionRun) mcpActionRun.disabled = !mcpActionPreview || pending.has('mcp-action') || mcpActionPreview.state !== 'awaiting-approval' || !stateFresh;
-    if (mcpActionCancel) mcpActionCancel.hidden = !mcpActionPreview;
-}
-
-function mergedActionPlanner() {
-    const base = aiActionPlanner || latestPayload?.actionPlanner;
-    const proposals = [];
-    const seen = new Set();
-    const add = (proposal) => {
-        if (!proposal?.id || seen.has(proposal.id)) return;
-        seen.add(proposal.id);
-        proposals.push(proposal);
-    };
-    (base?.proposals || []).forEach(add);
-    mcpActionCatalog.map((action) => action.proposal).filter(Boolean).forEach(add);
-    if (!base && !proposals.length) return null;
-    return {
-        ...(base || {}),
-        jobName: base?.jobName || selectedJobName,
-        primary: base?.primary || null,
-        proposals,
-        escalationReasons: base?.escalationReasons || []
-    };
-}
-
-function renderActionPlanner() {
-    if (!actionPlannerSection || !actionPlannerPrimary || !actionPlannerReason || !actionPlannerList) return;
-    const planner = mergedActionPlanner();
-    const proposals = planner?.proposals || [];
-    actionPlannerSection.hidden = !planner || (!planner.primary && !proposals.length);
-    if (actionPlannerSection.hidden) return;
-
-    const primary = planner.primary;
-    actionPlannerPrimary.textContent = primary?.label || 'Review evidence';
-    actionPlannerReason.textContent = primary?.reason || 'Review the available evidence before choosing an operation.';
-    if (actionPlannerMeta) {
-        actionPlannerMeta.textContent = `${proposals.length} proposal${proposals.length === 1 ? '' : 's'} · ${planner.jobName || selectedJobName}`;
-    }
-    actionPlannerList.innerHTML = proposals.length
-        ? proposals.map((proposal) => {
-            const state = String(proposal.state || 'advisory').replace(/[-_]/g, ' ');
-            const sources = Array.isArray(proposal.sources) ? proposal.sources.join(' · ') : '';
-            const required = Array.isArray(proposal.requiredPermissions) ? proposal.requiredPermissions.join(', ') : 'review';
-            return `<article class="task-action-planner-row">
-                <div class="task-action-planner-row-heading"><strong>${escapeHtml(proposal.label || 'Review proposal')}</strong><span>${escapeHtml(state)} · ${escapeHtml(proposal.riskClass || 'unknown')} risk</span></div>
-                <small>${escapeHtml(proposal.effect || proposal.rationale || '')}</small>
-                <small>Sources: ${escapeHtml(sources || 'operator')} · Requires: ${escapeHtml(required)}</small>
-                <small>Verify: ${escapeHtml(proposal.verificationRule || 'Confirm the next monitoring state.')}</small>
-            </article>`;
-        }).join('')
-        : '<p class="stat-note mb-0">No action proposal is available for this job.</p>';
-}
-
-async function loadMcpActions() {
-    if (!selectedJobName || typeof window.electronAPI.getMcpActionCatalog !== 'function') {
-        mcpActionCatalog = [];
-        renderMcpActions();
-        return;
-    }
-    try {
-        const result = await window.electronAPI.getMcpActionCatalog(selectedJobName);
-        mcpActionCatalog = result?.success && Array.isArray(result.actions) ? result.actions : [];
-    } catch {
-        mcpActionCatalog = [];
-    }
-    mcpActionSelection = null;
-    mcpActionPreview = null;
-    renderMcpActions();
-}
-
-function previewMcpAction(capabilityId, tool) {
-    const action = mcpActionCatalog.find((item) => item.capabilityId === capabilityId && item.tool === tool);
-    if (!action || !action.available || typeof window.electronAPI.previewMcpAction !== 'function') return;
-    let input = {};
-    if (mcpActionInput?.value.trim()) {
-        try {
-            input = JSON.parse(mcpActionInput.value);
-        } catch {
-            if (mcpActionNote) mcpActionNote.textContent = 'Action input must be valid JSON.';
-            return;
-        }
-    }
-    mcpActionSelection = action;
-    return runRequest('mcp-action', async () => {
-        if (mcpActionNote) mcpActionNote.textContent = 'Checking current evidence and permissions…';
-        const result = requireSuccess(await window.electronAPI.previewMcpAction({ capabilityId, tool, jobName: selectedJobName, input, timeoutMs: 5000 }), 'Unable to create the action preview.');
-        mcpActionPreview = result.preview;
-        if (mcpActionNote) mcpActionNote.textContent = 'Review the effect, risk, scope, and evidence before approving.';
-        renderMcpActions();
-    }, (error) => {
-        mcpActionPreview = null;
-        if (mcpActionNote) mcpActionNote.textContent = errorMessage(error, 'Unable to create the action preview.');
-        renderMcpActions();
-    });
-}
-
-function runMcpAction() {
-    if (!mcpActionPreview || typeof window.electronAPI.runMcpAction !== 'function') return;
-    if (!window.confirm(`${mcpActionPreview.effect} This will run for ${selectedJobName}. Continue?`)) return;
-    return runRequest('mcp-action', async () => {
-        if (mcpActionNote) mcpActionNote.textContent = 'Running through the controlled gateway…';
-        const result = await window.electronAPI.runMcpAction({ previewId: mcpActionPreview.previewId, approved: true });
-        mcpActionPreview = result?.preview || mcpActionPreview;
-        renderMcpActions();
-        if (!result?.success) throw new Error(result?.error || 'The action needs verification.');
-        if (mcpActionNote) mcpActionNote.textContent = result.verification?.summary || 'Action recovered and verified.';
-        await loadTask();
-    }, (error) => {
-        if (mcpActionNote) mcpActionNote.textContent = errorMessage(error, 'The action needs verification.');
-        renderMcpActions();
-    });
-}
-
-function renderResolutionMemory() {
-    if (!memoryList) return;
-    const alert = findLinkedAlert();
-    const jobName = getJobKey(latestPayload?.job) || selectedJobName;
-    const entries = resolutionMemoryEntries.filter((entry) => (
-        entry.incidentKind === alert?.kind
-        && (!entry.jobPattern || matchesWildcard(jobName, entry.jobPattern))
-    ));
-    memoryList.innerHTML = entries.length ? entries.map((entry) => `
-        <article class="resolution-memory-item" data-memory-id="${escapeHtml(entry.id)}">
-            <div>
-                <strong>${escapeHtml(entry.title)}</strong>
-                <small>${escapeHtml(formatWorkflowLabel(entry.status))} · v${escapeHtml(String(entry.version))}${entry.reviewer ? ` · reviewer ${escapeHtml(entry.reviewer)}` : ''}</small>
-                <div class="resolution-memory-item-meta">
-                    ${entry.operator ? `<span>Operator: ${escapeHtml(entry.operator)}</span>` : ''}
-                    ${entry.sourceIncidentId ? `<span>Source: ${escapeHtml(entry.sourceIncidentId)}</span>` : ''}
-                </div>
-                ${entry.status === 'approved' && resolutionMemoryMatches.find((match) => match.entryId === entry.id) ? (() => {
-                    const match = resolutionMemoryMatches.find((item) => item.entryId === entry.id);
-                    return `<div class="resolution-memory-item-meta"><span>${escapeHtml(match.confidence)} confidence</span><span>${escapeHtml(match.freshness)} review</span><span>${match.environmentCompatible ? 'Environment compatible' : 'Environment differs'}</span></div>${match.conflict ? `<small class="text-danger">${escapeHtml(match.conflict)}</small>` : ''}`;
-                })() : ''}
-                <details class="resolution-memory-item-details">
-                    <summary>Evidence and review history</summary>
-                    <small>${escapeHtml(entry.environment?.jobType || 'Unknown type')} · ${escapeHtml(entry.environment?.subsystem || 'Unknown subsystem')} · ${entry.evidenceRefs?.length || 0} evidence references</small>
-                    <small>Outcome: ${escapeHtml(entry.verifiedOutcome || 'Not recorded')}</small>
-                    <details class="resolution-memory-reviews">
-                        <summary>${entry.reviewHistory?.length || 0} review event${entry.reviewHistory?.length === 1 ? '' : 's'}</summary>
-                        ${(entry.reviewHistory || []).map((event) => `<small>${escapeHtml(formatWorkflowLabel(event.action))} · ${escapeHtml(event.actor)} · ${escapeHtml(formatTimestamp(event.at))}${event.note ? ` · ${escapeHtml(event.note)}` : ''}</small>`).join('') || '<small>No review events recorded.</small>'}
-                    </details>
-                </details>
-            </div>
-            <div class="resolution-memory-item-actions">
-                ${entry.status === 'draft' ? '<button type="button" class="btn btn-primary-strong btn-sm" data-memory-action="approve">Approve</button>' : ''}
-                ${['draft', 'approved', 'rejected'].includes(entry.status) ? '<button type="button" class="btn btn-outline-ink btn-sm" data-memory-action="revise">Revise</button>' : ''}
-                ${entry.status === 'draft' ? '<button type="button" class="btn btn-outline-danger btn-sm" data-memory-action="reject">Reject</button>' : ''}
-                ${entry.status === 'approved' ? '<button type="button" class="btn btn-outline-danger btn-sm" data-memory-action="retire">Retire</button>' : ''}
-            </div>
-        </article>`).join('') : '<p class="stat-note mb-2">No saved procedure matches this incident yet.</p>';
-    if (memoryStatus) {
-        memoryStatus.textContent = entries.length ? `${entries.length} matching entr${entries.length === 1 ? 'y' : 'ies'}` : 'No match';
-        if (alert?.isActive !== false) memoryStatus.textContent = 'Available after verified recovery';
-    }
-    if (memorySave) memorySave.textContent = alert?.isActive === false ? 'Save resolution draft' : 'Save after verified recovery';
-}
-
-async function refreshResolutionMemory() {
-    if (!selectedJobName || !window.electronAPI.getResolutionMemory) return;
-    const result = requireSuccess(await window.electronAPI.getResolutionMemory(selectedJobName), 'Unable to load resolution memory.');
-    resolutionMemoryEntries = Array.isArray(result.entries) ? result.entries : [];
-    resolutionMemoryMatches = Array.isArray(result.matches) ? result.matches : [];
-    renderResolutionMemory();
-}
-
 function renderProblemWorkspace() {
     const alert = findLinkedAlert();
     if (!problemPanel || !problemRecords || !alert) {
@@ -701,10 +456,11 @@ function renderProblemWorkspace() {
     problemResolve.hidden = !selected || pending.has('problem') || !['confirmed', 'reopened'].includes(selected.status);
 }
 
-async function loadProblemWorkspace() {
+async function loadProblemWorkspace(isCurrent = () => true) {
     if (!selectedJobName || typeof window.electronAPI.getProblemWorkspace !== 'function') return;
     try {
         const result = await window.electronAPI.getProblemWorkspace(selectedJobName);
+        if (!isCurrent()) return;
         if (result?.success) {
             problemWorkspace = {
                 records: Array.isArray(result.records) ? result.records : [],
@@ -714,6 +470,7 @@ async function loadProblemWorkspace() {
             };
         }
     } catch {
+        if (!isCurrent()) return;
         problemWorkspace = { records: [], matches: [], currentOccurrence: null, recurringSignal: false };
     }
     renderProblemWorkspace();
@@ -802,11 +559,6 @@ function runIncidentReplay() {
     });
 }
 
-function matchesWildcard(value, pattern) {
-    const escaped = String(pattern).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '.*');
-    return new RegExp(`^${escaped}$`, 'i').test(String(value));
-}
-
 function getHandoffDraft() {
     const value = (field) => field?.value.trim() || 'None recorded.';
     return {
@@ -877,19 +629,10 @@ function renderTask() {
     renderIncidentEvidence(alert);
 
     renderResponseWorkspace(latestPayload.response);
-    renderRunbook();
-    renderResolutionMemory();
+    resolutionMemory.render();
     renderProblemWorkspace();
     renderIncidentActions(alert);
-    renderActionPlanner();
-    renderOperatorActions(jobActions, null, latestPayload.actions);
-    renderMcpActions();
-    if (!actionFeedback) {
-        const blocked = (latestPayload.actions || []).filter((action) => !action.enabled && action.reason);
-        actionNote.textContent = blocked.length
-            ? blocked.map((action) => `${action.label}: ${action.reason}`).join(' | ')
-            : 'Operations apply to this job. Changes require confirmation.';
-    }
+    taskActions.render();
     renderIncidentHistory();
     renderStatusHistory(statusHistory, latestPayload.statusHistory || []);
     updateControls();
@@ -905,15 +648,11 @@ function requireSuccess(result, fallback) {
 }
 
 function updateControls() {
-    const mutationBlocked = pending.has('mutation') || !stateFresh || !latestPayload?.job;
+    const mutationBlocked = actionsBlocked();
     const alert = findLinkedAlert();
     const handoff = alert?.handoff;
     incidentActions.querySelectorAll('.task-alert-action').forEach((button) => {
         button.disabled = mutationBlocked;
-    });
-    jobActions.querySelectorAll('.job-action-button').forEach((button) => {
-        const available = latestPayload?.actions?.find((action) => action.kind === button.dataset.actionKind);
-        button.disabled = mutationBlocked || !available?.enabled;
     });
     document.querySelectorAll('.task-alert-ai, #task-ai-summary, #task-ai-resolve').forEach((button) => {
         button.disabled = pending.has('ai') || !stateFresh || !latestPayload?.job || !selectedJobName;
@@ -925,35 +664,26 @@ function updateControls() {
     $('task-accept-handoff').disabled = mutationBlocked
         || handoff?.status !== 'pending'
         || handoff.toOperator?.toLowerCase() !== currentOperatorName.toLowerCase();
-    if (memorySave) memorySave.disabled = pending.has('memory') || mutationBlocked || findLinkedAlert()?.isActive !== false;
-    document.querySelectorAll('[data-memory-action]').forEach((button) => {
-        button.disabled = pending.has('memory') || mutationBlocked;
-    });
-    if (memoryReviseSave) memoryReviseSave.disabled = pending.has('memory') || mutationBlocked || !resolutionMemoryRevisionId;
-    if (runbookStart) runbookStart.disabled = pending.has('runbook') || Boolean(runbookData.execution && ['ready', 'running', 'paused'].includes(runbookData.execution.status));
-    if (runbookStepButton) {
-        const execution = runbookData.execution;
-        runbookStepButton.disabled = pending.has('runbook') || !execution || !['running', 'paused'].includes(execution.status);
-    }
+    taskActions.updateControls();
+    resolutionMemory.updateControls();
     [problemTrack, problemOccurrence, problemConfirm, problemResolve].forEach((button) => {
         if (button) button.disabled = pending.has('problem') || !stateFresh || !latestPayload?.job;
     });
     if (replayRun) replayRun.disabled = pending.has('replay') || !replayScenario?.value || !replayResponse?.value;
-    if (mcpActionRun) mcpActionRun.disabled = !mcpActionPreview || pending.has('mcp-action') || mcpActionPreview.state !== 'awaiting-approval' || !stateFresh;
     document.querySelectorAll('#task-load-log, #task-load-messages, #task-load-graph').forEach((button) => {
         button.disabled = pending.has('details') || !selectedJobName;
     });
     incidentActions.querySelectorAll('.task-clickup-open').forEach((button) => {
         button.disabled = pending.has('external');
     });
-    $('task-refresh').disabled = Boolean(refreshPromise) || pending.has('mutation') || !selectedJobName;
+    $('task-refresh').disabled = Boolean(refreshPromise) || hasActionRequest() || !selectedJobName;
     aiOutput.setAttribute('aria-busy', String(pending.has('ai')));
     detailsOutput.setAttribute('aria-busy', String(pending.has('details')));
 }
 
 // Each group owns its output; refreshed buttons must retain the pending state.
 async function runRequest(group, operation, onError) {
-    if (pending.has(group)) return;
+    if (pending.has(group) || (actionGroups.has(group) && actionsBlocked())) return;
     pending.add(group);
     updateControls();
     try {
@@ -991,19 +721,18 @@ function loadTask() {
         const failure = results.find((result) => result.status === 'rejected');
         if (failure) throw failure.reason;
         const [payload, alerts, flags, mcpActions] = results.map((result) => result.value);
+        const runbook = await taskActions.readRunbook(payload);
+        if (revision !== stateRevision) return;
+        await loadProblemWorkspace(() => revision === stateRevision);
+        if (revision !== stateRevision) return;
         latestPayload = payload;
         // A pushed alert update is newer than the refresh's alert snapshot.
         if (alertVersion === alertsRevision) latestAlerts = Array.isArray(alerts) ? alerts : [];
-        mcpActionCatalog = mcpActions?.success && Array.isArray(mcpActions.actions) ? mcpActions.actions : [];
-        mcpActionPreview = null;
-        mcpActionSelection = null;
-        aiActionPlanner = null;
-        await loadRunbookData();
-        await loadProblemWorkspace();
+        taskActions.applySnapshot(mcpActions, runbook);
         currentOperatorName = String(flags?.operatorName || '').trim() || 'local-operator';
         stateFresh = true;
         renderTask();
-        void refreshResolutionMemory().catch(() => undefined);
+        void resolutionMemory.refresh().catch(() => undefined);
         syncState.innerHTML = `Updated ${formatTimestamp(new Date())}`;
     })().catch((error) => {
         if (revision !== stateRevision) return;
@@ -1021,6 +750,7 @@ function loadTask() {
 // Invalidate pre-action evidence, then wait for it before fetching current state.
 async function mutateTask(operation) {
     stateRevision += 1;
+    taskActions.invalidatePreview();
     try {
         await operation();
     } finally {
@@ -1090,46 +820,12 @@ function acceptHandoff() {
     });
 }
 
-function startRunbook() {
-    if (!stateFresh || !runbookData.definition) return;
-    return runRequest('runbook', async () => {
-        runbookNote.textContent = 'Starting runbook…';
-        const result = requireSuccess(await window.electronAPI.startVerifiedRunbook({ jobName: selectedJobName }), 'Unable to start runbook.');
-        runbookData = { definition: result.definition || runbookData.definition, execution: result.execution || null };
-        renderRunbook();
-    }, (error) => {
-        runbookNote.textContent = errorMessage(error, 'Unable to start runbook.');
-    });
-}
-
-function runCurrentRunbookStep() {
-    const definition = runbookData.definition;
-    const execution = runbookData.execution;
-    const step = definition && execution ? definition.steps[execution.currentStepIndex] : null;
-    if (!step || !stateFresh) return;
-    if (step.confirmationRequired && !window.confirm(`${step.title} for ${selectedJobName}?`)) return;
-    return runRequest('runbook', () => mutateTask(async () => {
-        runbookNote.textContent = 'Running checkpoint…';
-        const result = requireSuccess(await window.electronAPI.runVerifiedRunbookStep({
-            jobName: selectedJobName,
-            executionId: execution.id,
-            replyText: $('task-runbook-reply-text')?.value,
-            messageKey: $('task-runbook-message-key')?.value,
-            messageQueue: $('task-runbook-message-queue')?.value,
-            confirmed: step.confirmationRequired
-        }), 'Unable to run checkpoint.');
-        runbookData = { definition: result.definition || definition, execution: result.execution || execution };
-        runbookNote.textContent = result.message || 'Checkpoint completed.';
-    }), (error) => {
-        runbookNote.textContent = errorMessage(error, 'Unable to run checkpoint.');
-    });
-}
-
 function askAi(kind) {
     if (!stateFresh || !latestPayload?.job || !selectedJobName) return;
     setTab('ai');
     $('task-panel-ai')?.focus();
     return runRequest('ai', async () => {
+        const revision = stateRevision;
         const alert = findLinkedAlert();
         aiOutput.hidden = false;
         aiStatus.textContent = 'Thinking';
@@ -1145,11 +841,10 @@ function askAi(kind) {
             selectedJobName,
             scope: 'job'
         }), 'AI analysis failed.');
-        if (result.actionPlanner) aiActionPlanner = result.actionPlanner;
+        if (revision === stateRevision) taskActions.setAiPlanner(result.actionPlanner);
         aiStatus.textContent = 'Ready';
         aiContent.innerHTML = renderAiReportMarkdown(result.reply || 'No response returned.');
         renderAiCitations(result);
-        renderActionPlanner();
     }, (error) => {
         aiStatus.textContent = 'Unavailable';
         aiContent.innerHTML = `<p class="ai-report-error">${escapeHtml(errorMessage(error, 'AI analysis failed.'))}</p>`;
@@ -1228,40 +923,6 @@ incidentActions.addEventListener('click', (event) => {
     }
 });
 
-jobActions.addEventListener('click', (event) => {
-    const button = event.target.closest('.job-action-button');
-    if (!button || button.disabled || pending.has('mutation') || !stateFresh) return;
-    const actionKind = button.dataset.actionKind;
-    if (['holdJob', 'releaseJob', 'endJob', 'replyMessage'].includes(actionKind)
-        && !window.confirm(`${button.textContent.trim()} for ${selectedJobName}?`)) return;
-    void runRequest('mutation', () => mutateTask(async () => {
-        actionNote.textContent = actionFeedback = 'Running operation…';
-        const result = requireSuccess(await window.electronAPI.runJobAction({
-            kind: actionKind,
-            jobName: selectedJobName,
-            confirmed: true,
-            executionId: createActionRequestId('job')
-        }), 'Action failed.');
-        actionNote.textContent = actionFeedback = result.message || 'Action completed.';
-    }), (error) => {
-        actionNote.textContent = actionFeedback = errorMessage(error, 'Action failed.');
-    });
-});
-
-mcpActionList?.addEventListener('click', (event) => {
-    const button = event.target instanceof Element ? event.target.closest('[data-mcp-tool]') : null;
-    if (!button || button.disabled) return;
-    void previewMcpAction(button.dataset.mcpCapability || '', button.dataset.mcpTool || '');
-});
-mcpActionRun?.addEventListener('click', () => void runMcpAction());
-mcpActionCancel?.addEventListener('click', () => {
-    mcpActionSelection = null;
-    mcpActionPreview = null;
-    if (mcpActionInput) mcpActionInput.value = '';
-    if (mcpActionNote) mcpActionNote.textContent = '';
-    renderMcpActions();
-});
-
 $('task-ai-summary').addEventListener('click', () => void askAi('summary'));
 $('task-ai-resolve').addEventListener('click', () => void askAi('resolve'));
 aiCitations?.addEventListener('click', (event) => {
@@ -1274,8 +935,6 @@ aiCitations?.addEventListener('click', (event) => {
 aiCitationClose?.addEventListener('click', () => aiCitationDialog?.close());
 $('task-request-handoff').addEventListener('click', () => void requestHandoff());
 $('task-accept-handoff').addEventListener('click', () => void acceptHandoff());
-$('task-runbook-start')?.addEventListener('click', () => void startRunbook());
-$('task-runbook-step')?.addEventListener('click', () => void runCurrentRunbookStep());
 $('task-problem-track')?.addEventListener('click', () => void problemMutation('Tracking incident as an L3 candidate…', () => window.electronAPI.createProblemCandidate(selectedJobName)));
 $('task-problem-occurrence')?.addEventListener('click', () => void problemMutation('Recording recurrence…', () => window.electronAPI.recordProblemOccurrence(selectedJobName, selectedProblemId)));
 $('task-problem-confirm')?.addEventListener('click', () => void confirmProblemRecord());
@@ -1297,88 +956,17 @@ $('task-load-log').addEventListener('click', () => void loadDetails('log'));
 $('task-load-messages').addEventListener('click', () => void loadDetails('messages'));
 $('task-load-graph').addEventListener('click', () => void loadDetails('graph'));
 $('task-refresh').addEventListener('click', () => void loadTask());
-memorySave?.addEventListener('click', () => void runRequest('memory', async () => {
-    memoryStatus.textContent = 'Saving draft…';
-    requireSuccess(await window.electronAPI.saveResolutionMemoryDraft(selectedJobName), 'Unable to save resolution draft.');
-    await refreshResolutionMemory();
-}, (error) => {
-    memoryStatus.textContent = errorMessage(error, 'Unable to save resolution draft.');
-}));
-
-function openResolutionRevision(entry) {
-    resolutionMemoryRevisionId = entry.id;
-    memoryReviseTitle.value = entry.title || '';
-    memoryReviseAction.value = entry.successfulAction || '';
-    memoryReviseOutcome.value = entry.verifiedOutcome || '';
-    memoryReviseForm.hidden = false;
-    memoryReviseTitle.focus();
-    updateControls();
-}
-
-function closeResolutionRevision() {
-    resolutionMemoryRevisionId = '';
-    memoryReviseForm.hidden = true;
-    updateControls();
-}
-
-memoryReviseCancel?.addEventListener('click', closeResolutionRevision);
-memoryReviseSave?.addEventListener('click', () => {
-    if (!resolutionMemoryRevisionId) return;
-    void runRequest('memory', async () => {
-        memoryStatus.textContent = 'Saving revision…';
-        const result = await window.electronAPI.reviseResolutionMemory(resolutionMemoryRevisionId, {
-            title: memoryReviseTitle.value,
-            successfulAction: memoryReviseAction.value,
-            verifiedOutcome: memoryReviseOutcome.value
-        });
-        requireSuccess(result, 'Unable to save the memory revision.');
-        closeResolutionRevision();
-        await refreshResolutionMemory();
-    }, (error) => {
-        memoryStatus.textContent = errorMessage(error, 'Unable to save the memory revision.');
-    });
-});
-
-memoryList?.addEventListener('click', (event) => {
-    const button = event.target instanceof Element ? event.target.closest('[data-memory-action]') : null;
-    const item = button?.closest('[data-memory-id]');
-    if (!button || !item) return;
-    const entryId = item.dataset.memoryId;
-    const action = button.dataset.memoryAction;
-    if (!entryId || !action) return;
-    const entry = resolutionMemoryEntries.find((item) => item.id === entryId);
-    if (!entry) return;
-    if (action === 'revise') {
-        openResolutionRevision(entry);
-        return;
-    }
-    if (action === 'retire' && !window.confirm('Retire this approved procedure?')) return;
-    if (action === 'reject' && !window.confirm('Reject this draft so it cannot be retrieved?')) return;
-    void runRequest('memory', async () => {
-        memoryStatus.textContent = action === 'approve' ? 'Approving…' : action === 'reject' ? 'Rejecting…' : 'Retiring…';
-        const result = action === 'approve'
-            ? await window.electronAPI.approveResolutionMemory(entryId)
-            : action === 'reject'
-                ? await window.electronAPI.rejectResolutionMemory(entryId)
-                : await window.electronAPI.retireResolutionMemory(entryId);
-        requireSuccess(result, 'Unable to update resolution memory.');
-        await refreshResolutionMemory();
-    }, (error) => {
-        memoryStatus.textContent = errorMessage(error, 'Unable to update resolution memory.');
-    });
-});
-
 window.electronAPI.onAlertsUpdated((alerts) => {
     alertsRevision += 1;
     latestAlerts = Array.isArray(alerts) ? alerts : [];
     renderTask();
-    void refreshResolutionMemory().catch(() => undefined);
+    void resolutionMemory.refresh().catch(() => undefined);
 });
 
 void loadTask();
-void refreshResolutionMemory().catch(() => undefined);
+void resolutionMemory.refresh().catch(() => undefined);
 void loadReplayCatalog();
 const refreshTimer = window.setInterval(() => {
-    if (!pending.has('mutation')) void loadTask();
+    if (!hasActionRequest()) void loadTask();
 }, 7000);
 window.addEventListener('beforeunload', () => window.clearInterval(refreshTimer));

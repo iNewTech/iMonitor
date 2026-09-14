@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
+import type { AiabObservabilityApi, KnowledgeApi, KnowledgeIndexApi, McpApi } from './preload/knowledge-api';
 
 interface IBMiConfig {
     id?: string;
@@ -900,179 +901,61 @@ interface EntitlementState {
     features: Record<string, boolean>;
 }
 
+// Keep runtime wiring here: tsc emits separate CommonJS files, and sandboxed
+// preloads cannot require local modules. Only the contracts above are imported.
+const knowledgeApi: KnowledgeApi = {
+    getKnowledgeLibrary: () => ipcRenderer.invoke('get-knowledge-library'),
+    searchKnowledge: (query, limit) => ipcRenderer.invoke('search-knowledge', query, limit),
+    getKnowledgeRecord: (recordId) => ipcRenderer.invoke('get-knowledge-record', recordId),
+    addKnowledgeSource: (payload) => ipcRenderer.invoke('add-knowledge-source', payload),
+    deleteKnowledgeRecord: (recordId) => ipcRenderer.invoke('delete-knowledge-record', recordId),
+    reindexKnowledge: () => ipcRenderer.invoke('reindex-knowledge'),
+    getKnowledgeStats: () => ipcRenderer.invoke('get-knowledge-stats'),
+    purgeKnowledge: (payload) => ipcRenderer.invoke('purge-knowledge', payload),
+    exportKnowledge: () => ipcRenderer.invoke('export-knowledge')
+};
+
+const aiabObservabilityApi: AiabObservabilityApi = {
+    getAiabObservability: () => ipcRenderer.invoke('get-aiab-observability'),
+    saveAiabObservabilitySettings: (settings) => ipcRenderer.invoke('save-aiab-observability-settings', settings),
+    purgeAiabObservability: (payload) => ipcRenderer.invoke('purge-aiab-observability', payload),
+    exportAiabObservability: () => ipcRenderer.invoke('export-aiab-observability')
+};
+
+const knowledgeIndexApi: KnowledgeIndexApi = {
+    getKnowledgeIndexSettings: () => ipcRenderer.invoke('get-knowledge-index-settings'),
+    saveKnowledgeIndexSettings: (settings) => ipcRenderer.invoke('save-knowledge-index-settings', settings),
+    testKnowledgeIndexConnection: () => ipcRenderer.invoke('test-knowledge-index-connection')
+};
+
+const mcpApi: McpApi = {
+    getMcpRegistry: () => ipcRenderer.invoke('get-mcp-registry'),
+    installMcpCapability: (manifest) => ipcRenderer.invoke('install-mcp-capability', manifest),
+    configureMcpCapability: (payload) => ipcRenderer.invoke('configure-mcp-capability', payload),
+    setMcpCapabilityEnabled: (payload) => ipcRenderer.invoke('set-mcp-capability-enabled', payload),
+    testMcpCapability: (id) => ipcRenderer.invoke('test-mcp-capability', id),
+    revokeMcpCapability: (id) => ipcRenderer.invoke('revoke-mcp-capability', id),
+    readMcpResource: (payload) => ipcRenderer.invoke('read-mcp-resource', payload),
+    getMcpActionCatalog: (jobName) => ipcRenderer.invoke('get-mcp-action-catalog', jobName),
+    previewMcpAction: (payload) => ipcRenderer.invoke('preview-mcp-action', payload),
+    runMcpAction: (payload) => ipcRenderer.invoke('run-mcp-action', payload)
+};
+
+function onPayload<T>(channel: string, callback: (payload: T) => void): void {
+    // Each registration stays independent. Never expose the event or ipcRenderer.
+    ipcRenderer.on(channel, (_event, payload: T) => callback(payload));
+}
+
 contextBridge.exposeInMainWorld('electronAPI', {
     navigateToMonitor: () => ipcRenderer.invoke('navigate-to-monitor'),
     navigateToConnection: () => ipcRenderer.invoke('navigate-to-connection'),
     navigateToKnowledge: () => ipcRenderer.invoke('navigate-to-knowledge'),
     navigateToSettings: () => ipcRenderer.invoke('navigate-to-settings'),
     navigateToObjectAnalysis: () => ipcRenderer.invoke('navigate-to-object-analysis'),
-    getKnowledgeLibrary: () => ipcRenderer.invoke('get-knowledge-library') as Promise<{
-        success: boolean;
-        records: Array<Record<string, unknown>>;
-        excluded: Array<{ recordId: string; reason: string }>;
-        stats?: Record<string, unknown>;
-        error?: string;
-    }>,
-    searchKnowledge: (query: string, limit?: number) => ipcRenderer.invoke('search-knowledge', query, limit) as Promise<{
-        success: boolean;
-        records: Array<Record<string, unknown>>;
-        excluded: Array<{ recordId: string; reason: string }>;
-        error?: string;
-    }>,
-    getKnowledgeRecord: (recordId: string) => ipcRenderer.invoke('get-knowledge-record', recordId) as Promise<{
-        success: boolean;
-        record?: Record<string, unknown>;
-        history?: Array<Record<string, unknown>>;
-        error?: string;
-    }>,
-    addKnowledgeSource: (payload: {
-        sourceName: string;
-        sourceType?: 'incident' | 'evidence' | 'job' | 'runbook' | 'resolution' | 'object-analysis' | 'operator-guide' | 'integration-history';
-        fileName?: string;
-        content: string;
-    }) => ipcRenderer.invoke('add-knowledge-source', payload) as Promise<{
-        success: boolean;
-        result?: Record<string, unknown>;
-        stats?: Record<string, unknown>;
-        error?: string;
-    }>,
-    deleteKnowledgeRecord: (recordId: string) => ipcRenderer.invoke('delete-knowledge-record', recordId) as Promise<{
-        success: boolean;
-        deletedCount?: number;
-        stats?: Record<string, unknown>;
-        error?: string;
-    }>,
-    reindexKnowledge: () => ipcRenderer.invoke('reindex-knowledge') as Promise<{
-        success: boolean;
-        stats?: Record<string, unknown>;
-        error?: string;
-    }>,
-    getKnowledgeStats: () => ipcRenderer.invoke('get-knowledge-stats') as Promise<{
-        success: boolean;
-        stats?: Record<string, unknown>;
-        error?: string;
-    }>,
-    purgeKnowledge: (payload: { before: string; confirmed: boolean }) => ipcRenderer.invoke('purge-knowledge', payload) as Promise<{
-        success: boolean;
-        deletedCount?: number;
-        stats?: Record<string, unknown>;
-        error?: string;
-    }>,
-    exportKnowledge: () => ipcRenderer.invoke('export-knowledge') as Promise<{
-        success: boolean;
-        canceled?: boolean;
-        filePath?: string;
-        recordCount?: number;
-        error?: string;
-    }>,
-    getAiabObservability: () => ipcRenderer.invoke('get-aiab-observability') as Promise<{
-        success: boolean;
-        snapshot?: Record<string, unknown>;
-        knowledge?: Record<string, unknown>;
-        model?: Record<string, unknown>;
-        mcp?: Record<string, unknown>;
-        settings?: { retentionDays: number; maxEvents: number };
-        error?: string;
-    }>,
-    saveAiabObservabilitySettings: (settings: { retentionDays: number }) => ipcRenderer.invoke('save-aiab-observability-settings', settings) as Promise<{
-        success: boolean;
-        settings?: { retentionDays: number; maxEvents: number };
-        error?: string;
-    }>,
-    purgeAiabObservability: (payload: { before: string; confirmed: boolean }) => ipcRenderer.invoke('purge-aiab-observability', payload) as Promise<{
-        success: boolean;
-        deletedCount?: number;
-        error?: string;
-    }>,
-    exportAiabObservability: () => ipcRenderer.invoke('export-aiab-observability') as Promise<{
-        success: boolean;
-        canceled?: boolean;
-        filePath?: string;
-        error?: string;
-    }>,
-    getKnowledgeIndexSettings: () => ipcRenderer.invoke('get-knowledge-index-settings') as Promise<{
-        success: boolean;
-        settings?: { backend: string; endpoint: string; collection: string; apiKeyConfigured: boolean };
-        catalog?: Array<{ backend: string; label: string; description: string; available: boolean }>;
-        health?: { backend: string; state: string; message: string; checkedAt: string; fallbackUsed?: boolean };
-        error?: string;
-    }>,
-    saveKnowledgeIndexSettings: (settings: { backend: string; endpoint: string; collection: string; apiKey?: string }) => (
-        ipcRenderer.invoke('save-knowledge-index-settings', settings) as Promise<{
-            success: boolean;
-            settings?: { backend: string; endpoint: string; collection: string; apiKeyConfigured: boolean };
-            catalog?: Array<{ backend: string; label: string; description: string; available: boolean }>;
-            health?: { backend: string; state: string; message: string; checkedAt: string; fallbackUsed?: boolean };
-            error?: string;
-        }>
-    ),
-    testKnowledgeIndexConnection: () => ipcRenderer.invoke('test-knowledge-index-connection') as Promise<{
-        success: boolean;
-        health?: { backend: string; state: string; message: string; checkedAt: string; fallbackUsed?: boolean };
-        error?: string;
-    }>,
-    getMcpRegistry: () => ipcRenderer.invoke('get-mcp-registry') as Promise<{
-        success: boolean;
-        installed?: Array<Record<string, unknown>>;
-        available?: Array<Record<string, unknown>>;
-        error?: string;
-    }>,
-    installMcpCapability: (manifest: Record<string, unknown>) => ipcRenderer.invoke('install-mcp-capability', manifest) as Promise<{
-        success: boolean;
-        installed?: Array<Record<string, unknown>>;
-        available?: Array<Record<string, unknown>>;
-        error?: string;
-    }>,
-    configureMcpCapability: (payload: { id: string; endpoint: string }) => ipcRenderer.invoke('configure-mcp-capability', payload) as Promise<{
-        success: boolean;
-        installed?: Array<Record<string, unknown>>;
-        available?: Array<Record<string, unknown>>;
-        error?: string;
-    }>,
-    setMcpCapabilityEnabled: (payload: { id: string; enabled: boolean }) => ipcRenderer.invoke('set-mcp-capability-enabled', payload) as Promise<{
-        success: boolean;
-        installed?: Array<Record<string, unknown>>;
-        available?: Array<Record<string, unknown>>;
-        error?: string;
-    }>,
-    testMcpCapability: (id: string) => ipcRenderer.invoke('test-mcp-capability', id) as Promise<{
-        success: boolean;
-        installed?: Array<Record<string, unknown>>;
-        available?: Array<Record<string, unknown>>;
-        error?: string;
-    }>,
-    revokeMcpCapability: (id: string) => ipcRenderer.invoke('revoke-mcp-capability', id) as Promise<{
-        success: boolean;
-        installed?: Array<Record<string, unknown>>;
-        available?: Array<Record<string, unknown>>;
-        error?: string;
-    }>,
-    readMcpResource: (payload: { capabilityId: string; kind: 'resource' | 'prompt'; name: string; input?: string; jobName?: string; timeoutMs?: number }) => ipcRenderer.invoke('read-mcp-resource', payload) as Promise<{
-        success: boolean;
-        requestId: string;
-        kind?: 'resource' | 'prompt';
-        name?: string;
-        items: Array<Record<string, unknown>>;
-        scope?: { customerScope: string; systemScope: string; jobName?: string };
-        truncated?: boolean;
-        error?: string;
-    }>,
-    getMcpActionCatalog: (jobName: string) => ipcRenderer.invoke('get-mcp-action-catalog', jobName) as Promise<{
-        success: boolean;
-        actions: Array<Record<string, unknown>>;
-        error?: string;
-    }>,
-    previewMcpAction: (payload: { capabilityId: string; tool: string; jobName: string; input?: Record<string, unknown>; timeoutMs?: number }) => ipcRenderer.invoke('preview-mcp-action', payload) as Promise<{
-        success: boolean;
-        preview?: Record<string, unknown>;
-        error?: string;
-    }>,
-    runMcpAction: (payload: { previewId: string; approved: boolean }) => ipcRenderer.invoke('run-mcp-action', payload) as Promise<{
-        success: boolean;
-        preview?: Record<string, unknown>;
-        verification?: Record<string, unknown>;
-        error?: string;
-    }>,
+    ...knowledgeApi,
+    ...aiabObservabilityApi,
+    ...knowledgeIndexApi,
+    ...mcpApi,
     openJobTaskWindow: (jobName: string) => ipcRenderer.invoke('open-job-task-window', jobName) as Promise<{ success: boolean; }>,
     openExternalUrl: (target: string) => ipcRenderer.invoke('open-external-url', target) as Promise<{ success: boolean; }>,
 
@@ -1585,50 +1468,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
     startMonitoring: (interval: number) => ipcRenderer.send('start-monitoring', interval),
     stopMonitoring: () => ipcRenderer.send('stop-monitoring'),
 
-    onStatusUpdate: (callback: (data: any) => void) => {
-        ipcRenderer.on('status-update', (_event, data) => callback(data));
-    },
-    onMonitoringError: (callback: (error: string) => void) => {
-        ipcRenderer.on('monitoring-error', (_event, error) => callback(error));
-    },
+    onStatusUpdate: (callback: (data: any) => void) => onPayload('status-update', callback),
+    onMonitoringError: (callback: (error: string) => void) => onPayload('monitoring-error', callback),
     onConnectionTestStatus: (
         callback: (status: ConnectionTestStatus) => void
-    ) => {
-        ipcRenderer.on('connection-test-status', (_event, status) => callback(status));
-    },
-    onConnectionActionStatus: (callback: (status: ConnectionActionStatus) => void) => {
-        ipcRenderer.on('connection-action-status', (_event, status) => callback(status));
-    },
-    onConnectionsUpdated: (callback: (connections: SavedConnection[]) => void) => {
-        ipcRenderer.on('connections-updated', (_event, connections) => callback(connections));
-    },
-    onMonitoringHistoryUpdated: (callback: (history: MonitoringSnapshot[]) => void) => {
-        ipcRenderer.on('monitoring-history-updated', (_event, history) => callback(history));
-    },
+    ) => onPayload('connection-test-status', callback),
+    onConnectionActionStatus: (callback: (status: ConnectionActionStatus) => void) => onPayload('connection-action-status', callback),
+    onConnectionsUpdated: (callback: (connections: SavedConnection[]) => void) => onPayload('connections-updated', callback),
+    onMonitoringHistoryUpdated: (callback: (history: MonitoringSnapshot[]) => void) => onPayload('monitoring-history-updated', callback),
     onJobQueuesUpdated: (callback: (payload: {
         queueName: string;
         queueLibrary: string;
         jobName?: string;
         action: string;
-    }) => void) => {
-        ipcRenderer.on('job-queues-updated', (_event, payload) => callback(payload));
-    },
-    onQueueTriageUpdated: (callback: (results: QueueTriageResult[]) => void) => {
-        ipcRenderer.on('job-queue-triage-updated', (_event, results) => callback(results));
-    },
-    onJobQueueActionVerification: (callback: (result: RecoveryVerificationResult) => void) => {
-        ipcRenderer.on('job-queue-action-verification', (_event, result) => callback(result));
-    },
-    onAlertsUpdated: (callback: (alerts: MonitorAlert[]) => void) => {
-        ipcRenderer.on('alerts-updated', (_event, alerts) => callback(alerts));
-    },
-    onAlertSettingsUpdated: (callback: (settings: AlertSettings) => void) => {
-        ipcRenderer.on('alert-settings-updated', (_event, settings) => callback(settings));
-    },
-    onDeploymentStatus: (callback: (status: DeploymentStatus) => void) => {
-        ipcRenderer.on('deployment-status', (_event, status) => callback(status));
-    },
-    onCollectorStatusUpdated: (callback: (status: CollectorStatus) => void) => {
-        ipcRenderer.on('collector-status-updated', (_event, status) => callback(status));
-    }
+    }) => void) => onPayload('job-queues-updated', callback),
+    onQueueTriageUpdated: (callback: (results: QueueTriageResult[]) => void) => onPayload('job-queue-triage-updated', callback),
+    onJobQueueActionVerification: (callback: (result: RecoveryVerificationResult) => void) => onPayload('job-queue-action-verification', callback),
+    onAlertsUpdated: (callback: (alerts: MonitorAlert[]) => void) => onPayload('alerts-updated', callback),
+    onAlertSettingsUpdated: (callback: (settings: AlertSettings) => void) => onPayload('alert-settings-updated', callback),
+    onDeploymentStatus: (callback: (status: DeploymentStatus) => void) => onPayload('deployment-status', callback),
+    onCollectorStatusUpdated: (callback: (status: CollectorStatus) => void) => onPayload('collector-status-updated', callback)
 });

@@ -277,12 +277,135 @@ test('shows scoped AI + ActionBoard health and keeps observability controls comp
         await expect(app.page.locator('#settings-aiab-record-count')).toHaveText('1');
         await app.page.locator('#settings-aiab-retention').fill('14');
         await app.page.locator('#settings-aiab-save-retention').click();
-        await expect(app.page.locator('#settings-aiab-observability-status')).toContainText('Telemetry events');
+        await expect(app.page.locator('#settings-aiab-observability-status')).toContainText('Telemetry retention saved.');
 
         const health = await app.page.evaluate(() => window.electronAPI.getAiabObservability());
         expect(health.success).toBe(true);
         expect(JSON.stringify(health)).not.toContain('selected job');
         expect(health.settings?.retentionDays).toBe(14);
+    } finally {
+        await app.cleanup();
+    }
+});
+
+test('keeps Storage actions retryable, prevents duplicate exports and handles canceled dialogs', async () => {
+    const app = await launchTestApp();
+    const pageErrors: string[] = [];
+    app.page.on('pageerror', (error) => pageErrors.push(error.message));
+    try {
+        await app.page.locator('#connect').click();
+        await app.page.locator('#open-settings').click();
+        await app.page.getByTestId('settings-page-storage').click();
+        await app.electronApp.evaluate(({ ipcMain }) => {
+            const state = { exports: 0, telemetryExports: 0, failReindex: true, finish: () => {} };
+            (globalThis as any).__storageReview = state;
+            ipcMain.removeHandler('export-knowledge');
+            ipcMain.handle('export-knowledge', () => {
+                state.exports++;
+                return new Promise((resolve) => { state.finish = () => resolve({ success: false, canceled: true }); });
+            });
+            ipcMain.removeHandler('export-aiab-observability');
+            ipcMain.handle('export-aiab-observability', () => { state.telemetryExports++; return { success: true }; });
+            ipcMain.removeHandler('reindex-knowledge');
+            ipcMain.handle('reindex-knowledge', () => {
+                if (state.failReindex) throw new Error('Index is temporarily offline');
+                return { success: true };
+            });
+        });
+        const status = app.page.locator('#settings-aiab-observability-status');
+        const exportButton = app.page.locator('#settings-aiab-export');
+        const rebuild = app.page.locator('#settings-aiab-reindex');
+
+        await exportButton.click();
+        await expect(exportButton).toBeDisabled();
+        await expect(rebuild).toBeDisabled();
+        await exportButton.dispatchEvent('click');
+        expect(await app.electronApp.evaluate(() => (globalThis as any).__storageReview.exports)).toBe(1);
+        await app.electronApp.evaluate(() => (globalThis as any).__storageReview.finish());
+        await expect(status).toHaveText('Export canceled.');
+        await expect(status).toHaveAttribute('data-tone', 'normal');
+        await expect(exportButton).toBeEnabled();
+        expect(await app.electronApp.evaluate(() => (globalThis as any).__storageReview.telemetryExports)).toBe(0);
+
+        await rebuild.click();
+        await expect(status).toContainText('Index is temporarily offline');
+        await expect(status).toHaveAttribute('data-tone', 'error');
+        await expect(rebuild).toBeEnabled();
+        await app.electronApp.evaluate(() => { (globalThis as any).__storageReview.failReindex = false; });
+        await rebuild.click();
+        await expect(status).toHaveText('Scoped index rebuilt.');
+        await expect(status).toHaveAttribute('data-tone', 'normal');
+
+        await app.page.locator('#settings-aiab-retention').fill('0');
+        await app.page.locator('#settings-aiab-purge').click();
+        await expect(status).toHaveText('Enter a retention period between 1 and 3650 days.');
+        await expect(exportButton).toBeEnabled();
+        expect(pageErrors).toEqual([]);
+    } finally {
+        await app.cleanup();
+    }
+});
+
+test('keeps the confirmed purge context across delayed work and preserves canceled drafts', async () => {
+    const app = await launchTestApp();
+    try {
+        await app.page.locator('#connect').click();
+        await app.page.locator('#open-settings').click();
+        await app.page.getByTestId('settings-page-storage').click();
+        await expect(app.page.locator('#settings-aiab-model-health')).not.toHaveText('—');
+        await app.electronApp.evaluate(({ ipcMain }) => {
+            const state = {
+                context: { customerScope: 'customer-a', systemScope: 'system-a', operatorId: 'reviewer', identity: 'local-owner' },
+                waiting: false, release: () => {}, calls: [] as unknown[], missingContext: false
+            };
+            (globalThis as any).__purgeReview = state;
+            ipcMain.removeHandler('purge-knowledge');
+            ipcMain.handle('purge-knowledge', async () => {
+                const expectedContext = { ...state.context };
+                if (state.missingContext) return { success: true, deletedCount: 0 };
+                state.waiting = true;
+                await new Promise<void>((resolve) => { state.release = resolve; });
+                return { success: true, deletedCount: 2, expectedContext };
+            });
+            ipcMain.removeHandler('purge-aiab-observability');
+            ipcMain.handle('purge-aiab-observability', (_event, payload) => {
+                state.calls.push(payload);
+                return payload.expectedContext?.systemScope === state.context.systemScope
+                    ? { success: true, deletedCount: 1 }
+                    : { success: false, error: 'The active connection changed. Retry from the current system.' };
+            });
+        });
+        const retention = app.page.locator('#settings-aiab-retention');
+        const purge = app.page.locator('#settings-aiab-purge');
+        const status = app.page.locator('#settings-aiab-observability-status');
+        await retention.fill('17');
+        await app.page.evaluate(() => { window.confirm = () => false; });
+        await purge.click();
+        await expect(status).toHaveText('Purge canceled.');
+        await expect(retention).toHaveValue('17');
+
+        await app.page.evaluate(() => { window.confirm = () => true; });
+        await purge.click();
+        await expect.poll(() => app.electronApp.evaluate(() => (globalThis as any).__purgeReview.waiting)).toBe(true);
+        await expect(purge).toBeDisabled();
+        await app.electronApp.evaluate(() => {
+            const state = (globalThis as any).__purgeReview;
+            state.context.systemScope = 'system-b';
+            state.release();
+        });
+        await expect(status).toContainText('Purged 2 knowledge records. Telemetry purge failed: The active connection changed.');
+        await expect(status).toHaveAttribute('data-tone', 'error');
+        await expect(purge).toBeEnabled();
+        const requests = await app.electronApp.evaluate(() => (globalThis as any).__purgeReview.calls);
+        expect(requests).toEqual([expect.objectContaining({ expectedContext: {
+            customerScope: 'customer-a', systemScope: 'system-a', operatorId: 'reviewer', identity: 'local-owner'
+        } })]);
+
+        await app.electronApp.evaluate(() => { (globalThis as any).__purgeReview.missingContext = true; });
+        await purge.click();
+        await expect(status).toContainText('Telemetry purge was not started because the confirmed context is unavailable.');
+        expect(await app.electronApp.evaluate(() => (globalThis as any).__purgeReview.calls.length)).toBe(1);
+        await expect(purge).toBeEnabled();
     } finally {
         await app.cleanup();
     }

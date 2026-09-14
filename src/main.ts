@@ -1,6 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain } from 'electron/main';
 import { Notification, nativeImage, safeStorage, shell } from 'electron';
 import os from 'node:os';
+import { mkdirSync } from 'node:fs';
 import * as path from 'path';
 import Db, { type ServiceLogEntry } from './services/ibmi';
 import type { JobQueueRecord, PagedResult, QueuedJobRecord } from './services/ibmi';
@@ -79,12 +80,7 @@ import {
     type AuthorizationResult,
     type ProtectedAction
 } from './features/action-board/operator-access';
-import { authorizeSupportAccess, getEffectiveSupportAccessGrant, isClientOwner, listSupportAccessGrants } from './features/action-board/support-access';
-import { toKnowledgeGrantSnapshot, type KnowledgeAccessContext } from './features/knowledge/knowledge-access';
-import { createKnowledgeStore } from './features/knowledge/knowledge-store';
-import { createKnowledgeIndexGateway, createLocalKnowledgeIndexAdapter, getKnowledgeIndexCatalog, normalizeKnowledgeIndexSettings, toStoredKnowledgeIndexSettings, type KnowledgeIndexSettings } from './features/knowledge/knowledge-index';
-import type { McpResourceDependencies, McpResourceItem } from './features/mcp/mcp-resources';
-import type { McpActionContext, McpActionExecutionRequest, McpActionVerification } from './features/mcp/mcp-actions';
+import { authorizeSupportAccess, isClientOwner, listSupportAccessGrants } from './features/action-board/support-access';
 import {
     ALWAYS_ON_SUPPORT_WINDOW,
     buildRoutingRecommendation,
@@ -117,10 +113,8 @@ import { registerRunbookIpc } from './main/ipc/runbook-ipc';
 import { registerProblemManagementIpc } from './main/ipc/problem-management-ipc';
 import { registerIncidentReplayIpc } from './main/ipc/incident-replay-ipc';
 import { registerSupportMetricsIpc } from './main/ipc/support-metrics-ipc';
-import { registerKnowledgeIpc } from './main/ipc/knowledge-ipc';
-import { registerKnowledgeIndexIpc } from './main/ipc/knowledge-index-ipc';
-import { registerMcpIpc } from './main/ipc/mcp-ipc';
-import { registerObservabilityIpc } from './main/ipc/observability-ipc';
+import { createKnowledgeRuntime } from './main/runtime/knowledge-runtime';
+import { createMcpRuntime } from './main/runtime/mcp-runtime';
 import { createAiRuntime } from './main/runtime/ai-runtime';
 import { createEmailNotificationRuntime } from './main/runtime/email-notification-runtime';
 import { createClickUpRuntime } from './main/runtime/clickup-runtime';
@@ -129,7 +123,6 @@ import { createQueueTriageRuntime } from './main/runtime/queue-triage-runtime';
 import { createObjectAnalysisRuntime } from './main/runtime/object-analysis-runtime';
 import { createWidgetSummaryRuntime } from './main/runtime/widget-summary-runtime';
 import { createLoggingRuntime } from './main/runtime/logging-runtime';
-import { createAiabObservabilityRuntime } from './main/runtime/aiab-observability-runtime';
 import { createCollectionRuntime } from './main/runtime/collection-runtime';
 import { createBackgroundCollectorRuntime } from './main/runtime/background-collector-runtime';
 import { createSessionRuntime } from './main/runtime/session-runtime';
@@ -179,12 +172,7 @@ import {
     getNormalizedRunbookExecutions,
     saveRunbookExecutions,
     getNormalizedProblemManagement,
-    saveProblemManagement,
-    getNormalizedKnowledgeIndexSettings,
-    getNormalizedMcpRegistry,
-    saveMcpRegistry,
-    getNormalizedObservabilitySettings,
-    saveObservabilitySettings
+    saveProblemManagement
 } from './main/store';
 import type { CollectorSettings } from './features/collector/collector-model';
 import { registerCollectorIpc } from './main/ipc/collector-ipc';
@@ -196,11 +184,19 @@ import {
     type ObjectAnalysisSettings
 } from './features/object-analysis/model';
 
+// Stores and runtimes capture storage paths during construction, before app readiness.
+const userDataDirectoryOverride = process.env.IBM_EYE_USER_DATA_DIR?.trim();
+if (userDataDirectoryOverride) {
+    mkdirSync(userDataDirectoryOverride, { recursive: true });
+    app.setPath('userData', userDataDirectoryOverride);
+}
+
 const DEFAULT_MONITORING_INTERVAL = 5000;
 const MAX_ACTIVITY_LOG_ENTRIES = 200;
 const MAX_MONITORING_HISTORY = 90;
 const MAX_JOB_STATUS_HISTORY = 12;
 const NOTIFICATION_COOLDOWN_MS = 120000;
+const TELEMETRY_SHUTDOWN_TIMEOUT_MS = 2000;
 const SUPPORT_EMAIL = 'gajendertyagi.tyagi@gmail.com';
 const SUPPORT_DIAGNOSTICS_PUBLIC_KEY = process.env.IMONITOR_SUPPORT_PUBLIC_KEY?.trim() || '';
 const LOCAL_OPERATOR_NAME = os.userInfo().username?.trim() || 'local-operator';
@@ -649,163 +645,6 @@ function getRunbookPolicyForJob(jobName: string) {
     }).runbook;
 }
 
-type McpResourceInput = Parameters<McpResourceDependencies['getItems']>[0];
-
-function getMcpResourceItems(request: McpResourceInput): McpResourceItem[] {
-    const now = new Date().toISOString();
-    const jobName = request.jobName?.trim();
-    const promptResource: Record<string, string> = {
-        'job-health-summary': 'ibmi://jobs/current',
-        'incident-review': 'imonitor://runbooks/approved',
-        'resolution-review': 'imonitor://resolution-memory/approved'
-    };
-    const name = request.kind === 'prompt' ? promptResource[request.name] || request.name : request.name;
-    const source = (id: string, title: string, content: unknown, observedAt: string, kind: McpResourceItem['sourceRef']['kind']): McpResourceItem => ({
-        id, title, content: JSON.stringify(content), observedAt, sourceRef: { kind, id, locator: `imonitor://${request.scope.systemScope}/${encodeURIComponent(id)}` }
-    });
-
-    if (name === 'ibmi://jobs/current') {
-        return monitoringState.getLatestJobs()
-            .filter((job) => !jobName || String(job.JOB_NAME || job.SUBSYSTEM_JOB || '').trim() === jobName)
-            .slice(0, 100)
-            .map((job) => {
-                const id = String(job.JOB_NAME || job.SUBSYSTEM_JOB || 'job').trim();
-                return source(id, `Current job ${id}`, {
-                    qualifiedName: id,
-                    jobNumber: job.JOB_NUMBER,
-                    user: job.JOB_USER || job.CURRENT_USER,
-                    subsystem: job.SUBSYSTEM,
-                    status: job.STATUS,
-                    cpu: job.CPU,
-                    cpuTime: job.CPU_TIME,
-                    function: job.FUNCTION_NAME,
-                    databaseLockWaits: job.DATABASE_LOCK_WAITS,
-                    nonDatabaseLockWaits: job.NON_DATABASE_LOCK_WAITS,
-                    messageReply: job.MESSAGE_REPLY
-                }, now, 'job');
-            });
-    }
-
-    if (name === 'ibmi://incidents/current') {
-        return alertState.getActiveAlerts()
-            .filter((alert) => !jobName || alert.jobName === jobName)
-            .slice(0, 100)
-            .map((alert) => {
-                const evidence = Object.fromEntries(Object.entries(alert.evidence || {}).map(([key, value]) => [key, {
-                    status: value.status,
-                    recordCount: value.recordCount,
-                    collectedAt: value.collectedAt,
-                    detail: value.detail
-                }]));
-                const id = String(alert.incidentId || alert.id).trim();
-                return source(id, alert.title, {
-                    incidentId: id,
-                    kind: alert.kind,
-                    severity: alert.severity,
-                    lifecyclePhase: alert.lifecyclePhase,
-                    workflowStatus: alert.workflowStatus,
-                    jobName: alert.jobName,
-                    message: alert.message,
-                    detail: alert.detail,
-                    owner: alert.owner,
-                    evidence,
-                    lastSeenAt: alert.lastSeenAt || alert.timestamp
-                }, alert.lastSeenAt || alert.timestamp, 'incident');
-            });
-    }
-
-    if (name === 'imonitor://runbooks/approved') {
-        const alerts = alertState.getActiveAlerts().filter((alert) => !jobName || alert.jobName === jobName);
-        return alerts.flatMap((alert) => {
-            const policy = alert.jobName ? getRunbookPolicyForJob(alert.jobName) : undefined;
-            if (!policy) return [];
-            return [source(policy.id, policy.title, { status: 'approved', policy }, alert.lastSeenAt || alert.timestamp, 'record')];
-        }).slice(0, 50);
-    }
-
-    if (name === 'imonitor://resolution-memory/approved') {
-        return getNormalizedResolutionMemory(store).entries
-            .filter((entry) => entry.status === 'approved' && (entry.systemId === request.scope.systemScope || entry.systemId === '*'))
-            .filter((entry) => !jobName || !entry.jobPattern || entry.jobPattern === jobName)
-            .slice(0, 50)
-            .map((entry) => source(entry.id, entry.title, {
-                status: entry.status,
-                version: entry.version,
-                systemId: entry.systemId,
-                incidentKind: entry.incidentKind,
-                jobPattern: entry.jobPattern,
-                symptoms: entry.symptoms,
-                evidenceRefs: entry.evidenceRefs,
-                successfulAction: entry.successfulAction,
-                verifiedOutcome: entry.verifiedOutcome,
-                environment: entry.environment,
-                reviewer: entry.reviewer,
-                approvedAt: entry.approvedAt
-            }, entry.approvedAt || entry.createdAt, 'record'));
-    }
-
-    return [];
-}
-
-function getMcpActionContext(jobName: string): McpActionContext {
-    const job = monitoringState.getJob(jobName);
-    if (!job) throw new Error('The selected job is no longer available.');
-    const history = monitoringState.getMonitoringHistory();
-    const lastSnapshot = history[history.length - 1];
-    const alert = alertState.getActiveAlerts().find((candidate) => candidate.jobName === jobName);
-    const capturedAt = lastSnapshot?.timestamp || alert?.evidence?.capturedAt || alert?.lastSeenAt || new Date().toISOString();
-    return {
-        evidence: {
-            capturedAt,
-            current: Boolean(lastSnapshot || alert?.evidence),
-            summary: alert ? `${alert.title} · ${alert.workflowStatus}` : `Current job status: ${job.STATUS || 'UNKNOWN'}`
-        }
-    };
-}
-
-async function executeMcpAction(request: McpActionExecutionRequest) {
-    const input = request.input;
-    const plan = buildOperatorActionPlan({
-        kind: request.operatorAction,
-        jobName: request.jobName,
-        replyText: typeof input.replyText === 'string' ? input.replyText : undefined,
-        messageKey: typeof input.messageKey === 'string' ? input.messageKey : undefined,
-        messageQueue: typeof input.messageQueue === 'string' ? input.messageQueue : undefined,
-        endOption: input.endOption === 'immediate' ? 'immediate' : 'controlled'
-    });
-    if (plan.executionType === 'blocked' || !plan.command) throw new Error(plan.reason || 'The selected MCP action is not available.');
-    const live = monitoringState.getMonitorMode() === 'live';
-    if (!live) {
-        loggingRuntime.recordActivity({ area: 'monitoring', level: 'success', message: `Simulated MCP action: ${request.operatorAction}.`, detail: `${getCurrentOperatorName()} | ${request.jobName} | ${plan.command}` });
-        return { output: `Prepared ${plan.command}` };
-    }
-    const service = sessionRuntime.getCurrentService();
-    if (!service) throw new Error('Not connected to IBM i');
-    await service.executeClCommand(plan.command);
-    loggingRuntime.recordActivity({ area: 'monitoring', level: 'success', message: `MCP action completed: ${request.operatorAction}.`, detail: `${getCurrentOperatorName()} | ${request.jobName} | ${plan.command}` });
-    await monitoringRuntime.publishSystemStatus();
-    return { output: `Executed ${plan.command}` };
-}
-
-async function verifyMcpAction(request: McpActionExecutionRequest): Promise<McpActionVerification> {
-    const job = monitoringState.getJob(request.jobName);
-    const observedAt = new Date().toISOString();
-    if (!job) return { status: 'unknown', summary: 'The job was not returned after the action; verify its state from the next poll.', evidence: ['Job: unavailable after action'] };
-    const status = String(job.STATUS || 'UNKNOWN').trim().toUpperCase();
-    const recovered = request.operatorAction === 'endJob'
-        ? ['END', 'EOJ'].includes(status)
-        : request.operatorAction === 'holdJob'
-            ? ['HLD', 'HELD'].includes(status)
-            : request.operatorAction === 'releaseJob'
-                ? ['RUN', 'RUNNING', 'ACTIVE'].includes(status)
-                : status !== 'MSGW';
-    return {
-        status: recovered ? 'recovered' : 'unknown',
-        summary: recovered ? `The next monitoring read shows ${request.operatorAction} completed.` : `The next monitoring read still shows ${status}; verify before taking another action.`,
-        evidence: [`Job status: ${status}`, `Observed at: ${observedAt}`]
-    };
-}
-
 const windowRuntime = createWindowRuntime({
     preloadPath: path.join(__dirname, 'preload.js'),
     isDevelopment: process.env.NODE_ENV === 'development',
@@ -972,84 +811,18 @@ const loggingRuntime = createLoggingRuntime({
 });
 
 const collectionRuntime = createCollectionRuntime(() => app.getPath('userData'));
-const knowledgeStore = createKnowledgeStore(() => app.getPath('userData'));
-const localKnowledgeIndex = createLocalKnowledgeIndexAdapter(knowledgeStore);
-let knowledgeIndexGateway = createKnowledgeIndexGateway({
-    local: localKnowledgeIndex,
-    config: getNormalizedKnowledgeIndexSettings(store)
+const knowledgeRuntime = createKnowledgeRuntime({
+    store,
+    getAppPath: (name) => app.getPath(name),
+    getCurrentOperatorName,
+    getClientOwnerName,
+    getCurrentSystemId,
+    protectSecret,
+    recordActivity: loggingRuntime.recordActivity,
+    showSaveDialog: (options) => dialog.showSaveDialog(options),
+    getAiAssistantSettings,
+    getAiAvailability: () => aiRuntime.getAiAvailability()
 });
-
-async function getKnowledgeIndexSettings() {
-    const stored = getNormalizedKnowledgeIndexSettings(store);
-    return {
-        success: true,
-        settings: normalizeKnowledgeIndexSettings(stored),
-        catalog: getKnowledgeIndexCatalog(),
-        health: await knowledgeIndexGateway.health()
-    };
-}
-
-async function saveKnowledgeIndexSettings(candidate: unknown) {
-    const next = normalizeKnowledgeIndexSettings(candidate);
-    if (next.backend !== 'local') {
-        return {
-            success: false,
-            settings: normalizeKnowledgeIndexSettings(getNormalizedKnowledgeIndexSettings(store)),
-            error: `${next.backend} is not installed yet. Keep Local lexical index selected until an approved adapter is available.`
-        };
-    }
-
-    const previous = getNormalizedKnowledgeIndexSettings(store);
-    const stored = toStoredKnowledgeIndexSettings(
-        candidate as Partial<KnowledgeIndexSettings> & { apiKey?: string },
-        previous,
-        protectSecret
-    );
-    store.set('knowledgeIndexSettings', stored);
-    knowledgeIndexGateway = createKnowledgeIndexGateway({ local: localKnowledgeIndex, config: stored });
-    return getKnowledgeIndexSettings();
-}
-
-function getKnowledgeAccessContext(): KnowledgeAccessContext {
-    const operatorId = getCurrentOperatorName();
-    const systemScope = getCurrentSystemId() || '';
-    const owner = isClientOwner(operatorId, getClientOwnerName());
-    const grant = owner
-        ? undefined
-        : getEffectiveSupportAccessGrant(getNormalizedSupportAccessGrants(store), operatorId, systemScope);
-    return {
-        customerScope: owner ? 'local' : grant?.organizationId || '',
-        systemScope,
-        operatorId,
-        operatorPermissions: owner ? ['read', 'investigate', 'execute'] : grant?.permissions || [],
-        identity: owner ? 'local-owner' : 'delegated',
-        grant: grant ? toKnowledgeGrantSnapshot(grant) : undefined
-    };
-}
-
-const aiabObservabilityRuntime = createAiabObservabilityRuntime({
-    userDataPath: app.getPath('userData'),
-    getSettings: () => getNormalizedObservabilitySettings(store),
-    getScope: () => {
-        const context = getKnowledgeAccessContext();
-        return { customerScope: context.customerScope, systemScope: context.systemScope, operatorId: context.operatorId };
-    }
-});
-
-function recordOperationalActivity(entry: Parameters<typeof loggingRuntime.recordActivity>[0]) {
-    loggingRuntime.recordActivity(entry);
-    const message = entry.message.toLowerCase();
-    const category = message.includes('mcp') ? 'mcp'
-        : message.includes('knowledge') || message.includes('index') ? 'ingestion'
-            : message.includes('action') || message.includes('claim') || message.includes('handoff') ? 'action'
-                : message.includes('approval') || message.includes('approve') ? 'approval'
-                    : message.includes('export') ? 'export'
-                        : message.includes('purge') || message.includes('delete') ? 'purge'
-                            : message.includes('failed') || entry.level === 'error' ? 'failure'
-                                : 'system';
-    const outcome = entry.level === 'error' ? 'failure' : entry.level === 'warning' ? 'warning' : 'success';
-    aiabObservabilityRuntime.recordAudit(category, entry.message, outcome, { area: entry.area });
-}
 
 const widgetSummaryRuntime = createWidgetSummaryRuntime({
     userDataPath: app.getPath('userData'),
@@ -1374,11 +1147,11 @@ const aiRuntime = createAiRuntime({
             reason: 'IBM i job actions require Premium.'
         }));
     },
-    getKnowledgeAccessContext,
-    getKnowledgeIndexGateway: () => knowledgeIndexGateway,
-    recordActivity: recordOperationalActivity,
-    recordMetric: (name, value, attributes) => aiabObservabilityRuntime.recordMetric(name, value, attributes),
-    recordAudit: (category, name, outcome, attributes) => aiabObservabilityRuntime.recordAudit(category, name, outcome, attributes)
+    getKnowledgeAccessContext: knowledgeRuntime.getAccessContext,
+    getKnowledgeIndexGateway: knowledgeRuntime.getIndexGateway,
+    recordActivity: knowledgeRuntime.recordActivity,
+    recordMetric: knowledgeRuntime.recordMetric,
+    recordAudit: knowledgeRuntime.recordAudit
 });
 
 function emitAlertSettings() {
@@ -1676,76 +1449,18 @@ registerCollectorIpc({
     collectionRuntime
 });
 
-registerKnowledgeIpc({
-    getStore: () => knowledgeStore,
-    getIndexGateway: () => knowledgeIndexGateway,
-    getAccessContext: getKnowledgeAccessContext,
-    recordActivity: recordOperationalActivity,
-    recordObservability: {
-        audit: (category, name, outcome, attributes) => aiabObservabilityRuntime.recordAudit(category, name, outcome, attributes)
-    },
-    showSaveDialog: (options) => dialog.showSaveDialog(options),
-    getDownloadsPath: () => app.getPath('downloads')
-});
-
-registerKnowledgeIndexIpc({
-    getSettings: getKnowledgeIndexSettings,
-    saveSettings: saveKnowledgeIndexSettings,
-    testConnection: () => knowledgeIndexGateway.health()
-});
-
-registerMcpIpc({
-    getRegistry: () => getNormalizedMcpRegistry(store),
-    saveRegistry: (candidate) => saveMcpRegistry(store, candidate),
-    getAccessContext: getKnowledgeAccessContext,
-    getResourceItems: getMcpResourceItems,
-    getActionContext: getMcpActionContext,
-    executeMcpAction: executeMcpAction,
-    verifyMcpAction: verifyMcpAction,
-    recordActivity: recordOperationalActivity,
-    recordMetric: (name, value, attributes) => aiabObservabilityRuntime.recordMetric(name, value, attributes),
-    recordActionAudit: (entry) => {
-        recordOperationalActivity({
-            area: 'monitoring',
-            level: entry.result === 'success' ? 'success' : 'error',
-            message: `MCP action ${entry.result}: ${entry.action}.`,
-            detail: [`operator=${entry.operator}`, `job=${entry.jobName}`, entry.detail].filter(Boolean).join(' | ')
-        });
-        aiabObservabilityRuntime.recordAudit('action', `mcp:${entry.action}`, entry.result === 'success' ? 'success' : 'failure');
-    }
-});
-
-registerObservabilityIpc({
-    getAccessContext: getKnowledgeAccessContext,
-    getRuntime: () => aiabObservabilityRuntime,
-    getKnowledgeStats: () => knowledgeIndexGateway.stats({ customerScope: getKnowledgeAccessContext().customerScope, systemScope: getKnowledgeAccessContext().systemScope }),
-    getModelStatus: async () => {
-        const settings = getAiAssistantSettings();
-        const availability = await aiRuntime.getAiAvailability();
-        return {
-            enabled: settings.enabled,
-            provider: availability.providerLabel,
-            model: availability.selectedModel || settings.model || 'None selected',
-            state: !settings.enabled ? 'disabled' : availability.healthy ? 'ready' : 'unavailable',
-            message: availability.message
-        };
-    },
-    getMcpStatus: () => {
-        const records = getNormalizedMcpRegistry(store).records;
-        const reasons = records.filter((record) => record.status === 'enabled' && record.health.state !== 'ready').map((record) => `${record.manifest.name}: ${record.health.message}`).slice(0, 8);
-        return {
-            installed: records.length,
-            enabled: records.filter((record) => record.status === 'enabled').length,
-            ready: records.filter((record) => record.status === 'enabled' && record.health.state === 'ready').length,
-            degraded: records.filter((record) => record.status === 'enabled' && record.health.state !== 'ready').length,
-            reasons
-        };
-    },
-    getSettings: () => getNormalizedObservabilitySettings(store),
-    saveSettings: (candidate) => saveObservabilitySettings(store, candidate),
-    showSaveDialog: (options) => dialog.showSaveDialog(options),
-    getDownloadsPath: () => app.getPath('downloads')
-});
+knowledgeRuntime.registerIpc();
+createMcpRuntime({
+    store,
+    monitoringState,
+    getActiveAlerts: () => alertState.getActiveAlerts(),
+    getRunbookPolicyForJob,
+    getCurrentOperatorName,
+    getCurrentService: () => sessionRuntime.getCurrentService(),
+    publishSystemStatus: () => monitoringRuntime.publishSystemStatus(),
+    knowledgeRuntime,
+    recordCommandActivity: loggingRuntime.recordActivity
+}).registerIpc();
 
 registerNavigationIpc({
     canOpenMonitor: () => connectionState.getState().isConnected,
@@ -2288,11 +2003,6 @@ registerRunbookIpc({
 });
 
 app.whenReady().then(() => {
-    const userDataDirectoryOverride = process.env.IBM_EYE_USER_DATA_DIR?.trim();
-    if (userDataDirectoryOverride) {
-        app.setPath('userData', userDataDirectoryOverride);
-    }
-
     if (process.platform === 'darwin' && app.dock) {
         app.dock.setIcon(resolveAppIconPath());
     }
@@ -2319,6 +2029,39 @@ app.whenReady().then(() => {
         windowRuntime.getWindow()?.show();
         windowRuntime.getWindow()?.focus();
     });
+});
+
+let telemetryShutdownStarted = false;
+let telemetryShutdownComplete = false;
+app.on('before-quit', (event) => {
+    if (telemetryShutdownComplete) return;
+    event.preventDefault();
+    if (telemetryShutdownStarted) return;
+    telemetryShutdownStarted = true;
+
+    let timeout: NodeJS.Timeout | undefined;
+    void (async () => {
+        try {
+            // Stop new scheduled work only when quitting, leaving window-close behavior intact.
+            backgroundCollectorRuntime.stop();
+            monitoringRuntime.stopMonitoring(false);
+            await Promise.race([
+                knowledgeRuntime.flush(),
+                new Promise<void>((resolve) => {
+                    timeout = setTimeout(() => {
+                        console.warn('Timed out waiting for telemetry storage during shutdown.');
+                        resolve();
+                    }, TELEMETRY_SHUTDOWN_TIMEOUT_MS);
+                })
+            ]);
+        } catch {
+            console.error('Unable to flush telemetry during shutdown.');
+        } finally {
+            if (timeout) clearTimeout(timeout);
+            telemetryShutdownComplete = true;
+            app.quit();
+        }
+    })();
 });
 
 app.on('window-all-closed', () => {

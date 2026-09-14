@@ -30,15 +30,31 @@ Build checks TypeScript **and** parses every JavaScript module in `public/`, inc
 | `src/main/runtime/background-collector-runtime.ts` | Collector lifecycle, reconnect, health, and OS-login startup |
 | `src/features/` | Domain models, validation, parsers, action planning, persistence |
 | `src/services/` | IBM i, demo database, local/live analysis providers |
-| `src/preload.ts` | Renderer-facing API contract |
+| `src/preload.ts` | Fixed renderer-facing IPC bridge and event subscriptions |
+| `src/preload/knowledge-api.ts` | Type-only knowledge, MCP, and health API contracts |
 | `public/monitor/` | Job/queue views, formatters, history, AI modules |
 | `public/object-analysis/` | Async actions, report view, call graph |
 | `public/job-task.js` | Standalone task behavior and request coordination |
+| `public/job-task/` | Job actions/runbooks and Resolution Memory review |
 | `public/styles/` | Feature styles loaded by the ordered `styles.css` manifest |
 | `tests/e2e/` | Isolated Electron integration and UI tests |
 | `macos-widget/` | Native WidgetKit scaffold and setup instructions |
 
 The standalone task response workspace is split between `src/features/alerts/incident-response.ts`, `src/features/alerts/incident-handoff.ts`, and `public/job-task.js`. The main process builds a deterministic response snapshot from the selected job, linked alert, and status history. Handoffs are versioned records persisted with the alert workflow state. A request validates the recipient, reason, pending checks, and optional ISO response target; acceptance is restricted to the addressed operator. Both events enter the incident timeline, and ownership changes only on acceptance. The renderer keeps the handoff form limited to the fields needed to transfer work. It does not copy or export handoff documents. The main process synchronizes handoff comments, ClickUp status/assignee changes, Jira comments, and optional Slack notifications through bounded delivery keys.
+
+### Review boundaries (#61)
+
+`knowledge-runtime.ts` owns knowledge-store/index composition, access context, telemetry, and their IPC registration. `mcp-runtime.ts` adapts current operational evidence and approved commands to the MCP gateways. Index callbacks read the active index instance after reconfiguration. Current-job resources retain their actual observation timestamp. Action verification requires a new monitoring snapshot; a cached status, failed read, or simulated command cannot establish recovery.
+
+The optional `IBM_EYE_USER_DATA_DIR` is created and applied before stores and runtimes are constructed, keeping their files under the same application-data root. Explicit Quit stops scheduled monitoring and waits up to two seconds for queued telemetry writes. Repeated quit requests share that wait; a failed or stalled disk write cannot keep the app open indefinitely. Closing a window preserves the existing background-collection behavior.
+
+`public/job-task/actions.js` owns job operations, runbooks, and MCP previews; `resolution-memory.js` owns draft review. The task entry coordinates requests and current evidence. Conflicting actions stay disabled until refresh completes, older responses cannot replace newer state, and editing MCP input invalidates the previous preview. Failed requests restore controls and preserve useful retry feedback. Workflow updates rely on main-process ticket synchronization rather than creating a second ClickUp request in the renderer.
+
+The sandboxed preload keeps its runtime code in one file and exposes only fixed channels. Its extracted contracts use type-only imports, which are erased during compilation; they introduce no unsupported sandbox `require()` calls. Subscription helpers deliver the payload without exposing Electron events.
+
+Telemetry captures customer/system scope and event time when a request starts. One queue orders loading, reads, writes, exports, retention changes, and purges. Stored settings cannot override newer application preferences. Failed writes appear as degraded health and remain retryable. Knowledge and telemetry exports recheck the same identity and current permissions after file selection and before writing; knowledge export also applies record-level visibility. External links accept absolute HTTP(S) and mailto destinations and reject local/executable schemes and embedded credentials.
+
+Storage purges knowledge first, then telemetry. The first result carries the captured customer, system, operator, and identity; the telemetry handler checks that context and current permission before scheduling deletion. If the context changes, the second purge is rejected and the UI reports the completed first deletion. Cancellation preserves the unsaved retention input.
 
 ## Minimal ActionBoard workspace (UI-02 / #58)
 
